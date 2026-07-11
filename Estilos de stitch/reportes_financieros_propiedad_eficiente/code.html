@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PropManage Pro - Reportes Financieros</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#121c2a",
+                      "secondary-container": "#7cf994",
+                      "surface-variant": "#d9e3f6",
+                      "on-secondary-fixed-variant": "#005320",
+                      "outline-variant": "#d1c6ab",
+                      "surface-tint": "#735c00",
+                      "on-primary-fixed": "#231b00",
+                      "surface-container-low": "#eff4ff",
+                      "on-tertiary-fixed-variant": "#003ea8",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#c2cfff",
+                      "on-background": "#121c2a",
+                      "on-primary-container": "#6c5700",
+                      "on-tertiary-fixed": "#00174b",
+                      "secondary": "#006e2d",
+                      "surface": "#f8f9ff",
+                      "inverse-surface": "#27313f",
+                      "surface-container-highest": "#d9e3f6",
+                      "on-error": "#ffffff",
+                      "tertiary": "#0053db",
+                      "background": "#f8f9ff",
+                      "secondary-fixed-dim": "#62df7d",
+                      "error": "#ba1a1a",
+                      "surface-container": "#e6eeff",
+                      "surface-container-high": "#dee9fc",
+                      "on-tertiary-container": "#004ecf",
+                      "on-secondary-container": "#007230",
+                      "error-container": "#ffdad6",
+                      "primary": "#735c00",
+                      "on-primary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#574500",
+                      "primary-container": "#facc15",
+                      "tertiary-fixed": "#dbe1ff",
+                      "surface-dim": "#d0dbed",
+                      "inverse-on-surface": "#eaf1ff",
+                      "inverse-primary": "#eec200",
+                      "surface-bright": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "primary-fixed": "#ffe083",
+                      "on-surface-variant": "#4d4632",
+                      "outline": "#7f7660",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed-dim": "#eec200",
+                      "secondary-fixed": "#7ffc97",
+                      "on-secondary-fixed": "#002109",
+                      "tertiary-fixed-dim": "#b4c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "sm": "8px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "margin-mobile": "16px",
+                      "gutter": "20px",
+                      "base": "4px",
+                      "margin-desktop": "40px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen">
+<!-- SideNavBar -->
+<nav class="hidden md:flex h-screen w-64 flex-col bg-surface-container-lowest dark:bg-inverse-surface border-r border-outline-variant dark:border-outline fixed left-0 top-0 overflow-y-auto z-50">
+<div class="p-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface">PropManage Pro</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Enterprise Edition</p>
+</div>
+<div class="px-md mb-lg">
+<button class="w-full bg-primary-container text-[#1F2937] font-label-md text-label-md rounded-lg py-sm px-md flex items-center justify-center gap-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                Nuevo Contrato
+            </button>
+</div>
+<ul class="flex flex-col gap-xs px-sm flex-1">
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Tenants</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md bg-primary-container text-on-primary-container font-bold rounded-xl px-md py-sm hover:bg-surface-container-high transition-colors duration-200 scale-[0.98]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+</li>
+</ul>
+<div class="p-sm border-t border-outline-variant mt-auto">
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center h-16 px-margin-desktop w-full bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline sticky top-0 z-40">
+<div class="flex items-center md:hidden">
+<h1 class="font-headline-md text-headline-md font-black text-on-surface dark:text-inverse-on-surface">PropManage Pro</h1>
+</div>
+<div class="hidden md:flex flex-1">
+<!-- Top nav space for desktop if needed, left blank to push actions right -->
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-all p-2 rounded-full focus-within:ring-2 focus-within:ring-primary-container">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all p-2 rounded-full focus-within:ring-2 focus-within:ring-primary-container">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop bg-background">
+<div class="max-w-7xl mx-auto space-y-lg">
+<header class="mb-lg">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Reportes Financieros</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Visión general del rendimiento financiero y estado de cobranza.</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+<!-- Line Chart Card (Spans 2 columns on desktop) -->
+<div class="md:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-label-md text-label-md text-on-surface">Tendencias de Ingresos (Últimos 6 Meses)</h3>
+<button class="text-on-surface-variant p-1 rounded hover:bg-surface-container-high transition">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="relative h-64 w-full">
+<canvas id="incomeLineChart"></canvas>
+</div>
+</div>
+<!-- Pie Chart Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-label-md text-label-md text-on-surface">Estado de Cobranza (Mes Actual)</h3>
+<button class="text-on-surface-variant p-1 rounded hover:bg-surface-container-high transition">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="relative flex-1 flex justify-center items-center min-h-[200px]">
+<canvas id="collectionPieChart"></canvas>
+</div>
+<div class="mt-4 flex flex-col gap-2">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#16A34A]"></span><span class="text-on-surface-variant">Pagado</span></div>
+<span class="font-medium text-on-surface">65%</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#FACC15]"></span><span class="text-on-surface-variant">Pendiente</span></div>
+<span class="font-medium text-on-surface">25%</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#EF4444]"></span><span class="text-on-surface-variant">Atrasado</span></div>
+<span class="font-medium text-on-surface">10%</span>
+</div>
+</div>
+</div>
+<!-- Monthly Summary Table (Spans full width) -->
+<div class="md:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h3 class="font-label-md text-label-md text-on-surface">Resumen Mensual (Año en Curso)</h3>
+<button class="flex items-center gap-1 text-primary font-label-sm text-label-sm hover:underline">
+<span class="material-symbols-outlined text-[16px]">download</span>
+                                Exportar
+                            </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F3F4F6] border-b border-outline-variant">
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant pl-md">Mes</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant text-right">Ingresos Totales</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant text-right">Gastos</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant text-right pr-md">Beneficio Neto</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md text-on-surface">Agosto</td>
+<td class="p-sm text-right text-on-surface tabular-nums">$42,500.00</td>
+<td class="p-sm text-right text-on-surface-variant tabular-nums">$12,300.00</td>
+<td class="p-sm text-right text-[#16A34A] font-medium tabular-nums pr-md">$30,200.00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md text-on-surface">Julio</td>
+<td class="p-sm text-right text-on-surface tabular-nums">$41,000.00</td>
+<td class="p-sm text-right text-on-surface-variant tabular-nums">$15,100.00</td>
+<td class="p-sm text-right text-[#16A34A] font-medium tabular-nums pr-md">$25,900.00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md text-on-surface">Junio</td>
+<td class="p-sm text-right text-on-surface tabular-nums">$43,200.00</td>
+<td class="p-sm text-right text-on-surface-variant tabular-nums">$11,800.00</td>
+<td class="p-sm text-right text-[#16A34A] font-medium tabular-nums pr-md">$31,400.00</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md text-on-surface">Mayo</td>
+<td class="p-sm text-right text-on-surface tabular-nums">$39,800.00</td>
+<td class="p-sm text-right text-on-surface-variant tabular-nums">$14,500.00</td>
+<td class="p-sm text-right text-[#16A34A] font-medium tabular-nums pr-md">$25,300.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Chart.js Initialization -->
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Colors from style guidance
+            const colorPrimaryYellow = '#FACC15'; // Alert/Warning/Pending
+            const colorSuccessGreen = '#16A34A'; // Good/Income/Paid
+            const colorErrorRed = '#EF4444'; // Overdue
+            const colorNeutralGray = '#E5E7EB'; // Secondary/Expenses
+
+            // Line Chart: Income Trends
+            const ctxLine = document.getElementById('incomeLineChart').getContext('2d');
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'],
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: [38000, 40500, 39800, 43200, 41000, 42500],
+                            borderColor: colorSuccessGreen,
+                            backgroundColor: colorSuccessGreen + '20', // 20% opacity
+                            borderWidth: 2,
+                            pointBackgroundColor: colorSuccessGreen,
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Gastos',
+                            data: [13000, 12500, 14500, 11800, 15100, 12300],
+                            borderColor: '#9CA3AF', // Gray-400
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#9CA3AF',
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 6,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#F3F4F6'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                },
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                }
+                            },
+                            border: { display: false }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                }
+                            },
+                            border: { display: false }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                }
+            });
+
+            // Pie Chart: Collection Status
+            const ctxPie = document.getElementById('collectionPieChart').getContext('2d');
+            new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pagado', 'Pendiente', 'Atrasado'],
+                    datasets: [{
+                        data: [65, 25, 10],
+                        backgroundColor: [
+                            colorSuccessGreen,
+                            colorPrimaryYellow,
+                            colorErrorRed
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false // Using custom legend in HTML
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body></html>

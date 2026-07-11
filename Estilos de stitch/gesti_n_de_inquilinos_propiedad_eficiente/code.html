@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tenant Management - PropManage Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#121c2a",
+                      "secondary-container": "#7cf994",
+                      "surface-variant": "#d9e3f6",
+                      "on-secondary-fixed-variant": "#005320",
+                      "outline-variant": "#d1c6ab",
+                      "surface-tint": "#735c00",
+                      "on-primary-fixed": "#231b00",
+                      "surface-container-low": "#eff4ff",
+                      "on-tertiary-fixed-variant": "#003ea8",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#c2cfff",
+                      "on-background": "#121c2a",
+                      "on-primary-container": "#6c5700",
+                      "on-tertiary-fixed": "#00174b",
+                      "secondary": "#006e2d",
+                      "surface": "#f8f9ff",
+                      "inverse-surface": "#27313f",
+                      "surface-container-highest": "#d9e3f6",
+                      "on-error": "#ffffff",
+                      "tertiary": "#0053db",
+                      "background": "#f8f9ff",
+                      "secondary-fixed-dim": "#62df7d",
+                      "error": "#ba1a1a",
+                      "surface-container": "#e6eeff",
+                      "surface-container-high": "#dee9fc",
+                      "on-tertiary-container": "#004ecf",
+                      "on-secondary-container": "#007230",
+                      "error-container": "#ffdad6",
+                      "primary": "#735c00",
+                      "on-primary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#574500",
+                      "primary-container": "#facc15",
+                      "tertiary-fixed": "#dbe1ff",
+                      "surface-dim": "#d0dbed",
+                      "inverse-on-surface": "#eaf1ff",
+                      "inverse-primary": "#eec200",
+                      "surface-bright": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "primary-fixed": "#ffe083",
+                      "on-surface-variant": "#4d4632",
+                      "outline": "#7f7660",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed-dim": "#eec200",
+                      "secondary-fixed": "#7ffc97",
+                      "on-secondary-fixed": "#002109",
+                      "tertiary-fixed-dim": "#b4c5ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "sm": "8px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "margin-mobile": "16px",
+                      "gutter": "20px",
+                      "base": "4px",
+                      "margin-desktop": "40px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+      </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col fixed left-0 top-0 h-full overflow-y-auto w-64 bg-surface-container-lowest border-r border-outline-variant z-50">
+<div class="p-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface mb-xs">PropManage Pro</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Enterprise Edition</p>
+</div>
+<div class="px-md mb-lg">
+<button class="w-full bg-primary-container text-[#1F2937] font-label-md text-label-md py-sm px-md rounded-lg hover:bg-[#FDE047] transition-colors flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Nuevo Contrato
+            </button>
+</div>
+<div class="flex-1 px-sm space-y-xs">
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md bg-primary-container text-on-primary-container font-bold rounded-xl px-md py-sm scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="group" data-weight="fill" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md">Tenants</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+</div>
+<div class="p-sm mt-auto border-t border-outline-variant">
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm rounded-xl hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<div class="mt-md px-md pb-md flex items-center gap-sm">
+<img alt="Property Manager Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A professional headshot of a property manager wearing a modern suit, well-lit in an office environment. Bright, modern corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdf4T9IlDM65uZMlG3jDUr1-art7zM1oRfNO9IkMfzpUQN4vAE_FoCOkHj0aUfuAGoDzqQy_Fu8gVyfHXUVaW54J8RpNmgYFE-uu3ow0FMGudOENto72F7vESl8_mytqkk_hwsUO_dGh7SevI-i8iLML_VM5J63RcLdk3NbwCE4riNDLex8sjgpa2y1cxA0c0SE0UUVzPF2Ws_JcEl-KVjGMj6ULgu7KZoBB2FFm_a8MmIqm29kiQkPdRC2jnglcTKsooWtvsz1CI"/>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface">Ana Silva</span>
+<span class="text-[10px] text-on-surface-variant">Manager</span>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="hidden md:flex justify-between items-center h-16 px-margin-desktop w-full bg-surface border-b border-outline-variant sticky top-0 z-40">
+<div class="flex-1">
+<!-- Empty for alignment -->
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-all p-2 rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all p-2 rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop w-full max-w-7xl mx-auto">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-xl gap-md">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Inquilinos</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Gestione la información y el estado de pagos de sus inquilinos.</p>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-md w-full md:w-auto">
+<div class="relative w-full sm:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-[#E5E7EB] rounded-lg font-body-sm text-body-sm focus:outline-none focus:border-[#1F2937] focus:ring-1 focus:ring-[#facc15] transition-all" placeholder="Buscar inquilino o propiedad..." type="text"/>
+</div>
+<button class="w-full sm:w-auto bg-[#FACC15] text-[#1F2937] font-label-md text-label-md py-2 px-lg rounded-lg hover:bg-[#FDE047] transition-colors whitespace-nowrap shadow-sm">
+                        Agregar Inquilino
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Stats (Optional but good for premium feel) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-lg">
+<div class="bg-surface-container-lowest border border-[#E5E7EB] rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Inquilinos</p>
+<p class="font-headline-md text-headline-md text-on-surface mt-xs">142</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">group</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-[#E5E7EB] rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Tasa de Ocupación</p>
+<p class="font-headline-md text-headline-md text-on-surface mt-xs">94%</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-700">
+<span class="material-symbols-outlined">real_estate_agent</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-[#E5E7EB] rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Pagos Pendientes</p>
+<p class="font-headline-md text-headline-md text-on-surface mt-xs text-error">12</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-700">
+<span class="material-symbols-outlined">warning</span>
+</div>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface-container-lowest border border-[#E5E7EB] rounded-xl overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)]">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F3F4F6] border-b border-[#E5E7EB]">
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap">Nombre</th>
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap">Propiedad / Unidad</th>
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap text-right">Renta Mensual</th>
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap text-right">Fecha Límite</th>
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap text-center">Estado</th>
+<th class="font-label-sm text-label-sm text-on-surface px-md py-sm font-semibold uppercase tracking-wider whitespace-nowrap text-right">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#E5E7EB]">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-md py-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center font-label-sm text-[#1F2937] font-bold">
+                                            CM
+                                        </div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Carlos Mendoza</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">carlos.m@email.com</span>
+</div>
+</div>
+</td>
+<td class="px-md py-sm">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface">Edificio Central</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">Apt 4B</span>
+</div>
+</td>
+<td class="px-md py-sm font-body-sm text-body-sm text-on-surface text-right font-medium tabular-nums">
+                                    $1,250.00
+                                </td>
+<td class="px-md py-sm font-body-sm text-body-sm text-on-surface text-right tabular-nums">
+                                    05 Nov 2023
+                                </td>
+<td class="px-md py-sm text-center">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-green-100 text-green-800 tracking-wide">
+                                        Pagado
+                                    </span>
+</td>
+<td class="px-md py-sm text-right">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-md py-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-on-surface font-bold">
+                                            LR
+                                        </div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Laura Ramírez</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">l.ramirez@email.com</span>
+</div>
+</div>
+</td>
+<td class="px-md py-sm">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface">Residencial Norte</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">Casa 12</span>
+</div>
+</td>
+<td class="px-md py-sm font-body-sm text-body-sm text-on-surface text-right font-medium tabular-nums">
+                                    $850.00
+                                </td>
+<td class="px-md py-sm font-body-sm text-body-sm text-on-surface text-right tabular-nums">
+                                    10 Nov 2023
+                                </td>
+<td class="px-md py-sm text-center">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-yellow-100 text-yellow-800 tracking-wide">
+                                        Pendiente
+                                    </span>
+</td>
+<td class="px-md py-sm text-right">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-md py-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-on-surface font-bold">
+                                            JG
+                                        </div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Javier Gómez</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">jgomez88@email.com</span>
+</div>
+</div>
+</td>
+<td class="px-md py-sm">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface">Torre Vista</span>
+<span class="font-body-sm text-[12px] text-on-surface-variant">Apt 1102</span>
+</div>
+</td>
+<td class="px-md py-sm font-body-sm text-body-sm text-on-surface text-right font-medium tabular-nums">
+                                    $1,800.00
+                                </td>
+<td class="px-md py-sm font-body-sm text-body-sm text-error text-right tabular-nums">
+                                    01 Nov 2023
+                                </td>
+<td class="px-md py-sm text-center">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-red-100 text-red-800 tracking-wide">
+                                        Atrasado
+                                    </span>
+</td>
+<td class="px-md py-sm text-right">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-md py-sm border-t border-[#E5E7EB] bg-surface-container-lowest flex items-center justify-between">
+<span class="font-body-sm text-sm text-on-surface-variant">Mostrando 1 - 10 de 142 inquilinos</span>
+<div class="flex items-center gap-2">
+<button class="p-1 text-on-surface-variant hover:bg-surface-container-low rounded disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="p-1 text-on-surface-variant hover:bg-surface-container-low rounded">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

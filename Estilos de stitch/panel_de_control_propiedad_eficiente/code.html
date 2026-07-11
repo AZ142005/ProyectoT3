@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PropManage Pro - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#121c2a",
+                        "secondary-container": "#7cf994",
+                        "surface-variant": "#d9e3f6",
+                        "on-secondary-fixed-variant": "#005320",
+                        "outline-variant": "#d1c6ab",
+                        "surface-tint": "#735c00",
+                        "on-primary-fixed": "#231b00",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#c2cfff",
+                        "on-background": "#121c2a",
+                        "on-primary-container": "#6c5700",
+                        "on-tertiary-fixed": "#00174b",
+                        "secondary": "#006e2d",
+                        "surface": "#f8f9ff",
+                        "inverse-surface": "#27313f",
+                        "surface-container-highest": "#d9e3f6",
+                        "on-error": "#ffffff",
+                        "tertiary": "#0053db",
+                        "background": "#f8f9ff",
+                        "secondary-fixed-dim": "#62df7d",
+                        "error": "#ba1a1a",
+                        "surface-container": "#e6eeff",
+                        "surface-container-high": "#dee9fc",
+                        "on-tertiary-container": "#004ecf",
+                        "on-secondary-container": "#007230",
+                        "error-container": "#ffdad6",
+                        "primary": "#735c00",
+                        "on-primary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#574500",
+                        "primary-container": "#facc15",
+                        "tertiary-fixed": "#dbe1ff",
+                        "surface-dim": "#d0dbed",
+                        "inverse-on-surface": "#eaf1ff",
+                        "inverse-primary": "#eec200",
+                        "surface-bright": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#ffe083",
+                        "on-surface-variant": "#4d4632",
+                        "outline": "#7f7660",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#eec200",
+                        "secondary-fixed": "#7ffc97",
+                        "on-secondary-fixed": "#002109",
+                        "tertiary-fixed-dim": "#b4c5ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "gutter": "20px",
+                        "base": "4px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #F8F9FF; }
+    </style>
+</head>
+<body class="font-body-md text-on-surface bg-background flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="hidden md:flex h-screen w-64 flex-col bg-surface-container-lowest dark:bg-inverse-surface border-r border-outline-variant dark:border-outline fixed left-0 top-0 overflow-y-auto z-20">
+<div class="p-md border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="apartment">apartment</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface leading-tight">PropManage Pro</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Enterprise Edition</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 p-md flex flex-col gap-sm">
+<a class="flex items-center gap-md bg-primary-container text-on-primary-container font-bold rounded-xl px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98] rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">Tenants</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98] rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98] rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+</nav>
+<div class="p-md mt-auto">
+<button class="w-full bg-primary-container text-[#1F2937] font-label-md text-label-md font-bold py-sm px-md rounded-lg flex items-center justify-center gap-sm hover:bg-yellow-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Nuevo Contrato
+            </button>
+</div>
+<div class="border-t border-outline-variant dark:border-outline p-md flex flex-col gap-sm">
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98] rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md text-on-surface-variant hover:text-on-surface px-md py-sm hover:bg-surface-container-high transition-colors duration-200 active:scale-[0.98] rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="hidden md:flex justify-between items-center h-16 px-margin-desktop bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline sticky top-0 z-10">
+<div class="flex items-center gap-md text-on-surface-variant">
+<span class="material-symbols-outlined text-primary font-bold" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 font-label-md text-label-md w-64 placeholder-on-surface-variant" placeholder="Buscar inquilinos, propiedades..." type="text"/>
+</div>
+<div class="flex items-center gap-lg">
+<button class="text-on-surface-variant hover:text-primary transition-all relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="flex items-center gap-sm cursor-pointer hover:bg-surface-container-high p-xs rounded-lg transition-colors">
+<img alt="Profile avatar" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A professional headshot of a mature businessman with short salt-and-pepper hair, wearing a dark blue suit jacket and white open-collar shirt. The lighting is soft and corporate, set against a blurred office background to convey a sense of trust and authority in a modern professional setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUQfrtpMKduKkmGsWUehlSfB825uYTaPt3bQiM0wUntj4v4Tuiv4HPO3Za2QwlWeJzp3ltN7ywcyBlxYCglkY5upjVW5nN4oBmkHpyhisMPOwVQskxzU92W_wUVUem3ynQ0BI20hpIITXJHcAtfMXyBC5yXcBkaZCycHheNwMpUmeT4XjSE2rEhDqtx9xuHokJ9oDtZuXWkircDDQ6x7KnMMqs1pSfdhjiL81Ip_p5PmtplOlp7_Fv_M8B3KSe8YaOrr0Efq7-ViQ"/>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="account_circle" style="display:none;">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Mobile Header -->
+<header class="md:hidden flex justify-between items-center h-16 px-margin-mobile bg-surface border-b border-outline-variant sticky top-0 z-10">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">Dashboard</h1>
+<button class="text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+</header>
+<!-- Dashboard Canvas -->
+<div class="p-margin-mobile md:p-margin-desktop flex flex-col gap-lg max-w-7xl mx-auto w-full">
+<!-- Welcome Row -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md">
+<div>
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg font-bold text-on-surface">Resumen General</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gestión financiera y estado de propiedades al día de hoy.</p>
+</div>
+<div class="flex gap-sm">
+<button class="border border-outline-variant text-[#1F2937] font-label-md text-label-md px-md py-sm rounded-lg hover:bg-surface-container-high transition-colors bg-surface-container-lowest">
+                        Descargar Reporte
+                    </button>
+<button class="bg-primary-container text-[#1F2937] font-label-md text-label-md font-bold px-md py-sm rounded-lg hover:bg-yellow-500 transition-colors shadow-sm">
+                        Registrar Pago
+                    </button>
+</div>
+</div>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
+<!-- Metric 1: Total Collected -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary-container opacity-20 rounded-full blur-xl"></div>
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Recaudado este mes</span>
+<div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface font-bold">
+                        $42,500
+                    </div>
+<div class="flex items-center gap-xs text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="trending_up">trending_up</span>
+<span>+12.5% vs mes anterior</span>
+</div>
+</div>
+<!-- Metric 2: Pending Payments -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-container opacity-20 rounded-full blur-xl"></div>
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Pagos Pendientes</span>
+<div class="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-[18px]" data-icon="pending_actions">pending_actions</span>
+</div>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface font-bold">
+                        $8,200
+                    </div>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span>
+<span>14 inquilinos por pagar</span>
+</div>
+</div>
+<!-- Metric 3: Overdue -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-error-container opacity-20 rounded-full blur-xl"></div>
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Vencidos</span>
+<div class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[18px]" data-icon="warning">warning</span>
+</div>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface font-bold text-error">
+                        $3,450
+                    </div>
+<div class="flex items-center gap-xs text-error font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="priority_high">priority_high</span>
+<span>Requiere atención inmediata</span>
+</div>
+</div>
+<!-- Metric 4: Active Tenants -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-container opacity-20 rounded-full blur-xl"></div>
+<div class="flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Inquilinos Activos</span>
+<div class="w-8 h-8 rounded-full bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]" data-icon="group">group</span>
+</div>
+</div>
+<div class="font-display-lg text-display-lg text-on-surface font-bold">
+                        128
+                    </div>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+<span>98% ocupación</span>
+</div>
+</div>
+</div>
+<!-- Two Column Layout: Activity & Alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Recent Activity Table (Span 2) -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm flex flex-col overflow-hidden">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h3 class="font-headline-md text-headline-md font-semibold text-on-surface">Actividad Reciente</h3>
+<a class="font-label-sm text-label-sm text-tertiary hover:underline" href="#">Ver todo</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#F3F4F6] border-b border-outline-variant">
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant pl-md">Inquilino / Propiedad</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant">Fecha</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant text-right">Monto</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant pr-md">Estado</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant hover:bg-surface-container-highest/20 transition-colors">
+<td class="p-sm pl-md">
+<div class="font-label-md text-label-md text-on-surface">Carlos Mendoza</div>
+<div class="text-on-surface-variant text-xs">Apto 4B - Torre Norte</div>
+</td>
+<td class="p-sm text-on-surface-variant">12 Oct 2023</td>
+<td class="p-sm text-right font-medium text-on-surface tabular-nums">$1,200.00</td>
+<td class="p-sm pr-md">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 font-label-sm text-[10px]">Pagado</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-highest/20 transition-colors">
+<td class="p-sm pl-md">
+<div class="font-label-md text-label-md text-on-surface">Elena Rojas</div>
+<div class="text-on-surface-variant text-xs">Casa 12 - Residencial Los Pinos</div>
+</td>
+<td class="p-sm text-on-surface-variant">11 Oct 2023</td>
+<td class="p-sm text-right font-medium text-on-surface tabular-nums">$2,500.00</td>
+<td class="p-sm pr-md">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 font-label-sm text-[10px]">Pagado</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-highest/20 transition-colors">
+<td class="p-sm pl-md">
+<div class="font-label-md text-label-md text-on-surface">Grupo Inversor S.A.</div>
+<div class="text-on-surface-variant text-xs">Local 3 - Plaza Central</div>
+</td>
+<td class="p-sm text-on-surface-variant">10 Oct 2023</td>
+<td class="p-sm text-right font-medium text-on-surface tabular-nums">$4,800.00</td>
+<td class="p-sm pr-md">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-label-sm text-[10px]">Pendiente</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-highest/20 transition-colors">
+<td class="p-sm pl-md">
+<div class="font-label-md text-label-md text-on-surface">Roberto Silva</div>
+<div class="text-on-surface-variant text-xs">Apto 1A - Edificio Sol</div>
+</td>
+<td class="p-sm text-on-surface-variant">08 Oct 2023</td>
+<td class="p-sm text-right font-medium text-on-surface tabular-nums">$950.00</td>
+<td class="p-sm pr-md">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 font-label-sm text-[10px]">Pagado</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Alerts Section -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm flex flex-col overflow-hidden">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-error-container/10">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-error" data-icon="notifications_active">notifications_active</span>
+<h3 class="font-headline-md text-headline-md font-semibold text-on-surface">Alertas</h3>
+</div>
+<span class="bg-error text-on-error font-label-sm text-[10px] px-2 py-1 rounded-full">3 Críticas</span>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<!-- Alert Item 1 -->
+<div class="p-sm border border-error-container rounded-lg bg-error-container/5 flex gap-sm items-start">
+<div class="mt-1">
+<span class="material-symbols-outlined text-error text-[18px]" data-icon="error">error</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-on-surface">Atraso Crítico: Apto 7C</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">María Fernández tiene 15 días de atraso en el pago de renta ($1,100).</p>
+<button class="mt-2 text-error font-label-sm text-label-sm hover:underline flex items-center gap-xs">
+                                    Enviar recordatorio
+                                    <span class="material-symbols-outlined text-[14px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Alert Item 2 -->
+<div class="p-sm border border-error-container rounded-lg bg-error-container/5 flex gap-sm items-start">
+<div class="mt-1">
+<span class="material-symbols-outlined text-error text-[18px]" data-icon="error">error</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-on-surface">Atraso: Local Comercial 2</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">TechStore LLC no ha registrado pago del mantenimiento ($350).</p>
+<button class="mt-2 text-error font-label-sm text-label-sm hover:underline flex items-center gap-xs">
+                                    Contactar inquilino
+                                    <span class="material-symbols-outlined text-[14px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Alert Item 3 -->
+<div class="p-sm border border-yellow-200 rounded-lg bg-yellow-50 flex gap-sm items-start">
+<div class="mt-1">
+<span class="material-symbols-outlined text-yellow-600 text-[18px]" data-icon="contract">contract</span>
+</div>
+<div class="flex-1">
+<h4 class="font-label-md text-label-md text-on-surface">Contrato por Vencer</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">El contrato de Apto 2B vence en 30 días.</p>
+<button class="mt-2 text-yellow-700 font-label-sm text-label-sm hover:underline flex items-center gap-xs">
+                                    Revisar renovación
+                                    <span class="material-symbols-outlined text-[14px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
