@@ -5,10 +5,16 @@
             <h2 class="text-2xl font-bold">Enviar Comprobante</h2>
             <p class="text-sm opacity-90 mt-1"><?= e($residente['nombre'] . ' ' . $residente['apellido']) ?> - Unidad <?= e($residente['unidad_numero'] ?? 'N/A') ?></p>
         </div>
-        <a href="/residente/dashboard" class="bg-white/15 hover:bg-white/25 border border-white/20 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-transform active:scale-95 flex items-center gap-1">
-            <span class="material-symbols-outlined text-[16px]">dashboard</span>
-            Volver al Panel
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="/residente/dashboard" class="bg-white/15 hover:bg-white/25 border border-white/20 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">dashboard</span>
+                Volver al Panel
+            </a>
+            <a href="/logout" class="bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">logout</span>
+                Salir
+            </a>
+        </div>
     </div>
 
     <!-- Mensajes de Alerta -->

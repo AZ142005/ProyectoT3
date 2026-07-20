@@ -40,7 +40,38 @@ $route = '/' . ltrim($route, '/');
 \App\Core\Security::validateCSRF();
 
 // Enrutador principal de la aplicación (Front Controller)
+if (preg_match('#^/pagos/detalle/(\d+)$#', $route, $matches)) {
+    $controller = new \App\Controllers\PagoController();
+    $controller->detalle($matches[1]);
+    exit;
+}
+
 switch ($route) {
+    // --- Módulo de Pagos ---
+    case '/pagos':
+        $controller = new \App\Controllers\PagoController();
+        $controller->listar();
+        break;
+
+    case '/pagos/nuevo':
+        $controller = new \App\Controllers\PagoController();
+        $controller->nuevo();
+        break;
+
+    case '/pagos/subir':
+        $controller = new \App\Controllers\PagoController();
+        $controller->subir();
+        break;
+
+    case '/pagos/extraer':
+        $controller = new \App\Controllers\PagoController();
+        $controller->extraer();
+        break;
+
+    case '/pagos/cambiar-estado':
+        $controller = new \App\Controllers\PagoController();
+        $controller->cambiarEstado();
+        break;
     // --- Autenticación Unificada ---
     case '/':
     case '/login':

@@ -1,6 +1,6 @@
 <div class="flex flex-1 min-h-screen w-full">
     <!-- Sidebar Administrativa -->
-    <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:relative -translate-x-full md:translate-x-0 z-30 h-full min-h-screen">
+    <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
             <span class="material-symbols-outlined text-primary-container text-3xl">domain</span>
             <div>
@@ -25,6 +25,10 @@
             <a href="/admin/facturas/generar" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
                 <span class="material-symbols-outlined">receipt_long</span>
                 Generar Facturas
+            </a>
+            <a href="/admin/estructura" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+                <span class="material-symbols-outlined">domain</span>
+                Estructura
             </a>
         </nav>
 

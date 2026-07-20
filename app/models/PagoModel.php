@@ -1,0 +1,201 @@
+<?php
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+
+class PagoModel {
+    /**
+     * Guarda el comprobante en public/uploads/ e inserta en la tabla pagos con estado PENDIENTE.
+     *
+     * @param int $residenteId
+     * @param int $unidadId
+     * @param array $datos
+     * @param array|string $archivo Si es array es $_FILES['comprobante'], si es string es el nombre de archivo ya guardado.
+     * @return bool
+     */
+    public function crearPago($residenteId, $unidadId, $datos, $archivo) {
+        $filename = '';
+        if (is_array($archivo) && isset($archivo['tmp_name'])) {
+            $filename = uniqid() . '_' . basename($archivo['name']);
+            $destDir = BASE_PATH . '/public/uploads';
+            if (!file_exists($destDir)) {
+                mkdir($destDir, 0777, true);
+            }
+            if (!move_uploaded_file($archivo['tmp_name'], $destDir . '/' . $filename)) {
+                return false;
+            }
+        } else if (is_string($archivo)) {
+            $filename = $archivo;
+        }
+
+        $db = Database::getConnection();
+        $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
+                VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
+        
+        $stmt = $db->prepare($sql);
+        return $stmt->execute([
+            'residente_id'  => $residenteId,
+            'unidad_id'     => $unidadId,
+            'monto'         => floatval($datos['monto']),
+            'fecha_pago'    => $datos['fecha_pago'],
+            'metodo_pago'   => $datos['metodo_pago'] ?? '',
+            'referencia'    => !empty($datos['referencia']) ? trim($datos['referencia']) : null,
+            'archivo'       => $filename,
+            'observaciones' => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
+            'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
+            'banco_receptor'=> !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null
+        ]);
+    }
+
+    /**
+     * Lista los pagos del residente autenticado, con JOIN a edificios y unidades.
+     *
+     * @param int $residenteId
+     * @return array
+     */
+    public function obtenerPagosPorResidente($residenteId) {
+        $db = Database::getConnection();
+        $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre
+                FROM pagos p
+                INNER JOIN unidades u ON p.unidad_id = u.id
+                LEFT JOIN edificios e ON u.edificio_id = e.id
+                WHERE p.residente_id = :residente_id
+                ORDER BY p.fecha_registro DESC";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['residente_id' => $residenteId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Para el admin, con filtros por estado, edificio, fecha.
+     *
+     * @param array $filtros
+     * @return array
+     */
+    public function obtenerTodosPagos($filtros = []) {
+        $db = Database::getConnection();
+        $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
+                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre
+                FROM pagos p
+                INNER JOIN unidades u ON p.unidad_id = u.id
+                LEFT JOIN edificios e ON u.edificio_id = e.id
+                INNER JOIN personas per ON p.residente_id = per.id
+                WHERE 1=1";
+        
+        $params = [];
+        if (!empty($filtros['estado'])) {
+            $sql .= " AND p.estado = :estado";
+            $params['estado'] = $filtros['estado'];
+        }
+        if (!empty($filtros['edificio'])) {
+            $sql .= " AND u.edificio_id = :edificio";
+            $params['edificio'] = intval($filtros['edificio']);
+        }
+        if (!empty($filtros['fecha'])) {
+            $sql .= " AND p.fecha_pago = :fecha";
+            $params['fecha'] = $filtros['fecha'];
+        }
+        
+        $sql .= " ORDER BY p.fecha_registro DESC";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Detalle de un pago con su historial de auditoría.
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function obtenerPagoPorId($id) {
+        $db = Database::getConnection();
+        $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
+                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
+                FROM pagos p
+                INNER JOIN unidades u ON p.unidad_id = u.id
+                LEFT JOIN edificios e ON u.edificio_id = e.id
+                INNER JOIN personas per ON p.residente_id = per.id
+                WHERE p.id = :id";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        $pago = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($pago) {
+            $sqlLog = "SELECT l.*, u.nombre_completo AS admin_nombre
+                       FROM log_auditoria l
+                       INNER JOIN usuarios u ON l.admin_id = u.id
+                       WHERE l.pago_id = :pago_id
+                       ORDER BY l.fecha_registro DESC, l.id DESC";
+            
+            $stmtLog = $db->prepare($sqlLog);
+            $stmtLog->execute(['pago_id' => $id]);
+            $pago['log_auditoria'] = $stmtLog->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $pago = false;
+        }
+        
+        return $pago;
+    }
+
+    /**
+     * Dentro de una transacción PDO actualiza el estado del pago y crea un registro en log_auditoria.
+     *
+     * @param int $pagoId
+     * @param string $nuevoEstado
+     * @param string $motivo
+     * @param int $adminId
+     * @return bool
+     */
+    public function cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId) {
+        $db = Database::getConnection();
+        
+        try {
+            $db->beginTransaction();
+            
+            // Obtener el estado anterior con bloqueo de fila
+            $stmtPrev = $db->prepare("SELECT estado FROM pagos WHERE id = :id FOR UPDATE");
+            $stmtPrev->execute(['id' => $pagoId]);
+            $prev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$prev) {
+                $db->rollBack();
+                return false;
+            }
+            
+            $estadoAnterior = $prev['estado'];
+            
+            // Actualizar el estado del pago
+            $stmtUpdate = $db->prepare("UPDATE pagos SET estado = :estado WHERE id = :id");
+            $stmtUpdate->execute([
+                'estado' => $nuevoEstado,
+                'id'     => $pagoId
+            ]);
+            
+            // Crear el registro de auditoría
+            $stmtLog = $db->prepare("
+                INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)
+                VALUES (:pago_id, :admin_id, :estado_anterior, :estado_nuevo, :motivo)
+            ");
+            $stmtLog->execute([
+                'pago_id'         => $pagoId,
+                'admin_id'        => $adminId,
+                'estado_anterior' => $estadoAnterior,
+                'estado_nuevo'    => $nuevoEstado,
+                'motivo'          => !empty($motivo) ? trim($motivo) : null
+            ]);
+            
+            $db->commit();
+            return true;
+            
+        } catch (\Exception $e) {
+            $db->rollBack();
+            error_log("Error al cambiar estado del pago (ID: {$pagoId}): " . $e->getMessage());
+            return false;
+        }
+    }
+}

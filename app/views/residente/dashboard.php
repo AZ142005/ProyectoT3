@@ -1,12 +1,24 @@
 <div class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
-    <!-- Encabezado de Identificación del Residente (Inyectado en la página principal) -->
-    <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md">
-        <h2 class="text-2xl font-bold"><?= e($residente['nombre'] . ' ' . $residente['apellido']) ?></h2>
-        <p class="text-sm opacity-90 mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <span><strong>Unidad:</strong> <?= e($residente['unidad_numero'] ?? 'N/A') ?></span>
-            <span><strong>Torre:</strong> <?= e($residente['torre'] ?? 'N/A') ?></span>
-            <span><strong>Cédula:</strong> <?= e($residente['cedula'] ?? 'N/A') ?></span>
-        </p>
+    <!-- Encabezado de Identificación del Residente -->
+    <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4">
+        <div>
+            <h2 class="text-2xl font-bold"><?= e($residente['nombre'] . ' ' . $residente['apellido']) ?></h2>
+            <p class="text-sm opacity-90 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                <span><strong>Unidad:</strong> <?= e($residente['unidad_numero'] ?? 'N/A') ?></span>
+                <span><strong>Torre:</strong> <?= e($residente['torre'] ?? 'N/A') ?></span>
+                <span><strong>Cédula:</strong> <?= e($residente['cedula'] ?? 'N/A') ?></span>
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/pagos" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">payments</span>
+                Gestionar Pagos (Módulo 3)
+            </a>
+            <a href="/logout" class="bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">logout</span>
+                Salir
+            </a>
+        </div>
     </div>
 
     <!-- Grid de Estadísticas Financieras -->
