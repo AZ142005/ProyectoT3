@@ -1,0 +1,291 @@
+<?php
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+
+class ComprobantesModel {
+    /**
+     * Obtiene los comprobantes de pago recientes de un residente.
+     *
+     * @param int $residente_id
+     * @param int $limit
+     * @return array
+     */
+    public function getRecientesByResidente($residente_id, $limit = 10) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT c.*, f.numero_factura 
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            WHERE c.residente_id = :residente_id
+            ORDER BY c.fecha_envio DESC
+            LIMIT :limit
+        ";
+        
+        $stmt = $db->prepare($sql);
+        // Usamos bindValue para pasar el límite como entero
+        $stmt->bindValue(':residente_id', $residente_id, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Inserta un nuevo comprobante de pago en la base de datos.
+     *
+     * @param array $data
+     * @return bool
+     */
+    public function create($data) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            INSERT INTO comprobantes_pago 
+            (residente_id, factura_id, monto, metodo_pago, referencia, fecha_pago, archivo, observaciones) 
+            VALUES (:residente_id, :factura_id, :monto, :metodo_pago, :referencia, :fecha_pago, :archivo, :observaciones)
+        ";
+        
+        $stmt = $db->prepare($sql);
+        return $stmt->execute([
+            'residente_id'  => $data['residente_id'],
+            'factura_id'    => $data['factura_id'],
+            'monto'         => $data['monto'],
+            'metodo_pago'   => $data['metodo_pago'],
+            'referencia'    => $data['referencia'],
+            'fecha_pago'    => $data['fecha_pago'],
+            'archivo'       => $data['archivo'],
+            'observaciones' => $data['observaciones']
+        ]);
+    }
+
+    /**
+     * Obtiene todos los comprobantes de pago de un residente con detalles de factura.
+     *
+     * @param int $residente_id
+     * @return array
+     */
+    public function getAllByResidente($residente_id) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT c.*, f.numero_factura, f.mes, f.anio
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            WHERE c.residente_id = :residente_id
+            ORDER BY c.fecha_envio DESC
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['residente_id' => $residente_id]);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtiene los comprobantes de pago pendientes de verificación (Administración).
+     *
+     * @param int $limit
+     * @return array
+     */
+    public function getPendientesVerificar($limit = 10) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT 
+                c.*,
+                f.numero_factura,
+                u.numero as unidad,
+                CONCAT(p.nombre, ' ', p.apellido) as residente,
+                p.cedula
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            INNER JOIN unidades u ON f.unidad_id = u.id
+            INNER JOIN personas p ON c.residente_id = p.id
+            WHERE c.estado = 'pendiente'
+            ORDER BY c.fecha_envio DESC
+            LIMIT :limit
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtiene los últimos comprobantes procesados (aprobados o rechazados).
+     *
+     * @param int $limit
+     * @return array
+     */
+    public function getProcesados($limit = 5) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT 
+                c.*,
+                f.numero_factura,
+                CONCAT(p.nombre, ' ', p.apellido) as residente
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            INNER JOIN personas p ON c.residente_id = p.id
+            WHERE c.estado IN ('aprobado', 'rechazado')
+            ORDER BY c.fecha_envio DESC
+            LIMIT :limit
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtiene un comprobante detallado por su ID.
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function getById($id) {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT 
+                c.*,
+                f.numero_factura,
+                f.monto_total,
+                f.saldo,
+                f.factura_id,
+                CONCAT(p.nombre, ' ', p.apellido) as residente,
+                p.cedula,
+                u.numero as unidad
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            INNER JOIN personas p ON c.residente_id = p.id
+            INNER JOIN unidades u ON f.unidad_id = u.id
+            WHERE c.id = :id
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        
+        return $stmt->fetch();
+    }
+
+    /**
+     * Obtiene todos los comprobantes aplicando filtros opcionales.
+     *
+     * @param string $estado
+     * @param string $buscar
+     * @return array
+     */
+    public function getAllFiltered($estado = '', $buscar = '') {
+        $db = Database::getConnection();
+        
+        $sql = "
+            SELECT 
+                c.*,
+                f.numero_factura,
+                u.numero as unidad,
+                CONCAT(p.nombre, ' ', p.apellido) as residente,
+                p.cedula
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            INNER JOIN unidades u ON f.unidad_id = u.id
+            INNER JOIN personas p ON c.residente_id = p.id
+            WHERE 1=1
+        ";
+        
+        $params = [];
+        
+        if (!empty($estado)) {
+            $sql .= " AND c.estado = :estado";
+            $params['estado'] = $estado;
+        }
+        
+        if (!empty($buscar)) {
+            $sql .= " AND (p.nombre LIKE :buscar OR p.apellido LIKE :buscar OR p.cedula LIKE :buscar OR f.numero_factura LIKE :buscar)";
+            $params['buscar'] = '%' . $buscar . '%';
+        }
+        
+        $sql .= " ORDER BY c.fecha_envio DESC";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Aprueba un comprobante y deduce el monto del saldo de la factura.
+     *
+     * @param int $id
+     * @param string $observaciones
+     * @return bool
+     */
+    public function aprobar($id, $observaciones) {
+        $db = Database::getConnection();
+        
+        try {
+            $db->beginTransaction();
+            
+            // Obtener comprobante
+            $comprobante = $this->getById($id);
+            if (!$comprobante || $comprobante['estado'] !== 'pendiente') {
+                $db->rollBack();
+                return false;
+            }
+            
+            $nuevo_saldo = max($comprobante['saldo'] - $comprobante['monto'], 0);
+            
+            // Actualizar saldo de factura
+            $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = monto_pagado + :monto WHERE id = :factura_id");
+            $stmtFactura->execute([
+                'saldo'      => $nuevo_saldo,
+                'monto'      => $comprobante['monto'],
+                'factura_id' => $comprobante['factura_id']
+            ]);
+            
+            if ($nuevo_saldo <= 0) {
+                $stmtEstado = $db->prepare("UPDATE facturas SET estado = 'pagada' WHERE id = :factura_id");
+                $stmtEstado->execute(['factura_id' => $comprobante['factura_id']]);
+            }
+            
+            // Actualizar comprobante
+            $stmtComprobante = $db->prepare("UPDATE comprobantes_pago SET estado = 'aprobado', observaciones = :observaciones WHERE id = :id");
+            $stmtComprobante->execute([
+                'observaciones' => $observaciones,
+                'id'            => $id
+            ]);
+            
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            error_log("Error al aprobar comprobante: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Rechaza un comprobante.
+     *
+     * @param int $id
+     * @param string $observaciones
+     * @return bool
+     */
+    public function rechazar($id, $observaciones) {
+        $db = Database::getConnection();
+        
+        $stmt = $db->prepare("UPDATE comprobantes_pago SET estado = 'rechazado', observaciones = :observaciones WHERE id = :id");
+        return $stmt->execute([
+            'observaciones' => $observaciones,
+            'id'            => $id
+        ]);
+    }
+}

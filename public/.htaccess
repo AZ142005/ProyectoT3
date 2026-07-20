@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Establecer la base si está en un subdirectorio
+    # RewriteBase /ProyectoT3/public/
+
+    # No redirigir si es un archivo o directorio físico que ya existe
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Redirigir todo lo demás al Front Controller (index.php)
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>

@@ -1,0 +1,15 @@
+{
+    "name": "proyectot3/condominio",
+    "description": "Sistema de Cobranzas y Gestión de Pagos de Condominio en MVC",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": [
+            "app/core/helpers.php"
+        ]
+    },
+    "require": {}
+}
