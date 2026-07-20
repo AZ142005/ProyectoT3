@@ -7,8 +7,9 @@
         <?php if (isset($_SESSION['residente_id'])): ?>
             <a href="/residente/dashboard" class="text-sm font-semibold hover:text-primary-container transition-colors">Mi Cuenta</a>
             <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-bold transition-transform active:scale-95">Salir</a>
-        <?php elseif (isset($_SESSION['admin_usuario'])): ?>
+        <?php elseif (isset($_SESSION['admin_usuario']) || \App\Core\Auth::hasRole('admin')): ?>
             <a href="/admin/dashboard" class="text-sm font-semibold hover:text-primary-container transition-colors">Consola Admin</a>
+            <a href="/admin/estructura" class="text-sm font-semibold hover:text-primary-container transition-colors">Estructura</a>
             <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-bold transition-transform active:scale-95">Salir</a>
         <?php else: ?>
             <a href="/admin/login" class="bg-white/15 hover:bg-white/25 text-white px-6 py-2 rounded-md text-sm font-semibold border border-white/20 transition-colors">Admin</a>

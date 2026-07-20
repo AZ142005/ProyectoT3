@@ -46,9 +46,10 @@ class PersonasModel {
         $db = Database::getConnection();
         
         $sql = "
-            SELECT p.*, u.numero as unidad_numero, u.torre 
+            SELECT p.*, u.numero as unidad_numero, e.nombre as torre 
             FROM personas p
             INNER JOIN unidades u ON p.unidad_id = u.id 
+            LEFT JOIN edificios e ON u.edificio_id = e.id
             WHERE p.id = :id AND p.estado = 1
         ";
         $stmt = $db->prepare($sql);

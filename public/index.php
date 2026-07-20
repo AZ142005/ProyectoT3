@@ -108,6 +108,32 @@ switch ($route) {
         $controller->generarFacturas();
         break;
 
+    // --- Estructura del Conjunto (Edificios y Unidades) ---
+    case '/admin/estructura':
+        $controller = new \App\Controllers\EstructuraController();
+        $controller->index();
+        break;
+
+    case '/admin/estructura/edificio/guardar':
+        $controller = new \App\Controllers\EstructuraController();
+        $controller->guardarEdificio();
+        break;
+
+    case '/admin/estructura/edificio/toggle':
+        $controller = new \App\Controllers\EstructuraController();
+        $controller->toggleEdificio();
+        break;
+
+    case '/admin/estructura/unidad/guardar':
+        $controller = new \App\Controllers\EstructuraController();
+        $controller->guardarUnidad();
+        break;
+
+    case '/admin/estructura/unidad/toggle':
+        $controller = new \App\Controllers\EstructuraController();
+        $controller->toggleUnidad();
+        break;
+
     default:
         http_response_code(404);
         $errorView = VIEWS_PATH . '/errors/404.php';
