@@ -121,10 +121,28 @@ $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\Estacionamie
 $router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardarVehiculo'], ['auth']);
 $router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], ['auth']);
 
-// --- Módulo de Reportes de Morosidad (RF 23) ---
+// --- Módulo de Reportes de Morosidad y Cartas de Deuda (RF 23, RF 25) ---
 $router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
 $router->get('/admin/reportes/morosidad/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
 $router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/carta-deuda/{unidadId}', [\App\Controllers\ReporteController::class, 'generarCartaDeuda'], [UserRole::ADMIN]);
+$router->post('/admin/reportes/enviar-aviso-cobro', [\App\Controllers\ReporteController::class, 'enviarAvisoCobro'], [UserRole::ADMIN]);
+
+// --- Módulo de Notificaciones y Comunicados (RF 35, RF 36, RF 37) ---
+$router->get('/admin/comunicados', [\App\Controllers\ComunicadoController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/comunicados/guardar', [\App\Controllers\ComunicadoController::class, 'guardar'], [UserRole::ADMIN]);
+$router->post('/admin/comunicados/eliminar', [\App\Controllers\ComunicadoController::class, 'eliminar'], [UserRole::ADMIN]);
+
+$router->get('/residente/notificaciones', [\App\Controllers\NotificacionController::class, 'index'], [UserRole::RESIDENTE]);
+$router->get('/residente/notificaciones/cantidad-no-leidas', [\App\Controllers\NotificacionController::class, 'cantidadNoLeidas'], [UserRole::RESIDENTE]);
+$router->post('/residente/notificaciones/marcar-leida', [\App\Controllers\NotificacionController::class, 'marcarLeida'], [UserRole::RESIDENTE]);
+$router->get('/residente/cartelera', [\App\Controllers\ComunicadoController::class, 'carteleraResidente'], [UserRole::RESIDENTE]);
+
+// --- Perfil y Solicitudes de Cambio de Datos (RF 9) ---
+$router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'], ['auth']);
+$router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], [UserRole::RESIDENTE]);
+$router->get('/admin/solicitudes-datos', [\App\Controllers\PerfilController::class, 'listarSolicitudes'], [UserRole::ADMIN]);
+$router->post('/admin/solicitudes-datos/procesar', [\App\Controllers\PerfilController::class, 'procesarSolicitud'], [UserRole::ADMIN]);
 
 // Despachar la petición
 $router->dispatch($_SERVER['REQUEST_METHOD'], $route);
