@@ -48,12 +48,10 @@ class NotificacionController extends Controller {
         $notificacionesModel = new NotificacionesModel();
         $total = $notificacionesModel->contarNoLeidas($personaId);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success'   => true,
             'no_leidas' => $total
         ]);
-        exit;
     }
 
     /**
@@ -67,20 +65,16 @@ class NotificacionController extends Controller {
         $id = intval($_POST['id'] ?? 0);
 
         if ($id <= 0) {
-            header('Content-Type: application/json', true, 400);
-            echo json_encode(['success' => false, 'error' => 'ID inválido']);
-            exit;
+            $this->json(['success' => false, 'error' => 'ID inválido'], 400);
         }
 
         $notificacionesModel = new NotificacionesModel();
         $actualizado = $notificacionesModel->marcarComoLeida($id, $personaId);
         $nuevoTotal = $notificacionesModel->contarNoLeidas($personaId);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success'   => $actualizado,
             'no_leidas' => $nuevoTotal
         ]);
-        exit;
     }
 }
