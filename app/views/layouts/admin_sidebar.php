@@ -3,19 +3,23 @@
 // Opciones: 'dashboard', 'comprobantes', 'facturas', 'estructura', 'pagos'
 
 $navItems = [
-    ['route' => 'dashboard',    'url' => '/admin/dashboard',          'icon' => 'dashboard',    'label' => 'Dashboard'],
-    ['route' => 'comprobantes', 'url' => '/admin/comprobantes',       'icon' => 'payments',     'label' => 'Verificar Pagos'],
-    ['route' => 'facturas',     'url' => '/admin/facturas/generar',   'icon' => 'receipt_long', 'label' => 'Generar Facturas'],
-    ['route' => 'estructura',   'url' => '/admin/estructura',         'icon' => 'domain',       'label' => 'Estructura'],
+    ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
+    ['route' => 'comprobantes',     'url' => '/admin/comprobantes',       'icon' => 'payments',        'label' => 'Verificar Pagos'],
+    ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
+    ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
+    ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
+    ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
 ];
 
-// Para la vista de pagos del admin, necesitamos un item adicional
+// Para la vista de pagos del admin, mantenemos consistente
 if (isset($activeRoute) && $activeRoute === 'pagos') {
     $navItems = [
-        ['route' => 'dashboard',    'url' => '/admin/dashboard',          'icon' => 'dashboard',    'label' => 'Dashboard'],
-        ['route' => 'pagos',        'url' => '/pagos',                    'icon' => 'payments',     'label' => 'Verificar Pagos'],
-        ['route' => 'facturas',     'url' => '/admin/facturas/generar',   'icon' => 'receipt_long', 'label' => 'Generar Facturas'],
-        ['route' => 'estructura',   'url' => '/admin/estructura',         'icon' => 'domain',       'label' => 'Estructura'],
+        ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
+        ['route' => 'pagos',            'url' => '/pagos',                    'icon' => 'payments',        'label' => 'Verificar Pagos'],
+        ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
+        ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
+        ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
+        ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
     ];
 }
 ?>
