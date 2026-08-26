@@ -56,6 +56,18 @@ class ConciliacionController extends Controller {
             return;
         }
 
+        // Validación MIME real del contenido
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            if (!in_array($mime, ['text/csv', 'text/plain', 'text/comma-separated-values', 'application/octet-stream', 'text/x-csv'], true)) {
+                Flash::set('danger', 'El contenido del archivo no corresponde a un extracto bancario.');
+                $this->redirect('/admin/conciliacion');
+                return;
+            }
+        }
+
         // Límite de tamaño: 5MB para extractos bancarios
         if ($file['size'] > 5 * 1024 * 1024) {
             Flash::set('danger', 'El archivo excede el tamaño máximo permitido de 5MB.');

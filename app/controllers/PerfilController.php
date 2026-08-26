@@ -135,8 +135,33 @@ class PerfilController extends Controller {
     public function toggle2fa() {
         Auth::requireLogin();
 
+        // Requerir contraseña actual para cambiar 2FA
+        $password = trim($_POST['password'] ?? '');
+        if (empty($password)) {
+            Flash::set('danger', 'Debe ingresar su contraseña actual para cambiar la verificación en dos pasos.');
+            $this->redirect('/perfil');
+            return;
+        }
+
         $user = Auth::user();
         $db = \App\Core\Database::getConnection();
+
+        // Verificar contraseña
+        if ($user['role'] === 'residente') {
+            $stmt = $db->prepare("SELECT password FROM personas WHERE id = :id");
+            $stmt->execute(['id' => $user['persona_id']]);
+            $hash = $stmt->fetchColumn();
+        } else {
+            $stmt = $db->prepare("SELECT password FROM usuarios WHERE id = :id");
+            $stmt->execute(['id' => $user['id']]);
+            $hash = $stmt->fetchColumn();
+        }
+
+        if (!$hash || !password_verify($password, $hash)) {
+            Flash::set('danger', 'La contraseña ingresada es incorrecta.');
+            $this->redirect('/perfil');
+            return;
+        }
 
         if ($user['role'] === 'residente') {
             $personaId = $user['persona_id'] ?? 0;

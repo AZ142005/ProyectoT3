@@ -294,9 +294,17 @@ class PagoController extends Controller {
                 return;
             }
 
-            // Verificación MIME real
-            $finfo = new \finfo(FILEINFO_MIME_TYPE);
-            $mimeType = $finfo->file($file['tmp_name']);
+            // Verificación MIME real con fallback si extensión fileinfo no disponible
+            $mimeType = 'application/octet-stream';
+            if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+            } else {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $extToMime = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','gif'=>'image/gif','webp'=>'image/webp','pdf'=>'application/pdf'];
+                $mimeType = $extToMime[$ext] ?? 'application/octet-stream';
+            }
             $mimePermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
             if (!in_array($mimeType, $mimePermitidos, true)) {
                 $this->json(['success' => false, 'error' => 'Tipo de archivo no permitido. Solo PDF o imágenes.'], 400);

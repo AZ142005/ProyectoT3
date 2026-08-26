@@ -40,12 +40,19 @@ class RespaldoController extends Controller {
 
         $backupScript = dirname(__DIR__, 2) . '/scripts/backup_database.php';
 
+        if (!file_exists($backupScript)) {
+            Flash::set('danger', 'Script de respaldo no encontrado. Contacte al administrador del sistema.');
+            $this->redirect('/admin/respaldos');
+            return;
+        }
+
         try {
-            // Ejecutar script CLI de respaldo
-            $phpBin = PHP_BINARY ?: 'php';
+            // Ejecutar script CLI de respaldo con sanitización completa
+            $phpBin = escapeshellarg(PHP_BINARY ?: 'php');
+            $scriptPath = escapeshellarg($backupScript);
             $output = [];
             $returnVar = 0;
-            exec("{$phpBin} " . escapeshellarg($backupScript) . " 2>&1", $output, $returnVar);
+            exec("{$phpBin} {$scriptPath} 2>&1", $output, $returnVar);
 
             if ($returnVar === 0) {
                 Flash::set('success', 'Respaldo de base de datos generado exitosamente con compresión y firma SHA-256.');
@@ -77,11 +84,32 @@ class RespaldoController extends Controller {
             return;
         }
 
-        $rutaArchivo = dirname(__DIR__, 2) . '/storage/backups/' . basename($respaldo['nombre_archivo']);
-        if (!file_exists($rutaArchivo)) {
+        $backupDir = realpath(dirname(__DIR__, 2) . '/storage/backups');
+        $rutaArchivo = $backupDir ? $backupDir . '/' . basename($respaldo['nombre_archivo']) : null;
+        $resolvedPath = $rutaArchivo ? realpath($rutaArchivo) : null;
+
+        if (!$backupDir || !$resolvedPath || strpos($resolvedPath, $backupDir) !== 0) {
+            Flash::set('danger', 'Ruta de respaldo no válida.');
+            $this->redirect('/admin/respaldos');
+            return;
+        }
+
+        if (!file_exists($resolvedPath)) {
             Flash::set('danger', 'El archivo físico de respaldo ya no existe en el servidor (purgado por política de retención).');
             $this->redirect('/admin/respaldos');
             return;
+        }
+
+        $rutaArchivo = $resolvedPath;
+
+        // 6E.3: Verificar integridad SHA-256 si el checksum está registrado
+        if (!empty($respaldo['checksum_sha256'])) {
+            $checksumActual = hash_file('sha256', $rutaArchivo);
+            if ($checksumActual !== $respaldo['checksum_sha256']) {
+                Flash::set('danger', '¡ALERTA DE INTEGRIDAD! El archivo de respaldo ha sido modificado. El checksum SHA-256 no coincide.');
+                $this->redirect('/admin/respaldos');
+                return;
+            }
         }
 
         header('Content-Description: File Transfer');
@@ -90,6 +118,7 @@ class RespaldoController extends Controller {
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
+        header('X-Checksum-SHA256: ' . ($respaldo['checksum_sha256'] ?? hash_file('sha256', $rutaArchivo)));
         header('Content-Length: ' . filesize($rutaArchivo));
         readfile($rutaArchivo);
         exit;

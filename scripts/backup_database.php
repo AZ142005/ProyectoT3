@@ -1,4 +1,7 @@
 <?php
+// Permitir respaldos largos sin interrupción por max_execution_time
+set_time_limit(0);
+
 /**
  * Script de Respaldo Diario Automatizado de Base de Datos con Rotación y SHA-256.
  * Ejecutable vía CLI: php scripts/backup_database.php

@@ -46,6 +46,12 @@ class ResidenteController extends Controller {
      */
     public function enviarPago() {
         Auth::requireRole('residente');
+
+        // Rate limiting: máximo 10 envíos por hora
+        if (!\App\Core\RateLimiter::attempt('comprobante_' . Auth::id(), 10, 3600)) {
+            $error = "Ha excedido el límite de envíos de comprobantes. Intente de nuevo más tarde.";
+        }
+
         $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
 
@@ -67,7 +73,7 @@ class ResidenteController extends Controller {
         // Obtener facturas pendientes para el dropdown
         $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
             // CSRF ya validado por el middleware global
             $factura_id = $_POST['factura_id'] ?? 0;
             $monto = floatval($_POST['monto'] ?? 0);

@@ -73,32 +73,18 @@ class GastoController extends Controller {
 
         $nombreArchivoSoporte = null;
 
-        // Procesar subida de soporte digital (Factura / Recibo)
+        // Procesar subida de soporte digital con MIME validation real
         if (!empty($_FILES['soporte_digital']) && $_FILES['soporte_digital']['error'] === UPLOAD_ERR_OK) {
-            $file = $_FILES['soporte_digital'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $extensionesPermitidas = ['pdf', 'jpg', 'jpeg', 'png'];
+            $uploader = new \App\Services\FileUploader(
+                UPLOADS_PATH . '/soportes',
+                ['image/jpeg', 'image/png', 'application/pdf'],
+                ['jpg', 'jpeg', 'png', 'pdf'],
+                5242880
+            );
+            $nombreArchivoSoporte = $uploader->upload($_FILES['soporte_digital']);
 
-            if (!in_array($ext, $extensionesPermitidas)) {
-                Flash::set('danger', 'Formato de soporte no permitido. Solo se aceptan archivos PDF, JPG o PNG.');
-                $this->redirect('/admin/gastos');
-                return;
-            }
-
-            if ($file['size'] > 5 * 1024 * 1024) {
-                Flash::set('danger', 'El soporte digital excede el límite máximo de 5 MB.');
-                $this->redirect('/admin/gastos');
-                return;
-            }
-
-            $directorioDestino = UPLOADS_PATH . '/soportes';
-            if (!is_dir($directorioDestino)) {
-                mkdir($directorioDestino, 0755, true);
-            }
-
-            $nombreArchivoSoporte = 'soporte_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            if (!move_uploaded_file($file['tmp_name'], $directorioDestino . '/' . $nombreArchivoSoporte)) {
-                Flash::set('danger', 'No se pudo guardar el archivo de soporte en el servidor.');
+            if (!$nombreArchivoSoporte) {
+                Flash::set('danger', 'Formato o tamaño de soporte no permitido. Solo se aceptan archivos PDF, JPG o PNG hasta 5MB.');
                 $this->redirect('/admin/gastos');
                 return;
             }

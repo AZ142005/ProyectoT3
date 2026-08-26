@@ -23,6 +23,7 @@ class EdificiosModel extends BaseModel {
             LEFT JOIN unidades u ON u.edificio_id = e.id AND u.estado = 1
             GROUP BY e.id
             ORDER BY e.nombre ASC
+            LIMIT 500
         ";
         return $this->db()->query($sql)->fetchAll();
     }

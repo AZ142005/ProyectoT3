@@ -62,6 +62,13 @@ class NotificacionController extends Controller {
 
         $user = Auth::user();
         $personaId = $user['persona_id'] ?? 0;
+
+        // Rate limiting: máximo 30 marcas por minuto
+        if (!\App\Core\RateLimiter::attempt('notif_leida_' . $personaId, 30, 60)) {
+            $this->json(['success' => false, 'error' => 'Límite de operaciones excedido.'], 429);
+            return;
+        }
+
         $id = intval($_POST['id'] ?? 0);
 
         if ($id <= 0) {

@@ -98,6 +98,7 @@ class NotificationService {
         // Cifrado simétrico AES-256-CBC con Encryption
         $emailCifrado = Encryption::encrypt($destinatarioEmail);
         $cuerpoCifrado = Encryption::encrypt($cuerpoHtml);
+        $telefonoCifrado = !empty($telefono) ? Encryption::encrypt($telefono) : null;
 
         $db = Database::getConnection();
         $stmt = $db->prepare("
@@ -108,7 +109,7 @@ class NotificationService {
 
         return $stmt->execute([
             'email'     => $emailCifrado,
-            'telefono'  => $telefono,
+            'telefono'  => $telefonoCifrado,
             'asunto'    => $asunto,
             'cuerpo'    => $cuerpoCifrado,
             'canal'     => $canal,

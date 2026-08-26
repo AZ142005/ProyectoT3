@@ -30,57 +30,86 @@ class AuthController extends Controller {
                 $minutos = ceil($segundos / 60);
                 $error = "Demasiados intentos de inicio de sesión. Intente de nuevo en {$minutos} minuto(s).";
             } else {
-            $identificador = trim($_POST['email'] ?? '');
-            $password      = trim($_POST['password'] ?? '');
+                $identificador = trim($_POST['email'] ?? '');
+                $password      = trim($_POST['password'] ?? '');
 
-            if (empty($identificador) || empty($password)) {
-                $error = 'Por favor, ingresa tu correo o cédula y contraseña.';
-            } else {
-                $esEmail = filter_var($identificador, FILTER_VALIDATE_EMAIL);
+                if (empty($identificador) || empty($password)) {
+                    $error = 'Por favor, ingresa tu correo o cédula y contraseña.';
+                } else {
+                    $esEmail = filter_var($identificador, FILTER_VALIDATE_EMAIL);
+                    $loginExitoso = false;
+                    $foundUserId = null;
+                    $foundType = null; // 'admin' or 'residente'
 
-                // 1. Buscar en la tabla de usuarios (Admin / Auditor)
-                if ($esEmail) {
                     $usuariosModel = new UsuariosModel();
-                    $usuario = $usuariosModel->getActiveByEmail($identificador);
+                    $personasModel = new PersonasModel();
 
-                    if ($usuario && password_verify($password, $usuario['password'])) {
-                        RateLimiter::clear('login');
-                        // Comprobar si tiene 2FA habilitado
-                        if (!empty($usuario['two_factor_enabled'])) {
-                            return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
-                        }
+                    // 1. Buscar en la tabla de usuarios (Admin / Auditor)
+                    $usuario = $esEmail ? $usuariosModel->getActiveByEmail($identificador) : null;
 
-                        if (($usuario['rol'] ?? '') === UserRole::AUDITOR) {
-                            Auth::loginAsAuditor($usuario);
-                            $this->redirect('/auditor/dashboard');
+                    if ($usuario) {
+                        if ($usuariosModel->estaBloqueado((int)$usuario['id'])) {
+                            $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
+                        } elseif (password_verify($password, $usuario['password'])) {
+                            RateLimiter::clear('login');
+                            $usuariosModel->resetIntentosFallidos((int)$usuario['id']);
+                            $loginExitoso = true;
+                            $foundUserId = (int)$usuario['id'];
+                            $foundType = 'admin';
+
+                            if (!empty($usuario['two_factor_enabled'])) {
+                                return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
+                            }
+
+                            if (($usuario['rol'] ?? '') === UserRole::AUDITOR) {
+                                Auth::loginAsAuditor($usuario);
+                                $this->redirect('/auditor/dashboard');
+                            } else {
+                                Auth::loginAsAdmin($usuario);
+                                $this->redirect('/admin/dashboard');
+                            }
+                            return;
                         } else {
-                            Auth::loginAsAdmin($usuario);
-                            $this->redirect('/admin/dashboard');
+                            // Admin found but password wrong → increment admin counter
+                            $usuariosModel->incrementarIntentosFallidos((int)$usuario['id']);
+                            $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
                         }
-                        return;
-                    }
-                }
-
-                // 2. Buscar en la tabla de residentes (Personas)
-                $personasModel = new PersonasModel();
-                $residente = $esEmail
-                    ? $personasModel->getActiveByEmail($identificador)
-                    : $personasModel->getActiveByCedula($identificador);
-
-                if ($residente && !empty($residente['password']) && password_verify($password, $residente['password'])) {
-                    RateLimiter::clear('login');
-                    // Comprobar si tiene 2FA habilitado
-                    if (!empty($residente['two_factor_enabled'])) {
-                        return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
                     }
 
-                    Auth::loginAsResidente($residente);
-                    $this->redirect('/residente/dashboard');
-                    return;
-                }
+                    // 2. Buscar en la tabla de residentes (Personas) — only if admin wasn't found or wasn't locked
+                    if (!$usuario && empty($error)) {
+                        $residente = $esEmail
+                            ? $personasModel->getActiveByEmail($identificador)
+                            : $personasModel->getActiveByCedula($identificador);
 
-                // 3. Ninguna coincidencia
-                $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                        if ($residente) {
+                            if ($personasModel->estaBloqueado((int)$residente['id'])) {
+                                $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
+                            } elseif (!empty($residente['password']) && password_verify($password, $residente['password'])) {
+                                RateLimiter::clear('login');
+                                $personasModel->resetIntentosFallidos((int)$residente['id']);
+                                $loginExitoso = true;
+                                $foundUserId = (int)$residente['id'];
+                                $foundType = 'residente';
+
+                                if (!empty($residente['two_factor_enabled'])) {
+                                    return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
+                                }
+
+                                Auth::loginAsResidente($residente);
+                                $this->redirect('/residente/dashboard');
+                                return;
+                            } else {
+                                // Residente found but password wrong → increment residente counter
+                                $personasModel->incrementarIntentosFallidos((int)$residente['id']);
+                                $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                            }
+                        } else {
+                            // 3. Ninguna coincidencia
+                            $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                        }
+                    }
+                }
             }
         }
 
@@ -201,16 +230,18 @@ class AuthController extends Controller {
             return;
         }
 
-        // Rate limiting: máximo 3 reenvíos cada 5 minutos
-        if (!RateLimiter::attempt('otp_resend', 3, 300)) {
-            $segundos = RateLimiter::secondsUntilAvailable('otp_resend', 300);
+        $pending = $_SESSION['2fa_pending'];
+
+        // Rate limiting: máximo 3 reenvíos cada 5 minutos, vinculado al user_id
+        $otpRateKey = 'otp_resend_' . $pending['user_id'];
+        if (!RateLimiter::attempt($otpRateKey, 3, 300)) {
+            $segundos = RateLimiter::secondsUntilAvailable($otpRateKey, 300);
             $minutos = ceil($segundos / 60);
             Flash::set('danger', "Debe esperar {$minutos} minuto(s) antes de solicitar otro código.");
             $this->redirect('/auth/verificar-2fa');
             return;
         }
 
-        $pending = $_SESSION['2fa_pending'];
         $otpModel = new OtpModel();
         $nuevoOtp = $otpModel->generarOtp($pending['user_id']);
 
@@ -233,37 +264,43 @@ class AuthController extends Controller {
         $success = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $cedula            = trim($_POST['cedula'] ?? '');
-            $email             = trim($_POST['email'] ?? '');
-            $password          = trim($_POST['password'] ?? '');
-            $password_confirm  = trim($_POST['password_confirm'] ?? '');
-
-            if (empty($cedula) || empty($email) || empty($password) || empty($password_confirm)) {
-                $error = 'Todos los campos son obligatorios.';
-            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $error = 'El formato de correo electrónico no es válido.';
-            } elseif (strlen($password) < 6) {
-                $error = 'La contraseña debe tener al menos 6 caracteres.';
-            } elseif ($password !== $password_confirm) {
-                $error = 'Las contraseñas no coinciden.';
+            if (!RateLimiter::attempt('register', 5, 3600)) {
+                $segundos = RateLimiter::secondsUntilAvailable('register', 3600);
+                $minutos = ceil($segundos / 60);
+                $error = "Demasiados intentos de registro. Intente de nuevo en {$minutos} minuto(s).";
             } else {
-                $personasModel = new PersonasModel();
+                $cedula            = trim($_POST['cedula'] ?? '');
+                $email             = trim($_POST['email'] ?? '');
+                $password          = trim($_POST['password'] ?? '');
+                $password_confirm  = trim($_POST['password_confirm'] ?? '');
 
-                $persona = $personasModel->getActiveByCedula($cedula);
-                if (!$persona) {
-                    $error = 'La cédula ingresada no está registrada en el sistema del condominio. Consulta con la administración.';
-                } elseif (!empty($persona['email']) && !empty($persona['password'])) {
-                    $error = 'Esta cédula ya tiene una cuenta registrada. Usa el formulario de inicio de sesión.';
-                } elseif ($personasModel->emailExists($email)) {
-                    $error = 'Este correo electrónico ya está registrado.';
+                if (empty($cedula) || empty($email) || empty($password) || empty($password_confirm)) {
+                    $error = 'Todos los campos son obligatorios.';
+                } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $error = 'El formato de correo electrónico no es válido.';
+                } elseif (strlen($password) < 6) {
+                    $error = 'La contraseña debe tener al menos 6 caracteres.';
+                } elseif ($password !== $password_confirm) {
+                    $error = 'Las contraseñas no coinciden.';
                 } else {
-                    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-                    $result = $personasModel->register($cedula, $email, $hashedPassword);
+                    $personasModel = new PersonasModel();
 
-                    if ($result) {
-                        $success = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.';
+                    $persona = $personasModel->getActiveByCedula($cedula);
+                    if (!$persona) {
+                        $error = 'La cédula ingresada no está registrada en el sistema del condominio. Consulta con la administración.';
+                    } elseif (!empty($persona['email']) && !empty($persona['password'])) {
+                        $error = 'Esta cédula ya tiene una cuenta registrada. Usa el formulario de inicio de sesión.';
+                    } elseif ($personasModel->emailExists($email)) {
+                        $error = 'Este correo electrónico ya está registrado.';
                     } else {
-                        $error = 'Ocurrió un error al registrar tu cuenta. Intenta de nuevo.';
+                        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                        $result = $personasModel->register($cedula, $email, $hashedPassword);
+
+                        if ($result) {
+                            $success = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.';
+                        } else {
+                            $error = 'Ocurrió un error al registrar tu cuenta. Intenta de nuevo.';
+                        }
                     }
                 }
             }

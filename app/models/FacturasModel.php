@@ -122,6 +122,9 @@ class FacturasModel extends BaseModel {
                 $saldo_favor = round(floatval($row['total'] ?? 0), 2);
 
                 $monto_factura = round(floatval($unidad['cuota_mensual']), 2);
+                if ($monto_factura <= 0) {
+                    continue; // Skip units with zero or negative quota
+                }
                 $monto_a_pagar = $monto_factura;
                 $saldo_restante = 0.0;
                 $estado = 'pendiente';

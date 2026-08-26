@@ -53,6 +53,12 @@ class JWT {
         if (!isset($payload['jti'])) {
             $payload['jti'] = bin2hex(random_bytes(8));
         }
+        if (!isset($payload['iss'])) {
+            $payload['iss'] = 'condominio_digital';
+        }
+        if (!isset($payload['aud'])) {
+            $payload['aud'] = 'api';
+        }
 
         $headerEncoded = self::base64UrlEncode(json_encode($header, JSON_UNESCAPED_SLASHES));
         $payloadEncoded = self::base64UrlEncode(json_encode($payload, JSON_UNESCAPED_SLASHES));
@@ -92,6 +98,14 @@ class JWT {
 
         if (isset($payload['exp']) && $payload['exp'] < time()) {
             throw new InvalidArgumentException("Token JWT expirado.");
+        }
+
+        if (isset($payload['iss']) && $payload['iss'] !== 'condominio_digital') {
+            throw new InvalidArgumentException("Emisor (iss) del token JWT no reconocido.");
+        }
+
+        if (isset($payload['aud']) && $payload['aud'] !== 'api') {
+            throw new InvalidArgumentException("Audiencia (aud) del token JWT no válida.");
         }
 
         return $payload;

@@ -66,6 +66,13 @@ class PagoModel extends BaseModel {
             'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
             'banco_receptor'=> !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null
         ]);
+            return true;
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000) {
+                return false; // Duplicate key — pago ya existe
+            }
+            throw $e;
+        }
     }
 
     /**

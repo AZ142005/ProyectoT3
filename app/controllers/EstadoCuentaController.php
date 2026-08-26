@@ -64,6 +64,7 @@ class EstadoCuentaController extends Controller {
         $user = Auth::user();
         $personaId = $user['persona_id'] ?? 0;
 
+        // 6D.1: Protección contra enumeración — verificar que el usuario tiene unidad
         $db = \App\Core\Database::getConnection();
         $stmtU = $db->prepare("
             SELECT u.*, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
@@ -83,7 +84,8 @@ class EstadoCuentaController extends Controller {
         }
 
         $movimientosModel = new MovimientosModel();
-        $resultado = $movimientosModel->obtenerHistorialUnidad($unidad['id'], 1, 100);
+        // 6D.2: LIMIT 500 para impresión
+        $resultado = $movimientosModel->obtenerHistorialUnidad($unidad['id'], 1, 500);
         $saldoActual = $movimientosModel->obtenerSaldoActualUnidad($unidad['id']);
 
         $this->render('residente/estado_cuenta_imprimir', [

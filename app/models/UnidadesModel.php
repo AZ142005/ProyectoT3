@@ -31,6 +31,7 @@ class UnidadesModel extends BaseModel {
         }
 
         $sql .= " GROUP BY u.id ORDER BY " . ($edificioId ? "u.numero ASC" : "e.nombre ASC, u.numero ASC");
+        $sql .= " LIMIT 500";
 
         $stmt = $this->db()->prepare($sql);
         $stmt->execute($params);

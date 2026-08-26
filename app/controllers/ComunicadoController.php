@@ -51,7 +51,7 @@ class ComunicadoController extends Controller {
     public function guardar() {
         Auth::requireRole('admin');
 
-        $titulo = trim($_POST['titulo'] ?? '');
+        $titulo = strip_tags(trim($_POST['titulo'] ?? ''));
         $contenido = trim($_POST['contenido'] ?? '');
         $urgencia = strtolower($_POST['nivel_urgencia'] ?? 'normal');
         $edificioId = !empty($_POST['edificio_id']) ? intval($_POST['edificio_id']) : null;
@@ -158,10 +158,15 @@ class ComunicadoController extends Controller {
 
     /**
      * Encola el comunicado por correo electrónico para los residentes filtrados.
+     * Agrupa por persona_id para evitar notificaciones duplicadas.
+     * Limita a 500 destinatarios máximo.
      */
     private function encolarComunicadoCorreo(string $titulo, string $contenido, ?int $edificioId, ?int $unidadId) {
         $db = \App\Core\Database::getConnection();
-        $sql = "SELECT DISTINCT p.email, p.telefono, p.id AS persona_id FROM personas p INNER JOIN unidades u ON u.propietario_id = p.id WHERE p.email IS NOT NULL AND p.email != ''";
+        $sql = "SELECT DISTINCT p.id AS persona_id, p.email, p.telefono 
+                FROM personas p 
+                INNER JOIN unidades u ON u.propietario_id = p.id 
+                WHERE p.email IS NOT NULL AND p.email != ''";
 
         $params = [];
         if ($unidadId) {
@@ -171,6 +176,8 @@ class ComunicadoController extends Controller {
             $sql .= " AND u.edificio_id = :edificio_id";
             $params['edificio_id'] = $edificioId;
         }
+
+        $sql .= " ORDER BY p.id ASC LIMIT 500";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);

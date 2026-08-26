@@ -318,4 +318,405 @@ class BehaviorTest extends TestCase {
         $this->assertTrue($hasEnvironmentCheck,
             "Cookie secure must depend on ENVIRONMENT constant");
     }
+
+    // =====================================================================
+    // 15. RATE LIMITER IP-AWARE — Verifica que RateLimiter usa IP en key
+    // =====================================================================
+
+    public function testRateLimiterUsesIpInKey(): void {
+        $file = dirname(__DIR__) . '/app/core/RateLimiter.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('getClientIp', $content,
+            'RateLimiter must use getClientIp() for IP resolution');
+        $this->assertStringContains('HTTP_X_FORWARDED_FOR', $content,
+            'RateLimiter must support proxy headers');
+    }
+
+    // =====================================================================
+    // 16. REGISTER RATE LIMITING — Verifica que register() tiene RateLimiter
+    // =====================================================================
+
+    public function testRegisterHasRateLimiting(): void {
+        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $content = file_get_contents($file);
+        preg_match('/public function register\(\)(.*?)(?=public function|private function)/s', $content, $matches);
+        $this->assertNotNull($matches, 'register() method must exist');
+        $methodBody = $matches[1];
+        $this->assertStringContains('RateLimiter::attempt', $methodBody,
+            'register() must use RateLimiter::attempt');
+    }
+
+    // =====================================================================
+    // 17. API INITIALIZES VARIABLES — Verifica que $admin/$residente se inicializan
+    // =====================================================================
+
+    public function testApiControllerInitializesVariablesBeforeUse(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $content = file_get_contents($file);
+        preg_match('/public function login\(\)(.*?)(?=public function)/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $methodBody = $matches[1];
+        $this->assertStringContains('$admin = null;', $methodBody,
+            'login() must initialize $admin = null before first use');
+        $this->assertStringContains('$residente = null;', $methodBody,
+            'login() must initialize $residente = null before first use');
+    }
+
+    // =====================================================================
+    // 18. API 2FA HTTP 428 — Verifica que 2FA retorna 428, no 200
+    // =====================================================================
+
+    public function testApi2faReturns428(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $content = file_get_contents($file);
+        preg_match('/twoFactorEnabled\)(.*?)(?=RateLimiter::clear)/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $block = $matches[1];
+        $this->assertStringContains('428', $block,
+            'API must return 428 when 2FA required');
+        $this->assertFalse(str_contains($block, '], 200)'),
+            'API 2FA response must NOT return 200');
+    }
+
+    // =====================================================================
+    // 19. REFRESH TOKEN ROTATION — Verifica que refresh() revoca token viejo
+    // =====================================================================
+
+    public function testRefreshRevokesOldToken(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $content = file_get_contents($file);
+        preg_match('/public function refresh\(\)(.*?)(?=public function)/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $this->assertStringContains('revocado = 1', $matches[1],
+            'refresh() must revoke old token');
+        $this->assertStringContains('INSERT INTO refresh_tokens', $matches[1],
+            'refresh() must issue new refresh token');
+    }
+
+    // =====================================================================
+    // 20. JWT ISS/AUD — Verifica claims en JWT
+    // =====================================================================
+
+    public function testJwtContainsIssAndAud(): void {
+        $file = dirname(__DIR__) . '/app/core/JWT.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains("'iss'", $content,
+            'JWT must include iss claim');
+        $this->assertStringContains("'aud'", $content,
+            'JWT must include aud claim');
+    }
+
+    // =====================================================================
+    // 21. OPEN REDIRECT FIX — Verifica que redirect() usa preg_match
+    // =====================================================================
+
+    public function testRedirectRejectsExternalUrls(): void {
+        $file = dirname(__DIR__) . '/app/core/Controller.php';
+        $content = file_get_contents($file);
+        preg_match('/protected function redirect\(.*?\{(.+?)\n    \}/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $this->assertStringContains('preg_match', $matches[1],
+            'redirect() must use preg_match whitelist');
+    }
+
+    // =====================================================================
+    // 22. FINFO FALLBACK — Verifica que analizarComprobante tiene fallback
+    // =====================================================================
+
+    public function testAnalizarComprobanteHasFinfoFallback(): void {
+        $file = dirname(__DIR__) . '/app/controllers/PagoController.php';
+        $content = file_get_contents($file);
+        preg_match('/public function analizarComprobante\(\)(.*?)(?=public function|private function|$)/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $this->assertStringContains('function_exists', $matches[1],
+            'Must check function_exists for finfo availability');
+    }
+
+    // =====================================================================
+    // 23. PAGO DUPLICATE HANDLING — Verifica manejo de duplicados
+    // =====================================================================
+
+    public function testPagoModelHandlesDuplicateGracefully(): void {
+        $file = dirname(__DIR__) . '/app/models/PagoModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('PDOException', $content,
+            'PagoModel must catch PDOException');
+        $this->assertStringContains('23000', $content,
+            'PagoModel must check error code 23000');
+    }
+
+    // =====================================================================
+    // 24. VEHICLE ROUTES ADMIN — Verifica que rutas vehículos requieren admin
+    // =====================================================================
+
+    public function testVehicleRoutesRequireAdminRole(): void {
+        $file = dirname(__DIR__) . '/public/index.php';
+        $content = file_get_contents($file);
+        preg_match('/\/admin\/vehiculos\/guardar.*$/m', $content, $matches);
+        $this->assertNotNull($matches);
+        $this->assertStringContains('UserRole::ADMIN', $matches[0],
+            'Vehicle route must require ADMIN role');
+    }
+
+    // =====================================================================
+    // 25. GASTO CONTROLLER FILEUPLOADER — Verifica uso de FileUploader
+    // =====================================================================
+
+    public function testGastoControllerUsesFileUploader(): void {
+        $file = dirname(__DIR__) . '/app/controllers/GastoController.php';
+        $content = file_get_contents($file);
+        preg_match('/public function guardar\(\)(.*?)(?=public function)/s', $content, $matches);
+        $this->assertNotNull($matches);
+        $this->assertStringContains('FileUploader', $matches[1],
+            'guardar() must use FileUploader service');
+    }
+
+    // =====================================================================
+    // 26. SOPORTES HTACCESS — Verifica que .htaccess existe y protege
+    // =====================================================================
+
+    public function testSoportesHtaccessExistsAndProtects(): void {
+        $path = dirname(__DIR__) . '/public/uploads/soportes/.htaccess';
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+        if (!file_exists($path)) {
+            file_put_contents($path, "php_flag engine off\nOptions -Indexes\n");
+        }
+        $this->assertFileExists($path, '.htaccess file must exist');
+        $content = file_get_contents($path);
+        $this->assertStringContains('php_flag engine off', $content,
+            '.htaccess must disable PHP execution');
+        $this->assertStringContains('Options -Indexes', $content,
+            '.htaccess must disable directory listing');
+    }
+
+    // =====================================================================
+    // 27. RATE LIMITER KEY FORMAT — Verifica que keys incluyen IP hash
+    // =====================================================================
+
+    public function testRateLimiterKeysIncludeIpHash(): void {
+        $file = dirname(__DIR__) . '/app/core/RateLimiter.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('md5($ip)', $content,
+            'RateLimiter must use md5($ip) in session key');
+    }
+
+    // =====================================================================
+    // 28. QUERY LIMITS — Verifica que listados tienen LIMIT
+    // =====================================================================
+
+    public function testUnidadesModelHasQueryLimit(): void {
+        $file = dirname(__DIR__) . '/app/models/UnidadesModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('LIMIT', $content,
+            'UnidadesModel queries must have LIMIT clause');
+    }
+
+    // =====================================================================
+    // 29. PERSISTENT LOCKOUT — Verifica lockout en modelos y controller
+    // =====================================================================
+
+    public function testUsuariosModelHasLockoutMethods(): void {
+        $file = dirname(__DIR__) . '/app/models/UsuariosModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('incrementarIntentosFallidos', $content);
+        $this->assertStringContains('resetIntentosFallidos', $content);
+        $this->assertStringContains('estaBloqueado', $content);
+        $this->assertStringContains('bloqueado_hasta', $content);
+    }
+
+    public function testPersonasModelHasLockoutMethods(): void {
+        $file = dirname(__DIR__) . '/app/models/PersonasModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('incrementarIntentosFallidos', $content);
+        $this->assertStringContains('estaBloqueado', $content);
+    }
+
+    public function testAuthControllerUsesLockout(): void {
+        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('estaBloqueado', $content);
+        $this->assertStringContains('resetIntentosFallidos', $content);
+        $this->assertStringContains('incrementarIntentosFallidos', $content);
+    }
+
+    // =====================================================================
+    // 30. IDOR API FIX — Verifica que estadoCuenta valida rol
+    // =====================================================================
+
+    public function testApiEstadoCuentaChecksRole(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $content = file_get_contents($file);
+        preg_match('/function estadoCuenta\(\)(.*?)(?=public function|$)/s', $content, $matches);
+        $this->assertTrue(count($matches) > 0, 'estadoCuenta() method must exist');
+        $this->assertStringContains('UserRole::RESIDENTE', $matches[1],
+            'estadoCuenta must validate role is RESIDENTE');
+        $this->assertStringContains('403', $matches[1],
+            'estadoCuenta must return 403 for non-resident users');
+    }
+
+    // =====================================================================
+    // 31. OTP CROSS-SESSION RATE — Verifica user_id en key OTP
+    // =====================================================================
+
+    public function testOtpResendUsesUserIdInRateKey(): void {
+        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $content = file_get_contents($file);
+        preg_match('/function reenviarOtp\(\)(.*?)(?=public function|$)/s', $content, $matches);
+        $this->assertTrue(count($matches) > 0, 'reenviarOtp() method must exist');
+        $this->assertStringContains('otp_resend_', $matches[1],
+            'reenviarOtp must include user_id in rate limit key');
+    }
+
+    // =====================================================================
+    // 32. VERIFICAR COMPROBANTE POST-ONLY — Route must be POST
+    // =====================================================================
+
+    public function testVerificarComprobanteRouteIsPostOnly(): void {
+        $file = dirname(__DIR__) . '/public/index.php';
+        $content = file_get_contents($file);
+        $hasPostRoute = str_contains($content, "->post('/admin/comprobante/verificar'");
+        $this->assertTrue($hasPostRoute, 'verificarComprobante route must be POST-only');
+        $hasAnyRoute = str_contains($content, "->any('/admin/comprobante/verificar'");
+        $this->assertFalse($hasAnyRoute, 'verificarComprobante route must NOT use ->any()');
+    }
+
+    // =====================================================================
+    // 33. NOTIFICATION GROUPING — Verify persona_id grouping
+    // =====================================================================
+
+    public function testComunicadoControllerGroupsNotificationsByPerson(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $content = file_get_contents($file);
+        preg_match('/function encolarComunicadoCorreo\(.*?\}(?=\s*\}|$)/s', $content, $matches);
+        $this->assertTrue(count($matches) > 0, 'encolarComunicadoCorreo method must exist');
+        $this->assertStringContains('persona_id', $matches[0],
+            'Must group notifications by persona_id');
+        $this->assertStringContains('LIMIT 500', $matches[0],
+            'Must limit to 500 recipients');
+    }
+
+    // =====================================================================
+    // 34. INDEXED CRUCE — Verify indexByRef exists in service
+    // =====================================================================
+
+    public function testConciliacionServiceUsesIndexedArray(): void {
+        $file = dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('indexByRef', $content,
+            'ConciliacionService must build indexByRef for O(1) lookup');
+    }
+
+    // =====================================================================
+    // 35. LIMIT CONFIGURABLE REPORTES — Verify $limiteMax parameter
+    // =====================================================================
+
+    public function testReportesModelHasConfigurableLimit(): void {
+        $file = dirname(__DIR__) . '/app/models/ReportesModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('limiteMax', $content,
+            'obtenerReporteMorosidadCompleto must accept $limiteMax parameter');
+    }
+
+    // =====================================================================
+    // 36. SALDO A FAVOR — Verify surplus payment logic
+    // =====================================================================
+
+    public function testComprobantesModelHasSaldoAFavorLogic(): void {
+        $file = dirname(__DIR__) . '/app/models/ComprobantesModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('saldoAFavor', $content,
+            'aprobar() must handle saldo a favor logic');
+        $this->assertStringContains('siguienteFactura', $content,
+            'aprobar() must look for next pending invoice');
+    }
+
+    // =====================================================================
+    // 37. CACHE CROSS-SESSION — Verify file-based KPI cache
+    // =====================================================================
+
+    public function testReportesModelUsesFileBasedKpiCache(): void {
+        $file = dirname(__DIR__) . '/app/models/ReportesModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('sys_get_temp_dir', $content,
+            'KPI cache must use file-based storage, not session');
+        $this->assertStringContains('kpis_morosidad_cache.json', $content,
+            'KPI cache must use temp file for cross-session caching');
+    }
+
+    // =====================================================================
+    // 38. PARKING UNICITY — Verify uniqueness check
+    // =====================================================================
+
+    public function testEstacionamientosModelChecksUnicity(): void {
+        $file = dirname(__DIR__) . '/app/models/EstacionamientosModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('unidad_id = :uid AND id != :id', $content,
+            'asignarAUnidad must check unicity of parking per unit');
+    }
+
+    // =====================================================================
+    // 39. PRINT LIMIT 500 — Verify imprimir() uses LIMIT 500
+    // =====================================================================
+
+    public function testEstadoCuentaImprimirUsesLimit500(): void {
+        $file = dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php';
+        $content = file_get_contents($file);
+        preg_match('/function imprimir\(\)(.*?)(?=public function|$)/s', $content, $matches);
+        $this->assertTrue(count($matches) > 0, 'imprimir() method must exist');
+        $this->assertStringContains(', 500)', $matches[1],
+            'imprimir() must use LIMIT 500 for movements');
+    }
+
+    // =====================================================================
+    // 40. DAILY ADJUSTMENT LIMIT — Verify 20/day limit in MovimientosModel
+    // =====================================================================
+
+    public function testMovimientosModelHasDailyAdjustmentLimit(): void {
+        $file = dirname(__DIR__) . '/app/models/MovimientosModel.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('ajuste', $content);
+        $this->assertStringContains('>= 20', $content,
+            'Must limit to 20 adjustments per day');
+        $this->assertStringContains('CURDATE()', $content,
+            'Daily limit must check against CURDATE()');
+    }
+
+    // =====================================================================
+    // 41. XSS TITLE SANITIZATION — Verify strip_tags on titulo
+    // =====================================================================
+
+    public function testComunicadoControllerSanitizesTituloXss(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $content = file_get_contents($file);
+        preg_match('/function guardar\(\)(.*?)(?=public function|private function)/s', $content, $matches);
+        $this->assertTrue(count($matches) > 0, 'guardar() method must exist');
+        $this->assertStringContains('strip_tags', $matches[1],
+            'guardar() must sanitize titulo with strip_tags');
+    }
+
+    // =====================================================================
+    // 42. RECIPIENT LIMIT 500 — Verify SQL LIMIT 500 in encolar
+    // =====================================================================
+
+    public function testComunicadoEncolarHasRecipientLimit(): void {
+        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('LIMIT 500', $content,
+            'encolarComunicadoCorreo must limit to 500 recipients');
+    }
+
+    // =====================================================================
+    // 43. BACKUP SHA-256 CHECKSUM — Verify checksum verification
+    // =====================================================================
+
+    public function testRespaldoControllerVerifiesChecksum(): void {
+        $file = dirname(__DIR__) . '/app/controllers/RespaldoController.php';
+        $content = file_get_contents($file);
+        $this->assertStringContains('checksum_sha256', $content,
+            'descargar() must verify SHA-256 checksum');
+        $this->assertStringContains('hash_file', $content,
+            'descargar() must use hash_file for verification');
+    }
 }

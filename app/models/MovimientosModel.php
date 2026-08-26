@@ -30,6 +30,21 @@ class MovimientosModel extends BaseModel {
             throw new Exception("El monto del movimiento debe ser superior a 0.");
         }
 
+        // 6D.3: Límite de 20 ajustes manuales por unidad por día
+        if ($tipo === 'ajuste') {
+            $db = $this->db();
+            $stmtCount = $db->prepare(
+                "SELECT COUNT(*) as cnt FROM movimientos_cuenta 
+                 WHERE unidad_id = :uid AND tipo = 'ajuste' 
+                 AND DATE(fecha_movimiento) = CURDATE()"
+            );
+            $stmtCount->execute(['uid' => $unidadId]);
+            $cnt = intval($stmtCount->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+            if ($cnt >= 20) {
+                throw new Exception("Se ha alcanzado el límite de 20 ajustes por día para esta unidad.");
+            }
+        }
+
         $db = $this->db();
         $iniciaTransaccionInterna = !$db->inTransaction();
 

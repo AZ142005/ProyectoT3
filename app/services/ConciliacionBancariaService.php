@@ -73,6 +73,10 @@ class ConciliacionBancariaService {
             }
         }
 
+        if (count($movimientos) > 5000) {
+            throw new Exception("El extracto contiene más de 5000 movimientos. Divida el archivo en lotes más pequeños.");
+        }
+
         if (empty($movimientos)) {
             throw new Exception("No se detectaron movimientos válidos en el extracto para el banco seleccionado.");
         }
@@ -260,6 +264,13 @@ class ConciliacionBancariaService {
         ";
         $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fase B.3: Indexar pagos por referencia normalizada para búsqueda O(1)
+        $indexByRef = [];
+        foreach ($pagosPendientes as $pago) {
+            $refNorm = $this->normalizarReferencia($pago['referencia']);
+            $indexByRef[$refNorm][] = $pago;
+        }
+
         $coincidenciasExactas = [];
         $coincidenciasSugeridas = [];
         $inconsistencias = [];
@@ -286,19 +297,15 @@ class ConciliacionBancariaService {
             $candidatoFuzzy = null;
             $mejorSimilitud = 0.0;
 
-            foreach ($pagosPendientes as $pago) {
+            // Nivel 1: Búsqueda exacta O(1) por índice de referencia
+            $candidatosRef = $indexByRef[$refMovNormalizada] ?? [];
+            foreach ($candidatosRef as $pago) {
                 if (in_array($pago['id'], $pagosEmparejadosIds)) {
                     continue;
                 }
 
-                $refPagoNormalizada = $this->normalizarReferencia($pago['referencia']);
-                $montoPago = floatval($pago['monto']);
-                $fechaPago = $pago['fecha_pago'];
-
-                $diferenciaMonto = abs($montoMov - $montoPago);
-
-                // Nivel 1: Coincidencia Exacta (100% Match)
-                if ($refMovNormalizada === $refPagoNormalizada && $diferenciaMonto < 0.01) {
+                $diferenciaMonto = abs($montoMov - floatval($pago['monto']));
+                if ($diferenciaMonto < 0.01) {
                     $coincidenciasExactas[] = [
                         'extracto'   => $mov,
                         'pago'       => $pago,
@@ -309,22 +316,32 @@ class ConciliacionBancariaService {
                     $encontradoExacto = true;
                     break;
                 }
+            }
 
-                // Nivel 2: Fuzzy Match con Jaro-Winkler
+            if ($encontradoExacto) {
+                continue;
+            }
+
+            // Nivel 2: Fuzzy Match — buscar en pagos no emparejados cercanos en monto y fecha
+            foreach ($pagosPendientes as $pago) {
+                if (in_array($pago['id'], $pagosEmparejadosIds)) {
+                    continue;
+                }
+
+                $montoPago = floatval($pago['monto']);
+                $diferenciaMonto = abs($montoMov - $montoPago);
+
                 if ($diferenciaMonto < 0.01) {
-                    $diferenciaDias = abs(strtotime($fechaMov) - strtotime($fechaPago)) / 86400;
+                    $diferenciaDias = abs(strtotime($fechaMov) - strtotime($pago['fecha_pago'])) / 86400;
                     if ($diferenciaDias <= 3) {
-                        $similitud = $this->calcularSimilitudJaroWinkler($refMovNormalizada, $refPagoNormalizada);
+                        $refPagoNorm = $this->normalizarReferencia($pago['referencia']);
+                        $similitud = $this->calcularSimilitudJaroWinkler($refMovNormalizada, $refPagoNorm);
                         if ($similitud >= 0.85 && $similitud > $mejorSimilitud) {
                             $mejorSimilitud = $similitud;
                             $candidatoFuzzy = $pago;
                         }
                     }
                 }
-            }
-
-            if ($encontradoExacto) {
-                continue;
             }
 
             if ($candidatoFuzzy !== null) {

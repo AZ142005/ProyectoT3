@@ -51,6 +51,8 @@ class ApiController extends Controller {
         $db = Database::getConnection();
         $user = null;
         $role = null;
+        $admin = null;
+        $residente = null;
 
         // 1. Buscar en usuarios (Admin / Auditor)
         $usuariosModel = new UsuariosModel();
@@ -109,7 +111,7 @@ class ApiController extends Controller {
                 'requires_2fa' => true,
                 'message'    => 'Se ha enviado un código de verificación a su correo.',
                 'otp_sent'   => true
-            ], 200);
+            ], 428);
             return;
         }
 
@@ -194,6 +196,10 @@ class ApiController extends Controller {
             return;
         }
 
+        // Revocar el refresh token usado (rotation)
+        $stmtRevoke = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE id = :id");
+        $stmtRevoke->execute(['id' => $row['id']]);
+
         // Obtener datos del usuario para el nuevo payload — verificar que exista y esté activo
         $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo, estado FROM usuarios WHERE id = :id AND estado = 1");
         $stmtU->execute(['id' => $row['usuario_id']]);
@@ -230,10 +236,23 @@ class ApiController extends Controller {
             'name'  => $name
         ], 7200);
 
+        // Generar nuevo refresh token (rotation)
+        $newRefreshPlain = bin2hex(random_bytes(32));
+        $newRefreshHash = hash('sha256', $newRefreshPlain);
+        $stmtNewRef = $db->prepare("
+            INSERT INTO refresh_tokens (usuario_id, token_hash, expires_at, revocado)
+            VALUES (:uid, :thash, DATE_ADD(NOW(), INTERVAL 7 DAY), 0)
+        ");
+        $stmtNewRef->execute([
+            'uid'   => (int)$row['usuario_id'],
+            'thash' => $newRefreshHash
+        ]);
+
         $this->json([
             'success'      => true,
             'token_type'   => 'Bearer',
             'access_token' => $newAccessToken,
+            'refresh_token' => $newRefreshPlain,
             'expires_in'   => 7200
         ], 200);
     }
@@ -244,6 +263,13 @@ class ApiController extends Controller {
     public function estadoCuenta() {
         // Middleware de validación JWT
         $payload = AuthMiddleware::validarJWT();
+
+        // IDOR fix: solo residentes pueden consultar su propio estado de cuenta
+        if (($payload['role'] ?? '') !== UserRole::RESIDENTE) {
+            $this->json(['success' => false, 'error' => 'Solo residentes pueden consultar su estado de cuenta.'], 403);
+            return;
+        }
+
         $personaId = (int)$payload['sub'];
 
         $db = Database::getConnection();

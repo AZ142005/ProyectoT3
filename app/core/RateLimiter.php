@@ -8,6 +8,20 @@ namespace App\Core;
 class RateLimiter {
 
     /**
+     * Obtiene la IP real del cliente considerando proxies estándar.
+     */
+    private static function getClientIp(): string {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            return trim($ips[0]);
+        }
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+            return $_SERVER['HTTP_CLIENT_IP'];
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    }
+
+    /**
      * Verifica si una acción está dentro del límite.
      *
      * @param string $key Identificador de la acción (ej: 'login', 'otp_verify')
@@ -17,7 +31,8 @@ class RateLimiter {
      */
     public static function attempt(string $key, int $maxAttempts, int $windowSeconds): bool {
         $now = time();
-        $sessionKey = 'rate_' . $key;
+        $ip = self::getClientIp();
+        $sessionKey = 'rate_' . $key . '_' . md5($ip);
 
         if (!isset($_SESSION[$sessionKey])) {
             $_SESSION[$sessionKey] = ['attempts' => 0, 'window_start' => $now];
@@ -43,7 +58,8 @@ class RateLimiter {
      * @return int Segundos restantes (0 si ya puede intentar)
      */
     public static function secondsUntilAvailable(string $key, int $windowSeconds): int {
-        $sessionKey = 'rate_' . $key;
+        $ip = self::getClientIp();
+        $sessionKey = 'rate_' . $key . '_' . md5($ip);
         if (!isset($_SESSION[$sessionKey])) {
             return 0;
         }
@@ -58,6 +74,7 @@ class RateLimiter {
      * Limpia el contador para una key específica.
      */
     public static function clear(string $key): void {
-        unset($_SESSION['rate_' . $key]);
+        $ip = self::getClientIp();
+        unset($_SESSION['rate_' . $key . '_' . md5($ip)]);
     }
 }

@@ -7,11 +7,6 @@ class ReportesModel extends BaseModel {
 
     /**
      * Obtiene el reporte paginado de morosidad agrupado por unidad habitacional.
-     *
-     * @param array $filtros ['edificio_id' => int, 'dias_mora' => int]
-     * @param int $pagina
-     * @param int $porPagina
-     * @return array ['datos' => array, 'total' => int, 'pagina' => int, 'porPagina' => int, 'totalPaginas' => int]
      */
     public function obtenerReporteMorosidad(array $filtros = [], int $pagina = 1, int $porPagina = 50): array {
         $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
@@ -62,8 +57,11 @@ class ReportesModel extends BaseModel {
 
     /**
      * Obtiene todos los registros morosos sin paginación para exportación e impresión.
+     * 6B.4: LIMIT configurable con truncado para evitar Memory Overflow.
      */
-    public function obtenerReporteMorosidadCompleto(array $filtros = []): array {
+    public function obtenerReporteMorosidadCompleto(array $filtros = [], int $limiteMax = 5000): array {
+        $limiteMax = max(100, min($limiteMax, 50000));
+
         $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
         $params = [];
 
@@ -96,7 +94,7 @@ class ReportesModel extends BaseModel {
             {$where}
             GROUP BY u.id, e.id, p.id
             ORDER BY total_deuda DESC
-            LIMIT 10000
+            LIMIT {$limiteMax}
         ";
 
         $stmt = $this->db()->prepare($sql);
@@ -105,11 +103,22 @@ class ReportesModel extends BaseModel {
     }
 
     /**
-     * Calcula métricas KPI globales de morosidad con caché breve en sesión.
+     * 6B.6: Caché cross-session de KPIs de morosidad usando archivo temporal.
+     * Mejor que $_SESSION: funciona entre usuarios/sesiones y no depende del lifetime PHP.
      */
     public function obtenerKpisMorosidad(bool $forzarRecalculo = false): array {
-        if (!$forzarRecalculo && isset($_SESSION['kpis_morosidad_cache']) && (time() - ($_SESSION['kpis_morosidad_time'] ?? 0) < 300)) {
-            return $_SESSION['kpis_morosidad_cache'];
+        $cacheFile = sys_get_temp_dir() . '/kpis_morosidad_cache.json';
+        $cacheTtl = 300; // 5 minutos
+
+        // Intentar leer caché de archivo
+        if (!$forzarRecalculo && file_exists($cacheFile)) {
+            $cacheContent = file_get_contents($cacheFile);
+            $cache = json_decode($cacheContent, true);
+            if (is_array($cache) && isset($cache['data'], $cache['timestamp'])) {
+                if ((time() - $cache['timestamp']) < $cacheTtl) {
+                    return $cache['data'];
+                }
+            }
         }
 
         $db = $this->db();
@@ -132,8 +141,11 @@ class ReportesModel extends BaseModel {
             'tasa_morosidad'   => $tasaMorosidad
         ];
 
-        $_SESSION['kpis_morosidad_cache'] = $kpis;
-        $_SESSION['kpis_morosidad_time'] = time();
+        // Guardar caché en archivo
+        file_put_contents($cacheFile, json_encode([
+            'data'      => $kpis,
+            'timestamp' => time()
+        ]), LOCK_EX);
 
         return $kpis;
     }
@@ -142,11 +154,16 @@ class ReportesModel extends BaseModel {
      * Invalida manualmente la caché de KPIs de morosidad.
      */
     public static function invalidarCacheKpis(): void {
+        $cacheFile = sys_get_temp_dir() . '/kpis_morosidad_cache.json';
+        if (file_exists($cacheFile)) {
+            @unlink($cacheFile);
+        }
+        // Limpiar también caché legacy de sesión
         unset($_SESSION['kpis_morosidad_cache'], $_SESSION['kpis_morosidad_time']);
     }
 
     /**
-     * Realiza exportación streaming directa en CSV con BOM UTF-8 (\xEF\xBB\xBF) para compatibilidad con Excel.
+     * Realiza exportación streaming directa en CSV con BOM UTF-8 para compatibilidad con Excel.
      */
     public function exportarCsvStreaming(array $filtros = []): void {
         $datos = $this->obtenerReporteMorosidadCompleto($filtros);
@@ -196,9 +213,6 @@ class ReportesModel extends BaseModel {
 
     /**
      * Consolida el expediente completo de deuda de una unidad habitacional para la carta formal.
-     *
-     * @param int $unidadId
-     * @return array|false
      */
     public function obtenerDetalleDeudaUnidad(int $unidadId) {
         $db = $this->db();
@@ -249,10 +263,6 @@ class ReportesModel extends BaseModel {
 
     /**
      * Previene CSV Injection prefijando campos que comienzan con caracteres peligrosos.
-     * Microsoft Excel y Google Sheets ejecutan fórmulas que comienzan con =, +, -, @, \r.
-     *
-     * @param mixed $value
-     * @return mixed
      */
     private static function sanitizeCsvField($value) {
         if (!is_string($value)) {

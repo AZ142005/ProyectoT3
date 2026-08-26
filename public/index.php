@@ -110,7 +110,7 @@ $router->get('/residente/historial', [ResidenteController::class, 'historial'], 
 // --- Módulo de Administración ---
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [UserRole::ADMIN]);
 $router->get('/admin/comprobantes', [AdminController::class, 'listarComprobantes'], [UserRole::ADMIN]);
-$router->any('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
+$router->post('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
 $router->any('/admin/facturas/generar', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN]);
 
 // --- Módulo de Estructura del Conjunto ---
@@ -125,8 +125,8 @@ $router->get('/admin/estacionamientos', [\App\Controllers\EstacionamientoControl
 $router->post('/admin/estacionamientos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/estacionamientos/asignar', [\App\Controllers\EstacionamientoController::class, 'asignar'], [UserRole::ADMIN]);
 $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminar'], [UserRole::ADMIN]);
-$router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardarVehiculo'], ['auth']);
-$router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], ['auth']);
+$router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardarVehiculo'], [UserRole::ADMIN]);
+$router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], [UserRole::ADMIN]);
 
 // --- Módulo de Reportes de Morosidad y Cartas de Deuda (RF 23, RF 25) ---
 $router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);

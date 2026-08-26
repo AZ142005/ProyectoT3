@@ -206,7 +206,17 @@ class EstacionamientoController extends Controller {
         $id = intval($_POST['id'] ?? 0);
         $vehiculosModel = new VehiculosModel();
 
-        $unidadId = (Auth::role() === 'residente') ? ($this->getAuthenticatedResidente()['unidad_id'] ?? null) : null;
+        if (Auth::role() === 'residente') {
+            $residente = $this->getAuthenticatedResidente();
+            $unidadId = $residente['unidad_id'] ?? null;
+            if (!$unidadId) {
+                Flash::error("No se pudo determinar la unidad asociada a su cuenta.");
+                $this->redirect('/residente/dashboard');
+                return;
+            }
+        } else {
+            $unidadId = null; // Admin can delete any
+        }
 
         if ($vehiculosModel->eliminarVehiculo($id, $unidadId)) {
             Flash::success("El vehículo ha sido eliminado correctamente.");

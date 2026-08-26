@@ -88,6 +88,20 @@ class EstacionamientosModel extends BaseModel {
                 throw new Exception("El puesto ya se encuentra asignado a otra unidad habitacional.");
             }
 
+            // 6C.1: Unicidad — verificar que la unidad no tenga ya un puesto asignado
+            if ($unidadId !== null) {
+                $stmtExiste = $db->prepare(
+                    "SELECT COUNT(*) as cnt FROM estacionamientos 
+                     WHERE unidad_id = :uid AND id != :id AND deleted_at IS NULL"
+                );
+                $stmtExiste->execute(['uid' => $unidadId, 'id' => $puestoId]);
+                $cnt = intval($stmtExiste->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+                if ($cnt > 0) {
+                    $db->rollBack();
+                    throw new Exception("Esta unidad ya tiene un puesto de estacionamiento asignado. Libere el puesto actual primero.");
+                }
+            }
+
             // Actualizar la asignación
             $stmtUpdate = $db->prepare("UPDATE estacionamientos SET unidad_id = :unidad_id WHERE id = :id");
             $stmtUpdate->execute([

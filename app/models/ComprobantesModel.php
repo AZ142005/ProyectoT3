@@ -260,6 +260,7 @@ class ComprobantesModel extends BaseModel {
             
             $nuevo_saldo = max($factura['saldo'] - $comprobante['monto'], 0);
             $nuevo_pagado = $factura['monto_pagado'] + $comprobante['monto'];
+            $saldoAFavor = $comprobante['monto'] - $factura['saldo'];
             
             // Actualizar saldo de factura
             $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = :monto_pagado, estado = :estado WHERE id = :factura_id");
@@ -269,6 +270,34 @@ class ComprobantesModel extends BaseModel {
                 'estado'      => $nuevo_saldo <= 0 ? 'pagada' : 'pendiente',
                 'factura_id'  => $comprobante['factura_id']
             ]);
+
+            // 6B.5: Si hay saldo a favor, aplicar automáticamente a la siguiente factura pendiente
+            if ($saldoAFavor > 0.01 && !empty($comprobante['residente_id'])) {
+                $stmtSigiente = $db->prepare(
+                    "SELECT f.id, f.saldo FROM facturas f
+                     INNER JOIN unidades u ON f.unidad_id = u.id
+                     WHERE u.propietario_id = :pid AND f.saldo > 0 AND f.id != :factura_id
+                     AND f.deleted_at IS NULL
+                     ORDER BY f.fecha_vencimiento ASC LIMIT 1"
+                );
+                $stmtSigiente->execute(['pid' => $comprobante['residente_id'], 'factura_id' => $comprobante['factura_id']]);
+                $siguienteFactura = $stmtSigiente->fetch(PDO::FETCH_ASSOC);
+
+                if ($siguienteFactura && $saldoAFavor > 0.01) {
+                    $abono = min($saldoAFavor, $siguienteFactura['saldo']);
+                    $nuevoSaldoSig = $siguienteFactura['saldo'] - $abono;
+                    $stmtAbono = $db->prepare(
+                        "UPDATE facturas SET saldo = :saldo, monto_pagado = monto_pagado + :abono,
+                         estado = :estado WHERE id = :fid"
+                    );
+                    $stmtAbono->execute([
+                        'saldo'   => $nuevoSaldoSig,
+                        'abono'   => $abono,
+                        'estado'  => $nuevoSaldoSig <= 0 ? 'pagada' : 'pendiente',
+                        'fid'     => $siguienteFactura['id']
+                    ]);
+                }
+            }
             
             // Actualizar comprobante
             $stmtComprobante = $db->prepare("UPDATE comprobantes_pago SET estado = 'aprobado', observaciones = :observaciones WHERE id = :id");
