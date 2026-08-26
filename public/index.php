@@ -121,5 +121,10 @@ $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\Estacionamie
 $router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardarVehiculo'], ['auth']);
 $router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], ['auth']);
 
+// --- Módulo de Reportes de Morosidad (RF 23) ---
+$router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/morosidad/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
+
 // Despachar la petición
 $router->dispatch($_SERVER['REQUEST_METHOD'], $route);
