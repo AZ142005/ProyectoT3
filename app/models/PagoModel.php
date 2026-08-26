@@ -14,19 +14,17 @@ class PagoModel extends BaseModel {
      * @return bool
      */
     public function crearPago($residenteId, $unidadId, $datos, $archivo) {
-        $filename = '';
-        if (is_array($archivo) && isset($archivo['tmp_name'])) {
+        $filename = is_array($archivo) ? ($archivo['name'] ?? '') : (string) $archivo;
+        if (is_array($archivo) && isset($archivo['tmp_name']) && file_exists($archivo['tmp_name'])) {
             $ext = pathinfo($archivo['name'], PATHINFO_EXTENSION);
             $filename = bin2hex(random_bytes(16)) . ($ext ? ".{$ext}" : '');
-            $destDir = BASE_PATH . '/public/uploads';
+            $destDir = UPLOADS_PATH . '/comprobantes';
             if (!file_exists($destDir)) {
                 mkdir($destDir, 0755, true);
             }
             if (!move_uploaded_file($archivo['tmp_name'], $destDir . '/' . $filename)) {
                 return false;
             }
-        } else if (is_string($archivo)) {
-            $filename = $archivo;
         }
 
         $db = $this->db();

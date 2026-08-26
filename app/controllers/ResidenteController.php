@@ -91,27 +91,13 @@ class ResidenteController extends Controller {
                 } else {
                     $archivo = '';
                     if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
-                        $extension = strtolower(pathinfo($_FILES['comprobante']['name'], PATHINFO_EXTENSION));
-                        $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-                        $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+                        $uploader = new \App\Services\FileUploader();
+                        $uploadedName = $uploader->upload($_FILES['comprobante']);
 
-                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                        $mime = finfo_file($finfo, $_FILES['comprobante']['tmp_name']);
-                        finfo_close($finfo);
-
-                        if (!in_array($extension, $allowedExtensions) || !in_array($mime, $allowedMimes)) {
-                            $error = "Formato de archivo no permitido. Solo se aceptan JPG, PNG y PDF.";
+                        if (!$uploadedName) {
+                            $error = "Formato o tamaño de archivo no permitido. Solo se aceptan JPG, PNG y PDF.";
                         } else {
-                            $archivo = bin2hex(random_bytes(16)) . '.' . $extension;
-                            $destFolder = UPLOADS_PATH . '/comprobantes';
-
-                            if (!file_exists($destFolder)) {
-                                mkdir($destFolder, 0755, true);
-                            }
-
-                            if (!move_uploaded_file($_FILES['comprobante']['tmp_name'], $destFolder . '/' . $archivo)) {
-                                $error = "Ocurrió un error al subir el archivo comprobante.";
-                            }
+                            $archivo = $uploadedName;
                         }
                     }
 

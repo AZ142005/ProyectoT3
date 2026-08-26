@@ -116,28 +116,13 @@ class PagoController extends Controller {
             $this->redirect('/pagos/nuevo');
         }
         
-        $file = $_FILES['comprobante'];
+        $uploader = new \App\Services\FileUploader();
+        $uniqueName = $uploader->upload($_FILES['comprobante']);
         
-        $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
-        
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        
-        if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExtensions)) {
-            Flash::error("Formato de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG) o archivos PDF.");
+        if (!$uniqueName) {
+            Flash::error("Formato o tamaño de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG) o PDF hasta 5MB.");
             $this->redirect('/pagos/nuevo');
         }
-        
-        $maxSize = 5 * 1024 * 1024;
-        if ($file['size'] > $maxSize) {
-            Flash::error("El comprobante excede el tamaño máximo permitido de 5 MB.");
-            $this->redirect('/pagos/nuevo');
-        }
-        
-        $uniqueName = bin2hex(random_bytes(16)) . ".{$ext}";
         
         $pagoModel = new PagoModel();
         $datos = [
@@ -149,10 +134,7 @@ class PagoController extends Controller {
             'banco_receptor' => $banco_receptor
         ];
         
-        $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, [
-            'tmp_name' => $file['tmp_name'],
-            'name'     => $uniqueName
-        ]);
+        $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);
         
         if ($result) {
             Flash::success("Comprobante de pago subido correctamente. Está pendiente de verificación.");

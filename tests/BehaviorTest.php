@@ -138,9 +138,13 @@ class BehaviorTest extends TestCase {
     public function testPagoControllerUsesRandomBytesForFilename(): void {
         $file = dirname(__DIR__) . '/app/controllers/PagoController.php';
         $content = file_get_contents($file);
+        $uploaderFile = dirname(__DIR__) . '/app/services/FileUploader.php';
+        $uploaderContent = file_exists($uploaderFile) ? file_get_contents($uploaderFile) : '';
 
-        $this->assertStringContains('random_bytes', $content,
-            "PagoController must use random_bytes() for upload filenames");
+        $this->assertTrue(
+            str_contains($content, 'random_bytes') || str_contains($uploaderContent, 'random_bytes'),
+            "File upload system must use random_bytes() for upload filenames"
+        );
 
         // Must NOT use basename of original file in final name
         // (The regex check is in the static test, here we verify runtime logic)
