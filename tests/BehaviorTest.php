@@ -277,18 +277,18 @@ class BehaviorTest extends TestCase {
     public function testCsrfMiddlewareRunsBeforeRouting(): void {
         $indexContent = file_get_contents(dirname(__DIR__) . '/public/index.php');
 
-        // Security::validateCSRF() must appear before the switch statement
+        // Security::validateCSRF() must appear before the routing dispatch statement
         $csrfPos = strpos($indexContent, 'Security::validateCSRF()');
-        $switchPos = strpos($indexContent, 'switch ($route)');
+        $dispatchPos = strpos($indexContent, 'dispatch(') ?: strpos($indexContent, 'switch ($route)');
 
         $this->assertTrue($csrfPos !== false,
             "CSRF middleware must be present in index.php");
-        $this->assertTrue($switchPos !== false,
-            "Routing switch must be present in index.php");
+        $this->assertTrue($dispatchPos !== false,
+            "Routing dispatch must be present in index.php");
 
-        if ($csrfPos !== false && $switchPos !== false) {
-            $this->assertTrue($csrfPos < $switchPos,
-                "CSRF middleware must execute BEFORE the routing switch");
+        if ($csrfPos !== false && $dispatchPos !== false) {
+            $this->assertTrue($csrfPos < $dispatchPos,
+                "CSRF middleware must execute BEFORE routing dispatch");
         }
     }
 

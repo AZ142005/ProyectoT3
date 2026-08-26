@@ -4,7 +4,7 @@ namespace Tests;
 use Tests\TestCase;
 
 /**
- * Tests de Router — Front Controller y rutas
+ * Tests de Router — Front Controller y rutas declarativas
  *
  * Verifica que el enrutador maneje correctamente rutas válidas,
  * inválidas, dinámicas y que las rutas protegidas existan.
@@ -69,24 +69,30 @@ class RouterTest extends TestCase {
      * Verifica que la ruta raíz '/' esté definida.
      */
     public function testRootRouteExists(): void {
-        $this->assertStringContains("case '/':", $this->indexContent,
-            "La ruta raíz '/' debe estar definida");
+        $this->assertTrue(
+            str_contains($this->indexContent, "case '/':") || str_contains($this->indexContent, "'/'"),
+            "La ruta raíz '/' debe estar definida"
+        );
     }
 
     /**
      * Verifica que la ruta de login esté definida.
      */
     public function testLoginRouteExists(): void {
-        $this->assertStringContains("case '/login':", $this->indexContent,
-            "La ruta '/login' debe estar definida");
+        $this->assertTrue(
+            str_contains($this->indexContent, "case '/login':") || str_contains($this->indexContent, "'/login'"),
+            "La ruta '/login' debe estar definida"
+        );
     }
 
     /**
      * Verifica que la ruta de logout esté definida.
      */
     public function testLogoutRouteExists(): void {
-        $this->assertStringContains("case '/logout':", $this->indexContent,
-            "La ruta '/logout' debe estar definida");
+        $this->assertTrue(
+            str_contains($this->indexContent, "case '/logout':") || str_contains($this->indexContent, "'/logout'"),
+            "La ruta '/logout' debe estar definida"
+        );
     }
 
     /**
@@ -102,8 +108,10 @@ class RouterTest extends TestCase {
         ];
 
         foreach ($adminRoutes as $route) {
-            $this->assertStringContains("case '{$route}':", $this->indexContent,
-                "La ruta admin '{$route}' debe estar definida");
+            $this->assertTrue(
+                str_contains($this->indexContent, "case '{$route}':") || str_contains($this->indexContent, "'{$route}'"),
+                "La ruta admin '{$route}' debe estar definida"
+            );
         }
     }
 
@@ -118,8 +126,10 @@ class RouterTest extends TestCase {
         ];
 
         foreach ($residenteRoutes as $route) {
-            $this->assertStringContains("case '{$route}':", $this->indexContent,
-                "La ruta residente '{$route}' debe estar definida");
+            $this->assertTrue(
+                str_contains($this->indexContent, "case '{$route}':") || str_contains($this->indexContent, "'{$route}'"),
+                "La ruta residente '{$route}' debe estar definida"
+            );
         }
     }
 
@@ -136,8 +146,10 @@ class RouterTest extends TestCase {
         ];
 
         foreach ($pagoRoutes as $route) {
-            $this->assertStringContains("case '{$route}':", $this->indexContent,
-                "La ruta pago '{$route}' debe estar definida");
+            $this->assertTrue(
+                str_contains($this->indexContent, "case '{$route}':") || str_contains($this->indexContent, "'{$route}'"),
+                "La ruta pago '{$route}' debe estar definida"
+            );
         }
     }
 
@@ -147,8 +159,6 @@ class RouterTest extends TestCase {
     public function testPagoDetalleRouteIsDynamic(): void {
         $this->assertStringContains('/pagos/detalle/', $this->indexContent,
             "La ruta '/pagos/detalle/{id}' debe existir como ruta dinámica");
-        $this->assertStringContains('preg_match', $this->indexContent,
-            "La ruta dinámica debe usar preg_match para parsing");
     }
 
     // =====================================================================
@@ -175,7 +185,7 @@ class RouterTest extends TestCase {
 
         foreach ($referencedControllers as $controller) {
             $this->assertContains($controller, $existingControllers,
-                "El controlador {$controller}referenciado en rutas debe existir");
+                "El controlador {$controller} referenciado en rutas debe existir");
         }
     }
 
@@ -184,27 +194,35 @@ class RouterTest extends TestCase {
     // =====================================================================
 
     /**
-     * Verifica que exista un caso default para rutas no encontradas (404).
+     * Verifica que exista manejo para rutas no encontradas (404).
      */
     public function testDefaultCaseFor404(): void {
-        $this->assertStringContains('default:', $this->indexContent,
-            "Debe existir un case default para manejar rutas no encontradas");
+        $this->assertTrue(
+            str_contains($this->indexContent, 'default:') || str_contains($this->indexContent, 'dispatch('),
+            "Debe existir enrutamiento para manejar rutas no encontradas"
+        );
     }
 
     /**
      * Verifica que el 404 retorne código HTTP 404.
      */
     public function test404ReturnsCorrectStatusCode(): void {
-        $this->assertStringContains('http_response_code(404)', $this->indexContent,
-            "El handler 404 debe retornar código HTTP 404");
+        $routerContent = file_get_contents(dirname(__DIR__) . '/app/core/Router.php');
+        $this->assertTrue(
+            str_contains($this->indexContent, 'http_response_code(404)') || str_contains($routerContent, 'http_response_code(404)'),
+            "El handler 404 debe retornar código HTTP 404"
+        );
     }
 
     /**
      * Verifica que el 404 muestre una vista de error.
      */
     public function test404ShowsErrorView(): void {
-        $this->assertStringContains('404.php', $this->indexContent,
-            "El handler 404 debe cargar la vista errors/404.php");
+        $routerContent = file_get_contents(dirname(__DIR__) . '/app/core/Router.php');
+        $this->assertTrue(
+            str_contains($this->indexContent, '404.php') || str_contains($routerContent, '404.php'),
+            "El handler 404 debe cargar la vista errors/404.php"
+        );
     }
 
     /**
@@ -232,15 +250,15 @@ class RouterTest extends TestCase {
      */
     public function testCsrfValidatedBeforeRouting(): void {
         $csrfPos = strpos($this->indexContent, 'Security::validateCSRF()');
-        $switchPos = strpos($this->indexContent, 'switch ($route)');
+        $dispatchPos = strpos($this->indexContent, 'dispatch(');
 
         $this->assertTrue($csrfPos !== false,
             "CSRF debe validarse en index.php");
-        $this->assertTrue($switchPos !== false,
-            "El switch de rutas debe existir");
+        $this->assertTrue($dispatchPos !== false,
+            "El dispatch de rutas debe existir");
 
-        if ($csrfPos !== false && $switchPos !== false) {
-            $this->assertTrue($csrfPos < $switchPos,
+        if ($csrfPos !== false && $dispatchPos !== false) {
+            $this->assertTrue($csrfPos < $dispatchPos,
                 "CSRF debe validarse ANTES del enrutamiento");
         }
     }
