@@ -53,17 +53,7 @@
                             <td class="py-4 px-4 font-mono text-xs"><?= e($c['referencia'] ?: '-') ?></td>
                             <td class="py-4 px-4"><?= e(date('d/m/Y', strtotime($c['fecha_pago']))) ?></td>
                             <td class="py-4 px-4">
-                                <?php
-                                $statusClass = [
-                                    'pendiente' => 'bg-yellow-50 text-yellow-700',
-                                    'verificado' => 'bg-blue-50 text-blue-700',
-                                    'aprobado' => 'bg-green-50 text-green-700',
-                                    'rechazado' => 'bg-red-50 text-red-700'
-                                ][$c['estado']] ?? 'bg-gray-50 text-gray-700';
-                                ?>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold <?= $statusClass ?>">
-                                    <?= e(ucfirst($c['estado'])) ?>
-                                </span>
+                                <?= badgeEstado($c['estado']) ?>
                             </td>
                             <td class="py-4 px-4 text-xs text-on-surface-variant"><?= e(date('d/m/Y H:i', strtotime($c['fecha_envio']))) ?></td>
                             <td class="py-4 px-4">

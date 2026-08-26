@@ -12,12 +12,7 @@
     </div>
 
     <!-- Mensajes de Alerta -->
-    <?php if (!empty($error)): ?>
-        <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2 shadow-sm">
-            <span class="material-symbols-outlined text-[20px] shrink-0 text-red-600">error</span>
-            <span><?= e($error) ?></span>
-        </div>
-    <?php endif; ?>
+    <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
     <form id="formPago" method="POST" action="/pagos/subir" enctype="multipart/form-data" class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <!-- Token CSRF Obligatorio -->

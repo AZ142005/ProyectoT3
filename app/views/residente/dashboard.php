@@ -89,9 +89,9 @@
                             <td class="py-4 px-4">
                                 <div><?= e(date('d/m/Y', strtotime($f['fecha_vencimiento']))) ?></div>
                                 <?php if ($moroso): ?>
-                                    <span class="text-xs text-red-500 font-medium">Vencida hace <?= abs($dias) ?>d</span>
+                                    <span class="text-xs text-red-500 font-medium">Vencida hace <?= e(abs($dias)) ?>d</span>
                                 <?php elseif ($dias !== null && $dias <= 5 && $dias >= 0): ?>
-                                    <span class="text-xs text-yellow-600 font-medium">Vence en <?= $dias ?>d</span>
+                                    <span class="text-xs text-yellow-600 font-medium">Vence en <?= e($dias) ?>d</span>
                                 <?php endif; ?>
                             </td>
                             <td class="py-4 px-4">
@@ -160,17 +160,7 @@
                             <td class="py-4 px-4 text-xs font-medium uppercase"><?= e(str_replace('_', ' ', $c['metodo_pago'])) ?></td>
                             <td class="py-4 px-4"><?= e(date('d/m/Y', strtotime($c['fecha_pago']))) ?></td>
                             <td class="py-4 px-4">
-                                <?php
-                                $statusClass = [
-                                    'pendiente' => 'bg-yellow-50 text-yellow-700',
-                                    'verificado' => 'bg-blue-50 text-blue-700',
-                                    'aprobado' => 'bg-green-50 text-green-700',
-                                    'rechazado' => 'bg-red-50 text-red-700'
-                                ][$c['estado']] ?? 'bg-gray-50 text-gray-700';
-                                ?>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold <?= $statusClass ?>">
-                                    <?= e(ucfirst($c['estado'])) ?>
-                                </span>
+                                <?= badgeEstado($c['estado']) ?>
                             </td>
                             <td class="py-4 px-4">
                                 <?php if ($c['archivo']): ?>

@@ -18,19 +18,7 @@
     </div>
 
     <!-- Mensajes de Alerta -->
-    <?php if (!empty($mensaje)): ?>
-        <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2">
-            <span class="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
-            <span><?= e($mensaje) ?></span>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (!empty($error)): ?>
-        <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2">
-            <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
-            <span><?= e($error) ?></span>
-        </div>
-    <?php endif; ?>
+    <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
     <?php if (!empty($facturas_pendientes)): ?>
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">

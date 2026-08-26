@@ -37,11 +37,20 @@ class AdminController extends Controller {
         $buscar = trim($_GET['buscar'] ?? '');
         $mensaje = $_GET['mensaje'] ?? '';
 
+        $pagina = max(1, intval($_GET['page'] ?? 1));
         $comprobantesModel = new ComprobantesModel();
-        $comprobantes = $comprobantesModel->getAllFiltered($estado, $buscar);
+        $resultado = $comprobantesModel->getAllFiltered($estado, $buscar, $pagina, 20);
+        $comprobantes = $resultado['datos'];
+        $paginacion = [
+            'total'       => $resultado['total'],
+            'pagina'      => $resultado['pagina'],
+            'porPagina'   => $resultado['porPagina'],
+            'totalPaginas' => $resultado['totalPaginas'],
+        ];
 
         $this->render('admin/comprobantes', [
             'comprobantes' => $comprobantes,
+            'paginacion'   => $paginacion,
             'estado'       => $estado,
             'buscar'       => $buscar,
             'mensaje'      => $mensaje,

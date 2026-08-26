@@ -8,7 +8,7 @@ session_set_cookie_params([
     'lifetime' => 86400,
     'path' => '/',
     'domain' => '', // Vacío para desarrollo local
-    'secure' => false, // false para desarrollo sin HTTPS
+    'secure' => (ENVIRONMENT === 'production'),
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
@@ -16,6 +16,37 @@ session_set_cookie_params([
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Security headers
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:; img-src 'self' data: https: blob:; connect-src 'self';");
+if (ENVIRONMENT === 'production') {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
+// Exception handler global — captura errores no manejados
+set_exception_handler(function (Throwable $e) {
+    error_log("[EXCEPTION] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    
+    http_response_code(500);
+    
+    if (ENVIRONMENT === 'development') {
+        echo "<h2>Error 500: " . e($e->getMessage()) . "</h2>";
+        echo "<pre>" . e($e->getTraceAsString()) . "</pre>";
+    } else {
+        $errorView = VIEWS_PATH . '/errors/500.php';
+        if (file_exists($errorView)) {
+            require $errorView;
+        } else {
+            echo "<h2>Error interno del servidor</h2>";
+            echo "<p>Ha ocurrido un error inesperado. Por favor, intenta de nuevo.</p>";
+        }
+    }
+    exit;
+});
 
 // Generación global del token CSRF para formularios
 if (empty($_SESSION['csrf_token'])) {

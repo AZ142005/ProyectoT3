@@ -3,9 +3,8 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Auth;
-use App\Core\Security;
+use App\Core\Flash;
 use App\Models\PagoModel;
-use App\Models\PersonasModel;
 use App\Models\EdificiosModel;
 
 class PagoController extends Controller {
@@ -16,30 +15,18 @@ class PagoController extends Controller {
     public function listar() {
         Auth::requireLogin();
         
-        $rol = $_SESSION['rol'] ?? Auth::role();
+        $rol = Auth::role();
         $pagoModel = new PagoModel();
         
-        $mensaje = $_SESSION['pago_mensaje'] ?? '';
-        $error = $_SESSION['pago_error'] ?? '';
-        unset($_SESSION['pago_mensaje'], $_SESSION['pago_error']);
-        
         if ($rol === 'residente') {
+            $residente = $this->getAuthenticatedResidente();
             $residenteId = Auth::id();
-            $personasModel = new PersonasModel();
-            $residente = $personasModel->getResidenteDetails($residenteId);
-            
-            if (!$residente) {
-                Auth::logout();
-                $this->redirect('/auth/login');
-            }
             
             $pagos = $pagoModel->obtenerPagosPorResidente($residenteId);
             
             $this->render('pagos/residente/lista', [
                 'residente' => $residente,
                 'pagos'     => $pagos,
-                'mensaje'   => $mensaje,
-                'error'     => $error,
                 'showNav'   => true,
                 'title'     => 'Mis Pagos - Portal Residente'
             ]);
@@ -50,23 +37,32 @@ class PagoController extends Controller {
                 'fecha'    => $_GET['fecha'] ?? ''
             ];
             
-            $pagos = $pagoModel->obtenerTodosPagos($filtros);
+            $pagina = max(1, intval($_GET['page'] ?? 1));
+            $resultado = $pagoModel->obtenerTodosPagos($filtros, $pagina, 20);
+            $pagos = $resultado['datos'];
+            $paginacion = [
+                'total'       => $resultado['total'],
+                'pagina'      => $resultado['pagina'],
+                'porPagina'   => $resultado['porPagina'],
+                'totalPaginas' => $resultado['totalPaginas'],
+            ];
             
             $edificiosModel = new EdificiosModel();
             $edificios = $edificiosModel->getActivos();
             
             $this->render('pagos/admin/lista', [
-                'pagos'     => $pagos,
-                'edificios' => $edificios,
-                'filtros'   => $filtros,
-                'mensaje'   => $mensaje,
-                'error'     => $error,
-                'showNav'   => false,
-                'title'     => 'Administración de Pagos'
+                'pagos'      => $pagos,
+                'edificios'  => $edificios,
+                'filtros'    => $filtros,
+                'paginacion' => $paginacion,
+                'showNav'    => false,
+                'title'      => 'Administración de Pagos'
             ]);
         } else {
-            http_response_code(403);
-            echo "Acceso prohibido: Rol no válido.";
+            $this->render('errors/403', [
+                'showNav' => false,
+                'title'   => 'Acceso Denegado'
+            ]);
             exit;
         }
     }
@@ -75,43 +71,24 @@ class PagoController extends Controller {
      * Muestra el formulario para registrar un nuevo pago (Solo residente)
      */
     public function nuevo() {
-        Auth::requireRole('residente');
-        
-        $residenteId = Auth::id();
-        $personasModel = new PersonasModel();
-        $residente = $personasModel->getResidenteDetails($residenteId);
-        
-        if (!$residente) {
-            Auth::logout();
-            $this->redirect('/auth/login');
-        }
-        
-        $mensaje = $_SESSION['pago_mensaje'] ?? '';
-        $error = $_SESSION['pago_error'] ?? '';
-        unset($_SESSION['pago_mensaje'], $_SESSION['pago_error']);
+        $residente = $this->getAuthenticatedResidente();
         
         $this->render('pagos/residente/subir', [
             'residente' => $residente,
-            'mensaje'   => $mensaje,
-            'error'     => $error,
             'showNav'   => true,
             'title'     => 'Registrar Pago'
         ]);
     }
 
     /**
-     * Recibe POST con archivo y datos del formulario. Valida CSRF y guarda el pago.
+     * Recibe POST con archivo y datos del formulario. CSRF ya validado globalmente en index.php.
      */
     public function subir() {
-        Auth::requireRole('residente');
-        Security::validateCSRF();
-        
+        $residente = $this->getAuthenticatedResidente();
         $residenteId = Auth::id();
-        $personasModel = new PersonasModel();
-        $residente = $personasModel->getResidenteDetails($residenteId);
         
-        if (!$residente || empty($residente['unidad_id'])) {
-            $_SESSION['pago_error'] = "No se pudo determinar la unidad asociada a su cuenta de residente.";
+        if (empty($residente['unidad_id'])) {
+            Flash::error("No se pudo determinar la unidad asociada a su cuenta de residente.");
             $this->redirect('/pagos/nuevo');
         }
         
@@ -126,38 +103,41 @@ class PagoController extends Controller {
         $observaciones = trim($_POST['observaciones'] ?? '');
         
         if ($monto <= 0) {
-            $_SESSION['pago_error'] = "El monto del pago debe ser mayor a cero.";
+            Flash::error("El monto del pago debe ser mayor a cero.");
             $this->redirect('/pagos/nuevo');
         }
         if (empty($fecha_pago)) {
-            $_SESSION['pago_error'] = "La fecha de realización del pago es requerida.";
+            Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');
         }
         
         if (!isset($_FILES['comprobante']) || $_FILES['comprobante']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['pago_error'] = "El archivo del comprobante es obligatorio y debe ser válido.";
+            Flash::error("El archivo del comprobante es obligatorio y debe ser válido.");
             $this->redirect('/pagos/nuevo');
         }
         
         $file = $_FILES['comprobante'];
         
         $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
         
-        if (!in_array($mime, $allowedMimes)) {
-            $_SESSION['pago_error'] = "Formato de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG) o archivos PDF.";
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
+        if (!in_array($mime, $allowedMimes) || !in_array($ext, $allowedExtensions)) {
+            Flash::error("Formato de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG) o archivos PDF.");
             $this->redirect('/pagos/nuevo');
         }
         
         $maxSize = 5 * 1024 * 1024;
         if ($file['size'] > $maxSize) {
-            $_SESSION['pago_error'] = "El comprobante excede el tamaño máximo permitido de 5 MB.";
+            Flash::error("El comprobante excede el tamaño máximo permitido de 5 MB.");
             $this->redirect('/pagos/nuevo');
         }
         
-        $uniqueName = uniqid() . '_' . basename($file['name']);
+        $uniqueName = bin2hex(random_bytes(16)) . ".{$ext}";
         
         $pagoModel = new PagoModel();
         $datos = [
@@ -175,10 +155,10 @@ class PagoController extends Controller {
         ]);
         
         if ($result) {
-            $_SESSION['pago_mensaje'] = "Comprobante de pago subido correctamente. Está pendiente de verificación.";
+            Flash::success("Comprobante de pago subido correctamente. Está pendiente de verificación.");
             $this->redirect('/pagos');
         } else {
-            $_SESSION['pago_error'] = "No se pudo registrar la información de pago en la base de datos.";
+            Flash::error("No se pudo registrar la información de pago en la base de datos.");
             $this->redirect('/pagos/nuevo');
         }
     }
@@ -193,14 +173,14 @@ class PagoController extends Controller {
         $pago = $pagoModel->obtenerPagoPorId(intval($id));
         
         if (!$pago) {
-            $_SESSION['pago_error'] = 'Pago no encontrado.';
+            Flash::error('Pago no encontrado.');
             $this->redirect('/pagos');
         }
         
         // Seguridad: Los residentes solo pueden ver sus propios detalles de pago
-        $rol = $_SESSION['rol'] ?? Auth::role();
+        $rol = Auth::role();
         if ($rol === 'residente' && intval($pago['residente_id']) !== intval(Auth::id())) {
-            $_SESSION['pago_error'] = 'Acceso denegado a este pago.';
+            Flash::error('Acceso denegado a este pago.');
             $this->redirect('/pagos');
         }
         
@@ -217,12 +197,9 @@ class PagoController extends Controller {
      */
     public function extraer() {
         Auth::requireLogin();
-        sleep(1);
-        
         $bancos = ['Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial', 'BNC', 'Bancaribe'];
         
-        header('Content-Type: application/json');
-        echo json_encode([
+        $this->json([
             'success'        => true,
             'banco_pagador'  => $bancos[array_rand($bancos)],
             'banco_receptor' => $bancos[array_rand($bancos)],
@@ -230,15 +207,13 @@ class PagoController extends Controller {
             'monto'          => number_format(rand(30, 250) + (rand(0, 99) / 100), 2, '.', ''),
             'fecha_pago'     => date('Y-m-d')
         ]);
-        exit;
     }
 
     /**
-     * Cambia el estado del pago (Admin). Añadido soporte para "EN REVISIÓN".
+     * Cambia el estado del pago (Admin). CSRF ya validado globalmente en index.php.
      */
     public function cambiarEstado() {
         Auth::requireRole('admin');
-        Security::validateCSRF();
         
         $pagoId = intval($_POST['pago_id'] ?? 0);
         $nuevoEstado = trim($_POST['nuevo_estado'] ?? '');
@@ -246,14 +221,14 @@ class PagoController extends Controller {
         $adminId = Auth::id();
         
         if ($pagoId <= 0 || empty($nuevoEstado)) {
-            $_SESSION['pago_error'] = "Identificador o estado de pago inválido.";
+            Flash::error("Identificador o estado de pago inválido.");
             $this->redirect('/pagos');
         }
         
         // Se añade 'EN REVISIÓN' a los estados permitidos
         $estadosPermitidos = ['PENDIENTE', 'EN REVISIÓN', 'APROBADO', 'RECHAZADO'];
         if (!in_array($nuevoEstado, $estadosPermitidos)) {
-            $_SESSION['pago_error'] = "El estado seleccionado no es permitido.";
+            Flash::error("El estado seleccionado no es permitido.");
             $this->redirect('/pagos');
         }
         
@@ -261,9 +236,9 @@ class PagoController extends Controller {
         $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId);
         
         if ($exito) {
-            $_SESSION['pago_mensaje'] = "El pago fue actualizado a estado {$nuevoEstado} exitosamente.";
+            Flash::success("El pago fue actualizado a estado {$nuevoEstado} exitosamente.");
         } else {
-            $_SESSION['pago_error'] = "Hubo un error de base de datos al registrar el cambio de estado.";
+            Flash::error("Hubo un error de base de datos al registrar el cambio de estado.");
         }
         
         $this->redirect('/pagos');

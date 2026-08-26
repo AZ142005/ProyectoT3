@@ -1,10 +1,9 @@
 <?php
 namespace App\Models;
 
-use App\Core\Database;
 use PDO;
 
-class FacturasModel {
+class FacturasModel extends BaseModel {
     /**
      * Obtiene las facturas pendientes de una unidad específica.
      *
@@ -12,7 +11,7 @@ class FacturasModel {
      * @return array
      */
     public function getPendientesByUnidad($unidad_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT f.*, 
@@ -35,7 +34,7 @@ class FacturasModel {
      * @return float
      */
     public function getTotalDeudaByUnidad($unidad_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $stmt = $db->prepare("SELECT SUM(saldo) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo > 0");
         $stmt->execute(['unidad_id' => $unidad_id]);
@@ -51,13 +50,40 @@ class FacturasModel {
      * @return float
      */
     public function getSaldoFavorByUnidad($unidad_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $stmt = $db->prepare("SELECT SUM(saldo) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo < 0");
         $stmt->execute(['unidad_id' => $unidad_id]);
         $row = $stmt->fetch();
         
         return floatval($row['total'] ?? 0);
+    }
+
+    /**
+     * Obtiene el resumen financiero consolidado (deuda y saldo a favor) en una sola consulta optimizada.
+     *
+     * @param int $unidad_id
+     * @return array ['total_deuda' => float, 'saldo_a_favor' => float]
+     */
+    public function getResumenFinancieroUnidad($unidad_id) {
+        $db = $this->db();
+        
+        $sql = "
+            SELECT 
+                COALESCE(SUM(CASE WHEN saldo > 0 THEN saldo ELSE 0 END), 0) as total_deuda,
+                COALESCE(SUM(CASE WHEN saldo < 0 THEN ABS(saldo) ELSE 0 END), 0) as saldo_a_favor
+            FROM facturas 
+            WHERE unidad_id = :unidad_id
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['unidad_id' => $unidad_id]);
+        $row = $stmt->fetch();
+        
+        return [
+            'total_deuda'    => floatval($row['total_deuda'] ?? 0),
+            'saldo_a_favor'  => floatval($row['saldo_a_favor'] ?? 0)
+        ];
     }
 
     /**
@@ -68,7 +94,7 @@ class FacturasModel {
      * @return array|false
      */
     public function getByIdAndUnidad($id, $unidad_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         $stmt = $db->prepare("SELECT * FROM facturas WHERE id = :id AND unidad_id = :unidad_id AND saldo > 0");
         $stmt->execute(['id' => $id, 'unidad_id' => $unidad_id]);
         return $stmt->fetch();
@@ -82,7 +108,7 @@ class FacturasModel {
      * @return array|false
      */
     public function getByIdAndUnidadGeneral($id, $unidad_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         $stmt = $db->prepare("SELECT * FROM facturas WHERE id = :id AND unidad_id = :unidad_id");
         $stmt->execute(['id' => $id, 'unidad_id' => $unidad_id]);
         return $stmt->fetch();
@@ -96,7 +122,7 @@ class FacturasModel {
      * @return int
      */
     public function countByPeriod($mes, $anio) {
-        $db = Database::getConnection();
+        $db = $this->db();
         $stmt = $db->prepare("SELECT COUNT(*) as total FROM facturas WHERE mes = :mes AND anio = :anio");
         $stmt->execute(['mes' => $mes, 'anio' => $anio]);
         $row = $stmt->fetch();
@@ -112,7 +138,7 @@ class FacturasModel {
      * @return array Retorna un array con estadísticas de generación ['generadas' => X, 'con_saldo_favor' => Y, 'total_saldo_favor_usado' => Z]
      */
     public function crearFacturasMasivas($unidades, $mes, $anio) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $stats = [
             'generadas' => 0,

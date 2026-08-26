@@ -3,7 +3,6 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Auth;
-use App\Models\PersonasModel;
 use App\Models\FacturasModel;
 use App\Models\ComprobantesModel;
 
@@ -13,22 +12,11 @@ class ResidenteController extends Controller {
      */
     public function dashboard() {
         Auth::requireRole('residente');
-
+        $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
 
-        // Instanciar modelos
-        $personasModel = new PersonasModel();
         $facturasModel = new FacturasModel();
         $comprobantesModel = new ComprobantesModel();
-
-        // Obtener detalles del residente
-        $residente = $personasModel->getResidenteDetails($residente_id);
-
-        // Si por alguna razón el residente no existe o fue desactivado, cerrar sesión
-        if (!$residente) {
-            Auth::logout();
-            $this->redirect('/auth/login');
-        }
 
         $unidad_id = $residente['unidad_id'];
 
@@ -58,18 +46,11 @@ class ResidenteController extends Controller {
      */
     public function enviarPago() {
         Auth::requireRole('residente');
-
+        $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
 
-        $personasModel = new PersonasModel();
         $facturasModel = new FacturasModel();
         $comprobantesModel = new ComprobantesModel();
-
-        $residente = $personasModel->getResidenteDetails($residente_id);
-        if (!$residente) {
-            Auth::logout();
-            $this->redirect('/auth/login');
-        }
 
         $unidad_id = $residente['unidad_id'];
 
@@ -112,15 +93,20 @@ class ResidenteController extends Controller {
                     if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
                         $extension = strtolower(pathinfo($_FILES['comprobante']['name'], PATHINFO_EXTENSION));
                         $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+                        $allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
 
-                        if (!in_array($extension, $allowedExtensions)) {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime = finfo_file($finfo, $_FILES['comprobante']['tmp_name']);
+                        finfo_close($finfo);
+
+                        if (!in_array($extension, $allowedExtensions) || !in_array($mime, $allowedMimes)) {
                             $error = "Formato de archivo no permitido. Solo se aceptan JPG, PNG y PDF.";
                         } else {
-                            $archivo = 'comp_' . date('Ymd_His') . '_' . $residente_id . '.' . $extension;
+                            $archivo = bin2hex(random_bytes(16)) . '.' . $extension;
                             $destFolder = UPLOADS_PATH . '/comprobantes';
 
                             if (!file_exists($destFolder)) {
-                                mkdir($destFolder, 0777, true);
+                                mkdir($destFolder, 0755, true);
                             }
 
                             if (!move_uploaded_file($_FILES['comprobante']['tmp_name'], $destFolder . '/' . $archivo)) {
@@ -171,18 +157,10 @@ class ResidenteController extends Controller {
      */
     public function historial() {
         Auth::requireRole('residente');
-
+        $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
 
-        $personasModel = new PersonasModel();
         $comprobantesModel = new ComprobantesModel();
-
-        $residente = $personasModel->getResidenteDetails($residente_id);
-        if (!$residente) {
-            Auth::logout();
-            $this->redirect('/auth/login');
-        }
-
         $comprobantes = $comprobantesModel->getAllByResidente($residente_id);
 
         $this->render('residente/historial', [

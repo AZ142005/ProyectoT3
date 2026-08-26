@@ -1,50 +1,5 @@
 <div class="flex flex-1 min-h-screen w-full">
-    <!-- Sidebar Administrativa -->
-    <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0">
-        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <span class="material-symbols-outlined text-primary-container text-3xl">domain</span>
-            <div>
-                <h2 class="text-white font-bold text-lg leading-tight">Condominio</h2>
-                <small class="text-xs text-slate-500 font-medium">Panel de Control</small>
-            </div>
-        </div>
-
-        <nav class="flex-1 px-4 py-6 flex flex-col gap-1.5">
-            <a href="/admin/dashboard" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">dashboard</span>
-                Dashboard
-            </a>
-            <a href="/admin/comprobantes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">payments</span>
-                Verificar Pagos
-            </a>
-            <a href="/admin/comprobantes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">history</span>
-                Historial Pagos
-            </a>
-            <a href="/admin/facturas/generar" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">receipt_long</span>
-                Generar Facturas
-            </a>
-            <a href="/admin/estructura" class="flex items-center gap-3 px-4 py-3 bg-slate-800 text-white font-bold rounded-xl transition-all">
-                <span class="material-symbols-outlined">domain</span>
-                Estructura
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-slate-800 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold uppercase">
-                <?= e(substr($_SESSION['admin_usuario'] ?? 'A', 0, 1)) ?>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-white truncate"><?= e($_SESSION['admin_nombre'] ?? 'Administrador') ?></p>
-                <small class="text-xs text-slate-500 block truncate"><?= e($_SESSION['admin_rol'] ?? 'Admin') ?></small>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Overlay para móvil -->
-    <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black/50 z-20" onclick="toggleSidebar()"></div>
+    <?php $activeRoute = 'estructura'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -132,12 +87,16 @@
                                             <span><?= intval($edificio['total_unidades']) ?> unidades</span>
                                         </div>
                                         <div class="flex items-center gap-1.5">
-                                            <button onclick='editEdificio(<?= json_encode($edificio) ?>)' class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
+                                            <button onclick="editEdificio(<?= json_encode($edificio, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
                                                 <span class="material-symbols-outlined text-lg">edit</span>
                                             </button>
-                                            <a href="/admin/estructura/edificio/toggle?id=<?= $edificio['id'] ?>" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
-                                                <span class="material-symbols-outlined text-lg">power_settings_new</span>
-                                            </a>
+                                            <form method="POST" action="/admin/estructura/edificio/toggle" style="display:inline">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="id" value="<?= e($edificio['id']) ?>">
+                                                <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
+                                                    <span class="material-symbols-outlined text-lg">power_settings_new</span>
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
@@ -161,7 +120,7 @@
                             <select id="filtro_edificio" name="edificio_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-background border border-outline-variant text-on-surface text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-primary">
                                 <option value="0">Todos los Edificios</option>
                                 <?php foreach ($edificios as $ed): ?>
-                                    <option value="<?= $ed['id'] ?>" <?= $filtroEdificio == $ed['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= e($ed['id']) ?>" <?= $filtroEdificio == $ed['id'] ? 'selected' : '' ?>>
                                         <?= e($ed['nombre']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -198,7 +157,7 @@
                                                     <?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>
                                                 </span>
                                             </td>
-                                            <td class="p-3.5 font-bold text-primary">$<?= number_format($u['cuota_mensual'], 2) ?></td>
+                                            <td class="p-3.5 font-bold text-primary"><?= e(formatearMoneda($u['cuota_mensual'])) ?></td>
                                             <td class="p-3.5">
                                                 <span class="bg-background text-on-surface font-bold text-xs px-2.5 py-1 rounded-full border border-outline-variant">
                                                     <?= intval($u['total_residentes'] ?? 0) ?> res.
@@ -213,12 +172,16 @@
                                             </td>
                                             <td class="p-3.5 text-right">
                                                 <div class="inline-flex items-center gap-1">
-                                                    <button onclick='editUnidad(<?= json_encode($u) ?>)' class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
+                                                    <button onclick="editUnidad(<?= json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
                                                         <span class="material-symbols-outlined text-lg">edit</span>
                                                     </button>
-                                                    <a href="/admin/estructura/unidad/toggle?id=<?= $u['id'] ?>" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
-                                                        <span class="material-symbols-outlined text-lg">power_settings_new</span>
-                                                    </a>
+                                                    <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="id" value="<?= e($u['id']) ?>">
+                                                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
+                                                            <span class="material-symbols-outlined text-lg">power_settings_new</span>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -294,7 +257,7 @@
                         class="w-full px-3.5 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary focus:bg-white text-sm cursor-pointer">
                     <option value="">Seleccione un edificio...</option>
                     <?php foreach ($edificios as $ed): ?>
-                        <option value="<?= $ed['id'] ?>"><?= e($ed['nombre']) ?></option>
+                        <option value="<?= e($ed['id']) ?>"><?= e($ed['nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -314,14 +277,6 @@
 </div>
 
 <script>
-function toggleSidebar() {
-    const sidebar = document.getElementById('adminSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    
-    sidebar.classList.toggle('-translate-x-full');
-    overlay.classList.toggle('hidden');
-}
-
 function openModalEdificio() {
     document.getElementById('edificio_id_input').value = '0';
     document.getElementById('edificio_nombre').value = '';

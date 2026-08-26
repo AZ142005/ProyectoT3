@@ -1,0 +1,10 @@
+---
+description: "Reglas de seguridad OWASP para PHP Vanilla"
+globs: ["app/**/*.php", "scripts/**/*.php", "public/**/*.php"]
+---
+# Security & OWASP Rules
+- Never concatenate unescaped input into SQL strings. Always use PDO prepared statements.
+- Always include <?= csrf_field() ?> inside <form method="POST">.
+- Escape all dynamic text in HTML views with <?= e($var) ?>.
+- Use password_hash(..., PASSWORD_BCRYPT) and password_verify().
+- Always enforce Auth::requireRole() in protected controller methods.

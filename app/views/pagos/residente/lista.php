@@ -18,19 +18,7 @@
     </div>
 
     <!-- Mensajes de Alerta -->
-    <?php if (!empty($mensaje)): ?>
-        <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2 shadow-sm">
-            <span class="material-symbols-outlined text-[20px] shrink-0 text-green-600">check_circle</span>
-            <span><?= e($mensaje) ?></span>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (!empty($error)): ?>
-        <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2 shadow-sm">
-            <span class="material-symbols-outlined text-[20px] shrink-0 text-red-600">error</span>
-            <span><?= e($error) ?></span>
-        </div>
-    <?php endif; ?>
+    <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
     <!-- Tabla de Pagos -->
     <div class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
@@ -60,7 +48,7 @@
                         <?php foreach ($pagos as $p): ?>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="py-4 px-6 font-medium"><?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?></td>
-                            <td class="py-4 px-6 font-black text-on-surface text-base">Bs. <?= e(formatearMoneda($p['monto'])) ?></td>
+                            <td class="py-4 px-6 font-black text-on-surface text-base"><?= e(formatearMoneda($p['monto'])) ?></td>
                             <td class="py-4 px-6 font-mono text-xs text-slate-600"><?= e($p['referencia'] ?: 'Sin Referencia') ?></td>
                             <td class="py-4 px-6 text-center">
                                 <?php
@@ -75,7 +63,7 @@
                                     $badgeClass = 'bg-red-100 text-red-800';
                                 }
                                 ?>
-                                <span class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap <?= $badgeClass ?>">
+                                <span class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap <?= e($badgeClass) ?>">
                                     <?= e($p['estado']) ?>
                                 </span>
                             </td>

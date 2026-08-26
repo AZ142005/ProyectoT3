@@ -1,50 +1,5 @@
 <div class="flex flex-1 min-h-screen w-full">
-    <!-- Sidebar Administrativa -->
-    <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0">
-        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <span class="material-symbols-outlined text-primary-container text-3xl">domain</span>
-            <div>
-                <h2 class="text-white font-bold text-lg leading-tight">Condominio</h2>
-                <small class="text-xs text-slate-500 font-medium">Panel de Control</small>
-            </div>
-        </div>
-
-        <nav class="flex-1 px-4 py-6 flex flex-col gap-1.5">
-            <a href="/admin/dashboard" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">dashboard</span>
-                Dashboard
-            </a>
-            <a href="/admin/comprobantes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">payments</span>
-                Verificar Pagos
-            </a>
-            <a href="/admin/comprobantes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">history</span>
-                Historial Pagos
-            </a>
-            <a href="/admin/facturas/generar" class="flex items-center gap-3 px-4 py-3 bg-slate-800 text-white font-bold rounded-xl transition-all">
-                <span class="material-symbols-outlined">receipt_long</span>
-                Generar Facturas
-            </a>
-            <a href="/admin/estructura" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-                <span class="material-symbols-outlined">domain</span>
-                Estructura
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-slate-800 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold uppercase">
-                <?= e(substr($_SESSION['admin_usuario'] ?? 'A', 0, 1)) ?>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-white truncate"><?= e($_SESSION['admin_nombre'] ?? 'Administrador') ?></p>
-                <small class="text-xs text-slate-500 block truncate"><?= e($_SESSION['admin_rol'] ?? 'Admin') ?></small>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Overlay para móvil -->
-    <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black/50 z-20" onclick="toggleSidebar()"></div>
+    <?php $activeRoute = 'facturas'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -65,19 +20,7 @@
         <!-- Contenido principal scrollable -->
         <div class="flex-grow p-6 overflow-y-auto max-w-4xl mx-auto w-full">
             <!-- Mensajes y Alertas -->
-            <?php if (!empty($mensaje)): ?>
-                <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
-                    <span><?= e($mensaje) ?></span>
-                </div>
-            <?php endif; ?>
-
-            <?php if (!empty($error)): ?>
-                <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
-                    <span><?= e($error) ?></span>
-                </div>
-            <?php endif; ?>
+            <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
             <!-- Tarjeta de Generación Masiva (Stitch-like) -->
             <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
@@ -148,13 +91,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    function toggleSidebar() {
-        const sidebar = document.getElementById('adminSidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        
-        sidebar.classList.toggle('-translate-x-full');
-        overlay.classList.toggle('hidden');
-    }
-</script>

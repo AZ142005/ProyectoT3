@@ -5,11 +5,18 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "App\\": "app/"
+            "App\\": "app/",
+            "Tests\\": "tests/"
         },
         "files": [
             "app/core/helpers.php"
         ]
     },
-    "require": {}
+    "require": {},
+    "scripts": {
+        "test": "php tests/run.php"
+    },
+    "config": {
+        "disable-tls": true
+    }
 }

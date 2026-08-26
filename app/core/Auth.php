@@ -96,18 +96,15 @@ class Auth {
      * @return void
      */
     public static function loginAsAdmin(array $user): void {
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
         $_SESSION['auth_user'] = [
             'id'    => (int) $user['id'],
             'name'  => $user['nombre_completo'],
             'email' => $user['email'] ?? $user['usuario'],
             'role'  => 'admin',
         ];
-
-        // Mantener compatibilidad con variables de sesión heredadas
-        $_SESSION['admin_usuario'] = $user['usuario'];
-        $_SESSION['admin_nombre']  = $user['nombre_completo'];
-        $_SESSION['admin_rol']     = $user['rol'] ?? 'admin';
-        $_SESSION['admin_id']      = (int) $user['id'];
     }
 
     /**
@@ -117,15 +114,15 @@ class Auth {
      * @return void
      */
     public static function loginAsResidente(array $persona): void {
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
         $_SESSION['auth_user'] = [
             'id'    => (int) $persona['id'],
             'name'  => trim($persona['nombre'] . ' ' . $persona['apellido']),
             'email' => $persona['email'],
             'role'  => 'residente',
         ];
-
-        // Mantener compatibilidad con variable de sesión heredada
-        $_SESSION['residente_id'] = (int) $persona['id'];
     }
 
     /**

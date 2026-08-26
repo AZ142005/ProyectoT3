@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Core\Flash;
 use App\Models\EdificiosModel;
 use App\Models\UnidadesModel;
 
@@ -25,13 +26,9 @@ class EstructuraController extends Controller {
             'edificios'      => $edificios,
             'unidades'       => $unidades,
             'filtroEdificio' => $filtroEdificio,
-            'mensaje'        => $_SESSION['flash_mensaje'] ?? '',
-            'error'          => $_SESSION['flash_error'] ?? '',
             'showNav'        => true,
             'title'          => 'Estructura del Conjunto - Administrador'
         ]);
-
-        unset($_SESSION['flash_mensaje'], $_SESSION['flash_error']);
     }
 
     /**
@@ -46,19 +43,19 @@ class EstructuraController extends Controller {
             $descripcion = trim($_POST['descripcion'] ?? '');
 
             if (empty($nombre)) {
-                $_SESSION['flash_error'] = 'El nombre del edificio no puede estar vacío.';
+                Flash::error('El nombre del edificio no puede estar vacío.');
             } else {
                 $edificiosModel = new EdificiosModel();
 
                 if ($edificiosModel->nombreExists($nombre, $id > 0 ? $id : null)) {
-                    $_SESSION['flash_error'] = 'Ya existe un edificio registrado con ese nombre.';
+                    Flash::error('Ya existe un edificio registrado con ese nombre.');
                 } else {
                     if ($id > 0) {
                         $res = $edificiosModel->update($id, ['nombre' => $nombre, 'descripcion' => $descripcion]);
-                        $_SESSION['flash_mensaje'] = $res ? 'Edificio actualizado exitosamente.' : 'Error al actualizar el edificio.';
+                        Flash::success($res ? 'Edificio actualizado exitosamente.' : 'Error al actualizar el edificio.');
                     } else {
                         $res = $edificiosModel->create(['nombre' => $nombre, 'descripcion' => $descripcion]);
-                        $_SESSION['flash_mensaje'] = $res ? 'Edificio creado exitosamente.' : 'Error al crear el edificio.';
+                        Flash::success($res ? 'Edificio creado exitosamente.' : 'Error al crear el edificio.');
                     }
                 }
             }
@@ -80,16 +77,16 @@ class EstructuraController extends Controller {
             $cuota_mensual = floatval($_POST['cuota_mensual'] ?? 0);
 
             if (empty($numero)) {
-                $_SESSION['flash_error'] = 'El código/número de la unidad es obligatorio.';
+                Flash::error('El código/número de la unidad es obligatorio.');
             } elseif ($edificio_id <= 0) {
-                $_SESSION['flash_error'] = 'Debe seleccionar un edificio para la unidad.';
+                Flash::error('Debe seleccionar un edificio para la unidad.');
             } elseif ($cuota_mensual < 0) {
-                $_SESSION['flash_error'] = 'La cuota mensual debe ser un valor mayor o igual a 0.';
+                Flash::error('La cuota mensual debe ser un valor mayor o igual a 0.');
             } else {
                 $unidadesModel = new UnidadesModel();
 
                 if ($unidadesModel->numeroExists($numero, $id > 0 ? $id : null)) {
-                    $_SESSION['flash_error'] = 'Ya existe una unidad con ese código/número registrado.';
+                    Flash::error('Ya existe una unidad con ese código/número registrado.');
                 } else {
                     $data = [
                         'numero'        => $numero,
@@ -99,10 +96,10 @@ class EstructuraController extends Controller {
 
                     if ($id > 0) {
                         $res = $unidadesModel->update($id, $data);
-                        $_SESSION['flash_mensaje'] = $res ? 'Unidad actualizada exitosamente.' : 'Error al actualizar la unidad.';
+                        Flash::success($res ? 'Unidad actualizada exitosamente.' : 'Error al actualizar la unidad.');
                     } else {
                         $res = $unidadesModel->create($data);
-                        $_SESSION['flash_mensaje'] = $res ? 'Unidad registrada exitosamente.' : 'Error al registrar la unidad.';
+                        Flash::success($res ? 'Unidad registrada exitosamente.' : 'Error al registrar la unidad.');
                     }
                 }
             }
@@ -117,11 +114,14 @@ class EstructuraController extends Controller {
     public function toggleEdificio() {
         Auth::requireRole('admin');
 
-        $id = intval($_GET['id'] ?? 0);
+        $id = intval($_POST['id'] ?? 0);
         if ($id > 0) {
             $edificiosModel = new EdificiosModel();
-            $edificiosModel->toggleEstado($id);
-            $_SESSION['flash_mensaje'] = 'Estado del edificio modificado.';
+            if ($edificiosModel->toggleEstado($id)) {
+                Flash::success('Estado del edificio modificado.');
+            } else {
+                Flash::error('Edificio no encontrado.');
+            }
         }
 
         $this->redirect('/admin/estructura');
@@ -133,11 +133,14 @@ class EstructuraController extends Controller {
     public function toggleUnidad() {
         Auth::requireRole('admin');
 
-        $id = intval($_GET['id'] ?? 0);
+        $id = intval($_POST['id'] ?? 0);
         if ($id > 0) {
             $unidadesModel = new UnidadesModel();
-            $unidadesModel->toggleEstado($id);
-            $_SESSION['flash_mensaje'] = 'Estado de la unidad modificado.';
+            if ($unidadesModel->toggleEstado($id)) {
+                Flash::success('Estado de la unidad modificado.');
+            } else {
+                Flash::error('Unidad no encontrada.');
+            }
         }
 
         $this->redirect('/admin/estructura');

@@ -26,23 +26,12 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div>
                         <span class="text-[10px] uppercase font-bold text-on-surface-variant block mb-1">Monto Pagado</span>
-                        <p class="text-2xl font-black text-primary">Bs. <?= e(formatearMoneda($pago['monto'])) ?></p>
+                        <p class="text-2xl font-black text-primary"><?= e(formatearMoneda($pago['monto'])) ?></p>
                     </div>
                     
                     <div>
                         <span class="text-[10px] uppercase font-bold text-on-surface-variant block mb-1">Estado Actual</span>
-                        <?php
-                        $statusClasses = [
-                            'PENDIENTE' => 'bg-yellow-100 text-yellow-800',
-                            'EN REVISIÓN' => 'bg-blue-100 text-blue-800',
-                            'APROBADO'  => 'bg-green-100 text-green-800',
-                            'RECHAZADO' => 'bg-red-100 text-red-800'
-                        ];
-                        $badge = $statusClasses[$pago['estado']] ?? 'bg-slate-100 text-slate-800';
-                        ?>
-                        <span class="px-3 py-1 rounded-full text-xs font-bold inline-block <?= $badge ?>">
-                            <?= e($pago['estado']) ?>
-                        </span>
+                        <?= badgeEstado($pago['estado']) ?>
                     </div>
 
                     <div>
@@ -89,15 +78,15 @@
                     <div class="flex flex-col items-center justify-center p-8 border border-dashed border-outline-variant rounded-xl bg-slate-50">
                         <span class="material-symbols-outlined text-6xl text-red-500 mb-4">picture_as_pdf</span>
                         <p class="text-sm font-semibold text-on-surface mb-4"><?= e($pago['archivo']) ?></p>
-                        <a href="<?= $archivoUrl ?>" target="_blank" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-6 py-3 rounded-xl border border-red-200 transition-colors flex items-center gap-2">
+                        <a href="<?= e($archivoUrl) ?>" target="_blank" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-6 py-3 rounded-xl border border-red-200 transition-colors flex items-center gap-2">
                             <span class="material-symbols-outlined">open_in_new</span>
                             Abrir / Descargar PDF
                         </a>
                     </div>
                 <?php else: ?>
                     <div class="rounded-xl overflow-hidden border border-outline-variant shadow-inner bg-slate-100 flex justify-center p-4">
-                        <a href="<?= $archivoUrl ?>" target="_blank" title="Haz clic para ver tamaño completo">
-                            <img src="<?= $archivoUrl ?>" alt="Comprobante de pago" class="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                        <a href="<?= e($archivoUrl) ?>" target="_blank" title="Haz clic para ver tamaño completo">
+                            <img src="<?= e($archivoUrl) ?>" alt="Comprobante de pago" class="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm hover:opacity-90 transition-opacity">
                         </a>
                     </div>
                 <?php endif; ?>
@@ -119,7 +108,7 @@
                         <div class="absolute -left-[35px] top-1 bg-yellow-500 h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4 ring-yellow-500/20"></div>
                         <p class="text-sm font-bold text-on-surface">Pago Registrado (PENDIENTE)</p>
                         <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por <?= e($pago['residente_nombre']) ?></p>
-                        <p class="text-[10px] text-slate-400 mt-0.5"><?= date('d/m/Y h:i A', strtotime($pago['fecha_registro'])) ?></p>
+                        <p class="text-[10px] text-slate-400 mt-0.5"><?= e(date('d/m/Y h:i A', strtotime($pago['fecha_registro']))) ?></p>
                     </div>
 
                     <!-- Eventos subsecuentes -->
@@ -134,10 +123,10 @@
                             if ($log['estado_nuevo'] === 'RECHAZADO') $dotColor = 'bg-red-500 ring-red-500/20';
                         ?>
                         <div class="relative">
-                            <div class="absolute -left-[35px] top-1 <?= $dotColor ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
+                            <div class="absolute -left-[35px] top-1 <?= e($dotColor) ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
                             <p class="text-sm font-bold text-on-surface">Cambio a <?= e($log['estado_nuevo']) ?></p>
                             <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por <?= e($log['admin_nombre']) ?></p>
-                            <p class="text-[10px] text-slate-400 mt-0.5"><?= date('d/m/Y h:i A', strtotime($log['fecha_registro'])) ?></p>
+                            <p class="text-[10px] text-slate-400 mt-0.5"><?= e(date('d/m/Y h:i A', strtotime($log['fecha_registro']))) ?></p>
                             
                             <?php if (!empty($log['motivo'])): ?>
                                 <div class="mt-2 text-xs bg-slate-50 border border-slate-200 p-3 rounded-lg text-on-surface-variant italic">

@@ -5,20 +5,34 @@ define('APP_PATH', BASE_PATH . '/app');
 define('VIEWS_PATH', APP_PATH . '/views');
 define('UPLOADS_PATH', BASE_PATH . '/uploads');
 
-// Constantes de entorno y Logs
-define('ENVIRONMENT', 'development'); // 'development' o 'production'
-define('LOG_PATH', BASE_PATH . '/logs/app.log');
+// Cargar variables de entorno desde .env si existe
+$envFile = BASE_PATH . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#' || $line[0] === ';') {
+            continue; // Skip comments and empty lines
+        }
+        if (strpos($line, '=') !== false) {
+            [$key, $value] = explode('=', $line, 2);
+            $_ENV[trim($key)] = trim($value);
+        }
+    }
+}
 
-// Credenciales de Base de Datos (Basado en el archivo heredado)
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'condominio_cobranzas');
+// Constantes de entorno y Logs
+define('LOG_PATH', BASE_PATH . '/logs/app.log');
+define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
+define('DB_USER', $_ENV['DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASS'] ?? '');
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'condominio_cobranzas');
+define('ENVIRONMENT', $_ENV['ENVIRONMENT'] ?? 'development');
 
 // Crear directorio de logs si no existe
 $logDir = dirname(LOG_PATH);
 if (!file_exists($logDir)) {
-    mkdir($logDir, 0777, true);
+    mkdir($logDir, 0755, true);
 }
 
 // Configuración de visualización y reporte de errores según el entorno

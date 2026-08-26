@@ -8,5 +8,8 @@
             &copy; <?= date('Y') ?> Condominio Digital - Sistema de Cobranzas. Todos los derechos reservados.
         </p>
     </footer>
+
+    <!-- Bootstrap 5.3.3 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

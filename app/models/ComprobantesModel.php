@@ -1,10 +1,9 @@
 <?php
 namespace App\Models;
 
-use App\Core\Database;
 use PDO;
 
-class ComprobantesModel {
+class ComprobantesModel extends BaseModel {
     /**
      * Obtiene los comprobantes de pago recientes de un residente.
      *
@@ -13,7 +12,7 @@ class ComprobantesModel {
      * @return array
      */
     public function getRecientesByResidente($residente_id, $limit = 10) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT c.*, f.numero_factura 
@@ -40,7 +39,7 @@ class ComprobantesModel {
      * @return bool
      */
     public function create($data) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             INSERT INTO comprobantes_pago 
@@ -68,7 +67,7 @@ class ComprobantesModel {
      * @return array
      */
     public function getAllByResidente($residente_id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT c.*, f.numero_factura, f.mes, f.anio
@@ -91,7 +90,7 @@ class ComprobantesModel {
      * @return array
      */
     public function getPendientesVerificar($limit = 10) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT 
@@ -123,7 +122,7 @@ class ComprobantesModel {
      * @return array
      */
     public function getProcesados($limit = 5) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT 
@@ -152,7 +151,7 @@ class ComprobantesModel {
      * @return array|false
      */
     public function getById($id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $sql = "
             SELECT 
@@ -160,7 +159,6 @@ class ComprobantesModel {
                 f.numero_factura,
                 f.monto_total,
                 f.saldo,
-                f.factura_id,
                 CONCAT(p.nombre, ' ', p.apellido) as residente,
                 p.cedula,
                 u.numero as unidad
@@ -182,12 +180,12 @@ class ComprobantesModel {
      *
      * @param string $estado
      * @param string $buscar
+     * @param int $pagina
+     * @param int $porPagina
      * @return array
      */
-    public function getAllFiltered($estado = '', $buscar = '') {
-        $db = Database::getConnection();
-        
-        $sql = "
+    public function getAllFiltered($estado = '', $buscar = '', int $pagina = 1, int $porPagina = 20): array {
+        $baseSql = "
             SELECT 
                 c.*,
                 f.numero_factura,
@@ -201,24 +199,28 @@ class ComprobantesModel {
             WHERE 1=1
         ";
         
+        $countSql = "SELECT COUNT(*) as total FROM comprobantes_pago c
+                     INNER JOIN facturas f ON c.factura_id = f.id
+                     INNER JOIN unidades u ON f.unidad_id = u.id
+                     INNER JOIN personas p ON c.residente_id = p.id
+                     WHERE 1=1";
+        
         $params = [];
         
         if (!empty($estado)) {
-            $sql .= " AND c.estado = :estado";
+            $baseSql .= " AND c.estado = :estado";
+            $countSql .= " AND c.estado = :estado";
             $params['estado'] = $estado;
         }
         
         if (!empty($buscar)) {
-            $sql .= " AND (p.nombre LIKE :buscar OR p.apellido LIKE :buscar OR p.cedula LIKE :buscar OR f.numero_factura LIKE :buscar)";
+            $likeClause = " AND (p.nombre LIKE :buscar OR p.apellido LIKE :buscar OR p.cedula LIKE :buscar OR f.numero_factura LIKE :buscar)";
+            $baseSql .= $likeClause;
+            $countSql .= $likeClause;
             $params['buscar'] = '%' . $buscar . '%';
         }
         
-        $sql .= " ORDER BY c.fecha_envio DESC";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        
-        return $stmt->fetchAll();
+        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'c.fecha_envio DESC');
     }
 
     /**
@@ -229,7 +231,7 @@ class ComprobantesModel {
      * @return bool
      */
     public function aprobar($id, $observaciones) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         try {
             $db->beginTransaction();
@@ -280,7 +282,7 @@ class ComprobantesModel {
      * @return bool
      */
     public function rechazar($id, $observaciones) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         $stmt = $db->prepare("UPDATE comprobantes_pago SET estado = 'rechazado', observaciones = :observaciones WHERE id = :id");
         return $stmt->execute([

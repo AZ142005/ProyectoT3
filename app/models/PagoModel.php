@@ -1,10 +1,9 @@
 <?php
 namespace App\Models;
 
-use App\Core\Database;
 use PDO;
 
-class PagoModel {
+class PagoModel extends BaseModel {
     /**
      * Guarda el comprobante en public/uploads/ e inserta en la tabla pagos con estado PENDIENTE.
      *
@@ -17,10 +16,11 @@ class PagoModel {
     public function crearPago($residenteId, $unidadId, $datos, $archivo) {
         $filename = '';
         if (is_array($archivo) && isset($archivo['tmp_name'])) {
-            $filename = uniqid() . '_' . basename($archivo['name']);
+            $ext = pathinfo($archivo['name'], PATHINFO_EXTENSION);
+            $filename = bin2hex(random_bytes(16)) . ($ext ? ".{$ext}" : '');
             $destDir = BASE_PATH . '/public/uploads';
             if (!file_exists($destDir)) {
-                mkdir($destDir, 0777, true);
+                mkdir($destDir, 0755, true);
             }
             if (!move_uploaded_file($archivo['tmp_name'], $destDir . '/' . $filename)) {
                 return false;
@@ -29,7 +29,7 @@ class PagoModel {
             $filename = $archivo;
         }
 
-        $db = Database::getConnection();
+        $db = $this->db();
         $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
                 VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
         
@@ -55,7 +55,7 @@ class PagoModel {
      * @return array
      */
     public function obtenerPagosPorResidente($residenteId) {
-        $db = Database::getConnection();
+        $db = $this->db();
         $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
@@ -72,11 +72,12 @@ class PagoModel {
      * Para el admin, con filtros por estado, edificio, fecha.
      *
      * @param array $filtros
+     * @param int $pagina
+     * @param int $porPagina
      * @return array
      */
-    public function obtenerTodosPagos($filtros = []) {
-        $db = Database::getConnection();
-        $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
+    public function obtenerTodosPagos($filtros = [], int $pagina = 1, int $porPagina = 20): array {
+        $baseSql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
                        CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
@@ -84,25 +85,31 @@ class PagoModel {
                 INNER JOIN personas per ON p.residente_id = per.id
                 WHERE 1=1";
         
+        $countSql = "SELECT COUNT(*) as total FROM pagos p 
+                     INNER JOIN unidades u ON p.unidad_id = u.id
+                     LEFT JOIN edificios e ON u.edificio_id = e.id
+                     INNER JOIN personas per ON p.residente_id = per.id
+                     WHERE 1=1";
+        
         $params = [];
         if (!empty($filtros['estado'])) {
-            $sql .= " AND p.estado = :estado";
+            $baseSql .= " AND p.estado = :estado";
+            $countSql .= " AND p.estado = :estado";
             $params['estado'] = $filtros['estado'];
         }
         if (!empty($filtros['edificio'])) {
-            $sql .= " AND u.edificio_id = :edificio";
+            $baseSql .= " AND u.edificio_id = :edificio";
+            $countSql .= " AND u.edificio_id = :edificio";
             $params['edificio'] = intval($filtros['edificio']);
         }
         if (!empty($filtros['fecha'])) {
-            $sql .= " AND p.fecha_pago = :fecha";
+            $baseSql .= " AND p.fecha_pago = :fecha";
+            $countSql .= " AND p.fecha_pago = :fecha";
             $params['fecha'] = $filtros['fecha'];
         }
         
-        $sql .= " ORDER BY p.fecha_registro DESC";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'p.fecha_registro DESC');
+        return $result;
     }
 
     /**
@@ -112,7 +119,7 @@ class PagoModel {
      * @return array|false
      */
     public function obtenerPagoPorId($id) {
-        $db = Database::getConnection();
+        $db = $this->db();
         $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
                        CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
                 FROM pagos p
@@ -152,7 +159,7 @@ class PagoModel {
      * @return bool
      */
     public function cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId) {
-        $db = Database::getConnection();
+        $db = $this->db();
         
         try {
             $db->beginTransaction();

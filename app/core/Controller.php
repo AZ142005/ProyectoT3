@@ -1,6 +1,8 @@
 <?php
 namespace App\Core;
 
+use App\Models\PersonasModel;
+
 class Controller {
     /**
      * Renderiza una vista inyectando datos y envolviéndola en el layout base.
@@ -46,6 +48,40 @@ class Controller {
      */
     protected function redirect($url) {
         header("Location: " . $url);
+        exit;
+    }
+
+    /**
+     * Obtiene el residente autenticado. Si no existe, cierra sesión y redirige.
+     *
+     * @return array Datos del residente (con unidad_id, etc.)
+     */
+    protected function getAuthenticatedResidente(): array {
+        Auth::requireRole('residente');
+
+        $residenteId = Auth::id();
+        $personasModel = new PersonasModel();
+        $residente = $personasModel->getResidenteDetails($residenteId);
+
+        if (!$residente) {
+            Auth::logout();
+            $this->redirect('/auth/login');
+        }
+
+        return $residente;
+    }
+
+    /**
+     * Responde con un payload JSON y detiene la ejecución.
+     *
+     * @param mixed $data Datos a serializar
+     * @param int $status Código HTTP
+     * @return void
+     */
+    protected function json($data, $status = 200) {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data);
         exit;
     }
 }

@@ -122,6 +122,23 @@ if (!function_exists('validarTelefono')) {
      */
     function validarTelefono($telefono) {
         $telefono = preg_replace('/[^0-9]/', '', $telefono);
-        return preg_match('/^(0?4(1|2|4|6)\d{7})$/', $telefono);
+        return preg_match('/^(0?4(1|2|4|6)\d{8})$/', $telefono);
+    }
+}
+
+if (!function_exists('badgeEstado')) {
+    function badgeEstado($estado) {
+        $map = [
+            'pendiente'  => ['bg-yellow-50 text-yellow-700 border-yellow-200', 'schedule', 'Pendiente'],
+            'aprobado'   => ['bg-green-50 text-green-700 border-green-200', 'check_circle', 'Aprobado'],
+            'rechazado'  => ['bg-red-50 text-red-700 border-red-200', 'cancel', 'Rechazado'],
+            'pagado'     => ['bg-blue-50 text-blue-700 border-blue-200', 'payments', 'Pagado'],
+            'vencido'    => ['bg-red-50 text-red-700 border-red-200', 'error', 'Vencido'],
+            'activo'     => ['bg-green-50 text-green-700 border-green-200', 'check_circle', 'Activo'],
+            'inactivo'   => ['bg-slate-100 text-slate-600 border-slate-200', 'block', 'Inactivo'],
+        ];
+        $key = strtolower(trim($estado ?? ''));
+        [$cls, $icon, $label] = $map[$key] ?? ['bg-slate-100 text-slate-600 border-slate-200', 'help', $key ?: 'N/A'];
+        return '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ' . e($cls) . '"><span class="material-symbols-outlined text-[14px]">' . e($icon) . '</span>' . e($label) . '</span>';
     }
 }
