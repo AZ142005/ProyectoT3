@@ -109,12 +109,13 @@
                             <th class="py-3 text-center">Facturas Vencidas</th>
                             <th class="py-3 text-center">Días de Mora</th>
                             <th class="py-3 text-end pe-4">Monto Total ($)</th>
+                            <th class="py-3 text-center pe-3">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($morosos)): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
+                                <td colspan="7" class="text-center py-5 text-muted">
                                     <span class="material-symbols-outlined display-4 d-block mb-2 text-success">verified</span>
                                     ¡Excelente! No existen unidades habitacionales morosas para los filtros seleccionados.
                                 </td>
@@ -154,6 +155,11 @@
                                     </td>
                                     <td class="text-end pe-4 font-monospace fw-bold fs-6 text-danger">
                                         <?= e(formatearMoneda($m['total_deuda'])) ?>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                        <a href="/admin/reportes/carta-deuda/<?= e($m['unidad_id']) ?>" class="btn btn-outline-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1" title="Ver Carta Oficial de Deuda">
+                                            <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

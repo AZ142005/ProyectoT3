@@ -83,4 +83,95 @@ class ReporteController extends Controller {
         $reportesModel = new ReportesModel();
         $reportesModel->exportarCsvStreaming($filtros);
     }
+
+    /**
+     * Genera la vista formal de la carta de deuda para una unidad habitacional.
+     *
+     * @param int $unidadId
+     */
+    public function generarCartaDeuda(int $unidadId) {
+        Auth::requireRole('admin');
+
+        $reportesModel = new ReportesModel();
+        $detalle = $reportesModel->obtenerDetalleDeudaUnidad($unidadId);
+
+        if (!$detalle) {
+            $this->render('errors/404', ['title' => 'Unidad no encontrada']);
+            return;
+        }
+
+        $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
+            $detalle['unidad']['propietario_telefono'] ?? '',
+            "Estimado(a) " . $detalle['unidad']['propietario_nombre'] . ", le escribimos de la Administración del Condominio Las Mesetas de Morón para enviarle su aviso de cobro por la Unidad " . $detalle['unidad']['unidad_numero'] . " por un total de Bs. " . number_format($detalle['total_deuda'], 2)
+        );
+
+        $analisisTel = \App\Services\NotificationService::analizarTelefono($detalle['unidad']['propietario_telefono'] ?? '');
+
+        $this->render('admin/reportes/carta_deuda', [
+            'unidad'         => $detalle['unidad'],
+            'facturas'       => $detalle['facturas'],
+            'totalDeuda'     => $detalle['total_deuda'],
+            'enlaceWhatsapp' => $enlaceWhatsapp,
+            'analisisTel'    => $analisisTel,
+            'title'          => 'Carta Oficial de Deuda - Unidad ' . $detalle['unidad']['unidad_numero']
+        ]);
+    }
+
+    /**
+     * Encola el aviso de cobro por correo electrónico al residente.
+     */
+    public function enviarAvisoCobro() {
+        Auth::requireRole('admin');
+
+        $unidadId = intval($_POST['unidad_id'] ?? 0);
+        if ($unidadId <= 0) {
+            \App\Core\Flash::set('danger', 'ID de unidad inválido.');
+            $this->redirect('/admin/reportes/morosidad');
+            return;
+        }
+
+        $reportesModel = new ReportesModel();
+        $detalle = $reportesModel->obtenerDetalleDeudaUnidad($unidadId);
+
+        if (!$detalle || empty($detalle['unidad']['propietario_email'])) {
+            \App\Core\Flash::set('danger', 'La unidad no posee un propietario con email registrado.');
+            $this->redirect('/admin/reportes/morosidad');
+            return;
+        }
+
+        $emailService = new \App\Services\EmailService();
+        $notifService = new \App\Services\NotificationService();
+
+        $cuerpoHtml = $emailService->renderTemplate('aviso_cobro', [
+            'nombrePropietario' => $detalle['unidad']['propietario_nombre'],
+            'numeroUnidad'      => $detalle['unidad']['unidad_numero'],
+            'nombreEdificio'    => $detalle['unidad']['edificio_nombre'],
+            'facturas'          => $detalle['facturas'],
+            'totalDeuda'        => $detalle['total_deuda']
+        ]);
+
+        $asunto = "⚠️ Aviso Oficial de Cobro - Unidad " . $detalle['unidad']['unidad_numero'];
+
+        $notifService->encolarNotificacion(
+            $detalle['unidad']['propietario_email'],
+            $asunto,
+            $cuerpoHtml,
+            $detalle['unidad']['propietario_telefono'],
+            'ambos',
+            'alta'
+        );
+
+        if (!empty($detalle['unidad']['propietario_id'])) {
+            $notifService->registrarNotificacionResidente(
+                $detalle['unidad']['propietario_id'],
+                "Aviso de Deuda Vencida",
+                "Se ha emitido un aviso de cobro por Bs. " . number_format($detalle['total_deuda'], 2) . " correspondiente a su unidad.",
+                "warning",
+                "/residente/notificaciones"
+            );
+        }
+
+        \App\Core\Flash::set('success', 'Aviso de cobro encolado exitosamente para envío.');
+        $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
+    }
 }

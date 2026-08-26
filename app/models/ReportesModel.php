@@ -193,4 +193,57 @@ class ReportesModel extends BaseModel {
         fclose($output);
         exit;
     }
+
+    /**
+     * Consolida el expediente completo de deuda de una unidad habitacional para la carta formal.
+     *
+     * @param int $unidadId
+     * @return array|false
+     */
+    public function obtenerDetalleDeudaUnidad(int $unidadId) {
+        $db = $this->db();
+        
+        $sqlUnidad = "
+            SELECT 
+                u.id AS unidad_id,
+                u.numero AS unidad_numero,
+                COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                p.id AS propietario_id,
+                CONCAT(p.nombre, ' ', p.apellido) AS propietario_nombre,
+                p.cedula AS propietario_cedula,
+                p.telefono AS propietario_telefono,
+                p.email AS propietario_email
+            FROM unidades u
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas p ON u.propietario_id = p.id
+            WHERE u.id = :unidad_id
+        ";
+        
+        $stmtU = $db->prepare($sqlUnidad);
+        $stmtU->execute(['unidad_id' => $unidadId]);
+        $unidad = $stmtU->fetch(PDO::FETCH_ASSOC);
+
+        if (!$unidad) {
+            return false;
+        }
+
+        $sqlFacturas = "
+            SELECT id, numero_factura, mes, anio, fecha_vencimiento, monto_total, saldo, DATEDIFF(CURDATE(), fecha_vencimiento) AS dias_mora
+            FROM facturas
+            WHERE unidad_id = :unidad_id AND saldo > 0 AND fecha_vencimiento < CURDATE()
+            ORDER BY fecha_vencimiento ASC
+        ";
+
+        $stmtF = $db->prepare($sqlFacturas);
+        $stmtF->execute(['unidad_id' => $unidadId]);
+        $facturas = $stmtF->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalDeuda = array_reduce($facturas, fn($carry, $f) => $carry + floatval($f['saldo']), 0.0);
+
+        return [
+            'unidad'      => $unidad,
+            'facturas'    => $facturas,
+            'total_deuda' => $totalDeuda
+        ];
+    }
 }
