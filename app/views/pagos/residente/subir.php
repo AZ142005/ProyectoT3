@@ -178,6 +178,8 @@
         }
     });
 
+    let currentObjectURL = null;
+
     function handleFile(file) {
         // Validar tamaño máximo (5MB)
         if (file.size > 5 * 1024 * 1024) {
@@ -187,23 +189,29 @@
             return;
         }
 
+        // Liberar URL previa de memoria si existía
+        if (currentObjectURL) {
+            URL.revokeObjectURL(currentObjectURL);
+            currentObjectURL = null;
+        }
+
         dropzoneInitial.classList.add('hidden');
         dropzonePreview.classList.remove('hidden');
         dropzonePreview.classList.add('flex');
         btnOCR.disabled = false;
 
-        const fileURL = URL.createObjectURL(file);
+        currentObjectURL = URL.createObjectURL(file);
 
         if (file.type === 'application/pdf') {
             imagePreview.classList.add('hidden');
             pdfPreview.classList.remove('hidden');
             pdfPreview.classList.add('flex');
-            pdfName.textContent = file.name;
+            pdfName.textContent = file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)';
         } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
             pdfPreview.classList.add('hidden');
             pdfPreview.classList.remove('flex');
             imagePreview.classList.remove('hidden');
-            imagePreview.src = fileURL;
+            imagePreview.src = currentObjectURL;
         } else {
             alert("Formato de archivo no válido. Solo JPG, PNG o PDF.");
             fileInput.value = '';
@@ -212,6 +220,10 @@
     }
 
     function resetPreview() {
+        if (currentObjectURL) {
+            URL.revokeObjectURL(currentObjectURL);
+            currentObjectURL = null;
+        }
         dropzoneInitial.classList.remove('hidden');
         dropzonePreview.classList.add('hidden');
         dropzonePreview.classList.remove('flex');
