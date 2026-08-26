@@ -109,21 +109,7 @@
                                         <div class="text-[10px] font-mono text-slate-500"><?= e($p['referencia'] ?: 'S/R') ?></div>
                                     </td>
                                     <td class="py-4 px-4 text-center">
-                                        <?php
-                                        $badgeClass = 'bg-slate-100 text-slate-800'; // Default
-                                        if ($p['estado'] === 'PENDIENTE') {
-                                            $badgeClass = 'bg-yellow-100 text-yellow-800';
-                                        } else if ($p['estado'] === 'EN REVISIÓN') {
-                                            $badgeClass = 'bg-blue-100 text-blue-800';
-                                        } else if ($p['estado'] === 'APROBADO') {
-                                            $badgeClass = 'bg-green-100 text-green-800';
-                                        } else if ($p['estado'] === 'RECHAZADO') {
-                                            $badgeClass = 'bg-red-100 text-red-800';
-                                        }
-                                        ?>
-                                        <span class="px-3 py-1 rounded-full text-[10px] uppercase font-bold inline-block <?= e($badgeClass) ?>">
-                                            <?= e($p['estado']) ?>
-                                        </span>
+                                        <?= badgeEstado($p['estado']) ?>
                                     </td>
                                     <td class="py-4 px-4">
                                         <div class="flex items-center justify-end gap-1.5">

@@ -129,16 +129,24 @@ if (!function_exists('validarTelefono')) {
 if (!function_exists('badgeEstado')) {
     function badgeEstado($estado) {
         $map = [
-            'pendiente'  => ['bg-yellow-50 text-yellow-700 border-yellow-200', 'schedule', 'Pendiente'],
-            'aprobado'   => ['bg-green-50 text-green-700 border-green-200', 'check_circle', 'Aprobado'],
-            'rechazado'  => ['bg-red-50 text-red-700 border-red-200', 'cancel', 'Rechazado'],
-            'pagado'     => ['bg-blue-50 text-blue-700 border-blue-200', 'payments', 'Pagado'],
-            'vencido'    => ['bg-red-50 text-red-700 border-red-200', 'error', 'Vencido'],
-            'activo'     => ['bg-green-50 text-green-700 border-green-200', 'check_circle', 'Activo'],
-            'inactivo'   => ['bg-slate-100 text-slate-600 border-slate-200', 'block', 'Inactivo'],
+            'pendiente'   => ['bg-warning text-dark', 'schedule', 'Pendiente'],
+            'en revisión' => ['bg-info text-white', 'info', 'En Revisión'],
+            'aprobado'    => ['bg-success text-white', 'check_circle', 'Aprobado'],
+            'rechazado'   => ['bg-danger text-white', 'cancel', 'Rechazado'],
+            'pagada'      => ['bg-success text-white', 'payments', 'Pagada'],
+            'pagado'      => ['bg-success text-white', 'payments', 'Pagado'],
+            'vencido'     => ['bg-danger text-white', 'error', 'Vencido'],
+            'activo'      => ['bg-success text-white', 'check_circle', 'Activo'],
+            'inactivo'    => ['bg-secondary text-white', 'block', 'Inactivo'],
+            'anulada'     => ['bg-secondary text-white', 'block', 'Anulada'],
         ];
-        $key = strtolower(trim($estado ?? ''));
-        [$cls, $icon, $label] = $map[$key] ?? ['bg-slate-100 text-slate-600 border-slate-200', 'help', $key ?: 'N/A'];
-        return '<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ' . e($cls) . '"><span class="material-symbols-outlined text-[14px]">' . e($icon) . '</span>' . e($label) . '</span>';
+        $raw = trim($estado ?? '');
+        $key = strtolower($raw);
+        [$cls, $icon, $label] = $map[$key] ?? ['bg-secondary text-white', 'help', $raw ?: 'N/A'];
+        
+        return '<span class="badge rounded-pill ' . e($cls) . ' d-inline-flex align-items-center gap-1 px-3 py-1 text-xs font-semibold">'
+             . '<span class="material-symbols-outlined" style="font-size: 14px;">' . e($icon) . '</span>'
+             . e($label)
+             . '</span>';
     }
 }

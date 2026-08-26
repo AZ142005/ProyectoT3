@@ -51,21 +51,7 @@
                             <td class="py-4 px-6 font-black text-on-surface text-base"><?= e(formatearMoneda($p['monto'])) ?></td>
                             <td class="py-4 px-6 font-mono text-xs text-slate-600"><?= e($p['referencia'] ?: 'Sin Referencia') ?></td>
                             <td class="py-4 px-6 text-center">
-                                <?php
-                                $badgeClass = 'bg-slate-100 text-slate-800'; // Default
-                                if ($p['estado'] === 'PENDIENTE') {
-                                    $badgeClass = 'bg-yellow-100 text-yellow-800';
-                                } else if ($p['estado'] === 'EN REVISIÓN') {
-                                    $badgeClass = 'bg-blue-100 text-blue-800';
-                                } else if ($p['estado'] === 'APROBADO') {
-                                    $badgeClass = 'bg-green-100 text-green-800';
-                                } else if ($p['estado'] === 'RECHAZADO') {
-                                    $badgeClass = 'bg-red-100 text-red-800';
-                                }
-                                ?>
-                                <span class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap <?= e($badgeClass) ?>">
-                                    <?= e($p['estado']) ?>
-                                </span>
+                                <?= badgeEstado($p['estado']) ?>
                             </td>
                             <td class="py-4 px-6 text-right">
                                 <a href="/pagos/detalle/<?= e($p['id']) ?>" class="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-primary border border-outline-variant font-bold text-xs px-4 py-2 rounded-lg transition-colors">
