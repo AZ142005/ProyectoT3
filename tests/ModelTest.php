@@ -37,6 +37,8 @@ class ModelTest extends TestCase {
             'FacturasModel.php',
             'EdificiosModel.php',
             'UnidadesModel.php',
+            'EstacionamientosModel.php',
+            'VehiculosModel.php',
         ];
 
         foreach ($expected as $file) {
