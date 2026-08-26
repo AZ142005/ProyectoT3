@@ -213,6 +213,12 @@ class PagoController extends Controller {
             Flash::error("El estado seleccionado no es permitido.");
             $this->redirect('/pagos');
         }
+
+        // Exigir motivo obligatorio si el nuevo estado es RECHAZADO
+        if ($nuevoEstado === \App\Core\EstadoPago::RECHAZADO && (empty($motivo) || mb_strlen($motivo) < 5)) {
+            Flash::error("Debe proporcionar un motivo de rechazo claro y detallado (mínimo 5 caracteres).");
+            $this->redirect('/pagos/detalle/' . $pagoId);
+        }
         
         $pagoModel = new PagoModel();
         $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId);
@@ -223,6 +229,40 @@ class PagoController extends Controller {
             Flash::error("Hubo un error de base de datos al registrar el cambio de estado.");
         }
         
+        $this->redirect('/pagos');
+    }
+
+    /**
+     * Procesa la aprobación masiva en lote de hasta 50 pagos (Admin).
+     */
+    public function aprobarMasivo() {
+        Auth::requireRole('admin');
+
+        $pagoIds = $_POST['pago_ids'] ?? [];
+        if (!is_array($pagoIds) || empty($pagoIds)) {
+            Flash::error("No se seleccionó ningún pago para aprobar.");
+            $this->redirect('/pagos');
+        }
+
+        $adminId = Auth::id();
+        $pagoModel = new PagoModel();
+
+        try {
+            $resultado = $pagoModel->aprobarLote($pagoIds, $adminId);
+
+            if ($resultado['procesados'] > 0) {
+                $mensaje = "Se aprobaron {$resultado['procesados']} pago(s) exitosamente.";
+                if ($resultado['omitidos'] > 0) {
+                    $mensaje .= " ({$resultado['omitidos']} pago(s) fueron omitidos por estar previamente procesados).";
+                }
+                Flash::success($mensaje);
+            } else {
+                Flash::error("Ninguno de los pagos seleccionados pudo ser aprobado (ya procesados o no válidos).");
+            }
+        } catch (\Exception $e) {
+            Flash::error("Error en aprobación masiva: " . $e->getMessage());
+        }
+
         $this->redirect('/pagos');
     }
 }

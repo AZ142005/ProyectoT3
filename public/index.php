@@ -92,6 +92,7 @@ $router->get('/pagos/nuevo', [PagoController::class, 'nuevo'], [UserRole::RESIDE
 $router->post('/pagos/subir', [PagoController::class, 'subir'], [UserRole::RESIDENTE]);
 $router->any('/pagos/extraer', [PagoController::class, 'extraer'], ['auth']);
 $router->post('/pagos/cambiar-estado', [PagoController::class, 'cambiarEstado'], [UserRole::ADMIN]);
+$router->post('/admin/pagos/aprobar-masivo', [PagoController::class, 'aprobarMasivo'], [UserRole::ADMIN]);
 $router->get('/pagos/detalle/{id}', [PagoController::class, 'detalle'], ['auth']);
 
 // --- Módulo de Residente ---

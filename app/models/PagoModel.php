@@ -203,4 +203,75 @@ class PagoModel extends BaseModel {
             return false;
         }
     }
+
+    /**
+     * Aprueba un lote de pagos (máximo 50) de forma transaccional con orden anti-deadlock.
+     *
+     * @param array $pagoIds
+     * @param int $adminId
+     * @return array ['procesados' => int, 'omitidos' => int]
+     * @throws \Exception Si el lote excede el límite de 50 o falla la transacción
+     */
+    public function aprobarLote(array $pagoIds, int $adminId): array {
+        // Filtrar y validar IDs
+        $ids = array_filter(array_map('intval', $pagoIds), fn($id) => $id > 0);
+        $totalOriginal = count($ids);
+
+        if ($totalOriginal === 0) {
+            return ['procesados' => 0, 'omitidos' => 0];
+        }
+
+        if ($totalOriginal > 50) {
+            throw new \Exception("El lote de aprobación masiva no puede superar los 50 pagos por operación.");
+        }
+
+        // Ordenamiento numérico ascendente estricto para evitar deadlocks en FOR UPDATE
+        sort($ids, SORT_NUMERIC);
+
+        $db = $this->db();
+        $procesados = 0;
+
+        try {
+            $db->beginTransaction();
+
+            $inClause = implode(',', array_fill(0, count($ids), '?'));
+            
+            // Bloquear filas elegibles únicamente (PENDIENTE o EN REVISIÓN)
+            $sqlSelect = "SELECT id, estado FROM pagos WHERE id IN ({$inClause}) AND estado IN ('PENDIENTE', 'EN REVISIÓN') ORDER BY id ASC FOR UPDATE";
+            $stmtSelect = $db->prepare($sqlSelect);
+            $stmtSelect->execute($ids);
+            $pagosElegibles = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($pagosElegibles)) {
+                $stmtUpdate = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
+                $stmtLog = $db->prepare("
+                    INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)
+                    VALUES (:pago_id, :admin_id, :estado_anterior, 'APROBADO', 'Aprobación masiva por lote')
+                ");
+
+                foreach ($pagosElegibles as $pago) {
+                    $stmtUpdate->execute(['id' => $pago['id']]);
+                    $stmtLog->execute([
+                        'pago_id'         => $pago['id'],
+                        'admin_id'        => $adminId,
+                        'estado_anterior' => $pago['estado']
+                    ]);
+                    $procesados++;
+                }
+            }
+
+            $db->commit();
+
+            return [
+                'procesados' => $procesados,
+                'omitidos'   => $totalOriginal - $procesados
+            ];
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error en aprobarLote: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }

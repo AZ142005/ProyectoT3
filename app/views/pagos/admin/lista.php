@@ -82,24 +82,49 @@
                         <p class="text-xs text-on-surface-variant mt-1">Pruebe cambiando los filtros aplicados arriba.</p>
                     </div>
                 <?php else: ?>
-                    <div class="overflow-x-auto w-full">
-                        <table class="w-full text-left text-sm border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr class="text-xs uppercase text-slate-500 font-bold border-b border-outline-variant bg-slate-50">
-                                    <th class="py-4 px-4">Residente</th>
-                                    <th class="py-4 px-4">Unidad</th>
-                                    <th class="py-4 px-4">Monto / Ref.</th>
-                                    <th class="py-4 px-4 text-center">Estado</th>
-                                    <th class="py-4 px-4 text-right min-w-[250px]">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-background">
-                                <?php foreach ($pagos as $p): ?>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="py-4 px-4">
-                                        <div class="font-bold text-on-surface"><?= e($p['residente_nombre']) ?></div>
-                                        <div class="text-xs text-slate-500"><?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?></div>
-                                    </td>
+                    <form id="formAprobacionMasiva" action="/admin/pagos/aprobar-masivo" method="POST">
+                        <?= csrf_field() ?>
+
+                        <!-- Barra Flotante de Acciones Masivas -->
+                        <div id="barraMasiva" class="d-none bg-primary text-white p-3 rounded-lg mb-3 flex items-center justify-between shadow-md">
+                            <div class="flex items-center gap-2 font-bold text-sm">
+                                <span class="material-symbols-outlined">check_box</span>
+                                <span id="contadorSeleccionados">0</span> pago(s) seleccionado(s) (Máximo 50)
+                            </div>
+                            <button type="submit" class="bg-white text-primary font-bold px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors text-xs flex items-center gap-1 shadow-sm" onclick="return confirm('¿Está seguro de aprobar todos los pagos seleccionados?');">
+                                <span class="material-symbols-outlined text-sm">done_all</span>
+                                Aprobar Seleccionados
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto w-full">
+                            <table class="w-full text-left text-sm border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="text-xs uppercase text-slate-500 font-bold border-b border-outline-variant bg-slate-50">
+                                        <th class="py-4 px-4 text-center w-10">
+                                            <input type="checkbox" id="checkAllPagos" class="rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onclick="toggleAllPagos(this)">
+                                        </th>
+                                        <th class="py-4 px-4">Residente</th>
+                                        <th class="py-4 px-4">Unidad</th>
+                                        <th class="py-4 px-4">Monto / Ref.</th>
+                                        <th class="py-4 px-4 text-center">Estado</th>
+                                        <th class="py-4 px-4 text-right min-w-[250px]">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-background">
+                                    <?php foreach ($pagos as $p): ?>
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="py-4 px-4 text-center">
+                                            <?php if (in_array($p['estado'], ['PENDIENTE', 'EN REVISIÓN'])): ?>
+                                                <input type="checkbox" name="pago_ids[]" value="<?= e($p['id']) ?>" class="pago-checkbox rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onchange="actualizarBarraMasiva()">
+                                            <?php else: ?>
+                                                <span class="text-slate-300 material-symbols-outlined text-sm">block</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <div class="font-bold text-on-surface"><?= e($p['residente_nombre']) ?></div>
+                                            <div class="text-xs text-slate-500"><?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?></div>
+                                        </td>
                                     <td class="py-4 px-4">
                                         <div class="font-semibold text-on-surface"><?= e($p['edificio_nombre']) ?></div>
                                         <div class="text-xs text-slate-500">Unidad: <?= e($p['unidad_numero']) ?></div>
@@ -156,6 +181,7 @@
                             </tbody>
                         </table>
                     </div>
+                    </form>
                 <?php endif; ?>
                 
                 <?php include VIEWS_PATH . '/components/pagination.php'; ?>
@@ -214,5 +240,44 @@
         const modal = document.getElementById('modalRechazo');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+    }
+
+    function toggleAllPagos(source) {
+        const checkboxes = document.querySelectorAll('.pago-checkbox');
+        let count = 0;
+        checkboxes.forEach(cb => {
+            if (count < 50 || !source.checked) {
+                cb.checked = source.checked;
+                if (source.checked) count++;
+            }
+        });
+        actualizarBarraMasiva();
+    }
+
+    function actualizarBarraMasiva() {
+        const checkboxes = document.querySelectorAll('.pago-checkbox:checked');
+        const barra = document.getElementById('barraMasiva');
+        const contador = document.getElementById('contadorSeleccionados');
+        
+        if (checkboxes.length > 50) {
+            alert('Solo puede seleccionar un máximo de 50 pagos por lote.');
+            // Desmarcar los excedentes
+            for (let i = 50; i < checkboxes.length; i++) {
+                checkboxes[i].checked = false;
+            }
+        }
+        
+        const total = document.querySelectorAll('.pago-checkbox:checked').length;
+        if (contador) contador.innerText = total;
+
+        if (barra) {
+            if (total > 0) {
+                barra.classList.remove('d-none');
+                barra.classList.add('flex');
+            } else {
+                barra.classList.add('d-none');
+                barra.classList.remove('flex');
+            }
+        }
     }
 </script>
