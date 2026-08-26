@@ -96,7 +96,7 @@
                                     <td class="small text-muted" style="max-width: 250px;">
                                         <?= e($g['descripcion']) ?>
                                     </td>
-                                    <td class="text-center small"><?= date('d/m/Y', strtotime($g['fecha_gasto'])) ?></td>
+                                    <td class="text-center small"><?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?></td>
                                     <td class="text-end font-monospace fw-bold text-dark fs-6">
                                         Bs. <?= number_format($g['monto_total'], 2) ?>
                                     </td>

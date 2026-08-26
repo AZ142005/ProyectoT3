@@ -13,15 +13,13 @@ class Auth {
      *
      * @return void
      */
-    public static function requireLogin() {
+    public static function requireLogin(): void {
         if (!self::check()) {
             header('Location: /auth/login');
             exit;
         }
     }
 
-    /**
-     * Verifica que el usuario autenticado tenga un rol específico.
     /**
      * Verifica que el usuario autenticado tenga un rol específico (o esté dentro de una lista de roles permitidos).
      * Si no tiene sesión, redirige al login.
@@ -30,7 +28,7 @@ class Auth {
      * @param string|array $role Rol o array de roles permitidos ('admin', 'residente', 'auditor')
      * @return void
      */
-    public static function requireRole($role) {
+    public static function requireRole($role): void {
         self::requireLogin();
 
         $rolesPermitidos = is_array($role) ? $role : [$role];
@@ -153,6 +151,17 @@ class Auth {
      * @return void
      */
     public static function logout(): void {
+        // Revocar todos los refresh tokens del usuario antes de destruir la sesión
+        if (isset($_SESSION['auth_user']['id'])) {
+            try {
+                $db = Database::getConnection();
+                $stmt = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = :uid AND revocado = 0");
+                $stmt->execute(['uid' => $_SESSION['auth_user']['id']]);
+            } catch (\Exception $e) {
+                error_log("[AUTH] Error revocando refresh tokens: " . $e->getMessage());
+            }
+        }
+
         $_SESSION = [];
 
         if (ini_get('session.use_cookies')) {

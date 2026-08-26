@@ -3,6 +3,7 @@ namespace App\Models;
 
 use PDO;
 use Exception;
+use App\Core\Auth;
 
 class GastosModel extends BaseModel {
 
@@ -74,7 +75,24 @@ class GastosModel extends BaseModel {
             'admin_id' => intval($datos['admin_id'])
         ]);
 
-        return intval($db->lastInsertId());
+        $gastoId = intval($db->lastInsertId());
+
+        // Registro de auditoría
+        $adminId = Auth::id();
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $stmtLog = $db->prepare("
+            INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_nuevo, detalles, ip_address)
+            VALUES (:usuario_id, :admin_id, 'crear_gasto', 'gastos_comunes', :registro_id, 'activo', :detalles, :ip)
+        ");
+        $stmtLog->execute([
+            'usuario_id' => $adminId,
+            'admin_id'   => $adminId,
+            'registro_id'=> $gastoId,
+            'detalles'   => 'Proveedor: ' . $proveedor . ' | Monto: ' . $montoTotal . ' | Período: ' . $mes . '/' . $anio,
+            'ip'         => $ip
+        ]);
+
+        return $gastoId;
     }
 
     /**
@@ -177,12 +195,29 @@ class GastosModel extends BaseModel {
         $stmtDel = $db->prepare("UPDATE gastos_comunes SET deleted_at = NOW() WHERE id = :id");
         $actualizado = $stmtDel->execute(['id' => $id]);
 
+        if ($actualizado) {
+            // Registro de auditoría
+            $adminId = Auth::id();
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $stmtLog = $db->prepare("
+                INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_anterior, estado_nuevo, detalles, ip_address)
+                VALUES (:usuario_id, :admin_id, 'eliminar_gasto', 'gastos_comunes', :registro_id, 'activo', 'eliminado', :detalles, :ip)
+            ");
+            $stmtLog->execute([
+                'usuario_id' => $adminId,
+                'admin_id'   => $adminId,
+                'registro_id'=> $id,
+                'detalles'   => 'Proveedor: ' . ($gasto['proveedor'] ?? 'N/A') . ' | Soporte eliminado: ' . ($gasto['soporte_digital'] ?? 'ninguno'),
+                'ip'         => $ip
+            ]);
+        }
+
         // Limpieza física segura del archivo adjunto
         if ($actualizado && !empty($gasto['soporte_digital'])) {
             $archivoRuta = UPLOADS_PATH . '/soportes/' . $gasto['soporte_digital'];
             if (file_exists($archivoRuta) && is_file($archivoRuta)) {
                 try {
-                    @unlink($archivoRuta);
+                    unlink($archivoRuta);
                 } catch (\Throwable $e) {
                     error_log("Advertencia: No se pudo eliminar archivo físico de soporte {$archivoRuta}: " . $e->getMessage());
                 }

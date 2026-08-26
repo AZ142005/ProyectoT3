@@ -10,7 +10,10 @@ class JWT {
      * Obtiene la clave secreta para la firma HMAC-SHA256 validando su longitud mínima de 32 bytes.
      */
     private static function getSecret(): string {
-        $secret = $_ENV['JWT_SECRET'] ?? ($_ENV['APP_KEY'] ?? 'clave_secreta_jwt_minimo_32_bytes_por_defecto_desarrollo!');
+        $secret = $_ENV['JWT_SECRET'] ?? $_ENV['APP_KEY'] ?? '';
+        if (empty($secret)) {
+            throw new RuntimeException("JWT_SECRET o APP_KEY debe estar definido en .env para firmar tokens.");
+        }
         if (strlen($secret) < 32) {
             throw new RuntimeException("La clave secreta JWT_SECRET debe tener una longitud mínima de 32 bytes.");
         }

@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Core\Flash;
+use App\Core\UserRole;
 use App\Models\PagoModel;
 use App\Models\EdificiosModel;
 
@@ -260,7 +261,8 @@ class PagoController extends Controller {
                 Flash::error("Ninguno de los pagos seleccionados pudo ser aprobado (ya procesados o no válidos).");
             }
         } catch (\Exception $e) {
-            Flash::error("Error en aprobación masiva: " . $e->getMessage());
+            error_log("[PAGO] Error aprobacion masiva: " . $e->getMessage());
+            Flash::error('Error durante la aprobación masiva de pagos.');
         }
 
         $this->redirect('/pagos');
@@ -285,6 +287,22 @@ class PagoController extends Controller {
         // Si se cargó un archivo PDF/Imagen temporal
         if (!empty($_FILES['comprobante_archivo']) && $_FILES['comprobante_archivo']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['comprobante_archivo'];
+
+            // Límite de tamaño: 5MB
+            if ($file['size'] > 5 * 1024 * 1024) {
+                $this->json(['success' => false, 'error' => 'El archivo excede el tamaño máximo de 5MB.'], 400);
+                return;
+            }
+
+            // Verificación MIME real
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->file($file['tmp_name']);
+            $mimePermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+            if (!in_array($mimeType, $mimePermitidos, true)) {
+                $this->json(['success' => false, 'error' => 'Tipo de archivo no permitido. Solo PDF o imágenes.'], 400);
+                return;
+            }
+
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
             $service = new \App\Services\ComprobanteParserService();

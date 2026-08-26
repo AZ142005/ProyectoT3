@@ -8,7 +8,7 @@ class Security {
      *
      * @return bool
      */
-    public static function validateCSRF() {
+    public static function validateCSRF(): bool {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $postToken = $_POST['csrf_token'] ?? '';
             $sessionToken = $_SESSION['csrf_token'] ?? '';
@@ -23,6 +23,9 @@ class Security {
                 }
                 exit;
             }
+
+            // Rotar token después de cada uso válido para limitar ventana de exposición
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         return true;
     }

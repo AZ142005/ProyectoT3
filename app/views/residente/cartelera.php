@@ -41,7 +41,7 @@
                     <h3 class="text-lg font-bold text-on-surface mb-3"><?= e($c['titulo']) ?></h3>
                     
                     <div class="text-sm text-on-surface-variant leading-relaxed text-justify">
-                        <?= nl2br(strip_tags($c['contenido'], '<b><strong><i><em><u><ul><ol><li><p><br><a>')) ?>
+                        <?= nl2br(strip_tags($c['contenido'], '<b><strong><i><em><u><ul><ol><li><p><br>')) ?>
                     </div>
                 </div>
             <?php endforeach; ?>

@@ -27,7 +27,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Generar token CSRF si no existe en la sesión actual
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Security headers
+header_remove('X-Powered-By');
+ini_set('expose_php', 'Off');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('X-XSS-Protection: 1; mode=block');
@@ -39,7 +46,7 @@ if (ENVIRONMENT === 'production') {
 
 // Exception handler global — captura errores no manejados
 set_exception_handler(function (Throwable $e) {
-    error_log("[EXCEPTION] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    error_log("[EXCEPTION] " . sanitize_exception_message($e) . " in " . basename($e->getFile()) . ":" . $e->getLine());
 
     http_response_code(500);
 

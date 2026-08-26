@@ -67,7 +67,7 @@
                         <?php foreach ($movimientos as $m): ?>
                             <tr class="hover:bg-slate-50 transition-colors font-sans">
                                 <td class="py-3 px-3 text-xs text-slate-500 font-mono">
-                                    <?= date('d/m/Y H:i', strtotime($m['fecha_movimiento'])) ?>
+                                    <?= e(date('d/m/Y H:i', strtotime($m['fecha_movimiento']))) ?>
                                 </td>
                                 <td class="py-3 px-3">
                                     <?php if ($m['tipo'] === 'cargo_factura'): ?>

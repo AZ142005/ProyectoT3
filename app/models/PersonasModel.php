@@ -42,7 +42,7 @@ class PersonasModel extends BaseModel {
         ]);
     }
 
-    public function emailExists($email) {
-        return $this->exists('personas', 'email', $email);
+    public function emailExists($email, ?int $excludeId = null) {
+        return $this->exists('personas', 'email', $email, $excludeId);
     }
 }

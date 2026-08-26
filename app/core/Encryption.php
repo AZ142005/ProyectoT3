@@ -14,9 +14,8 @@ class Encryption {
     private static function getKey(): string {
         $key = $_ENV['NOTIFICATION_ENCRYPT_KEY'] ?? $_ENV['APP_KEY'] ?? getenv('NOTIFICATION_ENCRYPT_KEY') ?: getenv('APP_KEY');
         
-        if (!$key) {
-            // Clave por defecto para entornos de desarrollo/testing si no está en .env
-            $key = 'CondominioDigital_Secret_EncryptKey_2026_v2!';
+        if (empty($key)) {
+            throw new RuntimeException("NOTIFICATION_ENCRYPT_KEY o APP_KEY debe estar definido en .env para cifrar datos.");
         }
 
         if (mb_strlen($key, '8bit') < 32) {

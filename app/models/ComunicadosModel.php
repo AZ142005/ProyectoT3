@@ -21,10 +21,10 @@ class ComunicadosModel extends BaseModel {
             throw new Exception("Nivel de urgencia no válido.");
         }
 
-        $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'p', 'br', 'a'];
+        $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'p', 'br'];
         $allowedString = '<' . implode('><', $allowedTags) . '>';
 
-        // Sanitización balanceada: permitir HTML seguro y neutralizar javascript/onclick
+        // Sanitización: solo permite HTML seguro, elimina <a> para prevenir XSS via javascript: o data:
         $contenido = strip_tags($datos['contenido'] ?? '', $allowedString);
 
         $db = $this->db();

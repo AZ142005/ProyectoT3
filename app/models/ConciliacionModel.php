@@ -2,7 +2,6 @@
 namespace App\Models;
 
 use PDO;
-use Exception;
 
 class ConciliacionModel extends BaseModel {
 

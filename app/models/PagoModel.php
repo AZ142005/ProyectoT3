@@ -27,7 +27,29 @@ class PagoModel extends BaseModel {
             }
         }
 
+        $monto = round(floatval($datos['monto']), 2);
+        $referencia = !empty($datos['referencia']) ? trim($datos['referencia']) : null;
+        $fechaPago = $datos['fecha_pago'];
+
         $db = $this->db();
+
+        // Prevenir pago duplicado: misma unidad, referencia, fecha y monto (excluye estados rechazados)
+        if ($referencia) {
+            $stmtDup = $db->prepare(
+                "SELECT id FROM pagos WHERE unidad_id = :unidad_id AND referencia = :referencia 
+                 AND fecha_pago = :fecha_pago AND monto = :monto AND estado != 'RECHAZADO' LIMIT 1"
+            );
+            $stmtDup->execute([
+                'unidad_id' => $unidadId,
+                'referencia'=> $referencia,
+                'fecha_pago'=> $fechaPago,
+                'monto'     => $monto
+            ]);
+            if ($stmtDup->fetch()) {
+                return false;
+            }
+        }
+
         $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
                 VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
         
@@ -35,10 +57,10 @@ class PagoModel extends BaseModel {
         return $stmt->execute([
             'residente_id'  => $residenteId,
             'unidad_id'     => $unidadId,
-            'monto'         => floatval($datos['monto']),
-            'fecha_pago'    => $datos['fecha_pago'],
+            'monto'         => $monto,
+            'fecha_pago'    => $fechaPago,
             'metodo_pago'   => $datos['metodo_pago'] ?? '',
-            'referencia'    => !empty($datos['referencia']) ? trim($datos['referencia']) : null,
+            'referencia'    => $referencia,
             'archivo'       => $filename,
             'observaciones' => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
             'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
@@ -59,7 +81,8 @@ class PagoModel extends BaseModel {
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
                 WHERE p.residente_id = :residente_id
-                ORDER BY p.fecha_registro DESC";
+                ORDER BY p.fecha_registro DESC
+                LIMIT 200";
         
         $stmt = $db->prepare($sql);
         $stmt->execute(['residente_id' => $residenteId]);

@@ -26,7 +26,7 @@ class ComunicadoController extends Controller {
 
         $resultado = $comunicadosModel->obtenerTodosAdmin($pagina, 15);
         $edificios = $edificiosModel->getActivos();
-        $unidades = $unidadesModel->all();
+        $unidades = $unidadesModel->getActivas();
 
         $paginacion = [
             'total'        => $resultado['total'],
@@ -91,7 +91,8 @@ class ComunicadoController extends Controller {
 
             Flash::set('success', 'Comunicado publicado exitosamente en la cartelera digital.');
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al publicar el comunicado: ' . $e->getMessage());
+            error_log("[COMUNICADO] Error publicar comunicado: " . $e->getMessage());
+            Flash::set('danger', 'Error al publicar el comunicado. Intente de nuevo.');
         }
 
         $this->redirect('/admin/comunicados');

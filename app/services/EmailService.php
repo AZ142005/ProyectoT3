@@ -45,7 +45,7 @@ class EmailService {
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
         $headers .= "From: {$fromName} <{$fromEmail}>\r\n";
         $headers .= "Reply-To: {$fromEmail}\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion();
+        $headers .= "X-Mailer: CondominioDigital";
 
         // En entornos sin servidor SMTP configurado (desarrollo local), simular despacho o usar mail()
         if (getenv('APP_ENV') === 'testing' || getenv('MAIL_DRIVER') === 'log') {

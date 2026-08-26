@@ -4,7 +4,6 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\MovimientosModel;
-use App\Models\FacturasModel;
 
 class EstadoCuentaController extends Controller {
 

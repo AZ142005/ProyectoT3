@@ -75,8 +75,8 @@
                 <?php else: ?>
                     <?php foreach ($movimientos as $m): ?>
                         <tr>
-                            <td><?= date('d/m/Y', strtotime($m['fecha_movimiento'])) ?></td>
-                            <td><?= strtoupper($m['tipo']) ?></td>
+                            <td><?= e(date('d/m/Y', strtotime($m['fecha_movimiento']))) ?></td>
+                            <td><?= e(strtoupper($m['tipo'])) ?></td>
                             <td class="font-sans"><?= e($m['descripcion']) ?></td>
                             <td class="text-end fw-bold"><?= $m['tipo'] === 'abono_pago' ? '-' : '+' ?>Bs. <?= number_format($m['monto'], 2) ?></td>
                             <td class="text-end text-muted">Bs. <?= number_format($m['saldo_anterior'], 2) ?></td>

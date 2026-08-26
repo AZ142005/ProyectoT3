@@ -18,7 +18,7 @@ class Database {
      * @return PDO
      * @throws Exception
      */
-    public static function getConnection() {
+    public static function getConnection(): PDO {
         if (self::$instance === null) {
             try {
                 $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
@@ -33,7 +33,7 @@ class Database {
                 if (ENVIRONMENT === 'development') {
                     throw new Exception("Error de Conexión Base de Datos: " . $e->getMessage());
                 } else {
-                    error_log("Error de Conexión BD: " . $e->getMessage());
+                    error_log("Error de Conexión BD: " . sanitize_exception_message($e));
                     throw new Exception("Error interno: No se pudo conectar a la base de datos.");
                 }
             }

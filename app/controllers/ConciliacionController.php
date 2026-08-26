@@ -56,6 +56,13 @@ class ConciliacionController extends Controller {
             return;
         }
 
+        // Límite de tamaño: 5MB para extractos bancarios
+        if ($file['size'] > 5 * 1024 * 1024) {
+            Flash::set('danger', 'El archivo excede el tamaño máximo permitido de 5MB.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
         try {
             $conciliacionService = new ConciliacionBancariaService();
             $movimientos = $conciliacionService->parsearArchivo($file['tmp_name'], $banco);
@@ -68,7 +75,8 @@ class ConciliacionController extends Controller {
             Flash::set('success', $msg);
             $this->redirect('/admin/conciliacion?lote=' . urlencode($lote));
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al procesar extracto bancario: ' . $e->getMessage());
+            error_log("[CONCILIACION] Error importar extracto: " . $e->getMessage());
+            Flash::set('danger', 'Error al procesar el archivo del extracto bancario. Verifique el formato e intente de nuevo.');
             $this->redirect('/admin/conciliacion');
         }
     }
@@ -95,7 +103,8 @@ class ConciliacionController extends Controller {
 
             Flash::set('success', $resultado['mensaje']);
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al conciliar pago: ' . $e->getMessage());
+            error_log("[CONCILIACION] Error conciliar pago: " . $e->getMessage());
+            Flash::set('danger', 'Error al procesar la conciliación del pago.');
         }
 
         $this->redirect('/admin/conciliacion');
@@ -128,7 +137,8 @@ class ConciliacionController extends Controller {
 
             Flash::set('success', $msg);
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error en conciliación masiva: ' . $e->getMessage());
+            error_log("[CONCILIACION] Error conciliacion masiva: " . $e->getMessage());
+            Flash::set('danger', 'Error durante la conciliación masiva de extractos.');
         }
 
         $this->redirect('/admin/conciliacion');

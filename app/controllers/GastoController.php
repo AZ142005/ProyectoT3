@@ -121,7 +121,8 @@ class GastoController extends Controller {
 
             Flash::set('success', 'Gasto común registrado exitosamente con su soporte digital.');
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al registrar gasto: ' . $e->getMessage());
+            error_log("[GASTO] Error registrar gasto: " . $e->getMessage());
+            Flash::set('danger', 'Error al registrar el gasto común. Verifique los datos e intente de nuevo.');
         }
 
         $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);

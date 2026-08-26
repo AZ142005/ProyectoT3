@@ -66,7 +66,8 @@ class PerfilController extends Controller {
 
             Flash::set('success', 'Su solicitud de actualización de datos ha sido enviada a la administración para revisión.');
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al enviar la solicitud: ' . $e->getMessage());
+            error_log("[PERFIL] Error enviar solicitud cambio datos: " . $e->getMessage());
+            Flash::set('danger', 'Error al enviar la solicitud de cambio de datos.');
         }
 
         $this->redirect('/perfil');
@@ -121,8 +122,12 @@ class PerfilController extends Controller {
 
             Flash::set('success', 'Solicitud ' . ($accion === 'aprobado' ? 'aprobada y datos actualizados' : 'rechazada') . ' exitosamente.');
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al procesar la solicitud: ' . $e->getMessage());
+            error_log("[PERFIL] Error procesar solicitud cambio datos: " . $e->getMessage());
+            Flash::set('danger', 'Error al procesar la solicitud de cambio de datos.');
         }
+
+        $this->redirect('/admin/solicitudes-datos');
+    }
 
     /**
      * Activa o desactiva la verificación en dos pasos (2FA) para el usuario autenticado.

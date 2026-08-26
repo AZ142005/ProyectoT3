@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use PDO;
+use App\Core\Auth;
 
 class ComprobantesModel extends BaseModel {
     /**
@@ -75,6 +76,7 @@ class ComprobantesModel extends BaseModel {
             INNER JOIN facturas f ON c.factura_id = f.id
             WHERE c.residente_id = :residente_id
             ORDER BY c.fecha_envio DESC
+            LIMIT 200
         ";
         
         $stmt = $db->prepare($sql);
@@ -236,27 +238,37 @@ class ComprobantesModel extends BaseModel {
         try {
             $db->beginTransaction();
             
-            // Obtener comprobante
-            $comprobante = $this->getById($id);
+            // Obtener comprobante con FOR UPDATE para bloquear fila contra aprobación concurrente
+            $stmtLock = $db->prepare("SELECT * FROM comprobantes_pago WHERE id = :id FOR UPDATE");
+            $stmtLock->execute(['id' => $id]);
+            $comprobante = $stmtLock->fetch(PDO::FETCH_ASSOC);
+            
             if (!$comprobante || $comprobante['estado'] !== 'pendiente') {
                 $db->rollBack();
                 return false;
             }
+
+            // Bloquear la factura asociada para evitar deducción concurrente del saldo
+            $stmtFacturaLock = $db->prepare("SELECT id, saldo, monto_pagado FROM facturas WHERE id = :factura_id FOR UPDATE");
+            $stmtFacturaLock->execute(['factura_id' => $comprobante['factura_id']]);
+            $factura = $stmtFacturaLock->fetch(PDO::FETCH_ASSOC);
+
+            if (!$factura) {
+                $db->rollBack();
+                return false;
+            }
             
-            $nuevo_saldo = max($comprobante['saldo'] - $comprobante['monto'], 0);
+            $nuevo_saldo = max($factura['saldo'] - $comprobante['monto'], 0);
+            $nuevo_pagado = $factura['monto_pagado'] + $comprobante['monto'];
             
             // Actualizar saldo de factura
-            $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = monto_pagado + :monto WHERE id = :factura_id");
+            $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = :monto_pagado, estado = :estado WHERE id = :factura_id");
             $stmtFactura->execute([
-                'saldo'      => $nuevo_saldo,
-                'monto'      => $comprobante['monto'],
-                'factura_id' => $comprobante['factura_id']
+                'saldo'       => $nuevo_saldo,
+                'monto_pagado'=> $nuevo_pagado,
+                'estado'      => $nuevo_saldo <= 0 ? 'pagada' : 'pendiente',
+                'factura_id'  => $comprobante['factura_id']
             ]);
-            
-            if ($nuevo_saldo <= 0) {
-                $stmtEstado = $db->prepare("UPDATE facturas SET estado = 'pagada' WHERE id = :factura_id");
-                $stmtEstado->execute(['factura_id' => $comprobante['factura_id']]);
-            }
             
             // Actualizar comprobante
             $stmtComprobante = $db->prepare("UPDATE comprobantes_pago SET estado = 'aprobado', observaciones = :observaciones WHERE id = :id");
@@ -264,11 +276,28 @@ class ComprobantesModel extends BaseModel {
                 'observaciones' => $observaciones,
                 'id'            => $id
             ]);
+
+            // Registro de auditoría
+            $adminId = Auth::id();
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $stmtLog = $db->prepare("
+                INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_anterior, estado_nuevo, detalles, ip_address)
+                VALUES (:usuario_id, :admin_id, 'aprobar_comprobante', 'comprobantes_pago', :registro_id, 'pendiente', 'aprobado', :detalles, :ip)
+            ");
+            $stmtLog->execute([
+                'usuario_id' => $adminId,
+                'admin_id'   => $adminId,
+                'registro_id'=> $id,
+                'detalles'   => 'Monto: ' . $comprobante['monto'] . ' | Factura ID: ' . $comprobante['factura_id'] . ' | ' . $observaciones,
+                'ip'         => $ip
+            ]);
             
             $db->commit();
             return true;
         } catch (\Exception $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             error_log("Error al aprobar comprobante: " . $e->getMessage());
             return false;
         }
@@ -283,11 +312,49 @@ class ComprobantesModel extends BaseModel {
      */
     public function rechazar($id, $observaciones) {
         $db = $this->db();
-        
-        $stmt = $db->prepare("UPDATE comprobantes_pago SET estado = 'rechazado', observaciones = :observaciones WHERE id = :id");
-        return $stmt->execute([
-            'observaciones' => $observaciones,
-            'id'            => $id
-        ]);
+
+        try {
+            $db->beginTransaction();
+
+            // Obtener estado anterior
+            $stmtPrev = $db->prepare("SELECT estado FROM comprobantes_pago WHERE id = :id FOR UPDATE");
+            $stmtPrev->execute(['id' => $id]);
+            $prev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+
+            if (!$prev || $prev['estado'] !== 'pendiente') {
+                $db->rollBack();
+                return false;
+            }
+
+            $stmt = $db->prepare("UPDATE comprobantes_pago SET estado = 'rechazado', observaciones = :observaciones WHERE id = :id");
+            $stmt->execute([
+                'observaciones' => $observaciones,
+                'id'            => $id
+            ]);
+
+            // Registro de auditoría
+            $adminId = Auth::id();
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $stmtLog = $db->prepare("
+                INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_anterior, estado_nuevo, detalles, ip_address)
+                VALUES (:usuario_id, :admin_id, 'rechazar_comprobante', 'comprobantes_pago', :registro_id, 'pendiente', 'rechazado', :detalles, :ip)
+            ");
+            $stmtLog->execute([
+                'usuario_id' => $adminId,
+                'admin_id'   => $adminId,
+                'registro_id'=> $id,
+                'detalles'   => $observaciones,
+                'ip'         => $ip
+            ]);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error al rechazar comprobante: " . $e->getMessage());
+            return false;
+        }
     }
 }

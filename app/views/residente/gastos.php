@@ -74,7 +74,7 @@
                                     <small class="text-slate-500"><?= e($g['descripcion']) ?> (Fac: <?= e($g['nro_factura_proveedor'] ?: 'S/N') ?>)</small>
                                 </td>
                                 <td class="py-3 px-3 text-center text-xs text-slate-500">
-                                    <?= date('d/m/Y', strtotime($g['fecha_gasto'])) ?>
+                                    <?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?>
                                 </td>
                                 <td class="py-3 px-3 text-end font-monospace font-bold text-on-surface">
                                     Bs. <?= number_format($g['monto_total'], 2) ?>

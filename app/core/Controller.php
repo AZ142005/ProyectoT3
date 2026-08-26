@@ -11,7 +11,7 @@ class Controller {
      * @param array $data Variables que se inyectarán en la vista
      * @return void
      */
-    protected function render($view, $data = []) {
+    protected function render($view, $data = []): void {
         $layoutName = $data['layout'] ?? null;
         unset($data['layout']);
 
@@ -65,7 +65,12 @@ class Controller {
      * @param string $url Dirección de redirección
      * @return void
      */
-    protected function redirect($url) {
+    protected function redirect($url): void {
+        // Prevenir open redirect: solo permitir rutas relativas que comiencen con /
+        // y no contengan // (que indicarían un dominio externo como https://evil.com)
+        if (strpos($url, '://') !== false || (strpos($url, '//') === 0 && strpos($url, '://') !== 0)) {
+            $url = '/';
+        }
         header("Location: " . $url);
         exit;
     }
@@ -97,7 +102,7 @@ class Controller {
      * @param int $status Código HTTP
      * @return void
      */
-    protected function json($data, $status = 200) {
+    protected function json($data, $status = 200): void {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data);

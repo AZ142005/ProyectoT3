@@ -21,7 +21,7 @@ abstract class BaseModel {
      * @param callable $callback Recibe la instancia de PDO como argumento
      * @return mixed Retorna el valor devuelto por el callback o false si ocurrió un error
      */
-    protected function transaction(callable $callback) {
+    protected function transaction(callable $callback): mixed {
         $db = $this->db();
         $db->beginTransaction();
         try {
@@ -44,7 +44,7 @@ abstract class BaseModel {
      * @param array|null $data ['columna' => valor, ...]
      * @return bool|string lastInsertId o false
      */
-    protected function create($tableTablaOData, ?array $data = null) {
+    protected function create($tableTablaOData, ?array $data = null): string|false {
         if (is_array($tableTablaOData)) {
             $data = $tableTablaOData;
             $table = $this->table;
@@ -91,7 +91,7 @@ abstract class BaseModel {
      * @param int|null $id
      * @return array|false
      */
-    protected function getById($tableTablaOId, ?int $id = null) {
+    protected function getById($tableTablaOId, ?int $id = null): array|false {
         if (is_int($tableTablaOId)) {
             $table = $this->table;
             $id = $tableTablaOId;
@@ -158,6 +158,10 @@ abstract class BaseModel {
         int $porPagina,
         string $orderSql
     ): array {
+        // Cap de seguridad: máximo 100 registros por página
+        $porPagina = max(1, min($porPagina, 100));
+        $pagina = max(1, $pagina);
+
         $db = $this->db();
 
         $stmtCount = $db->prepare($countSql);

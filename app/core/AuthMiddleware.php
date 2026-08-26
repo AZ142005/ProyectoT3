@@ -29,7 +29,6 @@ class AuthMiddleware {
         } catch (\Exception $e) {
             self::responderNoAutorizado('Error de autenticación: Token JWT no válido.');
         }
-        return [];
     }
 
     /**

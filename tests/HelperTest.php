@@ -150,12 +150,11 @@ class HelperTest extends TestCase {
 
     public function testValidarTelefonoRejectsStandardFormat(): void {
         // Formato estándar venezolano: 04XX + 7 dígitos = 11 dígitos
-        // BUG: La regex no lo acepta porque usa \d{7} en lugar de \d{8}
         $result = validarTelefono('04121234567');
         if ($result) {
             $this->passed++;
         } else {
-            $this->failures[] = "BUG CONOCIDO: validarTelefono('04121234567') retorna false — la regex debería aceptar el formato estándar de 11 dígitos (04XX-XXXXXXX). Usar \\d{8} en lugar de \\d{7}";
+            $this->failures[] = "validarTelefono('04121234567') debería retornar true — formato estándar de 11 dígitos (04XX-XXXXXXX)";
             $this->failed++;
         }
     }

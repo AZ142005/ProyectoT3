@@ -14,7 +14,7 @@ class ReportesModel extends BaseModel {
      * @return array ['datos' => array, 'total' => int, 'pagina' => int, 'porPagina' => int, 'totalPaginas' => int]
      */
     public function obtenerReporteMorosidad(array $filtros = [], int $pagina = 1, int $porPagina = 50): array {
-        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE()";
+        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
         $params = [];
 
         if (!empty($filtros['edificio_id'])) {
@@ -64,7 +64,7 @@ class ReportesModel extends BaseModel {
      * Obtiene todos los registros morosos sin paginación para exportación e impresión.
      */
     public function obtenerReporteMorosidadCompleto(array $filtros = []): array {
-        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE()";
+        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
         $params = [];
 
         if (!empty($filtros['edificio_id'])) {
@@ -114,10 +114,10 @@ class ReportesModel extends BaseModel {
 
         $db = $this->db();
         
-        $stmtDeuda = $db->query("SELECT COALESCE(SUM(saldo), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE()");
+        $stmtDeuda = $db->query("SELECT COALESCE(SUM(saldo), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
         $totalDeuda = floatval($stmtDeuda->fetch(PDO::FETCH_ASSOC)['total_deuda'] ?? 0);
 
-        $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE()");
+        $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
         $unidadesMorosas = intval($stmtUnidades->fetch(PDO::FETCH_ASSOC)['unidades_morosas'] ?? 0);
 
         $stmtTotalUnidades = $db->query("SELECT COUNT(*) AS total FROM unidades");
@@ -178,12 +178,12 @@ class ReportesModel extends BaseModel {
 
         foreach ($datos as $row) {
             fputcsv($output, [
-                $row['edificio_nombre'],
-                $row['unidad_numero'],
-                $row['propietario_nombre'],
-                $row['propietario_cedula'],
-                $row['propietario_telefono'],
-                $row['propietario_email'],
+                self::sanitizeCsvField($row['edificio_nombre']),
+                self::sanitizeCsvField($row['unidad_numero']),
+                self::sanitizeCsvField($row['propietario_nombre']),
+                self::sanitizeCsvField($row['propietario_cedula']),
+                self::sanitizeCsvField($row['propietario_telefono']),
+                self::sanitizeCsvField($row['propietario_email']),
                 $row['facturas_vencidas'],
                 $row['dias_mora_max'],
                 number_format(floatval($row['total_deuda']), 2, '.', '')
@@ -230,7 +230,7 @@ class ReportesModel extends BaseModel {
         $sqlFacturas = "
             SELECT id, numero_factura, mes, anio, fecha_vencimiento, monto_total, saldo, DATEDIFF(CURDATE(), fecha_vencimiento) AS dias_mora
             FROM facturas
-            WHERE unidad_id = :unidad_id AND saldo > 0 AND fecha_vencimiento < CURDATE()
+            WHERE unidad_id = :unidad_id AND saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL
             ORDER BY fecha_vencimiento ASC
         ";
 
@@ -245,5 +245,23 @@ class ReportesModel extends BaseModel {
             'facturas'    => $facturas,
             'total_deuda' => $totalDeuda
         ];
+    }
+
+    /**
+     * Previene CSV Injection prefijando campos que comienzan con caracteres peligrosos.
+     * Microsoft Excel y Google Sheets ejecutan fórmulas que comienzan con =, +, -, @, \r.
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    private static function sanitizeCsvField($value) {
+        if (!is_string($value)) {
+            return $value;
+        }
+        $trimmed = ltrim($value);
+        if (!empty($trimmed) && in_array($trimmed[0], ['=', '+', '-', '@', "\r", "\n"], true)) {
+            return "\t" . $value;
+        }
+        return $value;
     }
 }

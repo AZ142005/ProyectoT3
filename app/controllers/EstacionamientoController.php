@@ -24,7 +24,7 @@ class EstacionamientoController extends Controller {
 
         $puestos = $estacionamientosModel->listarConDetalles();
         $edificios = $edificiosModel->getActivos();
-        $unidades = $unidadesModel->all();
+        $unidades = $unidadesModel->getActivas();
 
         // Cálculo de métricas KPI
         $kpis = [
@@ -104,7 +104,8 @@ class EstacionamientoController extends Controller {
                 Flash::success("Puesto de estacionamiento '{$numero}' registrado correctamente.");
             }
         } catch (Exception $e) {
-            Flash::error("Error al guardar el puesto: " . $e->getMessage());
+            error_log("[ESTACIONAMIENTO] Error guardar puesto: " . $e->getMessage());
+            Flash::error('Error al guardar el puesto de estacionamiento.');
         }
 
         $this->redirect('/admin/estacionamientos');
@@ -129,7 +130,8 @@ class EstacionamientoController extends Controller {
             $estacionamientosModel->asignarAUnidad($puestoId, $unidadId);
             Flash::success("Asignación de puesto de estacionamiento actualizada correctamente.");
         } catch (Exception $e) {
-            Flash::error($e->getMessage());
+            error_log("[ESTACIONAMIENTO] Error asignar puesto: " . $e->getMessage());
+            Flash::error('Error al eliminar el puesto de estacionamiento.');
         }
 
         $this->redirect('/admin/estacionamientos');
@@ -187,7 +189,8 @@ class EstacionamientoController extends Controller {
             $vehiculosModel->crearVehiculo($datos);
             Flash::success("Vehículo registrado exitosamente.");
         } catch (Exception $e) {
-            Flash::error($e->getMessage());
+            error_log("[ESTACIONAMIENTO] Error guardar vehiculo: " . $e->getMessage());
+            Flash::error('Error al guardar la información del vehículo.');
         }
 
         $redirectUrl = (Auth::role() === 'admin') ? '/admin/estacionamientos' : '/residente/dashboard';

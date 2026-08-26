@@ -6,9 +6,11 @@ use App\Core\JWT;
 use App\Core\AuthMiddleware;
 use App\Core\Database;
 use App\Core\UserRole;
+use App\Core\RateLimiter;
 use App\Models\UsuariosModel;
 use App\Models\PersonasModel;
 use App\Models\MovimientosModel;
+use App\Models\OtpModel;
 use PDO;
 
 class ApiController extends Controller {
@@ -17,7 +19,24 @@ class ApiController extends Controller {
      * Endpoint de autenticación REST: emite Access Token JWT y Refresh Token.
      */
     public function login() {
-        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        // Rate limiting: máximo 5 intentos cada 15 minutos (basado en IP)
+        $rateKey = 'api_login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        if (!RateLimiter::attempt($rateKey, 5, 900)) {
+            $this->json([
+                'success' => false,
+                'error'   => 'Demasiados intentos. Intente de nuevo más tarde.'
+            ], 429);
+            return;
+        }
+
+        // Límite de tamaño del body JSON: 10KB
+        $rawBody = file_get_contents('php://input');
+        if (strlen($rawBody) > 10240) {
+            $this->json(['success' => false, 'error' => 'Payload demasiado grande.'], 413);
+            return;
+        }
+
+        $input = json_decode($rawBody, true) ?? $_POST;
         $email = trim($input['email'] ?? '');
         $password = trim($input['password'] ?? '');
 
@@ -73,6 +92,29 @@ class ApiController extends Controller {
             return;
         }
 
+        // Verificar 2FA si está habilitado para el usuario
+        $twoFactorEnabled = false;
+        if ($role === UserRole::RESIDENTE) {
+            $twoFactorEnabled = !empty($residente['two_factor_enabled'] ?? false);
+        } else {
+            $twoFactorEnabled = !empty($admin['two_factor_enabled'] ?? false);
+        }
+
+        if ($twoFactorEnabled) {
+            $otpModel = new OtpModel();
+            $otp = $otpModel->generarOtp($user['id']);
+
+            $this->json([
+                'success'    => false,
+                'requires_2fa' => true,
+                'message'    => 'Se ha enviado un código de verificación a su correo.',
+                'otp_sent'   => true
+            ], 200);
+            return;
+        }
+
+        RateLimiter::clear($rateKey);
+
         // 3. Generar Access Token JWT (Vigencia: 2 horas = 7200 seg)
         $accessToken = JWT::encode([
             'sub'   => $user['id'],
@@ -108,7 +150,13 @@ class ApiController extends Controller {
      * Endpoint de renovación: emite un nuevo Access Token validando el Refresh Token.
      */
     public function refresh() {
-        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $rawBody = file_get_contents('php://input');
+        if (strlen($rawBody) > 10240) {
+            $this->json(['success' => false, 'error' => 'Payload demasiado grande.'], 413);
+            return;
+        }
+
+        $input = json_decode($rawBody, true) ?? $_POST;
         $refreshToken = trim($input['refresh_token'] ?? '');
 
         if (empty($refreshToken)) {
@@ -146,17 +194,21 @@ class ApiController extends Controller {
             return;
         }
 
-        // Obtener datos del usuario para el nuevo payload
-        $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo FROM usuarios WHERE id = :id");
+        // Obtener datos del usuario para el nuevo payload — verificar que exista y esté activo
+        $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo, estado FROM usuarios WHERE id = :id AND estado = 1");
         $stmtU->execute(['id' => $row['usuario_id']]);
         $usuario = $stmtU->fetch(PDO::FETCH_ASSOC);
 
-        $email = $usuario['email'] ?? 'usuario@sistema.com';
-        $role = $usuario['rol'] ?? UserRole::RESIDENTE;
-        $name = $usuario['nombre_completo'] ?? 'Usuario';
+        $email = null;
+        $role = null;
+        $name = null;
 
-        if (!$usuario) {
-            $stmtP = $db->prepare("SELECT id, email, CONCAT(nombre, ' ', apellido) AS nombre_completo FROM personas WHERE id = :id");
+        if ($usuario) {
+            $email = $usuario['email'];
+            $role = $usuario['rol'];
+            $name = $usuario['nombre_completo'];
+        } else {
+            $stmtP = $db->prepare("SELECT id, email, CONCAT(nombre, ' ', apellido) AS nombre_completo, estado FROM personas WHERE id = :id AND estado = 1");
             $stmtP->execute(['id' => $row['usuario_id']]);
             $persona = $stmtP->fetch(PDO::FETCH_ASSOC);
             if ($persona) {
@@ -164,6 +216,11 @@ class ApiController extends Controller {
                 $role = UserRole::RESIDENTE;
                 $name = $persona['nombre_completo'];
             }
+        }
+
+        if (!$email) {
+            $this->json(['success' => false, 'error' => 'El usuario ya no existe o está desactivado.'], 401);
+            return;
         }
 
         $newAccessToken = JWT::encode([

@@ -4,8 +4,8 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Core\Flash;
-use App\Core\Database;
 use App\Core\UserRole;
+use App\Core\RateLimiter;
 use App\Models\PersonasModel;
 use App\Models\UsuariosModel;
 use App\Models\OtpModel;
@@ -24,6 +24,12 @@ class AuthController extends Controller {
 
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Rate limiting: máximo 5 intentos cada 15 minutos
+            if (!RateLimiter::attempt('login', 5, 900)) {
+                $segundos = RateLimiter::secondsUntilAvailable('login', 900);
+                $minutos = ceil($segundos / 60);
+                $error = "Demasiados intentos de inicio de sesión. Intente de nuevo en {$minutos} minuto(s).";
+            } else {
             $identificador = trim($_POST['email'] ?? '');
             $password      = trim($_POST['password'] ?? '');
 
@@ -38,6 +44,7 @@ class AuthController extends Controller {
                     $usuario = $usuariosModel->getActiveByEmail($identificador);
 
                     if ($usuario && password_verify($password, $usuario['password'])) {
+                        RateLimiter::clear('login');
                         // Comprobar si tiene 2FA habilitado
                         if (!empty($usuario['two_factor_enabled'])) {
                             return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
@@ -61,6 +68,7 @@ class AuthController extends Controller {
                     : $personasModel->getActiveByCedula($identificador);
 
                 if ($residente && !empty($residente['password']) && password_verify($password, $residente['password'])) {
+                    RateLimiter::clear('login');
                     // Comprobar si tiene 2FA habilitado
                     if (!empty($residente['two_factor_enabled'])) {
                         return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
@@ -95,8 +103,7 @@ class AuthController extends Controller {
             'user_id' => $usuarioId,
             'email'   => $email,
             'nombre'  => $nombre,
-            'role'    => $rol,
-            'raw_user'=> $user
+            'role'    => $rol
         ];
 
         $otpModel = new OtpModel();
@@ -152,18 +159,34 @@ class AuthController extends Controller {
             return;
         }
 
-        // OTP Válido: Completar Login
-        $rawUser = $pending['raw_user'];
+        // OTP Válido: Recargar usuario desde la base de datos (no usar sesión temporal)
         $rol = $pending['role'];
+        $usuarioId = $pending['user_id'];
         unset($_SESSION['2fa_pending']);
 
-        if ($rol === UserRole::ADMIN) {
-            Auth::loginAsAdmin($rawUser);
-            $this->redirect('/admin/dashboard');
-        } elseif ($rol === UserRole::AUDITOR) {
-            Auth::loginAsAuditor($rawUser);
-            $this->redirect('/auditor/dashboard');
+        if ($rol === UserRole::ADMIN || $rol === UserRole::AUDITOR) {
+            $usuariosModel = new UsuariosModel();
+            $rawUser = $usuariosModel->getActiveById($usuarioId);
+            if (!$rawUser) {
+                Flash::error('La cuenta ya no está disponible.');
+                $this->redirect('/auth/login');
+                return;
+            }
+            if ($rol === UserRole::AUDITOR) {
+                Auth::loginAsAuditor($rawUser);
+                $this->redirect('/auditor/dashboard');
+            } else {
+                Auth::loginAsAdmin($rawUser);
+                $this->redirect('/admin/dashboard');
+            }
         } else {
+            $personasModel = new PersonasModel();
+            $rawUser = $personasModel->getActiveById($usuarioId);
+            if (!$rawUser) {
+                Flash::error('La cuenta ya no está disponible.');
+                $this->redirect('/auth/login');
+                return;
+            }
             Auth::loginAsResidente($rawUser);
             $this->redirect('/residente/dashboard');
         }
@@ -175,6 +198,15 @@ class AuthController extends Controller {
     public function reenviarOtp() {
         if (!isset($_SESSION['2fa_pending'])) {
             $this->redirect('/auth/login');
+            return;
+        }
+
+        // Rate limiting: máximo 3 reenvíos cada 5 minutos
+        if (!RateLimiter::attempt('otp_resend', 3, 300)) {
+            $segundos = RateLimiter::secondsUntilAvailable('otp_resend', 300);
+            $minutos = ceil($segundos / 60);
+            Flash::set('danger', "Debe esperar {$minutos} minuto(s) antes de solicitar otro código.");
+            $this->redirect('/auth/verificar-2fa');
             return;
         }
 

@@ -91,35 +91,52 @@ class AuditorController extends Controller {
         Auth::requireRole([UserRole::AUDITOR, UserRole::ADMIN]);
 
         $db = Database::getConnection();
-        $stmt = $db->query("
-            SELECT l.id, l.created_at AS fecha, COALESCE(u.nombre_completo, 'Sistema') AS usuario,
-                   l.accion, l.tabla_afectada, l.registro_id, l.detalles, l.ip_address
-            FROM log_auditoria l
-            LEFT JOIN usuarios u ON l.usuario_id = u.id
-            ORDER BY l.id DESC
-        ");
-        $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Streaming en lotes de 1000 filas para evitar agotamiento de memoria
+        $batchSize = 1000;
+        $limiteMaximo = 50000;
+        $offset = 0;
 
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="log_auditoria_' . date('Ymd_His') . '.csv"');
+        header('X-Content-Type-Options: nosniff');
 
         $out = fopen('php://output', 'w');
-        // UTF-8 BOM para apertura correcta en Microsoft Excel
         fputs($out, "\xEF\xBB\xBF");
-
         fputcsv($out, ['ID', 'Fecha y Hora', 'Usuario', 'Acción', 'Tabla Afectada', 'ID Registro', 'Detalles', 'Dirección IP'], ';');
 
-        foreach ($logs as $l) {
-            fputcsv($out, [
-                $l['id'],
-                $l['fecha'],
-                $l['usuario'],
-                $l['accion'],
-                $l['tabla_afectada'],
-                $l['registro_id'],
-                $l['detalles'],
-                $l['ip_address']
-            ], ';');
+        while ($offset < $limiteMaximo) {
+            $stmt = $db->prepare("
+                SELECT l.id, l.created_at AS fecha, COALESCE(u.nombre_completo, 'Sistema') AS usuario,
+                       l.accion, l.tabla_afectada, l.registro_id, l.detalles, l.ip_address
+                FROM log_auditoria l
+                LEFT JOIN usuarios u ON l.usuario_id = u.id
+                ORDER BY l.id DESC
+                LIMIT :limit OFFSET :offset
+            ");
+            $stmt->bindValue(':limit', $batchSize, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                break;
+            }
+
+            foreach ($rows as $l) {
+                fputcsv($out, [
+                    $l['id'],
+                    $l['fecha'],
+                    $l['usuario'],
+                    $l['accion'],
+                    $l['tabla_afectada'],
+                    $l['registro_id'],
+                    $l['detalles'],
+                    $l['ip_address']
+                ], ';');
+            }
+
+            $offset += $batchSize;
         }
 
         fclose($out);

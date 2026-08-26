@@ -53,7 +53,8 @@ class RespaldoController extends Controller {
                 Flash::set('danger', 'Error al generar respaldo: ' . implode("\n", array_slice($output, -3)));
             }
         } catch (\Exception $e) {
-            Flash::set('danger', 'Error al ejecutar respaldo: ' . $e->getMessage());
+            error_log("[RESPALDO] Error ejecutar respaldo: " . $e->getMessage());
+            Flash::set('danger', 'Error al generar el respaldo de base de datos.');
         }
 
         $this->redirect('/admin/respaldos');

@@ -45,3 +45,9 @@ if (ENVIRONMENT === 'development') {
     ini_set('log_errors', 1);
     ini_set('error_log', LOG_PATH);
 }
+
+// Límites de uploads (defensa en profundidad, complementa php.ini)
+ini_set('upload_max_filesize', '5M');
+ini_set('post_max_size', '10M');
+ini_set('max_input_time', 60);
+ini_set('max_execution_time', 30);

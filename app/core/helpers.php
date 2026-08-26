@@ -150,3 +150,26 @@ if (!function_exists('badgeEstado')) {
              . '</span>';
     }
 }
+
+if (!function_exists('sanitize_exception_message')) {
+    /**
+     * Limpia mensajes de excepciones PDO para logging seguro.
+     * Elimina paths del servidor, datos de conexión y fragmentos SQL sensibles.
+     *
+     * @param \Throwable $e
+     * @return string Mensaje sanitizado para log
+     */
+    function sanitize_exception_message(\Throwable $e): string {
+        $msg = $e->getMessage();
+        // Eliminar paths del sistema de archivos
+        $msg = preg_replace('#[A-Za-z]:\\\\[^ ]*#', '[path]', $msg);
+        $msg = preg_replace('#/[^ ]*\.php#', '[script]', $msg);
+        // Eliminar credenciales de BD que PDO pueda filtrar
+        $msg = preg_replace('#(password|passwd|pwd)\s*[=:]\s*\S+#i', 'password=[redacted]', $msg);
+        // Truncar si es muy largo
+        if (strlen($msg) > 200) {
+            $msg = substr($msg, 0, 200) . '...';
+        }
+        return $msg;
+    }
+}
