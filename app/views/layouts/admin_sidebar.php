@@ -8,6 +8,8 @@ $navItems = [
     ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
     ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
     ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
+    ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
+    ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
     ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
 ];
 
@@ -19,6 +21,8 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
         ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
         ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
         ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
+        ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
+        ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
         ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
     ];
 }
