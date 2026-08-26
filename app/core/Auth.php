@@ -103,7 +103,7 @@ class Auth {
             'id'    => (int) $user['id'],
             'name'  => $user['nombre_completo'],
             'email' => $user['email'] ?? $user['usuario'],
-            'role'  => 'admin',
+            'role'  => UserRole::ADMIN,
         ];
     }
 
@@ -121,7 +121,7 @@ class Auth {
             'id'    => (int) $persona['id'],
             'name'  => trim($persona['nombre'] . ' ' . $persona['apellido']),
             'email' => $persona['email'],
-            'role'  => 'residente',
+            'role'  => UserRole::RESIDENTE,
         ];
     }
 
