@@ -12,6 +12,9 @@ class Controller {
      * @return void
      */
     protected function render($view, $data = []) {
+        $layoutName = $data['layout'] ?? null;
+        unset($data['layout']);
+
         // Extraer las variables del array
         extract($data);
         
@@ -27,15 +30,24 @@ class Controller {
             return;
         }
         
-        // Guardar el contenido procesado en $content para ser usado en layouts/base.php
         $content = ob_get_clean();
         
+        // Si la vista solicita el layout de administración, renderizar sidebar si corresponde
+        $sidebar = '';
+        if ($layoutName === 'admin') {
+            $sidebarFile = VIEWS_PATH . '/layouts/admin_sidebar.php';
+            if (file_exists($sidebarFile)) {
+                ob_start();
+                require $sidebarFile;
+                $sidebar = ob_get_clean();
+            }
+        }
+
         // Requerir la plantilla base
         $layoutFile = VIEWS_PATH . '/layouts/base.php';
         if (file_exists($layoutFile)) {
             require $layoutFile;
         } else {
-            // Fallback en caso de que no exista el layout base
             echo $content;
         }
     }
