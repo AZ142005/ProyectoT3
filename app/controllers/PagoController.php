@@ -265,4 +265,37 @@ class PagoController extends Controller {
 
         $this->redirect('/pagos');
     }
+
+    /**
+     * Endpoint AJAX para análisis asistido de comprobantes (RF 15).
+     */
+    public function analizarComprobante() {
+        Auth::requireRole(UserRole::RESIDENTE);
+
+        $textoPegado = trim($_POST['texto_comprobante'] ?? '');
+
+        // Si se envió texto directo
+        if (!empty($textoPegado)) {
+            $service = new \App\Services\ComprobanteParserService();
+            $datos = $service->analizarTexto($textoPegado);
+            $this->json(['success' => true, 'datos' => $datos]);
+            return;
+        }
+
+        // Si se cargó un archivo PDF/Imagen temporal
+        if (!empty($_FILES['comprobante_archivo']) && $_FILES['comprobante_archivo']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['comprobante_archivo'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            $service = new \App\Services\ComprobanteParserService();
+            $datos = $service->procesarArchivo($file['tmp_name'], $ext);
+            $this->json(['success' => true, 'datos' => $datos]);
+            return;
+        }
+
+        $this->json([
+            'success' => false,
+            'error'   => 'No se proporcionó texto ni archivo de comprobante válido.'
+        ], 400);
+    }
 }

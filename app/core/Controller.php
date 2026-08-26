@@ -32,10 +32,17 @@ class Controller {
         
         $content = ob_get_clean();
         
-        // Si la vista solicita el layout de administración, renderizar sidebar si corresponde
+        // Si la vista solicita el layout de administración o auditoría, renderizar sidebar si corresponde
         $sidebar = '';
         if ($layoutName === 'admin') {
             $sidebarFile = VIEWS_PATH . '/layouts/admin_sidebar.php';
+            if (file_exists($sidebarFile)) {
+                ob_start();
+                require $sidebarFile;
+                $sidebar = ob_get_clean();
+            }
+        } elseif ($layoutName === 'auditor') {
+            $sidebarFile = VIEWS_PATH . '/layouts/auditor_sidebar.php';
             if (file_exists($sidebarFile)) {
                 ob_start();
                 require $sidebarFile;

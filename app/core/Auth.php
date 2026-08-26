@@ -22,16 +22,19 @@ class Auth {
 
     /**
      * Verifica que el usuario autenticado tenga un rol específico.
+    /**
+     * Verifica que el usuario autenticado tenga un rol específico (o esté dentro de una lista de roles permitidos).
      * Si no tiene sesión, redirige al login.
      * Si tiene sesión pero rol incorrecto, muestra 403.
      *
-     * @param string $role Rol requerido ('admin' o 'residente')
+     * @param string|array $role Rol o array de roles permitidos ('admin', 'residente', 'auditor')
      * @return void
      */
-    public static function requireRole(string $role) {
+    public static function requireRole($role) {
         self::requireLogin();
 
-        if (self::role() !== $role) {
+        $rolesPermitidos = is_array($role) ? $role : [$role];
+        if (!in_array(self::role(), $rolesPermitidos, true)) {
             http_response_code(403);
             $forbiddenView = VIEWS_PATH . '/errors/403.php';
             if (file_exists($forbiddenView)) {
@@ -118,10 +121,29 @@ class Auth {
             session_regenerate_id(true);
         }
         $_SESSION['auth_user'] = [
-            'id'    => (int) $persona['id'],
-            'name'  => trim($persona['nombre'] . ' ' . $persona['apellido']),
-            'email' => $persona['email'],
-            'role'  => UserRole::RESIDENTE,
+            'id'         => (int) $persona['id'],
+            'persona_id' => (int) $persona['id'],
+            'name'       => trim($persona['nombre'] . ' ' . $persona['apellido']),
+            'email'      => $persona['email'],
+            'role'       => UserRole::RESIDENTE,
+        ];
+    }
+
+    /**
+     * Inicia sesión para un auditor (fiscalizador de solo lectura).
+     *
+     * @param array $user Registro de la tabla `usuarios`
+     * @return void
+     */
+    public static function loginAsAuditor(array $user): void {
+        if (!headers_sent()) {
+            session_regenerate_id(true);
+        }
+        $_SESSION['auth_user'] = [
+            'id'    => (int) $user['id'],
+            'name'  => $user['nombre_completo'],
+            'email' => $user['email'] ?? $user['usuario'],
+            'role'  => UserRole::AUDITOR,
         ];
     }
 

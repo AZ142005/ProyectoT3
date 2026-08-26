@@ -160,5 +160,29 @@ $router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'ren
 $router->get('/residente/estado-cuenta', [\App\Controllers\EstadoCuentaController::class, 'index'], [UserRole::RESIDENTE]);
 $router->get('/residente/estado-cuenta/imprimir', [\App\Controllers\EstadoCuentaController::class, 'imprimir'], [UserRole::RESIDENTE]);
 
+// --- Autenticación 2FA (RF 3) ---
+$router->get('/auth/verificar-2fa', [\App\Controllers\AuthController::class, 'verificar2faView']);
+$router->post('/auth/verificar-2fa', [\App\Controllers\AuthController::class, 'procesar2fa']);
+$router->post('/auth/reenviar-otp', [\App\Controllers\AuthController::class, 'reenviarOtp']);
+$router->post('/perfil/2fa/toggle', [\App\Controllers\PerfilController::class, 'toggle2fa'], ['auth']);
+
+// --- APIs con Autenticación JWT y Refresh Tokens (RF 6) ---
+$router->post('/api/v1/auth/login', [\App\Controllers\ApiController::class, 'login']);
+$router->post('/api/v1/auth/refresh', [\App\Controllers\ApiController::class, 'refresh']);
+$router->get('/api/v1/residente/estado-cuenta', [\App\Controllers\ApiController::class, 'estadoCuenta']);
+
+// --- Módulo de Auditoría y Fiscalización de Solo Lectura (RF 8) ---
+$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::AUDITOR, UserRole::ADMIN]);
+$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::AUDITOR, UserRole::ADMIN]);
+$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::AUDITOR, UserRole::ADMIN]);
+
+// --- Extracción Asistida de Comprobantes (RF 15) ---
+$router->post('/pagos/analizar-comprobante', [\App\Controllers\PagoController::class, 'analizarComprobante'], [UserRole::RESIDENTE]);
+
+// --- Gestión Administrativa de Respaldos de Base de Datos (RNF 3) ---
+$router->get('/admin/respaldos', [\App\Controllers\RespaldoController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/respaldos/generar', [\App\Controllers\RespaldoController::class, 'generarManual'], [UserRole::ADMIN]);
+$router->get('/admin/respaldos/descargar/{id}', [\App\Controllers\RespaldoController::class, 'descargar'], [UserRole::ADMIN]);
+
 // Despachar la petición
 $router->dispatch($_SERVER['REQUEST_METHOD'], $route);

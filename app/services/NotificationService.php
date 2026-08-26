@@ -142,4 +142,24 @@ class NotificationService {
 
         return intval($db->lastInsertId());
     }
+
+    /**
+     * Despacha el código de autenticación 2FA al correo del usuario con alta prioridad.
+     */
+    public function enviarOtp(string $email, string $otp, string $nombreResidente = 'Usuario'): bool {
+        $emailService = new EmailService();
+        $cuerpoHtml = $emailService->renderTemplate('otp_codigo', [
+            'nombreResidente' => $nombreResidente,
+            'codigoOtp'       => $otp
+        ]);
+
+        return $this->encolarNotificacion(
+            $email,
+            'Código de Verificación 2FA - Condominio Las Mesetas de Morón',
+            $cuerpoHtml,
+            null,
+            'email',
+            'alta'
+        );
+    }
 }

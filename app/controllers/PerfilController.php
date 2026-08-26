@@ -124,6 +124,37 @@ class PerfilController extends Controller {
             Flash::set('danger', 'Error al procesar la solicitud: ' . $e->getMessage());
         }
 
-        $this->redirect('/admin/solicitudes-datos');
+    /**
+     * Activa o desactiva la verificación en dos pasos (2FA) para el usuario autenticado.
+     */
+    public function toggle2fa() {
+        Auth::requireLogin();
+
+        $user = Auth::user();
+        $db = \App\Core\Database::getConnection();
+
+        if ($user['role'] === 'residente') {
+            $personaId = $user['persona_id'] ?? 0;
+            $stmt = $db->prepare("SELECT two_factor_enabled FROM personas WHERE id = :id");
+            $stmt->execute(['id' => $personaId]);
+            $current = $stmt->fetchColumn();
+
+            $newVal = $current ? 0 : 1;
+            $stmtUp = $db->prepare("UPDATE personas SET two_factor_enabled = :val WHERE id = :id");
+            $stmtUp->execute(['val' => $newVal, 'id' => $personaId]);
+        } else {
+            $usuarioId = $user['id'] ?? 0;
+            $stmt = $db->prepare("SELECT two_factor_enabled FROM usuarios WHERE id = :id");
+            $stmt->execute(['id' => $usuarioId]);
+            $current = $stmt->fetchColumn();
+
+            $newVal = $current ? 0 : 1;
+            $stmtUp = $db->prepare("UPDATE usuarios SET two_factor_enabled = :val WHERE id = :id");
+            $stmtUp->execute(['val' => $newVal, 'id' => $usuarioId]);
+        }
+
+        $msg = $newVal ? 'Verificación en Dos Pasos (2FA) activada con éxito.' : 'Verificación en Dos Pasos (2FA) desactivada.';
+        Flash::set('success', $msg);
+        $this->redirect('/perfil');
     }
 }

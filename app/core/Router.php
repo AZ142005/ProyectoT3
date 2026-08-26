@@ -65,8 +65,13 @@ class Router {
                         Auth::requireRole(UserRole::ADMIN);
                     } elseif ($mw === UserRole::RESIDENTE || $mw === 'residente') {
                         Auth::requireRole(UserRole::RESIDENTE);
+                    } elseif ($mw === UserRole::AUDITOR || $mw === 'auditor') {
+                        Auth::requireRole(UserRole::AUDITOR);
                     }
                 }
+
+                // Ejecutar middleware global de control de roles (bloqueo mutaciones Auditor)
+                RoleMiddleware::handle();
 
                 // Filtrar parámetros nombrados extraídos de la URL
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
