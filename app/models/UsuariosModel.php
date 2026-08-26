@@ -2,6 +2,8 @@
 namespace App\Models;
 
 class UsuariosModel extends BaseModel {
+    protected string $table = 'usuarios';
+
     public function getActiveByUsuario($usuario) {
         $stmt = $this->db()->prepare("SELECT * FROM usuarios WHERE usuario = :usuario AND estado = 1");
         $stmt->execute(['usuario' => $usuario]);

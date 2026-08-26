@@ -2,6 +2,8 @@
 namespace App\Models;
 
 class PersonasModel extends BaseModel {
+    protected string $table = 'personas';
+
     public function getActiveByCedula($cedula) {
         $stmt = $this->db()->prepare("SELECT * FROM personas WHERE cedula = :cedula AND estado = 1");
         $stmt->execute(['cedula' => $cedula]);
@@ -9,7 +11,7 @@ class PersonasModel extends BaseModel {
     }
 
     public function getActiveById($id) {
-        return $this->getById('personas', $id);
+        return parent::getById($id);
     }
 
     public function getResidenteDetails($residente_id) {

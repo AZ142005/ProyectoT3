@@ -5,18 +5,53 @@ use App\Core\Database;
 use PDO;
 
 abstract class BaseModel {
+    /**
+     * Nombre de la tabla principal asociada al modelo hijo (opcional si se especifica en llamadas).
+     * @var string
+     */
+    protected string $table = '';
+
     protected function db(): \PDO {
         return Database::getConnection();
     }
 
     /**
-     * Inserta un registro genérico en la tabla indicada.
+     * Ejecuta una llamada dentro de una transacción PDO de forma atómica.
      *
-     * @param string $table
-     * @param array $data ['columna' => valor, ...]
+     * @param callable $callback Recibe la instancia de PDO como argumento
+     * @return mixed Retorna el valor devuelto por el callback o false si ocurrió un error
+     */
+    protected function transaction(callable $callback) {
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            $result = $callback($db);
+            $db->commit();
+            return $result;
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("[DATABASE TRANSACTION ERROR] " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Inserta un registro genérico en la tabla indicada o $this->table.
+     *
+     * @param string|array $tableTablaOData Si es array, usa $this->table
+     * @param array|null $data ['columna' => valor, ...]
      * @return bool|string lastInsertId o false
      */
-    protected function create(string $table, array $data) {
+    protected function create($tableTablaOData, ?array $data = null) {
+        if (is_array($tableTablaOData)) {
+            $data = $tableTablaOData;
+            $table = $this->table;
+        } else {
+            $table = $tableTablaOData ?: $this->table;
+        }
+
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
 
@@ -25,14 +60,23 @@ abstract class BaseModel {
     }
 
     /**
-     * Actualiza un registro por ID.
+     * Actualiza un registro por ID en la tabla indicada o $this->table.
      *
-     * @param string $table
-     * @param int $id
-     * @param array $data ['columna' => valor, ...]
+     * @param string|int $tableTablaOId Si es int, usa $this->table y $tableTablaOId es el $id
+     * @param int|array $idOData Si $tableTablaOId es int, esto es $data. Si no, es $id.
+     * @param array|null $data ['columna' => valor, ...]
      * @return bool
      */
-    protected function update(string $table, int $id, array $data): bool {
+    protected function update($tableTablaOId, $idOData, ?array $data = null): bool {
+        if (is_int($tableTablaOId)) {
+            $table = $this->table;
+            $id = $tableTablaOId;
+            $data = is_array($idOData) ? $idOData : [];
+        } else {
+            $table = (string) $tableTablaOId;
+            $id = (int) $idOData;
+        }
+
         $set = implode(', ', array_map(fn($col) => "{$col} = :{$col}", array_keys($data)));
         $data['id'] = $id;
 
@@ -43,11 +87,18 @@ abstract class BaseModel {
     /**
      * Obtiene un registro por ID.
      *
-     * @param string $table
-     * @param int $id
+     * @param string|int $tableTablaOId
+     * @param int|null $id
      * @return array|false
      */
-    protected function getById(string $table, int $id) {
+    protected function getById($tableTablaOId, ?int $id = null) {
+        if (is_int($tableTablaOId)) {
+            $table = $this->table;
+            $id = $tableTablaOId;
+        } else {
+            $table = (string) $tableTablaOId;
+        }
+
         $stmt = $this->db()->prepare("SELECT * FROM {$table} WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch();
@@ -56,11 +107,18 @@ abstract class BaseModel {
     /**
      * Alterna el estado (0 ↔ 1) de un registro.
      *
-     * @param string $table
-     * @param int $id
+     * @param string|int $tableTablaOId
+     * @param int|null $id
      * @return bool true si se modificó al menos 1 fila
      */
-    protected function toggleEstado(string $table, int $id): bool {
+    protected function toggleEstado($tableTablaOId, ?int $id = null): bool {
+        if (is_int($tableTablaOId)) {
+            $table = $this->table;
+            $id = $tableTablaOId;
+        } else {
+            $table = (string) $tableTablaOId;
+        }
+
         $stmt = $this->db()->prepare("UPDATE {$table} SET estado = IF(estado = 1, 0, 1) WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->rowCount() > 0;
@@ -91,14 +149,6 @@ abstract class BaseModel {
 
     /**
      * Pagina una query con filtros dinámicos.
-     *
-     * @param string $baseSql SQL base con WHERE 1=1 (debe terminar sin ORDER BY ni LIMIT)
-     * @param string $countSql SQL de conteo (mismos JOINs y WHERE que $baseSql, sin SELECT columns)
-     * @param array $params Parámetros nombrados para ambas queries
-     * @param int $pagina Página actual (1-based)
-     * @param int $porPagina Registros por página
-     * @param string $orderSql Cláusula ORDER BY completa (ej: 'c.fecha_envio DESC')
-     * @return array ['datos', 'total', 'pagina', 'porPagina', 'totalPaginas']
      */
     protected function paginate(
         string $baseSql,
@@ -110,12 +160,10 @@ abstract class BaseModel {
     ): array {
         $db = $this->db();
 
-        // Total de registros
         $stmtCount = $db->prepare($countSql);
         $stmtCount->execute($params);
         $total = (int) $stmtCount->fetch()['total'];
 
-        // Datos paginados
         $offset = ($pagina - 1) * $porPagina;
         $sql = $baseSql . " ORDER BY {$orderSql} LIMIT :limit OFFSET :offset";
 

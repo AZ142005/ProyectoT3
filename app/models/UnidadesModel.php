@@ -2,6 +2,8 @@
 namespace App\Models;
 
 class UnidadesModel extends BaseModel {
+    protected string $table = 'unidades';
+
     public function getActivas() {
         $sql = "
             SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id, e.nombre as edificio_nombre
@@ -56,7 +58,7 @@ class UnidadesModel extends BaseModel {
         return parent::create('unidades', $data);
     }
 
-    public function update($id, $data) {
+    public function update($id, $data): bool {
         return parent::update('unidades', $id, $data);
     }
 

@@ -2,6 +2,8 @@
 namespace App\Models;
 
 class EdificiosModel extends BaseModel {
+    protected string $table = 'edificios';
+
     public function getActivos() {
         $sql = "
             SELECT e.*, COUNT(u.id) as total_unidades
@@ -25,10 +27,6 @@ class EdificiosModel extends BaseModel {
         return $this->db()->query($sql)->fetchAll();
     }
 
-    public function getById($id) {
-        return parent::getById('edificios', $id);
-    }
-
     public function nombreExists($nombre, $excludeId = null) {
         return $this->exists('edificios', 'nombre', $nombre, $excludeId);
     }
@@ -38,8 +36,12 @@ class EdificiosModel extends BaseModel {
         return parent::create('edificios', $data);
     }
 
-    public function update($id, $data) {
+    public function update($id, $data): bool {
         return parent::update('edificios', $id, $data);
+    }
+
+    public function getById($id) {
+        return parent::getById('edificios', $id);
     }
 
     public function toggleEstado($id): bool {
