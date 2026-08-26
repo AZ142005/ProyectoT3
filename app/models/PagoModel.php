@@ -194,6 +194,9 @@ class PagoModel extends BaseModel {
                 'motivo'          => !empty($motivo) ? trim($motivo) : null
             ]);
             
+            // Outbox Disparador de Notificaciones de Evento (RF 35)
+            $this->notificarCambioEstadoPago($db, $pagoId, $nuevoEstado, $motivo);
+
             $db->commit();
             return true;
             
@@ -201,6 +204,57 @@ class PagoModel extends BaseModel {
             $db->rollBack();
             error_log("Error al cambiar estado del pago (ID: {$pagoId}): " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Auxiliar interno para encolar notificaciones y registrar en bandeja del residente.
+     */
+    private function notificarCambioEstadoPago(PDO $db, int $pagoId, string $nuevoEstado, string $motivo = '') {
+        $stmtInfo = $db->prepare("
+            SELECT p.id, p.residente_id, p.monto, p.referencia, p.fecha_pago, per.email, per.telefono, CONCAT(per.nombre, ' ', per.apellido) AS nombre_completo 
+            FROM pagos p 
+            INNER JOIN personas per ON p.residente_id = per.id 
+            WHERE p.id = :id
+        ");
+        $stmtInfo->execute(['id' => $pagoId]);
+        $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+
+        if (!$info || empty($info['email'])) {
+            return;
+        }
+
+        $emailService = new \App\Services\EmailService();
+        $notifService = new \App\Services\NotificationService();
+        $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
+            $info['telefono'] ?? '',
+            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de Bs. " . number_format(floatval($info['monto']), 2) . " ha sido " . strtolower($nuevoEstado) . "."
+        );
+
+        if ($nuevoEstado === 'APROBADO') {
+            $asunto = "✔ Pago Aprobado - Referencia " . $info['referencia'];
+            $cuerpoHtml = $emailService->renderTemplate('pago_aprobado', [
+                'nombreResidente' => $info['nombre_completo'],
+                'monto'           => $info['monto'],
+                'referencia'      => $info['referencia'],
+                'fechaPago'       => $info['fecha_pago'],
+                'enlaceWhatsapp'  => $enlaceWhatsapp
+            ]);
+
+            $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Aprobado", "Su pago Ref. " . $info['referencia'] . " por Bs. " . number_format(floatval($info['monto']), 2) . " ha sido aprobado.", "success", "/pagos");
+
+        } elseif ($nuevoEstado === 'RECHAZADO') {
+            $asunto = "✖ Pago Rechazado - Referencia " . $info['referencia'];
+            $cuerpoHtml = $emailService->renderTemplate('pago_rechazado', [
+                'nombreResidente' => $info['nombre_completo'],
+                'monto'           => $info['monto'],
+                'referencia'      => $info['referencia'],
+                'motivoRechazo'   => $motivo
+            ]);
+
+            $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Rechazado", "Su pago Ref. " . $info['referencia'] . " ha sido rechazado. Motivo: " . $motivo, "danger", "/pagos/subir");
         }
     }
 
@@ -256,6 +310,7 @@ class PagoModel extends BaseModel {
                         'admin_id'        => $adminId,
                         'estado_anterior' => $pago['estado']
                     ]);
+                    $this->notificarCambioEstadoPago($db, $pago['id'], 'APROBADO', 'Aprobación masiva por lote');
                     $procesados++;
                 }
             }
