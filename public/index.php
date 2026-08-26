@@ -144,5 +144,21 @@ $router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::cl
 $router->get('/admin/solicitudes-datos', [\App\Controllers\PerfilController::class, 'listarSolicitudes'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-datos/procesar', [\App\Controllers\PerfilController::class, 'procesarSolicitud'], [UserRole::ADMIN]);
 
+// --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
+$router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);
+$router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
+$router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\ConciliacionController::class, 'conciliarLote'], [UserRole::ADMIN]);
+
+// --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
+$router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN]);
+$router->post('/admin/gastos/eliminar', [\App\Controllers\GastoController::class, 'eliminar'], [UserRole::ADMIN]);
+$router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'rendicionResidente'], [UserRole::RESIDENTE]);
+
+// --- Módulo de Estado de Cuenta y Libro Mayor (RF 18, RF 19, RF 20, RF 24) ---
+$router->get('/residente/estado-cuenta', [\App\Controllers\EstadoCuentaController::class, 'index'], [UserRole::RESIDENTE]);
+$router->get('/residente/estado-cuenta/imprimir', [\App\Controllers\EstadoCuentaController::class, 'imprimir'], [UserRole::RESIDENTE]);
+
 // Despachar la petición
 $router->dispatch($_SERVER['REQUEST_METHOD'], $route);

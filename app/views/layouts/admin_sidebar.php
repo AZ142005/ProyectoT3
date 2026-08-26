@@ -5,7 +5,9 @@
 $navItems = [
     ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
     ['route' => 'comprobantes',     'url' => '/admin/comprobantes',       'icon' => 'payments',        'label' => 'Verificar Pagos'],
+    ['route' => 'conciliacion',     'url' => '/admin/conciliacion',       'icon' => 'sync_alt',        'label' => 'Conciliación'],
     ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
+    ['route' => 'gastos',           'url' => '/admin/gastos',             'icon' => 'inventory_2',     'label' => 'Gastos Comunes'],
     ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
     ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
     ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
@@ -18,7 +20,9 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
     $navItems = [
         ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
         ['route' => 'pagos',            'url' => '/pagos',                    'icon' => 'payments',        'label' => 'Verificar Pagos'],
+        ['route' => 'conciliacion',     'url' => '/admin/conciliacion',       'icon' => 'sync_alt',        'label' => 'Conciliación'],
         ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
+        ['route' => 'gastos',           'url' => '/admin/gastos',             'icon' => 'inventory_2',     'label' => 'Gastos Comunes'],
         ['route' => 'estructura',       'url' => '/admin/estructura',         'icon' => 'domain',          'label' => 'Estructura'],
         ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
         ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
