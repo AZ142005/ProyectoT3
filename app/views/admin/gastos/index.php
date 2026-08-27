@@ -18,17 +18,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Gastos Comunes</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
-                    <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto">
-                        <span class="material-symbols-outlined fs-6">add</span>
-                        <span class="hidden sm:inline">Nuevo Gasto</span>
-                    </button>
-                <?php endif; ?>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -36,6 +28,20 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+    <!-- Barra de Acciones del Contenido -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Registro de Gastos Comunes</h4>
+            <p class="text-muted small mb-0">Control de facturas, pagos a proveedores y distribución de cuotas</p>
+        </div>
+        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
+            <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto">
+                <span class="material-symbols-outlined fs-6">add</span>
+                <span>Nuevo Gasto</span>
+            </button>
+        <?php endif; ?>
+    </div>
 
     <!-- Resumen de Totales por Categoría -->
     <div class="row g-3 mb-4">

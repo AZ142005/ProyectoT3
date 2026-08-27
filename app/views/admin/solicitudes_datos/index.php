@@ -11,11 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Solicitudes de Datos</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->

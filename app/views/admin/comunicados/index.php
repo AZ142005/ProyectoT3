@@ -11,15 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Comunicados y Avisos</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <button type="button" class="btn btn-primary btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoComunicado">
-                    <span class="material-symbols-outlined fs-6">add_comment</span>
-                    <span class="hidden sm:inline">Nuevo Comunicado</span>
-                </button>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -30,9 +24,15 @@
 
     <!-- Tabla de Comunicados -->
     <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0 fw-bold text-dark">Historial de Comunicados Emitidos</h5>
-            <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Publicados</span>
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="card-title mb-0 fw-bold text-dark">Historial de Comunicados Emitidos</h5>
+                <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Publicados</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoComunicado">
+                <span class="material-symbols-outlined fs-6">add_comment</span>
+                <span>Nuevo Comunicado</span>
+            </button>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

@@ -11,20 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Estructura del Conjunto</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <button onclick="openModalEdificio()" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2.5 rounded-xl border border-outline-variant transition-all shadow-sm">
-                    <span class="material-symbols-outlined text-[16px]">add_business</span>
-                    <span class="hidden sm:inline">Agregar Edificio</span>
-                </button>
-                <button onclick="openModalUnidad()" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-hover text-white font-bold text-xs px-3 py-2.5 rounded-xl transition-all shadow-sm">
-                    <span class="material-symbols-outlined text-[16px]">add_home</span>
-                    <span class="hidden sm:inline">Agregar Unidad</span>
-                </button>
-                <div class="w-px h-6 bg-outline-variant mx-1"></div>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -49,12 +38,16 @@
 
                 <!-- SECCIÓN SUPERIOR: EDIFICIOS / TORRES -->
                 <section class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm space-y-6">
-                    <div class="flex items-center justify-between border-b border-background pb-4">
+                    <div class="flex items-center justify-between border-b border-background pb-4 flex-wrap gap-2">
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-on-surface">corporate_fare</span>
                             <h3 class="text-base font-bold text-on-surface">Edificios / Torres</h3>
                             <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($edificios) ?></span>
                         </div>
+                        <button onclick="openModalEdificio()" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-outline-variant transition-all shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]">add_business</span>
+                            <span>Agregar Edificio</span>
+                        </button>
                     </div>
 
                     <?php if (empty($edificios)): ?>
@@ -114,18 +107,24 @@
                             <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($unidades) ?></span>
                         </div>
 
-                        <!-- Filtro por Edificio -->
-                        <form method="GET" action="/admin/estructura" class="flex items-center gap-2 w-full sm:w-auto">
-                            <label for="filtro_edificio" class="text-xs font-bold text-on-surface-variant whitespace-nowrap">Filtrar por Edificio:</label>
-                            <select id="filtro_edificio" name="edificio_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-background border border-outline-variant text-on-surface text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-primary">
-                                <option value="0">Todos los Edificios</option>
-                                <?php foreach ($edificios as $ed): ?>
-                                    <option value="<?= e($ed['id']) ?>" <?= $filtroEdificio == $ed['id'] ? 'selected' : '' ?>>
-                                        <?= e($ed['nombre']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </form>
+                        <!-- Filtro por Edificio y Botón Agregar -->
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <form method="GET" action="/admin/estructura" class="flex items-center gap-2 w-full sm:w-auto">
+                                <label for="filtro_edificio" class="text-xs font-bold text-on-surface-variant whitespace-nowrap">Filtrar por Edificio:</label>
+                                <select id="filtro_edificio" name="edificio_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-background border border-outline-variant text-on-surface text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-primary">
+                                    <option value="0">Todos los Edificios</option>
+                                    <?php foreach ($edificios as $ed): ?>
+                                        <option value="<?= e($ed['id']) ?>" <?= $filtroEdificio == $ed['id'] ? 'selected' : '' ?>>
+                                            <?= e($ed['nombre']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </form>
+                            <button onclick="openModalUnidad()" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-hover text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-[16px]">add_home</span>
+                                <span>Agregar Unidad</span>
+                            </button>
+                        </div>
                     </div>
 
                     <?php if (empty($unidades)): ?>

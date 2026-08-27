@@ -11,15 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Log de Auditoría</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="/auditor/exportar-log" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                    <span class="material-symbols-outlined fs-6">download</span>
-                    <span class="hidden sm:inline">Exportar CSV</span>
-                </a>
-                <a href="/auth/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/auth/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -30,8 +24,12 @@
 
     <!-- Tabla Completa de Log -->
     <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="card-title mb-0 fw-bold text-dark">Eventos de Auditoría (Total: <?= number_format($paginacion['total']) ?>)</h5>
+            <a href="/auditor/exportar-log" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined fs-6">download</span>
+                <span>Exportar CSV</span>
+            </a>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

@@ -18,19 +18,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Reporte de Morosidad</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="btn btn-outline-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                    <span class="material-symbols-outlined fs-6">csv</span>
-                    <span class="hidden sm:inline">Exportar CSV</span>
-                </a>
-                <a href="/admin/reportes/morosidad/imprimir?<?= http_build_query($filtros) ?>" target="_blank" class="btn btn-danger btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                    <span class="material-symbols-outlined fs-6">print</span>
-                    <span class="hidden sm:inline">Imprimir PDF</span>
-                </a>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="<?= \App\Core\Auth::role() === 'auditor' ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -38,6 +28,25 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+    <!-- Barra de Acciones del Contenido -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Estado de Cuentas por Cobrar</h4>
+            <p class="text-muted small mb-0">Monitoreo de cartera vencida, antigüedad de saldos y morosidad</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="btn btn-outline-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined fs-6">csv</span>
+                <span>Exportar CSV</span>
+            </a>
+            <a href="/admin/reportes/morosidad/imprimir?<?= http_build_query($filtros) ?>" target="_blank" class="btn btn-danger btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined fs-6">print</span>
+                <span>Imprimir PDF</span>
+            </a>
+        </div>
+    </div>
+
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-sm-6">
             <div class="card border-0 shadow-sm rounded-3 bg-white border-start border-4 border-danger">

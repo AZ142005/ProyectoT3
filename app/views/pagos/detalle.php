@@ -22,18 +22,19 @@ $isAuditor = ($role === 'auditor');
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Detalle del Pago #<?= e(str_pad($pago['id'], 6, '0', STR_PAD_LEFT)) ?></h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    <span class="hidden sm:inline">Volver a Verificación</span>
-                </a>
-                <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
         <div class="flex-grow p-6 overflow-y-auto">
-            <div class="max-w-6xl mx-auto">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <!-- Barra de Navegación del Contenido -->
+                <div class="flex items-center justify-between mb-4">
+                    <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                        <span>Volver a Verificación</span>
+                    </a>
+                </div>
 <?php else: ?>
 <div class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
     <!-- Encabezado -->

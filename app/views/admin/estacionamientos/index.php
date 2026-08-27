@@ -11,19 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Estacionamientos y Vehículos</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <button type="button" class="btn btn-outline-primary btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoPuesto">
-                    <span class="material-symbols-outlined fs-6">local_parking</span>
-                    <span class="hidden sm:inline">Nuevo Puesto</span>
-                </button>
-                <button type="button" class="btn btn-primary btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoVehiculo">
-                    <span class="material-symbols-outlined fs-6">directions_car</span>
-                    <span class="hidden sm:inline">Registrar Vehículo</span>
-                </button>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -31,6 +21,24 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash de Notificación -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+    <!-- Barra de Acciones del Contenido -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Control de Estacionamientos</h4>
+            <p class="text-muted small mb-0">Gestión de puestos asignados, visitantes y parque vehicular</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoPuesto">
+                <span class="material-symbols-outlined fs-6">local_parking</span>
+                <span>Nuevo Puesto</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoVehiculo">
+                <span class="material-symbols-outlined fs-6">directions_car</span>
+                <span>Registrar Vehículo</span>
+            </button>
+        </div>
+    </div>
     <?php if ($success = \App\Core\Flash::get('success')): ?>
         <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
             <span class="material-symbols-outlined">check_circle</span>

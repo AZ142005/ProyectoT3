@@ -11,18 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Respaldos de Base de Datos</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <form method="POST" action="/admin/respaldos/generar" class="m-0">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined fs-6">add_circle</span>
-                        <span class="hidden sm:inline">Generar Respaldo</span>
-                    </button>
-                </form>
-                <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -41,9 +32,18 @@
 
     <!-- Tabla de Respaldos -->
     <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0 fw-bold text-dark">Historial de Copias de Seguridad</h5>
-            <span class="badge bg-primary rounded-pill"><?= count($respaldos) ?> Respaldos</span>
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="card-title mb-0 fw-bold text-dark">Historial de Copias de Seguridad</h5>
+                <span class="badge bg-primary rounded-pill"><?= count($respaldos) ?> Respaldos</span>
+            </div>
+            <form method="POST" action="/admin/respaldos/generar" class="m-0">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                    <span class="material-symbols-outlined fs-6">add_circle</span>
+                    <span>Generar Respaldo</span>
+                </button>
+            </form>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

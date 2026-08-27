@@ -11,15 +11,9 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Dashboard de Auditoría</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="/auditor/exportar-log" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                    <span class="material-symbols-outlined fs-6">download</span>
-                    <span class="hidden sm:inline">Exportar Log</span>
-                </a>
-                <a href="/auth/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                    <span class="material-symbols-outlined text-[18px]">logout</span>
-                </a>
-            </div>
+            <a href="/auth/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+            </a>
         </header>
 
         <!-- Contenido principal scrollable -->
@@ -27,6 +21,18 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+                <!-- Barra de Acciones del Contenido -->
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">Panel de Fiscalización</h4>
+                        <p class="text-muted small mb-0">Supervisión en tiempo real de integridad y eventos financieros</p>
+                    </div>
+                    <a href="/auditor/exportar-log" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                        <span class="material-symbols-outlined fs-6">download</span>
+                        <span>Exportar Log Completo</span>
+                    </a>
+                </div>
 
                 <!-- Banner Informativo de Solo Lectura -->
                 <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 mb-4">
