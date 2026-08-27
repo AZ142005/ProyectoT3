@@ -10,7 +10,7 @@
                 <span class="material-symbols-outlined text-[16px]">dashboard</span>
                 Volver al Panel
             </a>
-            <a href="/logout" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="bg-rose-600/80 hover:bg-rose-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center" title="Cerrar Sesión">
+            <a href="/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-rose-600/80 hover:bg-rose-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
             </a>
         </div>

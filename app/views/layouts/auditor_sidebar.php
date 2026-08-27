@@ -42,7 +42,7 @@ $navItems = [
                 <small class="text-[11px] text-slate-400 block truncate"><?= e(ucfirst($_au['role'] ?? 'auditor')) ?></small>
             </div>
         </a>
-        <a href="/auth/logout" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+        <a href="/auth/logout" onclick="return confirmarCierreSesion(event, this.href);" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center" title="Cerrar Sesión">
             <span class="material-symbols-outlined text-[18px]">logout</span>
         </a>
     </div>

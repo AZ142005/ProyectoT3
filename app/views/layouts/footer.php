@@ -9,6 +9,9 @@
         </p>
     </footer>
 
+    <!-- Modal de confirmación de cierre de sesión -->
+    <?php if (file_exists(VIEWS_PATH . '/components/modal_logout.php')) { include VIEWS_PATH . '/components/modal_logout.php'; } ?>
+
     <!-- Bootstrap 5.3.3 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

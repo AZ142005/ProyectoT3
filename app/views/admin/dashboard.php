@@ -15,7 +15,7 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
                 </button>
                 <h1 class="text-xl font-bold text-on-surface">Panel de Control</h1>
             </div>
-            <a href="/admin/logout" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
             </a>
         </header>
