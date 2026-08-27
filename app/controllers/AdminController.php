@@ -16,14 +16,16 @@ class AdminController extends Controller {
 
         $comprobantesModel = new ComprobantesModel();
 
-        $pendientes = $comprobantesModel->getPendientesVerificar(10);
-        $procesados = $comprobantesModel->getProcesados(5);
+        $pendientes = $comprobantesModel->getPendientesVerificar(10) ?: [];
+        $procesados = $comprobantesModel->getProcesados(5) ?: [];
 
         $this->render('admin/dashboard', [
-            'pendientes' => $pendientes,
-            'procesados' => $procesados,
-            'showNav'    => false,
-            'title'      => 'Panel de Control - Administrador'
+            'comprobantes_pendientes' => $pendientes,
+            'ultimos_comprobantes'    => $procesados,
+            'pendientes'              => $pendientes,
+            'procesados'              => $procesados,
+            'showNav'                 => false,
+            'title'                   => 'Panel de Control - Administrador'
         ]);
     }
 

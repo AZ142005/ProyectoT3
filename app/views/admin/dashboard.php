@@ -1,3 +1,7 @@
+<?php
+$comprobantes_pendientes = $comprobantes_pendientes ?? $pendientes ?? [];
+$ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
+?>
 <div class="flex flex-1 min-h-screen w-full">
     <?php $activeRoute = 'dashboard'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
 
