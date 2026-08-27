@@ -72,7 +72,7 @@
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="/admin/facturas/generar" class="flex gap-4 items-center flex-wrap pt-4 border-t border-background">
+                <form method="POST" action="/admin/facturas/generar" class="flex justify-center items-center pt-4 border-t border-background">
                     <!-- CSRF Field -->
                     <?= csrf_field() ?>
 
@@ -81,10 +81,6 @@
                         <span class="material-symbols-outlined">autorenew</span>
                         <?= $facturas_existentes > 0 ? 'Re-generar Facturas' : 'Generar Facturas del Mes' ?>
                     </button>
-
-                    <a href="/admin/dashboard" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-6 py-3.5 rounded-xl text-sm text-center transition-all duration-200 active:scale-95">
-                        Volver al Dashboard
-                    </a>
                 </form>
             </div>
         </div>
