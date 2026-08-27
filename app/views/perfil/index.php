@@ -1,5 +1,41 @@
+<?php
+$role = \App\Core\Auth::role();
+$isAdmin = ($role === 'admin');
+$isAuditor = ($role === 'auditor');
+?>
+<?php if ($isAdmin || $isAuditor): ?>
+<div class="flex flex-1 min-h-screen w-full">
+    <?php 
+    $activeRoute = 'perfil'; 
+    if ($isAuditor) {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
+    ?>
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Barra superior -->
+        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="text-xl font-bold text-on-surface">Mi Perfil de Usuario</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">logout</span>
+                    <span class="hidden sm:inline">Salir</span>
+                </a>
+            </div>
+        </header>
+        <div class="flex-grow p-6 overflow-y-auto">
+            <div class="max-w-4xl mx-auto">
+                <!-- Mensajes Flash -->
+                <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+<?php else: ?>
 <div class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
-    <!-- Encabezado -->
+    <!-- Encabezado Residente -->
     <div class="flex items-center justify-between mb-8">
         <div>
             <h2 class="text-2xl font-bold text-on-surface flex items-center gap-2">
@@ -8,10 +44,14 @@
             </h2>
             <p class="text-sm text-on-surface-variant mt-1">Consulte su información registrada y solicite actualizaciones de datos.</p>
         </div>
+        <a href="/residente/dashboard" class="bg-slate-100 hover:bg-slate-200 text-on-surface text-xs font-bold px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">arrow_back</span> Volver al Panel
+        </a>
     </div>
 
     <!-- Mensajes Flash -->
     <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+<?php endif; ?>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <!-- Tarjeta de Datos Actuales -->
@@ -122,4 +162,11 @@
             </div>
         <?php endif; ?>
     </div>
+<?php if ($isAdmin || $isAuditor): ?>
+            </div>
+        </div>
+    </div>
 </div>
+<?php else: ?>
+</div>
+<?php endif; ?>

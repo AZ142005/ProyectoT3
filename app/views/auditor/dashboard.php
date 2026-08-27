@@ -1,28 +1,45 @@
-<div class="container-fluid py-4">
-    <!-- Encabezado -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-0 text-dark fw-bold">
-                <span class="material-symbols-outlined align-middle me-1 text-primary">policy</span>
-                Panel de Fiscalización y Control de Auditoría
-            </h1>
-            <p class="text-muted small mb-0">Entorno de Solo Lectura: Supervisión de transacciones contables, conciliaciones y trazabilidad.</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="/auditor/exportar-log" class="btn btn-outline-primary fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                <span class="material-symbols-outlined">download</span>
-                Exportar Log en CSV
-            </a>
-        </div>
-    </div>
+<div class="flex flex-1 min-h-screen w-full">
+    <?php $activeRoute = 'dashboard'; require VIEWS_PATH . '/layouts/auditor_sidebar.php'; ?>
 
-    <!-- Banner Informativo de Solo Lectura -->
-    <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 mb-4">
-        <span class="material-symbols-outlined fs-2 text-info">verified_user</span>
-        <div>
-            <strong>Perfil de Fiscalización Activo:</strong> Este rol cuenta con permisos de solo consulta (lectura inmutable) sobre todos los libros contables, eventos de seguridad y comprobantes del condominio.
-        </div>
-    </div>
+    <!-- Contenido Principal -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Barra superior -->
+        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="text-xl font-bold text-on-surface">Dashboard de Auditoría</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/auditor/exportar-log" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                    <span class="material-symbols-outlined fs-6">download</span>
+                    <span class="hidden sm:inline">Exportar Log</span>
+                </a>
+                <a href="/perfil" class="text-slate-600 hover:text-primary font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">account_circle</span>
+                    <span class="hidden sm:inline">Perfil</span>
+                </a>
+                <a href="/auth/logout" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">logout</span>
+                    <span class="hidden sm:inline">Salir</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Contenido principal scrollable -->
+        <div class="flex-grow p-6 overflow-y-auto">
+            <div class="container-fluid p-0">
+                <!-- Mensajes Flash -->
+                <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+                <!-- Banner Informativo de Solo Lectura -->
+                <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 mb-4">
+                    <span class="material-symbols-outlined fs-2 text-info">verified_user</span>
+                    <div>
+                        <strong>Perfil de Fiscalización Activo:</strong> Este rol cuenta con permisos de solo consulta (lectura inmutable) sobre todos los libros contables, eventos de seguridad y comprobantes del condominio.
+                    </div>
+                </div>
 
     <!-- Métricas Clave de Auditoría -->
     <div class="row g-3 mb-4">
@@ -130,6 +147,11 @@
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
             </div>
         </div>
     </div>

@@ -1,12 +1,22 @@
 <div class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
     <!-- Encabezado -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
             <h2 class="text-2xl font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">campaign</span>
                 Cartelera Digital del Condominio
             </h2>
             <p class="text-sm text-on-surface-variant mt-1">Avisos oficiales y comunicaciones dirigidas a su residencia.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/residente/dashboard" class="bg-slate-100 hover:bg-slate-200 text-on-surface text-xs font-bold px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined text-sm">dashboard</span>
+                Volver al Panel
+            </a>
+            <a href="/logout" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-rose-200 transition-colors inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">logout</span>
+                Salir
+            </a>
         </div>
     </div>
 

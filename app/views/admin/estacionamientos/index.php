@@ -1,26 +1,41 @@
-<div class="container-fluid py-4">
-    <!-- Encabezado de la página -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-0 text-dark fw-bold">
-                <span class="material-symbols-outlined align-middle me-1 text-success">directions_car</span>
-                Gestión de Estacionamientos y Vehículos
-            </h1>
-            <p class="text-muted small mb-0">Administración de puestos de estacionamiento, asignación por unidad y parque automotor residencial.</p>
-        </div>
-        <div>
-            <button type="button" class="btn btn-success font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoPuesto">
-                <span class="material-symbols-outlined">add_circle</span>
-                Nuevo Puesto
-            </button>
-            <button type="button" class="btn btn-outline-success font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalNuevoVehiculo">
-                <span class="material-symbols-outlined">directions_car</span>
-                Registrar Vehículo
-            </button>
-        </div>
-    </div>
+<div class="flex flex-1 min-h-screen w-full">
+    <?php $activeRoute = 'estacionamientos'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
 
-    <!-- Mensajes Flash de Notificación -->
+    <!-- Contenido Principal -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Barra superior -->
+        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="text-xl font-bold text-on-surface">Estacionamientos y Vehículos</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" class="btn btn-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoPuesto">
+                    <span class="material-symbols-outlined fs-6">add_circle</span>
+                    <span class="hidden sm:inline">Nuevo Puesto</span>
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoVehiculo">
+                    <span class="material-symbols-outlined fs-6">directions_car</span>
+                    <span class="hidden sm:inline">Registrar Vehículo</span>
+                </button>
+                <a href="/perfil" class="text-slate-600 hover:text-primary font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">account_circle</span>
+                    <span class="hidden sm:inline">Perfil</span>
+                </a>
+                <a href="/admin/logout" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">logout</span>
+                    <span class="hidden sm:inline">Salir</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Contenido principal scrollable -->
+        <div class="flex-grow p-6 overflow-y-auto">
+            <div class="container-fluid p-0">
+                <!-- Mensajes Flash de Notificación -->
+                <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
     <?php if ($success = \App\Core\Flash::get('success')): ?>
         <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
             <span class="material-symbols-outlined">check_circle</span>
@@ -306,6 +321,11 @@
                     <button type="submit" class="btn btn-success fw-bold">Guardar Vehículo</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+            </div>
         </div>
     </div>
 </div>

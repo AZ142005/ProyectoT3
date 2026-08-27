@@ -1,3 +1,45 @@
+<?php
+$role = \App\Core\Auth::role();
+$isAdmin = ($role === 'admin');
+$isAuditor = ($role === 'auditor');
+?>
+<?php if ($isAdmin || $isAuditor): ?>
+<div class="flex flex-1 min-h-screen w-full">
+    <?php 
+    $activeRoute = 'comprobantes'; 
+    if ($isAuditor) {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
+    ?>
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Barra superior -->
+        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <h1 class="text-xl font-bold text-on-surface">Detalle del Pago #<?= e(str_pad($pago['id'], 6, '0', STR_PAD_LEFT)) ?></h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                    <span class="hidden sm:inline">Volver a Verificación</span>
+                </a>
+                <a href="/perfil" class="text-slate-600 hover:text-primary font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">account_circle</span>
+                    <span class="hidden sm:inline">Perfil</span>
+                </a>
+                <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">logout</span>
+                    <span class="hidden sm:inline">Salir</span>
+                </a>
+            </div>
+        </header>
+        <div class="flex-grow p-6 overflow-y-auto">
+            <div class="max-w-6xl mx-auto">
+<?php else: ?>
 <div class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
     <!-- Encabezado -->
     <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center">
@@ -13,6 +55,7 @@
             Volver a la lista
         </a>
     </div>
+<?php endif; ?>
 
     <!-- Contenido -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -141,4 +184,11 @@
         </div>
         
     </div>
+<?php if ($isAdmin || $isAuditor): ?>
+            </div>
+        </div>
+    </div>
 </div>
+<?php else: ?>
+</div>
+<?php endif; ?>
