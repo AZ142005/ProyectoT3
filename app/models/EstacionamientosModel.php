@@ -123,7 +123,21 @@ class EstacionamientosModel extends BaseModel {
      * Da de baja (Soft Delete) a un puesto de estacionamiento.
      */
     public function softDelete(int $id): bool {
-        $stmt = $this->db()->prepare("UPDATE estacionamientos SET deleted_at = NOW(), unidad_id = NULL WHERE id = :id");
-        return $stmt->execute(['id' => $id]);
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            // Desvincular vehículos de este puesto antes de borrar
+            $stmtV = $db->prepare("UPDATE vehiculos SET estacionamiento_id = NULL WHERE estacionamiento_id = :id");
+            $stmtV->execute(['id' => $id]);
+
+            $stmt = $db->prepare("UPDATE estacionamientos SET deleted_at = NOW(), unidad_id = NULL WHERE id = :id");
+            $result = $stmt->execute(['id' => $id]);
+
+            $db->commit();
+            return $result;
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            throw $e;
+        }
     }
 }

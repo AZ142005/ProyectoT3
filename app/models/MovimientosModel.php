@@ -62,18 +62,18 @@ class MovimientosModel extends BaseModel {
             $stmtSaldo->execute(['unidad_id' => $unidadId]);
             $fila = $stmtSaldo->fetch(PDO::FETCH_ASSOC);
 
-            $saldoAnterior = $fila ? floatval($fila['saldo_posterior']) : 0.00;
+            $saldoAnterior = $fila ? round(floatval($fila['saldo_posterior']), 2) : 0.00;
 
             // En contabilidad de condominios:
             // - 'cargo_factura': incrementa el saldo deudor (+monto)
             // - 'abono_pago': reduce el saldo deudor (-monto)
             // - 'ajuste': ajuste manual
             if ($tipo === 'cargo_factura') {
-                $saldoPosterior = $saldoAnterior + $monto;
+                $saldoPosterior = round($saldoAnterior + $monto, 2);
             } elseif ($tipo === 'abono_pago') {
-                $saldoPosterior = $saldoAnterior - $monto;
+                $saldoPosterior = round($saldoAnterior - $monto, 2);
             } else {
-                $saldoPosterior = $saldoAnterior + $monto;
+                $saldoPosterior = round($saldoAnterior + $monto, 2);
             }
 
             $sqlInsert = "
@@ -135,6 +135,6 @@ class MovimientosModel extends BaseModel {
         $stmt->execute(['uid' => $unidadId]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $fila ? floatval($fila['saldo_posterior']) : 0.00;
+        return $fila ? round(floatval($fila['saldo_posterior']), 2) : 0.00;
     }
 }

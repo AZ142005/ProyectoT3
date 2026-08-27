@@ -57,14 +57,26 @@ class ApiController extends Controller {
         // 1. Buscar en usuarios (Admin / Auditor)
         $usuariosModel = new UsuariosModel();
         $admin = $usuariosModel->getActiveByEmail($email);
-        if ($admin && password_verify($password, $admin['password'])) {
-            $user = [
-                'id'     => (int)$admin['id'],
-                'nombre' => $admin['nombre_completo'],
-                'email'  => $admin['email'] ?? $admin['usuario'],
-                'role'   => $admin['rol'] ?? UserRole::ADMIN
-            ];
-            $role = $user['role'];
+        if ($admin) {
+            if ($usuariosModel->estaBloqueado((int)$admin['id'])) {
+                $this->json([
+                    'success' => false,
+                    'error'   => 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.'
+                ], 423);
+                return;
+            }
+            if (password_verify($password, $admin['password'])) {
+                $usuariosModel->resetIntentosFallidos((int)$admin['id']);
+                $user = [
+                    'id'     => (int)$admin['id'],
+                    'nombre' => $admin['nombre_completo'],
+                    'email'  => $admin['email'] ?? $admin['usuario'],
+                    'role'   => $admin['rol'] ?? UserRole::ADMIN
+                ];
+                $role = $user['role'];
+            } else {
+                $usuariosModel->incrementarIntentosFallidos((int)$admin['id']);
+            }
         }
 
         // 2. Buscar en personas (Residente)
@@ -74,15 +86,27 @@ class ApiController extends Controller {
                 ? $personasModel->getActiveByEmail($email)
                 : $personasModel->getActiveByCedula($email);
 
-            if ($residente && !empty($residente['password']) && password_verify($password, $residente['password'])) {
-                $user = [
-                    'id'         => (int)$residente['id'],
-                    'persona_id' => (int)$residente['id'],
-                    'nombre'     => trim($residente['nombre'] . ' ' . $residente['apellido']),
-                    'email'      => $residente['email'],
-                    'role'       => UserRole::RESIDENTE
-                ];
-                $role = UserRole::RESIDENTE;
+            if ($residente && !empty($residente['password'])) {
+                if ($personasModel->estaBloqueado((int)$residente['id'])) {
+                    $this->json([
+                        'success' => false,
+                        'error'   => 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.'
+                    ], 423);
+                    return;
+                }
+                if (password_verify($password, $residente['password'])) {
+                    $personasModel->resetIntentosFallidos((int)$residente['id']);
+                    $user = [
+                        'id'         => (int)$residente['id'],
+                        'persona_id' => (int)$residente['id'],
+                        'nombre'     => trim($residente['nombre'] . ' ' . $residente['apellido']),
+                        'email'      => $residente['email'],
+                        'role'       => UserRole::RESIDENTE
+                    ];
+                    $role = UserRole::RESIDENTE;
+                } else {
+                    $personasModel->incrementarIntentosFallidos((int)$residente['id']);
+                }
             }
         }
 
@@ -118,12 +142,17 @@ class ApiController extends Controller {
         RateLimiter::clear($rateKey);
 
         // 3. Generar Access Token JWT (Vigencia: 2 horas = 7200 seg)
+        $jti = bin2hex(random_bytes(8));
         $accessToken = JWT::encode([
             'sub'   => $user['id'],
             'email' => $user['email'],
             'role'  => $role,
-            'name'  => $user['nombre']
+            'name'  => $user['nombre'],
+            'jti'   => $jti
         ], 7200);
+
+        // Almacenar jti para poder revocarlo en logout
+        $_SESSION['auth_jwt_jti'] = $jti;
 
         // 4. Generar Refresh Token criptográfico (Vigencia: 7 días)
         $refreshTokenPlain = bin2hex(random_bytes(32));
@@ -271,6 +300,13 @@ class ApiController extends Controller {
         }
 
         $personaId = (int)$payload['sub'];
+
+        // Rate limit: 30 consultas por minuto por usuario
+        $rateKey = 'api_estado_cuenta_' . $personaId;
+        if (!\App\Core\RateLimiter::attempt($rateKey, 30, 60)) {
+            $this->json(['success' => false, 'error' => 'Demasiadas solicitudes. Intente nuevamente en unos minutos.'], 429);
+            return;
+        }
 
         $db = Database::getConnection();
         $stmtU = $db->prepare("SELECT id, numero FROM unidades WHERE propietario_id = :pid LIMIT 1");

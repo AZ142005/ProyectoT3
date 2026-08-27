@@ -30,6 +30,13 @@ class GastosModel extends BaseModel {
             throw new Exception("El proveedor y la descripción del gasto son obligatorios.");
         }
 
+        if (mb_strlen($proveedor) > 150) {
+            throw new Exception("El nombre del proveedor no puede exceder 150 caracteres.");
+        }
+        if (mb_strlen(trim($datos['descripcion'])) > 500) {
+            throw new Exception("La descripción del gasto no puede exceder 500 caracteres.");
+        }
+
         $montoTotal = floatval($datos['monto_total'] ?? 0);
         if ($montoTotal <= 0) {
             throw new Exception("El monto total del gasto debe ser superior a 0.");
@@ -88,7 +95,7 @@ class GastosModel extends BaseModel {
             'usuario_id' => $adminId,
             'admin_id'   => $adminId,
             'registro_id'=> $gastoId,
-            'detalles'   => 'Proveedor: ' . $proveedor . ' | Monto: ' . $montoTotal . ' | Período: ' . $mes . '/' . $anio,
+            'detalles'   => 'Proveedor: ' . preg_replace('/[\x00-\x1F]/', '', $proveedor) . ' | Monto: ' . $montoTotal . ' | Período: ' . $mes . '/' . $anio,
             'ip'         => $ip
         ]);
 
@@ -132,7 +139,7 @@ class GastosModel extends BaseModel {
     /**
      * Obtiene todos los gastos comunes de un período para el visor de residentes.
      */
-    public function obtenerGastosPorPeriodo(int $mes, int $anio): array {
+    public function obtenerGastosPorPeriodo(int $mes, int $anio, int $limit = 200): array {
         $db = $this->db();
         $sql = "
             SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color
@@ -140,6 +147,7 @@ class GastosModel extends BaseModel {
             INNER JOIN categorias_gastos c ON g.categoria_id = c.id
             WHERE g.mes = :mes AND g.anio = :anio AND g.deleted_at IS NULL
             ORDER BY c.nombre ASC, g.fecha_gasto ASC
+            LIMIT {$limit}
         ";
 
         $stmt = $db->prepare($sql);
@@ -173,9 +181,9 @@ class GastosModel extends BaseModel {
      */
     public function obtenerTotalGastoMes(int $mes, int $anio): float {
         $db = $this->db();
-        $stmt = $db->prepare("SELECT COALESCE(SUM(monto_total), 0) AS total FROM gastos_comunes WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL");
+        $stmt = $db->prepare("SELECT ROUND(COALESCE(SUM(monto_total), 0), 2) AS total FROM gastos_comunes WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL");
         $stmt->execute(['mes' => $mes, 'anio' => $anio]);
-        return floatval($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.0);
+        return round(floatval($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.0), 2);
     }
 
     /**
@@ -207,7 +215,7 @@ class GastosModel extends BaseModel {
                 'usuario_id' => $adminId,
                 'admin_id'   => $adminId,
                 'registro_id'=> $id,
-                'detalles'   => 'Proveedor: ' . ($gasto['proveedor'] ?? 'N/A') . ' | Soporte eliminado: ' . ($gasto['soporte_digital'] ?? 'ninguno'),
+                'detalles'   => 'Proveedor: ' . preg_replace('/[\x00-\x1F]/', '', $gasto['proveedor'] ?? 'N/A') . ' | Soporte eliminado: ' . preg_replace('/[\x00-\x1F]/', '', $gasto['soporte_digital'] ?? 'ninguno'),
                 'ip'         => $ip
             ]);
         }

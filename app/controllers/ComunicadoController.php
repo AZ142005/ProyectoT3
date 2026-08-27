@@ -51,7 +51,7 @@ class ComunicadoController extends Controller {
     public function guardar() {
         Auth::requireRole('admin');
 
-        $titulo = strip_tags(trim($_POST['titulo'] ?? ''));
+        $titulo = preg_replace('/[\r\n]/', '', strip_tags(trim($_POST['titulo'] ?? '')));
         $contenido = trim($_POST['contenido'] ?? '');
         $urgencia = strtolower($_POST['nivel_urgencia'] ?? 'normal');
         $edificioId = !empty($_POST['edificio_id']) ? intval($_POST['edificio_id']) : null;
@@ -60,6 +60,18 @@ class ComunicadoController extends Controller {
 
         if (empty($titulo) || empty($contenido)) {
             Flash::set('danger', 'El título y el contenido son obligatorios.');
+            $this->redirect('/admin/comunicados');
+            return;
+        }
+
+        if (mb_strlen($titulo) > 200) {
+            Flash::set('danger', 'El título no puede exceder 200 caracteres.');
+            $this->redirect('/admin/comunicados');
+            return;
+        }
+
+        if (mb_strlen($contenido) > 10000) {
+            Flash::set('danger', 'El contenido no puede exceder 10,000 caracteres.');
             $this->redirect('/admin/comunicados');
             return;
         }

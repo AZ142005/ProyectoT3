@@ -1,23 +1,18 @@
 <?php
 namespace App\Core;
 
+use App\Core\Database;
+
 /**
- * Rate Limiter simple basado en sesión.
- * Limita intentos por ventana de tiempo para prevenir brute force.
+ * Rate Limiter basado en base de datos con IP real (REMOTE_ADDR).
+ * Previene brute-force, bypass con headers falsos y cookie-clearing.
  */
 class RateLimiter {
 
     /**
-     * Obtiene la IP real del cliente considerando proxies estándar.
+     * Obtiene la IP real del cliente — solo REMOTE_ADDR, ignora headers de proxy.
      */
     private static function getClientIp(): string {
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            return trim($ips[0]);
-        }
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            return $_SERVER['HTTP_CLIENT_IP'];
-        }
         return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     }
 
@@ -30,24 +25,34 @@ class RateLimiter {
      * @return bool true si permitido, false si excedido
      */
     public static function attempt(string $key, int $maxAttempts, int $windowSeconds): bool {
-        $now = time();
         $ip = self::getClientIp();
-        $sessionKey = 'rate_' . $key . '_' . md5($ip);
+        $db = Database::getConnection();
 
-        if (!isset($_SESSION[$sessionKey])) {
-            $_SESSION[$sessionKey] = ['attempts' => 0, 'window_start' => $now];
+        $stmt = $db->prepare("
+            SELECT attempts, window_start FROM rate_limits 
+            WHERE `key` = :k AND ip = :ip AND window_start > :expired
+            LIMIT 1
+        ");
+        $expired = date('Y-m-d H:i:s', time() - $windowSeconds);
+        $stmt->execute(['k' => $key, 'ip' => $ip, 'expired' => $expired]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            $ins = $db->prepare("
+                INSERT INTO rate_limits (`key`, ip, attempts, window_start) 
+                VALUES (:k, :ip, 1, NOW())
+            ");
+            $ins->execute(['k' => $key, 'ip' => $ip]);
+            return true;
         }
 
-        $data = &$_SESSION[$sessionKey];
-
-        // Resetear ventana si expiró
-        if (($now - $data['window_start']) >= $windowSeconds) {
-            $data = ['attempts' => 0, 'window_start' => $now];
+        if ((int)$row['attempts'] >= $maxAttempts) {
+            return false;
         }
 
-        $data['attempts']++;
-
-        return $data['attempts'] <= $maxAttempts;
+        $inc = $db->prepare("UPDATE rate_limits SET attempts = attempts + 1 WHERE `key` = :k AND ip = :ip AND attempts < :max");
+        $inc->execute(['k' => $key, 'ip' => $ip, 'max' => $maxAttempts]);
+        return true;
     }
 
     /**
@@ -59,12 +64,21 @@ class RateLimiter {
      */
     public static function secondsUntilAvailable(string $key, int $windowSeconds): int {
         $ip = self::getClientIp();
-        $sessionKey = 'rate_' . $key . '_' . md5($ip);
-        if (!isset($_SESSION[$sessionKey])) {
+        $db = Database::getConnection();
+
+        $stmt = $db->prepare("
+            SELECT window_start FROM rate_limits 
+            WHERE `key` = :k AND ip = :ip 
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute(['k' => $key, 'ip' => $ip]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$row) {
             return 0;
         }
 
-        $elapsed = time() - $_SESSION[$sessionKey]['window_start'];
+        $elapsed = time() - strtotime($row['window_start']);
         $remaining = $windowSeconds - $elapsed;
 
         return max(0, $remaining);
@@ -75,6 +89,8 @@ class RateLimiter {
      */
     public static function clear(string $key): void {
         $ip = self::getClientIp();
-        unset($_SESSION['rate_' . $key . '_' . md5($ip)]);
+        $db = Database::getConnection();
+        $stmt = $db->prepare("DELETE FROM rate_limits WHERE `key` = :k AND ip = :ip");
+        $stmt->execute(['k' => $key, 'ip' => $ip]);
     }
 }

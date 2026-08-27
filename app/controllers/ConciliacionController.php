@@ -41,6 +41,13 @@ class ConciliacionController extends Controller {
 
         $banco = trim($_POST['banco'] ?? 'mercantil');
 
+        $bancosPermitidos = ['mercantil', 'provincial', 'banco_de_venezuela', 'banco_plaza', 'banco_exterior', 'bbva', 'bancaribe', 'banco_nacional_de_crédito', 'banco_del_tesoro', 'banco_munivalle'];
+        if (!in_array($banco, $bancosPermitidos, true)) {
+            Flash::set('danger', 'Banco no reconocido. Seleccione un banco válido.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
         if (empty($_FILES['archivo_extracto']) || $_FILES['archivo_extracto']['error'] !== UPLOAD_ERR_OK) {
             Flash::set('danger', 'Debe seleccionar un archivo de extracto bancario válido.');
             $this->redirect('/admin/conciliacion');

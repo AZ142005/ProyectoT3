@@ -33,7 +33,7 @@ class ReportesModel extends BaseModel {
                 p.telefono AS propietario_telefono,
                 p.email AS propietario_email,
                 COUNT(f.id) AS facturas_vencidas,
-                SUM(f.saldo) AS total_deuda,
+                ROUND(SUM(f.saldo), 2) AS total_deuda,
                 MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
                 DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
             FROM facturas f
@@ -85,7 +85,7 @@ class ReportesModel extends BaseModel {
                 COALESCE(p.telefono, 'N/A') AS propietario_telefono,
                 COALESCE(p.email, 'N/A') AS propietario_email,
                 COUNT(f.id) AS facturas_vencidas,
-                SUM(f.saldo) AS total_deuda,
+                ROUND(SUM(f.saldo), 2) AS total_deuda,
                 DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
             FROM facturas f
             INNER JOIN unidades u ON f.unidad_id = u.id
@@ -123,7 +123,7 @@ class ReportesModel extends BaseModel {
 
         $db = $this->db();
         
-        $stmtDeuda = $db->query("SELECT COALESCE(SUM(saldo), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
+        $stmtDeuda = $db->query("SELECT COALESCE(ROUND(SUM(saldo), 2), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
         $totalDeuda = floatval($stmtDeuda->fetch(PDO::FETCH_ASSOC)['total_deuda'] ?? 0);
 
         $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
@@ -252,7 +252,7 @@ class ReportesModel extends BaseModel {
         $stmtF->execute(['unidad_id' => $unidadId]);
         $facturas = $stmtF->fetchAll(PDO::FETCH_ASSOC);
 
-        $totalDeuda = array_reduce($facturas, fn($carry, $f) => $carry + floatval($f['saldo']), 0.0);
+        $totalDeuda = round(array_reduce($facturas, fn($carry, $f) => $carry + floatval($f['saldo']), 0.0), 2);
 
         return [
             'unidad'      => $unidad,
@@ -269,7 +269,7 @@ class ReportesModel extends BaseModel {
             return $value;
         }
         $trimmed = ltrim($value);
-        if (!empty($trimmed) && in_array($trimmed[0], ['=', '+', '-', '@', "\r", "\n"], true)) {
+        if (!empty($trimmed) && in_array($trimmed[0], ['=', '+', '-', '@', "\r", "\n", "\t", ';'], true)) {
             return "\t" . $value;
         }
         return $value;

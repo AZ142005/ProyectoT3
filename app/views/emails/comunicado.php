@@ -23,7 +23,12 @@
             <h3 style="margin-top:12px; color:#2c3e50;"><?= e($tituloComunicado ?? '') ?></h3>
             
             <div style="margin:20px 0; text-align:justify; color:#34495e;">
-                <?= nl2br(strip_tags($contenidoComunicado ?? '', '<b><strong><i><em><u><ul><ol><li><p><br><a>')) ?>
+                <?php
+                $allowed = '<b><strong><i><em><u><ul><ol><li><p><br>';
+                $safe = strip_tags($contenidoComunicado ?? '', $allowed);
+                $safe = preg_replace('/<(\w+)\s+[^>]*on\w+\s*=/i', '<$1', $safe);
+                echo nl2br(e($safe));
+                ?>
             </div>
 
             <p style="font-size:12px; color:#95a5a6; border-top:1px solid #ecf0f1; padding-top:12px;">Publicado el: <?= e($fechaPublicacion ?? date('d/m/Y H:i')) ?></p>

@@ -35,6 +35,8 @@ class AuthController extends Controller {
 
                 if (empty($identificador) || empty($password)) {
                     $error = 'Por favor, ingresa tu correo o cédula y contraseña.';
+                } elseif (mb_strlen($identificador) > 255) {
+                    $error = 'El correo o cédula ingresado es demasiado largo.';
                 } else {
                     $esEmail = filter_var($identificador, FILTER_VALIDATE_EMAIL);
                     $loginExitoso = false;
@@ -51,7 +53,6 @@ class AuthController extends Controller {
                         if ($usuariosModel->estaBloqueado((int)$usuario['id'])) {
                             $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
                         } elseif (password_verify($password, $usuario['password'])) {
-                            RateLimiter::clear('login');
                             $usuariosModel->resetIntentosFallidos((int)$usuario['id']);
                             $loginExitoso = true;
                             $foundUserId = (int)$usuario['id'];
@@ -86,7 +87,6 @@ class AuthController extends Controller {
                             if ($personasModel->estaBloqueado((int)$residente['id'])) {
                                 $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
                             } elseif (!empty($residente['password']) && password_verify($password, $residente['password'])) {
-                                RateLimiter::clear('login');
                                 $personasModel->resetIntentosFallidos((int)$residente['id']);
                                 $loginExitoso = true;
                                 $foundUserId = (int)$residente['id'];
@@ -276,10 +276,12 @@ class AuthController extends Controller {
 
                 if (empty($cedula) || empty($email) || empty($password) || empty($password_confirm)) {
                     $error = 'Todos los campos son obligatorios.';
+                } elseif (!validarCedula($cedula)) {
+                    $error = 'El formato de la cédula no es válido. Use el formato V-12345678 o E-12345678.';
                 } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $error = 'El formato de correo electrónico no es válido.';
-                } elseif (strlen($password) < 6) {
-                    $error = 'La contraseña debe tener al menos 6 caracteres.';
+                } elseif (strlen($password) < 8) {
+                    $error = 'La contraseña debe tener al menos 8 caracteres.';
                 } elseif ($password !== $password_confirm) {
                     $error = 'Las contraseñas no coinciden.';
                 } else {

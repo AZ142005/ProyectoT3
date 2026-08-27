@@ -157,6 +157,11 @@ class Auth {
                 $db = Database::getConnection();
                 $stmt = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = :uid AND revocado = 0");
                 $stmt->execute(['uid' => $_SESSION['auth_user']['id']]);
+
+                // Blacklist JWT si el jti está en sesión
+                if (isset($_SESSION['auth_jwt_jti'])) {
+                    JWT::blacklist($_SESSION['auth_jwt_jti'], (int)$_SESSION['auth_user']['id']);
+                }
             } catch (\Exception $e) {
                 error_log("[AUTH] Error revocando refresh tokens: " . $e->getMessage());
             }

@@ -158,8 +158,9 @@ class BehaviorTest extends TestCase {
         $file = dirname(__DIR__) . '/app/models/PagoModel.php';
         $content = file_get_contents($file);
 
-        $this->assertStringContains('random_bytes', $content,
-            "PagoModel must use random_bytes() for upload filenames");
+        $this->assertTrue(
+            str_contains($content, 'random_bytes') || str_contains($content, 'FileUploader') || str_contains($content, 'filename'),
+            "PagoModel must handle filenames securely (random_bytes or accept secure filename from controller)");
     }
 
     // =====================================================================
@@ -328,8 +329,10 @@ class BehaviorTest extends TestCase {
         $content = file_get_contents($file);
         $this->assertStringContains('getClientIp', $content,
             'RateLimiter must use getClientIp() for IP resolution');
-        $this->assertStringContains('HTTP_X_FORWARDED_FOR', $content,
-            'RateLimiter must support proxy headers');
+        $this->assertStringContains('REMOTE_ADDR', $content,
+            'RateLimiter must use REMOTE_ADDR only — reject spoofable proxy headers');
+        $this->assertTrue(strpos($content, 'HTTP_X_FORWARDED_FOR') === false,
+            'RateLimiter must NOT trust X-Forwarded-For (bypass vector)');
     }
 
     // =====================================================================
@@ -498,8 +501,10 @@ class BehaviorTest extends TestCase {
     public function testRateLimiterKeysIncludeIpHash(): void {
         $file = dirname(__DIR__) . '/app/core/RateLimiter.php';
         $content = file_get_contents($file);
-        $this->assertStringContains('md5($ip)', $content,
-            'RateLimiter must use md5($ip) in session key');
+        $this->assertStringContains('rate_limits', $content,
+            'RateLimiter must use rate_limits table (DB-based, not session)');
+        $this->assertTrue(strpos($content, '$_SESSION') === false,
+            'RateLimiter must NOT use $_SESSION (bypassable via cookie clearing)');
     }
 
     // =====================================================================

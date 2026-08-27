@@ -3,6 +3,7 @@ namespace App\Core;
 
 use InvalidArgumentException;
 use RuntimeException;
+use App\Core\Database;
 
 class JWT {
 
@@ -14,8 +15,8 @@ class JWT {
         if (empty($secret)) {
             throw new RuntimeException("JWT_SECRET o APP_KEY debe estar definido en .env para firmar tokens.");
         }
-        if (strlen($secret) < 32) {
-            throw new RuntimeException("La clave secreta JWT_SECRET debe tener una longitud mínima de 32 bytes.");
+        if (strlen($secret) < 64) {
+            throw new RuntimeException("La clave secreta JWT_SECRET debe tener una longitud mínima de 64 bytes.");
         }
         return $secret;
     }
@@ -70,6 +71,49 @@ class JWT {
     }
 
     /**
+     * Agrega un jti a la blacklist (invocar al logout).
+     */
+    public static function blacklist(string $jti, ?int $userId = null, int $expiresInSeconds = 7200): void {
+        try {
+            $db = Database::getConnection();
+        } catch (\Exception $e) {
+            error_log("[JWT] No se pudo agregar jti a blacklist: " . $e->getMessage());
+            return;
+        }
+        $stmt = $db->prepare("
+            INSERT IGNORE INTO jwt_blacklist (jti, user_id, expires_at)
+            VALUES (:jti, :uid, :exp)
+        ");
+        $stmt->execute([
+            'jti' => $jti,
+            'uid' => $userId,
+            'exp' => date('Y-m-d H:i:s', time() + $expiresInSeconds)
+        ]);
+    }
+
+    /**
+     * Verifica si un jti está en la blacklist.
+     */
+    public static function isBlacklisted(string $jti): bool {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT 1 FROM jwt_blacklist WHERE jti = :jti LIMIT 1");
+        $stmt->execute(['jti' => $jti]);
+        return (bool)$stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Limpia tokens expirados de la blacklist.
+     */
+    public static function cleanBlacklist(): void {
+        try {
+            $db = Database::getConnection();
+            $db->exec("DELETE FROM jwt_blacklist WHERE expires_at < NOW()");
+        } catch (\Exception $e) {
+            error_log("[JWT] No se pudo limpiar blacklist: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Valida y decodifica un token JWT.
      *
      * @param string $token
@@ -98,6 +142,18 @@ class JWT {
 
         if (isset($payload['exp']) && $payload['exp'] < time()) {
             throw new InvalidArgumentException("Token JWT expirado.");
+        }
+
+        // Verificar blacklist (logout forzado)
+        if (isset($payload['jti'])) {
+            try {
+                if (self::isBlacklisted($payload['jti'])) {
+                    throw new InvalidArgumentException("Token JWT revocado.");
+                }
+            } catch (\Exception $e) {
+                if ($e instanceof InvalidArgumentException) throw $e;
+                // Si la BD no está disponible, no bloquear — el token expirará naturalmente
+            }
         }
 
         if (isset($payload['iss']) && $payload['iss'] !== 'condominio_digital') {

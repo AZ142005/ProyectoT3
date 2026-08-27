@@ -126,6 +126,17 @@ class EstacionamientoController extends Controller {
         }
 
         $estacionamientosModel = new EstacionamientosModel();
+
+        // FK validation: unidad debe existir si se va a asignar
+        if ($unidadId !== null) {
+            $unidadesModel = new UnidadesModel();
+            if (!$unidadesModel->getById($unidadId)) {
+                Flash::error('La unidad especificada no existe.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
+        }
+
         try {
             $estacionamientosModel->asignarAUnidad($puestoId, $unidadId);
             Flash::success("Asignación de puesto de estacionamiento actualizada correctamente.");
@@ -163,28 +174,56 @@ class EstacionamientoController extends Controller {
      * Guarda un vehículo asociado a una unidad.
      */
     public function guardarVehiculo() {
-        Auth::requireLogin();
+        Auth::requireRole('admin');
 
         $vehiculosModel = new VehiculosModel();
+        $unidadesModel = new UnidadesModel();
 
         try {
             $unidadId = intval($_POST['unidad_id'] ?? 0);
-            $personaId = Auth::id(); // O persona seleccionada por admin
+            $personaId = Auth::id();
 
-            if (Auth::role() === 'admin' && !empty($_POST['persona_id'])) {
+            if (!empty($_POST['persona_id'])) {
                 $personaId = intval($_POST['persona_id']);
+            }
+
+            // FK validation: unidad debe existir
+            if ($unidadId <= 0 || !$unidadesModel->getById($unidadId)) {
+                Flash::error('La unidad especificada no existe.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
+
+            $estacionamientoId = !empty($_POST['estacionamiento_id']) ? intval($_POST['estacionamiento_id']) : null;
+
+            // FK validation: estacionamiento debe existir y estar asignado a la unidad
+            if ($estacionamientoId) {
+                $estModel = new EstacionamientosModel();
+                $puestos = $estModel->obtenerPorUnidad($unidadId);
+                $puestosIds = array_column($puestos, 'id');
+                if (!in_array($estacionamientoId, $puestosIds)) {
+                    Flash::error('El puesto de estacionamiento no pertenece a la unidad especificada.');
+                    $this->redirect('/admin/estacionamientos');
+                    return;
+                }
             }
 
             $datos = [
                 'unidad_id'          => $unidadId,
                 'persona_id'         => $personaId,
-                'estacionamiento_id' => !empty($_POST['estacionamiento_id']) ? intval($_POST['estacionamiento_id']) : null,
-                'placa'              => $_POST['placa'] ?? '',
-                'marca'              => $_POST['marca'] ?? '',
-                'modelo'             => $_POST['modelo'] ?? '',
-                'color'              => $_POST['color'] ?? '',
-                'observaciones'      => $_POST['observaciones'] ?? ''
+                'estacionamiento_id' => $estacionamientoId,
+                'placa'              => strtoupper(trim($_POST['placa'] ?? '')),
+                'marca'              => trim($_POST['marca'] ?? ''),
+                'modelo'             => trim($_POST['modelo'] ?? ''),
+                'color'              => trim($_POST['color'] ?? ''),
+                'observaciones'      => trim($_POST['observaciones'] ?? '')
             ];
+
+            if (empty($datos['placa'])) {
+                Flash::error('La placa del vehículo es obligatoria.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
 
             $vehiculosModel->crearVehiculo($datos);
             Flash::success("Vehículo registrado exitosamente.");
@@ -193,8 +232,7 @@ class EstacionamientoController extends Controller {
             Flash::error('Error al guardar la información del vehículo.');
         }
 
-        $redirectUrl = (Auth::role() === 'admin') ? '/admin/estacionamientos' : '/residente/dashboard';
-        $this->redirect($redirectUrl);
+        $this->redirect('/admin/estacionamientos');
     }
 
     /**

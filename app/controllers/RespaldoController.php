@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Core\Database;
 use App\Core\UserRole;
+use App\Core\RateLimiter;
 use PDO;
 
 class RespaldoController extends Controller {
@@ -38,6 +39,15 @@ class RespaldoController extends Controller {
     public function generarManual() {
         Auth::requireRole(UserRole::ADMIN);
 
+        // Rate limiting: máximo 3 respaldos por hora
+        if (!RateLimiter::attempt('backup', 3, 3600)) {
+            $segundos = RateLimiter::secondsUntilAvailable('backup', 3600);
+            $minutos = ceil($segundos / 60);
+            Flash::set('danger', "Debe esperar {$minutos} minuto(s) antes de generar otro respaldo.");
+            $this->redirect('/admin/respaldos');
+            return;
+        }
+
         $backupScript = dirname(__DIR__, 2) . '/scripts/backup_database.php';
 
         if (!file_exists($backupScript)) {
@@ -57,7 +67,8 @@ class RespaldoController extends Controller {
             if ($returnVar === 0) {
                 Flash::set('success', 'Respaldo de base de datos generado exitosamente con compresión y firma SHA-256.');
             } else {
-                Flash::set('danger', 'Error al generar respaldo: ' . implode("\n", array_slice($output, -3)));
+                error_log("[RESPALDO] Output: " . implode("\n", $output));
+                Flash::set('danger', 'Error al generar respaldo. Revise los logs del servidor para más detalles.');
             }
         } catch (\Exception $e) {
             error_log("[RESPALDO] Error ejecutar respaldo: " . $e->getMessage());

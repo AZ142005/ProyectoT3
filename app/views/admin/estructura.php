@@ -33,6 +33,7 @@
             <div class="max-w-7xl mx-auto space-y-8">
 
                 <!-- Mensajes Flash -->
+                <?php $mensaje = \App\Core\Flash::get('success'); $error = \App\Core\Flash::get('danger'); ?>
                 <?php if (!empty($mensaje)): ?>
                     <div class="bg-green-50 text-green-700 border border-green-200 p-4 rounded-xl flex items-center gap-2 text-sm font-medium">
                         <span class="material-symbols-outlined text-green-600 text-[20px]">check_circle</span>

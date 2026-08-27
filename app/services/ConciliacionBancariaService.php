@@ -418,6 +418,22 @@ class ConciliacionBancariaService {
             $stmtUpdatePago = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
             $stmtUpdatePago->execute(['id' => $pagoId]);
 
+            // Descontar saldo de la factura asociada
+            if (!empty($pago['unidad_id'])) {
+                $stmtFactura = $db->prepare("
+                    SELECT id, saldo FROM facturas 
+                    WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
+                    ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
+                ");
+                $stmtFactura->execute(['uid' => $pago['unidad_id']]);
+                $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
+                if ($factura) {
+                    $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($pago['monto'])), 2);
+                    $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
+                    $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
+                }
+            }
+
             // Registrar en log de auditoría
             $stmtLog = $db->prepare("
                 INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)

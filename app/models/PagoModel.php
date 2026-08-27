@@ -5,74 +5,83 @@ use PDO;
 
 class PagoModel extends BaseModel {
     /**
-     * Guarda el comprobante en public/uploads/ e inserta en la tabla pagos con estado PENDIENTE.
+     * Inserta en la tabla pagos con estado PENDIENTE.
+     * Previene pago duplicado y maneja errores de integridad.
      *
      * @param int $residenteId
      * @param int $unidadId
-     * @param array $datos
-     * @param array|string $archivo Si es array es $_FILES['comprobante'], si es string es el nombre de archivo ya guardado.
+     * @param array $datos ['monto', 'fecha_pago', 'metodo_pago', 'referencia', ...]
+     * @param string $filename Nombre de archivo ya guardado por FileUploader
      * @return bool
      */
-    public function crearPago($residenteId, $unidadId, $datos, $archivo) {
-        $filename = is_array($archivo) ? ($archivo['name'] ?? '') : (string) $archivo;
-        if (is_array($archivo) && isset($archivo['tmp_name']) && file_exists($archivo['tmp_name'])) {
-            $ext = pathinfo($archivo['name'], PATHINFO_EXTENSION);
-            $filename = bin2hex(random_bytes(16)) . ($ext ? ".{$ext}" : '');
-            $destDir = UPLOADS_PATH . '/comprobantes';
-            if (!file_exists($destDir)) {
-                mkdir($destDir, 0755, true);
-            }
-            if (!move_uploaded_file($archivo['tmp_name'], $destDir . '/' . $filename)) {
-                return false;
-            }
-        }
-
+    public function crearPago($residenteId, $unidadId, $datos, $filename) {
         $monto = round(floatval($datos['monto']), 2);
         $referencia = !empty($datos['referencia']) ? trim($datos['referencia']) : null;
         $fechaPago = $datos['fecha_pago'];
 
         $db = $this->db();
 
-        // Prevenir pago duplicado: misma unidad, referencia, fecha y monto (excluye estados rechazados)
-        if ($referencia) {
-            $stmtDup = $db->prepare(
-                "SELECT id FROM pagos WHERE unidad_id = :unidad_id AND referencia = :referencia 
-                 AND fecha_pago = :fecha_pago AND monto = :monto AND estado != 'RECHAZADO' LIMIT 1"
-            );
-            $stmtDup->execute([
-                'unidad_id' => $unidadId,
-                'referencia'=> $referencia,
-                'fecha_pago'=> $fechaPago,
-                'monto'     => $monto
-            ]);
-            if ($stmtDup->fetch()) {
-                return false;
-            }
-        }
+        try {
+            $db->beginTransaction();
 
-        $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
-                VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
-        
-        $stmt = $db->prepare($sql);
-        return $stmt->execute([
-            'residente_id'  => $residenteId,
-            'unidad_id'     => $unidadId,
-            'monto'         => $monto,
-            'fecha_pago'    => $fechaPago,
-            'metodo_pago'   => $datos['metodo_pago'] ?? '',
-            'referencia'    => $referencia,
-            'archivo'       => $filename,
-            'observaciones' => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
-            'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
-            'banco_receptor'=> !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null
-        ]);
-            return true;
+            // Prevenir pago duplicado: misma unidad, referencia, fecha y monto (excluye rechazados)
+            if ($referencia) {
+                $stmtDup = $db->prepare(
+                    "SELECT id FROM pagos WHERE unidad_id = :unidad_id AND referencia = :referencia 
+                     AND fecha_pago = :fecha_pago AND monto = :monto AND estado != 'RECHAZADO' LIMIT 1"
+                );
+                $stmtDup->execute([
+                    'unidad_id' => $unidadId,
+                    'referencia'=> $referencia,
+                    'fecha_pago'=> $fechaPago,
+                    'monto'     => $monto
+                ]);
+                if ($stmtDup->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+            }
+
+            $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
+                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
+            
+            $stmt = $db->prepare($sql);
+            $result = $stmt->execute([
+                'residente_id'  => $residenteId,
+                'unidad_id'     => $unidadId,
+                'monto'         => $monto,
+                'fecha_pago'    => $fechaPago,
+                'metodo_pago'   => $datos['metodo_pago'] ?? '',
+                'referencia'    => $referencia,
+                'archivo'       => $filename,
+                'observaciones' => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
+                'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
+                'banco_receptor'=> !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null
+            ]);
+
+            $db->commit();
+            return $result;
         } catch (\PDOException $e) {
+            if ($db->inTransaction()) $db->rollBack();
             if ($e->getCode() == 23000) {
                 return false; // Duplicate key — pago ya existe
             }
+            error_log("[PAGO] Error crearPago: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Retorna el total de deuda pendiente (facturas saldo) de una unidad.
+     *
+     * @param int $unidadId
+     * @return float
+     */
+    public function obtenerTotalDeuda($unidadId) {
+        $db = $this->db();
+        $stmt = $db->prepare("SELECT COALESCE(SUM(saldo), 0) AS total_deuda FROM facturas WHERE unidad_id = :uid AND saldo > 0 AND deleted_at IS NULL");
+        $stmt->execute(['uid' => $unidadId]);
+        return round(floatval($stmt->fetch(PDO::FETCH_ASSOC)['total_deuda'] ?? 0), 2);
     }
 
     /**
@@ -186,7 +195,7 @@ class PagoModel extends BaseModel {
      * @param int $adminId
      * @return bool
      */
-    public function cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId) {
+    public function cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $ipAddress = null) {
         $db = $this->db();
         
         try {
@@ -210,18 +219,42 @@ class PagoModel extends BaseModel {
                 'estado' => $nuevoEstado,
                 'id'     => $pagoId
             ]);
+
+            // Si se aprueba, descontar saldo de la factura asociada
+            if ($nuevoEstado === 'APROBADO') {
+                $stmtPagoInfo = $db->prepare("SELECT unidad_id, monto FROM pagos WHERE id = :id");
+                $stmtPagoInfo->execute(['id' => $pagoId]);
+                $pagoInfo = $stmtPagoInfo->fetch(PDO::FETCH_ASSOC);
+
+                if ($pagoInfo && !empty($pagoInfo['unidad_id'])) {
+                    $stmtFactura = $db->prepare("
+                        SELECT id, saldo FROM facturas 
+                        WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
+                        ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
+                    ");
+                    $stmtFactura->execute(['uid' => $pagoInfo['unidad_id']]);
+                    $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
+
+                    if ($factura) {
+                        $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($pagoInfo['monto'])), 2);
+                        $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
+                        $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
+                    }
+                }
+            }
             
             // Crear el registro de auditoría
             $stmtLog = $db->prepare("
-                INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)
-                VALUES (:pago_id, :admin_id, :estado_anterior, :estado_nuevo, :motivo)
+                INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo, ip_address)
+                VALUES (:pago_id, :admin_id, :estado_anterior, :estado_nuevo, :motivo, :ip_address)
             ");
             $stmtLog->execute([
                 'pago_id'         => $pagoId,
                 'admin_id'        => $adminId,
                 'estado_anterior' => $estadoAnterior,
                 'estado_nuevo'    => $nuevoEstado,
-                'motivo'          => !empty($motivo) ? trim($motivo) : null
+                'motivo'          => !empty($motivo) ? trim($motivo) : null,
+                'ip_address'      => $ipAddress
             ]);
             
             // Outbox Disparador de Notificaciones de Evento (RF 35)
@@ -296,7 +329,7 @@ class PagoModel extends BaseModel {
      * @return array ['procesados' => int, 'omitidos' => int]
      * @throws \Exception Si el lote excede el límite de 50 o falla la transacción
      */
-    public function aprobarLote(array $pagoIds, int $adminId): array {
+    public function aprobarLote(array $pagoIds, int $adminId, $ipAddress = null): array {
         // Filtrar y validar IDs
         $ids = array_filter(array_map('intval', $pagoIds), fn($id) => $id > 0);
         $totalOriginal = count($ids);
@@ -318,10 +351,10 @@ class PagoModel extends BaseModel {
         try {
             $db->beginTransaction();
 
-            $inClause = implode(',', array_fill(0, count($ids), '?'));
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
             
             // Bloquear filas elegibles únicamente (PENDIENTE o EN REVISIÓN)
-            $sqlSelect = "SELECT id, estado FROM pagos WHERE id IN ({$inClause}) AND estado IN ('PENDIENTE', 'EN REVISIÓN') ORDER BY id ASC FOR UPDATE";
+            $sqlSelect = 'SELECT id, estado FROM pagos WHERE id IN (' . $placeholders . ') AND estado IN (\'PENDIENTE\', \'EN REVISIÓN\') ORDER BY id ASC FOR UPDATE';
             $stmtSelect = $db->prepare($sqlSelect);
             $stmtSelect->execute($ids);
             $pagosElegibles = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
@@ -329,8 +362,8 @@ class PagoModel extends BaseModel {
             if (!empty($pagosElegibles)) {
                 $stmtUpdate = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
                 $stmtLog = $db->prepare("
-                    INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)
-                    VALUES (:pago_id, :admin_id, :estado_anterior, 'APROBADO', 'Aprobación masiva por lote')
+                    INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo, ip_address)
+                    VALUES (:pago_id, :admin_id, :estado_anterior, 'APROBADO', 'Aprobación masiva por lote', :ip_address)
                 ");
 
                 foreach ($pagosElegibles as $pago) {
@@ -338,8 +371,29 @@ class PagoModel extends BaseModel {
                     $stmtLog->execute([
                         'pago_id'         => $pago['id'],
                         'admin_id'        => $adminId,
-                        'estado_anterior' => $pago['estado']
+                        'estado_anterior' => $pago['estado'],
+                        'ip_address'      => $ipAddress
                     ]);
+
+                    // Descontar saldo de factura asociada
+                    $stmtPayInfo = $db->prepare("SELECT unidad_id, monto FROM pagos WHERE id = :id");
+                    $stmtPayInfo->execute(['id' => $pago['id']]);
+                    $payInfo = $stmtPayInfo->fetch(PDO::FETCH_ASSOC);
+                    if ($payInfo && !empty($payInfo['unidad_id'])) {
+                        $stmtFactura = $db->prepare("
+                            SELECT id, saldo FROM facturas 
+                            WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
+                            ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
+                        ");
+                        $stmtFactura->execute(['uid' => $payInfo['unidad_id']]);
+                        $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
+                        if ($factura) {
+                            $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($payInfo['monto'])), 2);
+                            $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
+                            $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
+                        }
+                    }
+
                     $this->notificarCambioEstadoPago($db, $pago['id'], 'APROBADO', 'Aprobación masiva por lote');
                     $procesados++;
                 }

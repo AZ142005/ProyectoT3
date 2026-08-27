@@ -41,7 +41,12 @@
                     <h3 class="text-lg font-bold text-on-surface mb-3"><?= e($c['titulo']) ?></h3>
                     
                     <div class="text-sm text-on-surface-variant leading-relaxed text-justify">
-                        <?= nl2br(strip_tags($c['contenido'], '<b><strong><i><em><u><ul><ol><li><p><br>')) ?>
+                        <?php
+                        $allowed = '<b><strong><i><em><u><ul><ol><li><p><br>';
+                        $safe = strip_tags($c['contenido'], $allowed);
+                        $safe = preg_replace('/<(\w+)\s+[^>]*on\w+\s*=/i', '<$1', $safe);
+                        echo nl2br(e($safe));
+                        ?>
                     </div>
                 </div>
             <?php endforeach; ?>

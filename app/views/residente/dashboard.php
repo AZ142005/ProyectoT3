@@ -164,9 +164,9 @@
                             </td>
                             <td class="py-4 px-4">
                                 <?php if ($c['archivo']): ?>
-                                    <button onclick="abrirModal('/uploads/comprobantes/<?= e($c['archivo']) ?>')" 
+                                    <button onclick="abrirModal('/comprobante-proxy.php?file=<?= e($c['archivo']) ?>')" 
                                             class="w-12 h-12 rounded-lg border border-outline-variant overflow-hidden hover:scale-105 transition-transform flex items-center justify-center bg-background">
-                                        <img src="/uploads/comprobantes/<?= e($c['archivo']) ?>" alt="Recibo" class="w-full h-full object-cover">
+                                        <img src="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" alt="Recibo" class="w-full h-full object-cover">
                                     </button>
                                 <?php else: ?>
                                     <span class="text-xs text-on-surface-variant">Sin imagen</span>

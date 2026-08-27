@@ -23,15 +23,15 @@ class FacturasModel extends BaseModel {
     }
 
     public function getTotalDeudaByUnidad($unidad_id): float {
-        $stmt = $this->db()->prepare("SELECT SUM(saldo) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo > 0 AND deleted_at IS NULL");
+        $stmt = $this->db()->prepare("SELECT ROUND(COALESCE(SUM(saldo), 0), 2) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo > 0 AND deleted_at IS NULL");
         $stmt->execute(['unidad_id' => $unidad_id]);
-        return floatval($stmt->fetch()['total'] ?? 0);
+        return round(floatval($stmt->fetch()['total'] ?? 0), 2);
     }
 
     public function getSaldoFavorByUnidad($unidad_id): float {
-        $stmt = $this->db()->prepare("SELECT SUM(saldo) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo < 0 AND deleted_at IS NULL");
+        $stmt = $this->db()->prepare("SELECT ROUND(COALESCE(ABS(SUM(saldo)), 0), 2) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo < 0 AND deleted_at IS NULL");
         $stmt->execute(['unidad_id' => $unidad_id]);
-        return abs(floatval($stmt->fetch()['total'] ?? 0));
+        return round(floatval($stmt->fetch()['total'] ?? 0), 2);
     }
 
     /**
@@ -44,8 +44,8 @@ class FacturasModel extends BaseModel {
     public function getResumenFinancieroUnidad(int $unidad_id): array {
         $sql = "
             SELECT 
-                COALESCE(SUM(CASE WHEN saldo > 0 THEN saldo ELSE 0 END), 0) AS total_deuda,
-                COALESCE(ABS(SUM(CASE WHEN saldo < 0 THEN saldo ELSE 0 END)), 0) AS saldo_favor
+                ROUND(COALESCE(SUM(CASE WHEN saldo > 0 THEN saldo ELSE 0 END), 0), 2) AS total_deuda,
+                ROUND(COALESCE(ABS(SUM(CASE WHEN saldo < 0 THEN saldo ELSE 0 END)), 0), 2) AS saldo_favor
             FROM facturas
             WHERE unidad_id = :unidad_id AND deleted_at IS NULL
         ";
@@ -54,8 +54,8 @@ class FacturasModel extends BaseModel {
         $row = $stmt->fetch();
 
         return [
-            'total_deuda' => floatval($row['total_deuda'] ?? 0),
-            'saldo_favor' => floatval($row['saldo_favor'] ?? 0),
+            'total_deuda' => round(floatval($row['total_deuda'] ?? 0), 2),
+            'saldo_favor' => round(floatval($row['saldo_favor'] ?? 0), 2),
         ];
     }
 
@@ -89,7 +89,7 @@ class FacturasModel extends BaseModel {
             $db->beginTransaction();
 
             // Prevenir ejecución duplicada: si ya existen facturas para este período, abortar
-            $stmtCheck = $db->prepare("SELECT COUNT(*) as total FROM facturas WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL");
+            $stmtCheck = $db->prepare("SELECT COUNT(*) as total FROM facturas WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL FOR UPDATE");
             $stmtCheck->execute(['mes' => $mes, 'anio' => $anio]);
             $existentes = intval($stmtCheck->fetch()['total'] ?? 0);
             if ($existentes > 0) {
@@ -106,7 +106,7 @@ class FacturasModel extends BaseModel {
                 VALUES (:numero_factura, :unidad_id, :mes, :anio, :fecha_emision, :fecha_vencimiento, :monto_total, :monto_pagado, :saldo, :estado)
             ");
 
-            $stmtDup = $db->prepare("SELECT id FROM facturas WHERE unidad_id = :unidad_id AND mes = :mes AND anio = :anio AND deleted_at IS NULL LIMIT 1");
+            $stmtDup = $db->prepare("SELECT id FROM facturas WHERE unidad_id = :unidad_id AND mes = :mes AND anio = :anio AND deleted_at IS NULL LIMIT 1 FOR UPDATE");
 
             foreach ($unidades as $unidad) {
                 $unidad_id = $unidad['id'];

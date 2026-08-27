@@ -38,7 +38,7 @@
                     </div>
 
                     <div class="flex flex-col items-end gap-2 shrink-0">
-                        <?php if (!empty($n['enlace'])): ?>
+                        <?php if (!empty($n['enlace']) && ($n['enlace'][0] === '/' || strpos($n['enlace'], 'https://') === 0)): ?>
                             <a href="<?= e($n['enlace']) ?>" class="bg-slate-100 hover:bg-slate-200 text-on-surface text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
                                 Ver Detalle
                             </a>

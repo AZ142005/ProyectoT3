@@ -96,8 +96,8 @@
                     <span class="text-xs text-on-surface-variant font-semibold uppercase tracking-wider mb-2">Comprobante Digital</span>
                     <?php if ($comprobante['archivo']): ?>
                         <div class="border border-outline-variant rounded-xl overflow-hidden max-w-lg bg-background p-2">
-                            <a href="/uploads/comprobantes/<?= e($comprobante['archivo']) ?>" target="_blank" class="block relative overflow-hidden group">
-                                <img src="/uploads/comprobantes/<?= e($comprobante['archivo']) ?>" alt="Recibo digital" class="w-full max-h-96 object-contain rounded-lg">
+                            <a href="/comprobante-proxy.php?file=<?= e($comprobante['archivo']) ?>" target="_blank" class="block relative overflow-hidden group">
+                                <img src="/comprobante-proxy.php?file=<?= e($comprobante['archivo']) ?>" alt="Recibo digital" class="w-full max-h-96 object-contain rounded-lg">
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-bold gap-1">
                                     <span class="material-symbols-outlined">zoom_in</span>
                                     Ampliar Comprobante

@@ -58,7 +58,7 @@
                                     <td class="py-4 px-4 font-bold text-on-surface"><?= e(formatearMoneda($c['monto'])) ?></td>
                                     <td class="py-4 px-4">
                                         <?php if ($c['archivo']): ?>
-                                            <a href="/uploads/comprobantes/<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs">
+                                            <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs">
                                                 <span class="material-symbols-outlined text-[16px]">visibility</span>
                                                 Ver
                                             </a>

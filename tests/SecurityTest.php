@@ -359,11 +359,11 @@ class SecurityTest extends TestCase {
         $this->assertStringContains('strlen', $content,
             "Register debe usar strlen() para validar longitud de password");
 
-        // Verificar que sea al menos 6 caracteres
+        // Verificar que sea al menos 8 caracteres (OWASP)
         if (preg_match('/strlen\s*\(\s*\$password\s*\)\s*<\s*(\d+)/', $content, $matches)) {
             $minLength = (int) $matches[1];
-            $this->assertGreaterThan(5, $minLength,
-                "Longitud mínima de password debe ser >= 6 caracteres");
+            $this->assertGreaterThan(7, $minLength,
+                "Longitud mínima de password debe ser >= 8 caracteres (OWASP)");
         }
     }
 

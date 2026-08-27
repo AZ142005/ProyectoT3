@@ -44,6 +44,10 @@ class EstructuraController extends Controller {
 
             if (empty($nombre)) {
                 Flash::error('El nombre del edificio no puede estar vacío.');
+            } elseif (mb_strlen($nombre) > 255) {
+                Flash::error('El nombre del edificio no puede exceder 255 caracteres.');
+            } elseif (mb_strlen($descripcion) > 1000) {
+                Flash::error('La descripción no puede exceder 1000 caracteres.');
             } else {
                 $edificiosModel = new EdificiosModel();
 
@@ -78,14 +82,20 @@ class EstructuraController extends Controller {
 
             if (empty($numero)) {
                 Flash::error('El código/número de la unidad es obligatorio.');
+            } elseif (mb_strlen($numero) > 50) {
+                Flash::error('El código/número de la unidad no puede exceder 50 caracteres.');
             } elseif ($edificio_id <= 0) {
                 Flash::error('Debe seleccionar un edificio para la unidad.');
             } elseif ($cuota_mensual < 0) {
                 Flash::error('La cuota mensual debe ser un valor mayor o igual a 0.');
             } else {
+                $edificiosModel = new EdificiosModel();
                 $unidadesModel = new UnidadesModel();
 
-                if ($unidadesModel->numeroExists($numero, $id > 0 ? $id : null)) {
+                // FK validation: edificio debe existir
+                if (!$edificiosModel->getById($edificio_id)) {
+                    Flash::error('El edificio seleccionado no existe.');
+                } elseif ($unidadesModel->numeroExists($numero, $id > 0 ? $id : null)) {
                     Flash::error('Ya existe una unidad con ese código/número registrado.');
                 } else {
                     $data = [

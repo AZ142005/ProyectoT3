@@ -74,9 +74,16 @@ class OtpModel extends BaseModel {
 
         // Comprobar coincidencia con password_verify
         if (password_verify($codigoIngresado, $row['codigo_hash'])) {
-            // Marcar como consumido con éxito
-            $stmtOk = $db->prepare("UPDATE auth_otp_tokens SET usado = 1 WHERE id = :id");
+            // Marcar como consumido atómicamente — previene race condition
+            $stmtOk = $db->prepare("UPDATE auth_otp_tokens SET usado = 1 WHERE id = :id AND usado = 0");
             $stmtOk->execute(['id' => $row['id']]);
+
+            if ($stmtOk->rowCount() === 0) {
+                return [
+                    'valido' => false,
+                    'error'  => 'El código ya fue utilizado. Por favor, solicite un nuevo código.'
+                ];
+            }
 
             return ['valido' => true, 'error' => null];
         }

@@ -51,6 +51,7 @@ class EstadoCuentaController extends Controller {
             'movimientos' => $movimientos,
             'saldoActual' => $saldoActual,
             'paginacion'  => $paginacion,
+            'sinUnidad'   => !$unidad,
             'title'       => 'Mi Estado de Cuenta y Libro Mayor'
         ]);
     }

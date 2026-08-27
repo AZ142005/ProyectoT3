@@ -111,6 +111,10 @@ class PagoController extends Controller {
             Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');
         }
+        if (!DateTime::createFromFormat('Y-m-d', $fecha_pago) || date('Y-m-d', strtotime($fecha_pago)) !== $fecha_pago) {
+            Flash::error("El formato de fecha no es válido. Use AAAA-MM-DD.");
+            $this->redirect('/pagos/nuevo');
+        }
         
         if (!isset($_FILES['comprobante']) || $_FILES['comprobante']['error'] !== UPLOAD_ERR_OK) {
             Flash::error("El archivo del comprobante es obligatorio y debe ser válido.");
@@ -126,6 +130,14 @@ class PagoController extends Controller {
         }
         
         $pagoModel = new PagoModel();
+
+        // Validar que el monto no exceda la deuda pendiente de la unidad
+        $totalDeuda = $pagoModel->obtenerTotalDeuda($unidadId);
+        if ($monto > $totalDeuda) {
+            Flash::error("El monto del pago ({$monto}) excede la deuda pendiente de la unidad ({$totalDeuda}).");
+            $this->redirect('/pagos/nuevo');
+        }
+
         $datos = [
             'monto'          => $monto,
             'fecha_pago'     => $fecha_pago,
@@ -222,7 +234,7 @@ class PagoController extends Controller {
         }
         
         $pagoModel = new PagoModel();
-        $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId);
+        $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
         
         if ($exito) {
             Flash::success("El pago fue actualizado a estado {$nuevoEstado} exitosamente.");
@@ -249,7 +261,7 @@ class PagoController extends Controller {
         $pagoModel = new PagoModel();
 
         try {
-            $resultado = $pagoModel->aprobarLote($pagoIds, $adminId);
+            $resultado = $pagoModel->aprobarLote($pagoIds, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
 
             if ($resultado['procesados'] > 0) {
                 $mensaje = "Se aprobaron {$resultado['procesados']} pago(s) exitosamente.";

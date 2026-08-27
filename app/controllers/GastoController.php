@@ -71,6 +71,12 @@ class GastoController extends Controller {
             return;
         }
 
+        if (mb_strlen($proveedor) > 150 || mb_strlen($descripcion) > 500) {
+            Flash::set('danger', 'El proveedor o la descripción exceden la longitud máxima permitida.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
         $nombreArchivoSoporte = null;
 
         // Procesar subida de soporte digital con MIME validation real
@@ -148,7 +154,7 @@ class GastoController extends Controller {
 
         // Cálculo de alícuota equitativa por unidad activa
         $unidadesActivas = count($unidadesModel->getActivas());
-        $alicuotaEstimada = ($unidadesActivas > 0) ? ($totalMes / $unidadesActivas) : 0.00;
+        $alicuotaEstimada = ($unidadesActivas > 0) ? round($totalMes / $unidadesActivas, 2) : 0.00;
 
         $this->render('residente/gastos', [
             'gastos'              => $gastos,
