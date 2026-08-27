@@ -1,6 +1,8 @@
 <?php
 namespace App\Models;
 
+use PDO;
+
 class UsuariosModel extends BaseModel {
     protected string $table = 'usuarios';
 

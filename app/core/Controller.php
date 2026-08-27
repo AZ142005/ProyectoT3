@@ -68,7 +68,7 @@ class Controller {
     protected function redirect($url): void {
         // Prevenir open redirect: solo permitir rutas relativas que comiencen con /
         // y no contengan // (que indicarían un dominio externo como https://evil.com)
-        if (!preg_match('#^/[a-zA-Z0-9/_\-?=&%#.+~ ]+$#', $url)) {
+        if (!preg_match('#^/[a-zA-Z0-9/_\-?=&%\#.\+~ ]+$#', $url)) {
             $url = '/';
         }
         header("Location: " . $url);

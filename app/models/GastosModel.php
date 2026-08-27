@@ -133,7 +133,7 @@ class GastosModel extends BaseModel {
 
         $countSql = "SELECT COUNT(*) AS total FROM gastos_comunes g {$where}";
 
-        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'g.fecha_gasto DESC');
+        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'g.fecha DESC');
     }
 
     /**

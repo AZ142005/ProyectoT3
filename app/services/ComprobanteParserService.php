@@ -154,14 +154,14 @@ class ComprobanteParserService {
         // Prioridad al formato venezolano (punto=miles, coma=decimal): 1.250,50
         // El formato internacional (punto=decimal): 150.00
         // Se distinguen ANTES de aplicar str_replace para evitar inflación 100x.
-        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{2})/i', $texto, $matchesMonto)) {
+        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{2})/i', $texto, $matchesMonto)) {
             // Formato venezolano: 1.250,50 → remover puntos de miles, cambiar coma por punto
             $montoStr = str_replace('.', '', $matchesMonto[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
             $resultado['detectado'] = true;
-        } elseif (preg_match('/(?:monto|total|importe|bs\.?|ves|\$)[:\s]*([0-9]+\.[0-9]{2})\b/i', $texto, $matchesMonto)) {
-            // Formato internacional: 150.00 → usar directamente (NO strip de puntos)
+        } elseif (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]+\.[0-9]{2})\b/i', $texto, $matchesMonto)) {
+            // Formato internacional: 1500.00 → usar directamente (NO strip de puntos)
             $resultado['monto'] = round(floatval($matchesMonto[1]), 2);
             $resultado['detectado'] = true;
         } elseif (preg_match('/([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{2})/', $texto, $matchesMontoVen)) {
@@ -169,6 +169,10 @@ class ComprobanteParserService {
             $montoStr = str_replace('.', '', $matchesMontoVen[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
+            $resultado['detectado'] = true;
+        } elseif (preg_match('/\b([0-9]+\.[0-9]{2})\b/', $texto, $matchesDec)) {
+            // Monto decimal estándar
+            $resultado['monto'] = round(floatval($matchesDec[1]), 2);
             $resultado['detectado'] = true;
         }
 

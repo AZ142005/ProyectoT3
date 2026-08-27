@@ -39,7 +39,7 @@ class ComprobantesModel extends BaseModel {
      * @param array $data
      * @return bool
      */
-    public function create($data) {
+    public function create(array $data): string|false {
         $db = $this->db();
         
         $sql = "
@@ -49,7 +49,7 @@ class ComprobantesModel extends BaseModel {
         ";
         
         $stmt = $db->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             'residente_id'  => $data['residente_id'],
             'factura_id'    => $data['factura_id'],
             'monto'         => $data['monto'],
@@ -59,6 +59,7 @@ class ComprobantesModel extends BaseModel {
             'archivo'       => $data['archivo'],
             'observaciones' => $data['observaciones']
         ]);
+        return $ok ? (string) $db->lastInsertId() : false;
     }
 
     /**

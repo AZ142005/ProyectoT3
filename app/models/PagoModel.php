@@ -209,8 +209,8 @@ class PagoModel extends BaseModel {
             $estadoAnterior = $prev['estado'];
             
             // Actualizar el estado del pago
-            $stmtUpdate = $db->prepare("UPDATE pagos SET estado = :estado WHERE id = :id");
-            $stmtUpdate->execute([
+            $stmtUpd = $db->prepare("UPDATE pagos SET estado = :estado WHERE id = :id");
+            $stmtUpd->execute([
                 'estado' => $nuevoEstado,
                 'id'     => $pagoId
             ]);
@@ -337,7 +337,7 @@ class PagoModel extends BaseModel {
             throw new \Exception("El lote de aprobación masiva no puede superar los 50 pagos por operación.");
         }
 
-        // Ordenamiento numérico ascendente estricto para evitar deadlocks en FOR UPDATE
+        // Ordenamiento numérico ascendente estricto para evitar bloqueos
         sort($ids, SORT_NUMERIC);
 
         $db = $this->db();
@@ -346,43 +346,50 @@ class PagoModel extends BaseModel {
         try {
             $db->beginTransaction();
 
-            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $inPlaceholders = implode(',', array_fill(0, count($ids), '?'));
             
             // Bloquear filas elegibles únicamente (PENDIENTE o EN REVISIÓN)
-            $sqlSelect = 'SELECT id, estado FROM pagos WHERE id IN (' . $placeholders . ') AND estado IN (\'PENDIENTE\', \'EN REVISIÓN\') ORDER BY id ASC FOR UPDATE';
-            $stmtSelect = $db->prepare($sqlSelect);
-            $stmtSelect->execute($ids);
-            $pagosElegibles = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
+            $sqlSelect = "SELECT id, estado FROM pagos\n"
+                       . "WHERE id IN (" . $inPlaceholders . ")\n"
+                       . "AND estado IN ('PENDIENTE', 'EN REVISIÓN')\n"
+                       . "ORDER BY id ASC FOR UPDATE";
+            $stmtSel = $db->prepare($sqlSelect);
+            $stmtSel->execute($ids);
+            $pagosElegibles = $stmtSel->fetchAll(PDO::FETCH_ASSOC);
 
             if (!empty($pagosElegibles)) {
-                $stmtUpdate = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
-                $stmtLog = $db->prepare("
-                    INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo, ip_address)
-                    VALUES (:pago_id, :admin_id, :estado_anterior, 'APROBADO', 'Aprobación masiva por lote', :ip_address)
-                ");
+                $sqlUpd = "UPDATE pagos SET estado = 'APROBADO' WHERE id = :id";
+                $stmtUpdExec = $db->prepare($sqlUpd);
 
-                foreach ($pagosElegibles as $pago) {
-                    $stmtUpdate->execute(['id' => $pago['id']]);
+                $sqlAudit = "INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo, ip_address)\n"
+                          . "VALUES (:pago_id, :admin_id, :estado_anterior, 'APROBADO', 'Aprobación masiva por lote', :ip_address)";
+                $stmtLog = $db->prepare($sqlAudit);
+
+                $sqlPayInfo = "SELECT unidad_id, monto FROM pagos WHERE id = :id";
+                $stmtPayInfo = $db->prepare($sqlPayInfo);
+
+                $sqlFactura = "SELECT id, saldo FROM facturas WHERE unidad_id = :uid AND saldo > 0 AND estado != 'pagada' AND deleted_at IS NULL ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE";
+                $stmtFactura = $db->prepare($sqlFactura);
+
+                $sqlSaldo = "UPDATE facturas SET saldo = :saldo, estado = :estado WHERE id = :fid";
+                $stmtSaldo = $db->prepare($sqlSaldo);
+
+                foreach ($pagosElegibles as $sqlPago) {
+                    $stmtUpdExec->execute(['id' => $sqlPago['id']]);
                     $stmtLog->execute([
-                        'pago_id'         => $pago['id'],
+                        'pago_id'         => $sqlPago['id'],
                         'admin_id'        => $adminId,
-                        'estado_anterior' => $pago['estado'],
+                        'estado_anterior' => $sqlPago['estado'],
                         'ip_address'      => $ipAddress
                     ]);
 
                     // Descontar saldo de factura asociada
-                    $stmtPayInfo = $db->prepare("SELECT unidad_id, monto FROM pagos WHERE id = :id");
-                    $stmtPayInfo->execute(['id' => $pago['id']]);
+                    $stmtPayInfo->execute(['id' => $sqlPago['id']]);
                     $payInfo = $stmtPayInfo->fetch(PDO::FETCH_ASSOC);
                     if ($payInfo && !empty($payInfo['unidad_id'])) {
                         $montoRestante = round(floatval($payInfo['monto']), 2);
                         // Cascade: apply payment across invoices until fully absorbed
                         while ($montoRestante > 0.01) {
-                            $stmtFactura = $db->prepare("
-                                SELECT id, saldo FROM facturas 
-                                WHERE unidad_id = :uid AND saldo > 0 AND estado != 'pagada' AND deleted_at IS NULL
-                                ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
-                            ");
                             $stmtFactura->execute(['uid' => $payInfo['unidad_id']]);
                             $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
                             if (!$factura) break;
@@ -390,9 +397,14 @@ class PagoModel extends BaseModel {
                             $saldoFactura = round(floatval($factura['saldo']), 2);
                             $aplicar = round(min($montoRestante, $saldoFactura), 2);
                             $nuevoSaldo = round($saldoFactura - $aplicar, 2);
-                            $nuevoEstado = $nuevoSaldo <= 0 ? 'pagada' : 'pendiente';
-                            $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo, estado = :estado WHERE id = :fid");
-                            $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'estado' => $nuevoEstado, 'fid' => $factura['id']]);
+                            $nuevoEstadoFactura = ($nuevoSaldo <= 0.00) ? 'pagada' : 'pendiente';
+
+                            $stmtSaldo->execute([
+                                'saldo'  => $nuevoSaldo,
+                                'estado' => $nuevoEstadoFactura,
+                                'fid'    => $factura['id']
+                            ]);
+
                             $montoRestante = round($montoRestante - $aplicar, 2);
                         }
                         // Remainder becomes saldo a favor (negative saldo)

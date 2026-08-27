@@ -55,7 +55,7 @@ class ConciliacionBancariaService {
             $lineaTrim = trim($linea);
             if ($lineaTrim === '') continue;
 
-            $columnas = str_getcsv($lineaTrim, $delimitador);
+            $columnas = str_getcsv($lineaTrim, $delimitador, '"', "\\");
             if (count($columnas) < 3) continue;
 
             // Omitir cabeceras si la primera fila contiene palabras clave

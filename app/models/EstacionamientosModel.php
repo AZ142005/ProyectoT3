@@ -14,8 +14,8 @@ class EstacionamientosModel extends BaseModel {
      */
     protected function baseQuery(string $sql, bool $incluirEliminados = false): string {
         if (!$incluirEliminados) {
-            $prefix = (strpos($sql, 'WHERE') !== false) ? ' AND ' : ' WHERE ';
-            $sql .= "{$prefix} (e.deleted_at IS NULL OR e.deleted_at = '')";
+            $sqlPrefix = (strpos($sql, 'WHERE') !== false) ? ' AND ' : ' WHERE ';
+            $sql .= $sqlPrefix . "(e.deleted_at IS NULL OR e.deleted_at = '')";
         }
         return $sql;
     }

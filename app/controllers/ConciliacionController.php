@@ -150,10 +150,15 @@ class ConciliacionController extends Controller {
         // Limit array size to 100
         $items = array_slice($items, 0, 100);
         $adminId = Auth::id() ?? 1;
+
+        // Validate items have required keys
+        $validItems = array_filter($items, fn($it) => !empty($it['extracto_id']) && !empty($it['pago_id']));
+        if (empty($validItems)) {
             Flash::set('danger', 'No se seleccionaron elementos válidos para conciliar.');
             $this->redirect('/admin/conciliacion');
             return;
         }
+        $items = array_values($validItems);
 
         try {
             $conciliacionService = new ConciliacionBancariaService();
