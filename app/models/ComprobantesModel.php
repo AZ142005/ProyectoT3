@@ -36,10 +36,17 @@ class ComprobantesModel extends BaseModel {
     /**
      * Inserta un nuevo comprobante de pago en la base de datos.
      *
-     * @param array $data
-     * @return bool
+     * @param string|array $tableOData
+     * @param array|null $data
+     * @return string|false
      */
-    public function create(array $data): string|false {
+    public function create($tableOData, ?array $data = null): string|false {
+        if (is_array($tableOData)) {
+            $data = $tableOData;
+        } else {
+            $data = $data ?? [];
+        }
+
         $db = $this->db();
         
         $sql = "
@@ -146,7 +153,8 @@ class ComprobantesModel extends BaseModel {
      * @param int $id
      * @return array|false
      */
-    public function getById($id) {
+    public function getById($tableTablaOId, ?int $id = null): array|false {
+        $id = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
         $db = $this->db();
         
         $sql = "
@@ -168,7 +176,7 @@ class ComprobantesModel extends BaseModel {
         $stmt = $db->prepare($sql);
         $stmt->execute(['id' => $id]);
         
-        return $stmt->fetch();
+        return $stmt->fetch() ?: false;
     }
 
     /**

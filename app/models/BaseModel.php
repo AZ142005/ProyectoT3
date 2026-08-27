@@ -42,9 +42,9 @@ abstract class BaseModel {
      *
      * @param string|array $tableTablaOData Si es array, usa $this->table
      * @param array|null $data ['columna' => valor, ...]
-     * @return bool|string lastInsertId o false
+     * @return string|false lastInsertId o false
      */
-    protected function create($tableTablaOData, ?array $data = null): string|false {
+    public function create($tableTablaOData, ?array $data = null): string|false {
         if (is_array($tableTablaOData)) {
             $data = $tableTablaOData;
             $table = $this->table;
@@ -56,25 +56,26 @@ abstract class BaseModel {
         $placeholders = ':' . implode(', :', array_keys($data));
 
         $stmt = $this->db()->prepare("INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})");
-        return $stmt->execute($data) ? $this->db()->lastInsertId() : false;
+        return $stmt->execute($data) ? (string)$this->db()->lastInsertId() : false;
     }
 
     /**
      * Actualiza un registro por ID en la tabla indicada o $this->table.
      *
      * @param string|int $tableTablaOId Si es int, usa $this->table y $tableTablaOId es el $id
-     * @param int|array $idOData Si $tableTablaOId es int, esto es $data. Si no, es $id.
+     * @param int|array|null $idOData Si $tableTablaOId es int, esto es $data. Si no, es $id.
      * @param array|null $data ['columna' => valor, ...]
      * @return bool
      */
-    protected function update($tableTablaOId, $idOData, ?array $data = null): bool {
-        if (is_int($tableTablaOId)) {
+    public function update($tableTablaOId, $idOData = null, ?array $data = null): bool {
+        if (is_int($tableTablaOId) || is_numeric($tableTablaOId)) {
             $table = $this->table;
-            $id = $tableTablaOId;
+            $id = (int)$tableTablaOId;
             $data = is_array($idOData) ? $idOData : [];
         } else {
             $table = (string) $tableTablaOId;
             $id = (int) $idOData;
+            $data = $data ?? [];
         }
 
         $set = implode(', ', array_map(fn($col) => "{$col} = :{$col}", array_keys($data)));
@@ -91,17 +92,18 @@ abstract class BaseModel {
      * @param int|null $id
      * @return array|false
      */
-    protected function getById($tableTablaOId, ?int $id = null): array|false {
-        if (is_int($tableTablaOId)) {
+    public function getById($tableTablaOId, ?int $id = null): array|false {
+        if (is_int($tableTablaOId) || is_numeric($tableTablaOId)) {
             $table = $this->table;
-            $id = $tableTablaOId;
+            $id = (int)$tableTablaOId;
         } else {
             $table = (string) $tableTablaOId;
+            $id = (int) $id;
         }
 
         $stmt = $this->db()->prepare("SELECT * FROM {$table} WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        return $stmt->fetch();
+        return $stmt->fetch() ?: false;
     }
 
     /**
@@ -111,12 +113,13 @@ abstract class BaseModel {
      * @param int|null $id
      * @return bool true si se modificó al menos 1 fila
      */
-    protected function toggleEstado($tableTablaOId, ?int $id = null): bool {
-        if (is_int($tableTablaOId)) {
+    public function toggleEstado($tableTablaOId, ?int $id = null): bool {
+        if (is_int($tableTablaOId) || is_numeric($tableTablaOId)) {
             $table = $this->table;
-            $id = $tableTablaOId;
+            $id = (int)$tableTablaOId;
         } else {
             $table = (string) $tableTablaOId;
+            $id = (int) $id;
         }
 
         $stmt = $this->db()->prepare("UPDATE {$table} SET estado = IF(estado = 1, 0, 1) WHERE id = :id");

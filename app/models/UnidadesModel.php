@@ -39,7 +39,8 @@ class UnidadesModel extends BaseModel {
         return $stmt->fetchAll();
     }
 
-    public function getById($id) {
+    public function getById($tableTablaOId, ?int $id = null): array|false {
+        $actualId = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
         $sql = "
             SELECT u.*, e.nombre as edificio_nombre
             FROM unidades u
@@ -47,24 +48,28 @@ class UnidadesModel extends BaseModel {
             WHERE u.id = :id
         ";
         $stmt = $this->db()->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch();
+        $stmt->execute(['id' => $actualId]);
+        return $stmt->fetch() ?: false;
     }
 
     public function numeroExists($numero, $excludeId = null) {
         return $this->exists('unidades', 'numero', $numero, $excludeId);
     }
 
-    public function create($data) {
-        $data['estado'] = 1;
-        return parent::create('unidades', $data);
+    public function create($tableTablaOData, ?array $data = null): string|false {
+        $actualData = is_array($tableTablaOData) ? $tableTablaOData : ($data ?? []);
+        $actualData['estado'] = 1;
+        return parent::create('unidades', $actualData);
     }
 
-    public function update($id, $data): bool {
-        return parent::update('unidades', $id, $data);
+    public function update($tableTablaOId, $idOData = null, ?array $data = null): bool {
+        $id = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$idOData;
+        $actualData = is_array($idOData) ? $idOData : ($data ?? []);
+        return parent::update('unidades', $id, $actualData);
     }
 
-    public function toggleEstado($id): bool {
-        return parent::toggleEstado('unidades', $id);
+    public function toggleEstado($tableTablaOId, ?int $id = null): bool {
+        $actualId = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
+        return parent::toggleEstado('unidades', $actualId);
     }
 }

@@ -33,20 +33,25 @@ class EdificiosModel extends BaseModel {
         return $this->exists('edificios', 'nombre', $nombre, $excludeId);
     }
 
-    public function create($data) {
-        $data['estado'] = 1;
-        return parent::create('edificios', $data);
+    public function create($tableTablaOData, ?array $data = null): string|false {
+        $actualData = is_array($tableTablaOData) ? $tableTablaOData : ($data ?? []);
+        $actualData['estado'] = 1;
+        return parent::create('edificios', $actualData);
     }
 
-    public function update($id, $data): bool {
-        return parent::update('edificios', $id, $data);
+    public function update($tableTablaOId, $idOData = null, ?array $data = null): bool {
+        $id = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$idOData;
+        $actualData = is_array($idOData) ? $idOData : ($data ?? []);
+        return parent::update('edificios', $id, $actualData);
     }
 
-    public function getById($id) {
-        return parent::getById('edificios', $id);
+    public function getById($tableTablaOId, ?int $id = null): array|false {
+        $actualId = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
+        return parent::getById('edificios', $actualId);
     }
 
-    public function toggleEstado($id): bool {
-        return parent::toggleEstado('edificios', $id);
+    public function toggleEstado($tableTablaOId, ?int $id = null): bool {
+        $actualId = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
+        return parent::toggleEstado('edificios', $actualId);
     }
 }
