@@ -121,9 +121,14 @@ class FacturasModel extends BaseModel {
                 $row = $stmtSaldoFavor->fetch();
                 $saldo_favor = round(floatval($row['total'] ?? 0), 2);
 
-                $monto_factura = round(floatval($unidad['cuota_mensual']), 2);
+                $monto_factura = round(floatval($unidad['cuota_mensual'] ?? 0), 2);
                 if ($monto_factura <= 0) {
-                    continue; // Skip units with zero or negative quota
+                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota_mensual={$monto_factura} (<= 0)");
+                    continue;
+                }
+                if ($monto_factura > 999999.99) {
+                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota_mensual={$monto_factura} (exceeds max)");
+                    continue;
                 }
                 $monto_a_pagar = $monto_factura;
                 $saldo_restante = 0.0;

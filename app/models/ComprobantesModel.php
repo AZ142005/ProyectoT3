@@ -67,22 +67,15 @@ class ComprobantesModel extends BaseModel {
      * @param int $residente_id
      * @return array
      */
-    public function getAllByResidente($residente_id) {
-        $db = $this->db();
-        
-        $sql = "
+    public function getAllByResidente($residente_id, int $pagina = 1, int $porPagina = 20): array {
+        $baseSql = "
             SELECT c.*, f.numero_factura, f.mes, f.anio
             FROM comprobantes_pago c
             INNER JOIN facturas f ON c.factura_id = f.id
             WHERE c.residente_id = :residente_id
-            ORDER BY c.fecha_envio DESC
-            LIMIT 200
         ";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute(['residente_id' => $residente_id]);
-        
-        return $stmt->fetchAll();
+        $countSql = "SELECT COUNT(*) as total FROM comprobantes_pago WHERE residente_id = :residente_id";
+        return $this->paginate($baseSql, $countSql, ['residente_id' => $residente_id], $pagina, $porPagina, 'c.fecha_envio DESC');
     }
 
     /**

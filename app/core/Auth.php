@@ -106,6 +106,15 @@ class Auth {
             'email' => $user['email'] ?? $user['usuario'],
             'role'  => UserRole::ADMIN,
         ];
+
+        // G1-04: Update last access timestamp (best-effort, non-blocking)
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
+            $stmt->execute(['id' => (int) $user['id']]);
+        } catch (\Exception $e) {
+            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+        }
     }
 
     /**
@@ -125,6 +134,15 @@ class Auth {
             'email'      => $persona['email'],
             'role'       => UserRole::RESIDENTE,
         ];
+
+        // G1-04: Update last access timestamp (best-effort, non-blocking)
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE personas SET ultimo_acceso = NOW() WHERE id = :id");
+            $stmt->execute(['id' => (int) $persona['id']]);
+        } catch (\Exception $e) {
+            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+        }
     }
 
     /**
@@ -143,6 +161,15 @@ class Auth {
             'email' => $user['email'] ?? $user['usuario'],
             'role'  => UserRole::AUDITOR,
         ];
+
+        // G1-04: Update last access timestamp (best-effort, non-blocking)
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
+            $stmt->execute(['id' => (int) $user['id']]);
+        } catch (\Exception $e) {
+            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+        }
     }
 
     /**

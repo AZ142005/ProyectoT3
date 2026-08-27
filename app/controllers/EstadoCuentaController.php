@@ -62,6 +62,14 @@ class EstadoCuentaController extends Controller {
     public function imprimir() {
         Auth::requireRole('residente');
 
+        // 4.2: Rate limiting — máximo 10 impresiones por hora
+        if (!\App\Core\RateLimiter::attempt('imprimir_estado_' . Auth::id(), 10, 3600)) {
+            $segundos = \App\Core\RateLimiter::secondsUntilAvailable('imprimir_estado_' . Auth::id(), 3600);
+            \App\Core\Flash::set('danger', "Ha excedido el límite de impresiones. Intente de nuevo en " . ceil($segundos / 60) . " minuto(s).");
+            $this->redirect('/residente/estado-cuenta');
+            return;
+        }
+
         $user = Auth::user();
         $personaId = $user['persona_id'] ?? 0;
 

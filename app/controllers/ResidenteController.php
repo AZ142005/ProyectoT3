@@ -86,6 +86,8 @@ class ResidenteController extends Controller {
                 $error = "Seleccione una factura válida";
             } elseif ($monto <= 0) {
                 $error = "Ingrese un monto válido mayor a cero";
+            } elseif ($monto > 999999.99) {
+                $error = "El monto no puede exceder Bs. 999.999,99";
             } elseif (empty($metodo_pago)) {
                 $error = "Seleccione un método de pago";
             } else {
@@ -151,13 +153,20 @@ class ResidenteController extends Controller {
         Auth::requireRole('residente');
         $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
+        $pagina = max(1, intval($_GET['page'] ?? 1));
 
         $comprobantesModel = new ComprobantesModel();
-        $comprobantes = $comprobantesModel->getAllByResidente($residente_id);
+        $resultado = $comprobantesModel->getAllByResidente($residente_id, $pagina, 20);
 
         $this->render('residente/historial', [
-            'residente' => $residente,
-            'comprobantes' => $comprobantes,
+            'residente'   => $residente,
+            'comprobantes' => $resultado['datos'],
+            'paginacion'  => [
+                'total'        => $resultado['total'],
+                'pagina'       => $resultado['pagina'],
+                'porPagina'    => $resultado['porPagina'],
+                'totalPaginas' => $resultado['totalPaginas'],
+            ],
             'showNav' => true,
             'title' => 'Historial de Pagos - Condominio Digital'
         ]);

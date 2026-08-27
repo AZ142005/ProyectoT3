@@ -90,19 +90,14 @@ class PagoModel extends BaseModel {
      * @param int $residenteId
      * @return array
      */
-    public function obtenerPagosPorResidente($residenteId) {
-        $db = $this->db();
-        $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre
+    public function obtenerPagosPorResidente($residenteId, int $pagina = 1, int $porPagina = 20): array {
+        $baseSql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
-                WHERE p.residente_id = :residente_id
-                ORDER BY p.fecha_registro DESC
-                LIMIT 200";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute(['residente_id' => $residenteId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+                WHERE p.residente_id = :residente_id";
+        $countSql = "SELECT COUNT(*) as total FROM pagos WHERE residente_id = :residente_id";
+        return $this->paginate($baseSql, $countSql, ['residente_id' => $residenteId], $pagina, $porPagina, 'p.fecha_registro DESC');
     }
 
     /**
@@ -380,17 +375,49 @@ class PagoModel extends BaseModel {
                     $stmtPayInfo->execute(['id' => $pago['id']]);
                     $payInfo = $stmtPayInfo->fetch(PDO::FETCH_ASSOC);
                     if ($payInfo && !empty($payInfo['unidad_id'])) {
-                        $stmtFactura = $db->prepare("
-                            SELECT id, saldo FROM facturas 
-                            WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
-                            ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
-                        ");
-                        $stmtFactura->execute(['uid' => $payInfo['unidad_id']]);
-                        $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
-                        if ($factura) {
-                            $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($payInfo['monto'])), 2);
-                            $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
-                            $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
+                        $montoRestante = round(floatval($payInfo['monto']), 2);
+                        // Cascade: apply payment across invoices until fully absorbed
+                        while ($montoRestante > 0.01) {
+                            $stmtFactura = $db->prepare("
+                                SELECT id, saldo FROM facturas 
+                                WHERE unidad_id = :uid AND saldo > 0 AND estado != 'pagada' AND deleted_at IS NULL
+                                ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
+                            ");
+                            $stmtFactura->execute(['uid' => $payInfo['unidad_id']]);
+                            $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
+                            if (!$factura) break;
+
+                            $saldoFactura = round(floatval($factura['saldo']), 2);
+                            $aplicar = round(min($montoRestante, $saldoFactura), 2);
+                            $nuevoSaldo = round($saldoFactura - $aplicar, 2);
+                            $nuevoEstado = $nuevoSaldo <= 0 ? 'pagada' : 'pendiente';
+                            $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo, estado = :estado WHERE id = :fid");
+                            $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'estado' => $nuevoEstado, 'fid' => $factura['id']]);
+                            $montoRestante = round($montoRestante - $aplicar, 2);
+                        }
+                        // Remainder becomes saldo a favor (negative saldo)
+                        if ($montoRestante > 0.01) {
+                            $stmtFavor = $db->prepare("
+                                INSERT INTO facturas (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado)
+                                VALUES (:num, :uid, :mes, :anio, CURDATE(), CURDATE(), 0, :pagado, :saldo, 'pagada')
+                            ");
+                            $stmtFavor->execute([
+                                'num' => 'ABONO-' . date('Y-m') . '-' . str_pad($payInfo['unidad_id'], 4, '0', STR_PAD_LEFT),
+                                'uid' => $payInfo['unidad_id'],
+                                'mes' => intval(date('n')),
+                                'anio' => intval(date('Y')),
+                                'pagado' => $montoRestante,
+                                'saldo' => -$montoRestante
+                            ]);
+                            // Register in movimientos_cuenta for traceability
+                            $movModel = new MovimientosModel();
+                            $movModel->registrarMovimiento(
+                                intval($payInfo['unidad_id']),
+                                'abono_pago',
+                                $montoRestante,
+                                "Saldo a favor por exceso de pago en lote",
+                                $pago['id']
+                            );
                         }
                     }
 

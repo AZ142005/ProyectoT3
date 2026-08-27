@@ -60,9 +60,11 @@ class ReporteController extends Controller {
         $reportesModel = new ReportesModel();
         $morosos = $reportesModel->obtenerReporteMorosidadCompleto($filtros);
         $kpis = $reportesModel->obtenerKpisMorosidad();
+        $truncado = count($morosos) >= 5000;
 
         $this->render('admin/reportes/imprimir', [
             'morosos' => $morosos,
+            'truncado' => $truncado,
             'kpis'    => $kpis,
             'filtros' => $filtros,
             'title'   => 'Reporte de Morosidad - Impresión Oficial'

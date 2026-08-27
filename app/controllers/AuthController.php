@@ -165,6 +165,16 @@ class AuthController extends Controller {
      * Procesa la validación del código OTP ingresado.
      */
     public function procesar2fa() {
+        // G1-03: Rate limit OTP verification — max 10 attempts per 5 min per user
+        $pending = $_SESSION['2fa_pending'] ?? null;
+        if ($pending && !RateLimiter::attempt('otp_verify_' . $pending['user_id'], 10, 300)) {
+            $segundos = RateLimiter::secondsUntilAvailable('otp_verify_' . $pending['user_id'], 300);
+            $minutos = ceil($segundos / 60);
+            Flash::set('danger', "Demasiados intentos de verificación. Espere {$minutos} minuto(s).");
+            $this->redirect('/auth/verificar-2fa');
+            return;
+        }
+
         if (!isset($_SESSION['2fa_pending'])) {
             $this->redirect('/auth/login');
             return;
@@ -240,6 +250,15 @@ class AuthController extends Controller {
             Flash::set('danger', "Debe esperar {$minutos} minuto(s) antes de solicitar otro código.");
             $this->redirect('/auth/verificar-2fa');
             return;
+        }
+
+        // Proactively clean ALL expired OTP tokens for this user before generating new one
+        try {
+            $db = \App\Core\Database::getConnection();
+            $cleanup = $db->prepare("DELETE FROM auth_otp_tokens WHERE usuario_id = :uid AND expires_at < NOW()");
+            $cleanup->execute(['uid' => $pending['user_id']]);
+        } catch (\Exception $e) {
+            // Non-critical — OTP generation still proceeds
         }
 
         $otpModel = new OtpModel();

@@ -24,7 +24,9 @@ class ComunicadosModel extends BaseModel {
         $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'p', 'br'];
         $allowedString = '<' . implode('><', $allowedTags) . '>';
 
-        // Sanitización: solo permite HTML seguro, elimina <a> para prevenir XSS via javascript: o data:
+        // Sanitización: solo permite HTML seguro (etiquetas de formato básico).
+        // Se excluyen explícitamente los enlaces (tag 'a') para prevenir XSS via javascript: o data: URI.
+
         $contenido = strip_tags($datos['contenido'] ?? '', $allowedString);
 
         $db = $this->db();

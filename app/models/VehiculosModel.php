@@ -46,6 +46,12 @@ class VehiculosModel extends BaseModel {
             throw new Exception("La placa del vehículo no puede estar vacía.");
         }
 
+        // G3-O4: Validate Venezuelan plate format (ABC1234 or ABC123D)
+        // 3 letters + 3-4 digits + optional trailing letter
+        if (!preg_match('/^[A-Z]{3}[0-9]{3,4}[A-Z]?$/', $placaNorm)) {
+            throw new Exception("La placa '{$placaNorm}' no tiene formato válido. Use 3 letras + 3-4 números (ej: ABC1234 o ABC123D).");
+        }
+
         if ($this->existePlaca($placaNorm)) {
             throw new Exception("La placa '{$placaNorm}' ya se encuentra registrada en el sistema.");
         }
@@ -84,7 +90,7 @@ class VehiculosModel extends BaseModel {
                 FROM vehiculos v
                 INNER JOIN personas p ON v.persona_id = p.id
                 LEFT JOIN estacionamientos e ON v.estacionamiento_id = e.id
-                WHERE v.unidad_id = :unidad_id
+                WHERE v.unidad_id = :unidad_id AND (v.deleted_at IS NULL OR v.deleted_at = '')
                 ORDER BY v.fecha_registro DESC";
 
         $stmt = $this->db()->prepare($sql);
@@ -96,7 +102,8 @@ class VehiculosModel extends BaseModel {
      * Elimina un vehículo verificando propiedad de la unidad o permisos administrativos.
      */
     public function eliminarVehiculo(int $id, ?int $unidadId = null): bool {
-        $sql = "DELETE FROM vehiculos WHERE id = :id";
+        // Soft delete: set deleted_at instead of physically removing the record
+        $sql = "UPDATE vehiculos SET deleted_at = NOW() WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '')";
         $params = ['id' => $id];
 
         if ($unidadId !== null) {

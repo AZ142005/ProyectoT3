@@ -127,13 +127,44 @@ class GastoController extends Controller {
         Auth::requireRole('admin');
 
         $id = intval($_POST['id'] ?? 0);
-        if ($id > 0) {
-            $gastosModel = new GastosModel();
-            $gastosModel->eliminarGasto($id);
-            Flash::set('success', 'Gasto común eliminado y soporte físico liberado del servidor.');
+        if ($id <= 0) {
+            Flash::set('danger', 'ID de gasto no válido.');
+            $this->redirect('/admin/gastos');
+            return;
         }
 
-        $this->redirect('/admin/gastos');
+        $gastosModel = new GastosModel();
+        $db = \App\Core\Database::getConnection();
+
+        // Fetch gasto data for existence check, prorrateo check, and redirect context
+        $stmtGasto = $db->prepare("SELECT * FROM gastos_comunes WHERE id = :id AND deleted_at IS NULL");
+        $stmtGasto->execute(['id' => $id]);
+        $gasto = $stmtGasto->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$gasto) {
+            Flash::set('danger', 'Gasto no encontrado o ya fue eliminado.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
+        // 4.1: Check if gasto has been prorated into movimientos_cuenta
+        // Prorated movements reference the gasto by ID in the description field
+        $stmtProrrateo = $db->prepare(""
+            . "SELECT COUNT(*) as cnt FROM movimientos_cuenta "
+            . "WHERE tipo = 'cargo_factura' AND descripcion LIKE :patron"
+        );
+        $stmtProrrateo->execute(['patron' => '%gasto#' . $id . '%']);
+        $tieneProrrateo = intval($stmtProrrateo->fetch(\PDO::FETCH_ASSOC)['cnt'] ?? 0) > 0;
+
+        if ($tieneProrrateo) {
+            Flash::set('danger', 'No se puede eliminar este gasto: ya tiene prorrateo aplicado en el libro mayor de unidades. Contacte al administrador de sistema.');
+            $this->redirect('/admin/gastos?mes=' . intval($gasto['mes']) . '&anio=' . intval($gasto['anio']));
+            return;
+        }
+
+        $gastosModel->eliminarGasto($id);
+        Flash::set('success', 'Gasto común eliminado y soporte físico liberado del servidor.');
+        $this->redirect('/admin/gastos?mes=' . intval($gasto['mes']) . '&anio=' . intval($gasto['anio']));
     }
 
     /**
@@ -152,8 +183,10 @@ class GastoController extends Controller {
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
-        // Cálculo de alícuota equitativa por unidad activa
-        $unidadesActivas = count($unidadesModel->getActivas());
+        // 4.5: Optimized count — direct SQL instead of loading full array
+        $db = \App\Core\Database::getConnection();
+        $stmtCount = $db->query("SELECT COUNT(*) as cnt FROM unidades WHERE estado = 1");
+        $unidadesActivas = intval($stmtCount->fetch(\PDO::FETCH_ASSOC)['cnt'] ?? 0);
         $alicuotaEstimada = ($unidadesActivas > 0) ? round($totalMes / $unidadesActivas, 2) : 0.00;
 
         $this->render('residente/gastos', [

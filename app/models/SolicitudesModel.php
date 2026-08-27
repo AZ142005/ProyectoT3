@@ -30,7 +30,33 @@ class SolicitudesModel extends BaseModel {
             throw new Exception("Debe proporcionar al menos un campo válido para actualizar (teléfono, email, dirección o vehículo).");
         }
 
-        $json = json_encode($payloadValido, JSON_UNESCAPED_UNICODE);
+        // G1-O5: Deduplicate — sort keys before encoding for consistent comparison
+        ksort($payloadValido);
+        $normalizedJson = json_encode($payloadValido, JSON_UNESCAPED_UNICODE);
+
+        $stmtCheck = $this->db()->prepare(
+            "SELECT id, estado, fecha_respuesta FROM solicitudes_cambio_datos
+             WHERE persona_id = :pid AND datos_nuevos_json = :json
+             ORDER BY id DESC LIMIT 1"
+        );
+        $stmtCheck->execute(['pid' => $personaId, 'json' => $normalizedJson]);
+        $existing = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            if ($existing['estado'] === 'pendiente') {
+                throw new Exception("Ya existe una solicitud pendiente con los mismos campos. Espere a que sea procesada.");
+            }
+            // Allow retry after 24 hours if the previous request was rejected
+            if ($existing['estado'] === 'rechazado' && $existing['fecha_respuesta']) {
+                $rechazada = strtotime($existing['fecha_respuesta']);
+                if ((time() - $rechazada) < 86400) {
+                    throw new Exception("Esta solicitud fue rechazada hace menos de 24 horas. Espere antes de reintentar.");
+                }
+            }
+            // 'aprobado' or rejected > 24h → allow new request
+        }
+
+        $json = $normalizedJson;
         if (mb_strlen($json, '8bit') > 2048) {
             throw new Exception("El tamaño de la solicitud excede el límite máximo permitido (2 KB).");
         }

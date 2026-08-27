@@ -43,6 +43,13 @@ class PerfilController extends Controller {
     public function solicitarCambio() {
         Auth::requireRole('residente');
 
+        // G1-05: Max 10 change requests per hour per resident
+        if (!\App\Core\RateLimiter::attempt('solicitud_cambio_' . Auth::id(), 10, 3600)) {
+            Flash::set('danger', 'Ha excedido el límite de 10 solicitudes de cambio por hora.');
+            $this->redirect('/perfil');
+            return;
+        }
+
         $user = Auth::user();
         $personaId = $user['persona_id'] ?? 0;
 

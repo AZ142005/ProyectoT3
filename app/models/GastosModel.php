@@ -140,6 +140,8 @@ class GastosModel extends BaseModel {
      * Obtiene todos los gastos comunes de un período para el visor de residentes.
      */
     public function obtenerGastosPorPeriodo(int $mes, int $anio, int $limit = 200): array {
+        // 4.3: Safety cap — maximum 500 gastos per period
+        $limit = min(max(1, $limit), 500);
         $db = $this->db();
         $sql = "
             SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color

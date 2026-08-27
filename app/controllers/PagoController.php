@@ -22,14 +22,20 @@ class PagoController extends Controller {
         if ($rol === 'residente') {
             $residente = $this->getAuthenticatedResidente();
             $residenteId = Auth::id();
-            
-            $pagos = $pagoModel->obtenerPagosPorResidente($residenteId);
+            $pagina = max(1, intval($_GET['page'] ?? 1));
+            $resultado = $pagoModel->obtenerPagosPorResidente($residenteId, $pagina, 20);
             
             $this->render('pagos/residente/lista', [
-                'residente' => $residente,
-                'pagos'     => $pagos,
-                'showNav'   => true,
-                'title'     => 'Mis Pagos - Portal Residente'
+                'residente'  => $residente,
+                'pagos'      => $resultado['datos'],
+                'paginacion' => [
+                    'total'        => $resultado['total'],
+                    'pagina'       => $resultado['pagina'],
+                    'porPagina'    => $resultado['porPagina'],
+                    'totalPaginas' => $resultado['totalPaginas'],
+                ],
+                'showNav'    => true,
+                'title'      => 'Mis Pagos - Portal Residente'
             ]);
         } else if ($rol === 'admin') {
             $filtros = [
@@ -192,6 +198,11 @@ class PagoController extends Controller {
      */
     public function extraer() {
         Auth::requireLogin();
+        // G2-02: Rate limit OCR endpoint — max 20 requests/min/user
+        if (!\App\Core\RateLimiter::attempt('ocr_' . Auth::id(), 20, 60)) {
+            $this->json(['success' => false, 'error' => 'Demasiadas solicitudes de análisis.'], 429);
+            return;
+        }
         $bancos = ['Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial', 'BNC', 'Bancaribe'];
         
         $this->json([
@@ -220,11 +231,31 @@ class PagoController extends Controller {
             $this->redirect('/pagos');
         }
         
-        // Se añade 'EN REVISIÓN' a los estados permitidos
-        $estadosPermitidos = ['PENDIENTE', 'EN REVISIÓN', 'APROBADO', 'RECHAZADO'];
-        if (!in_array($nuevoEstado, $estadosPermitidos)) {
-            Flash::error("El estado seleccionado no es permitido.");
+        // Máquina de estados: solo transiciones válidas permitidas
+        $transicionesValidas = [
+            'PENDIENTE'   => ['EN REVISIÓN', 'RECHAZADO'],
+            'EN REVISIÓN' => ['APROBADO', 'RECHAZADO'],
+            'RECHAZADO'   => [],  // Terminal
+            'APROBADO'    => [],  // Terminal
+        ];
+
+        $pagoModel = new PagoModel();
+        $pagoActual = $pagoModel->obtenerPagoPorId($pagoId);
+        if (!$pagoActual) {
+            Flash::error("Pago no encontrado.");
             $this->redirect('/pagos');
+        }
+
+        $estadoActual = strtoupper(trim($pagoActual['estado']));
+
+        if (!array_key_exists($estadoActual, $transicionesValidas)) {
+            Flash::error("Estado actual del pago desconocido: '{$estadoActual}'. Contacte al administrador.");
+            $this->redirect('/pagos/detalle/' . $pagoId);
+        }
+
+        if (empty($nuevoEstado) || !in_array($nuevoEstado, $transicionesValidas[$estadoActual], true)) {
+            Flash::error("No se puede cambiar de '{$estadoActual}' a '{$nuevoEstado}'. Transición no válida.");
+            $this->redirect('/pagos/detalle/' . $pagoId);
         }
 
         // Exigir motivo obligatorio si el nuevo estado es RECHAZADO
@@ -232,8 +263,6 @@ class PagoController extends Controller {
             Flash::error("Debe proporcionar un motivo de rechazo claro y detallado (mínimo 5 caracteres).");
             $this->redirect('/pagos/detalle/' . $pagoId);
         }
-        
-        $pagoModel = new PagoModel();
         $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
         
         if ($exito) {

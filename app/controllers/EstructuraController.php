@@ -8,6 +8,22 @@ use App\Models\EdificiosModel;
 use App\Models\UnidadesModel;
 
 class EstructuraController extends Controller {
+
+    /**
+     * Invalida la caché de estructura (llamar después de cualquier mutación).
+     */
+    private function invalidarCacheEstructura(): void {
+        $cacheDir = dirname(__DIR__, 2) . '/storage/cache/estructura';
+        if (is_dir($cacheDir)) {
+            $cacheFiles = glob($cacheDir . '/data_*.json');
+            if ($cacheFiles) {
+                foreach ($cacheFiles as $f) {
+                    if (file_exists($f)) { unlink($f); }
+                }
+            }
+        }
+    }
+
     /**
      * Muestra la vista principal de gestión de estructura (Edificios y Unidades).
      */
@@ -19,8 +35,27 @@ class EstructuraController extends Controller {
 
         $filtroEdificio = intval($_GET['edificio_id'] ?? 0);
 
-        $edificios = $edificiosModel->getAll();
-        $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+        // Cache structure data for 60s to avoid expensive JOINs
+        $cacheDir = dirname(__DIR__, 2) . '/storage/cache/estructura';
+        if (!is_dir($cacheDir)) { mkdir($cacheDir, 0755, true); }
+        $cacheFile = $cacheDir . '/data_' . $filtroEdificio . '.json';
+        $cacheTtl = 60;
+
+        if (file_exists($cacheFile)) {
+            $cached = json_decode(file_get_contents($cacheFile), true);
+            if (is_array($cached) && isset($cached['timestamp']) && (time() - $cached['timestamp']) < $cacheTtl) {
+                $edificios = $cached['edificios'];
+                $unidades = $cached['unidades'];
+            } else {
+                $edificios = $edificiosModel->getAll();
+                $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+                file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
+            }
+        } else {
+            $edificios = $edificiosModel->getAll();
+            $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+            file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
+        }
 
         $this->render('admin/estructura', [
             'edificios'      => $edificios,
@@ -61,6 +96,7 @@ class EstructuraController extends Controller {
                         $res = $edificiosModel->create(['nombre' => $nombre, 'descripcion' => $descripcion]);
                         Flash::success($res ? 'Edificio creado exitosamente.' : 'Error al crear el edificio.');
                     }
+                    $this->invalidarCacheEstructura();
                 }
             }
         }
@@ -92,7 +128,6 @@ class EstructuraController extends Controller {
                 $edificiosModel = new EdificiosModel();
                 $unidadesModel = new UnidadesModel();
 
-                // FK validation: edificio debe existir
                 if (!$edificiosModel->getById($edificio_id)) {
                     Flash::error('El edificio seleccionado no existe.');
                 } elseif ($unidadesModel->numeroExists($numero, $id > 0 ? $id : null)) {
@@ -111,6 +146,7 @@ class EstructuraController extends Controller {
                         $res = $unidadesModel->create($data);
                         Flash::success($res ? 'Unidad registrada exitosamente.' : 'Error al registrar la unidad.');
                     }
+                    $this->invalidarCacheEstructura();
                 }
             }
         }
@@ -129,6 +165,7 @@ class EstructuraController extends Controller {
             $edificiosModel = new EdificiosModel();
             if ($edificiosModel->toggleEstado($id)) {
                 Flash::success('Estado del edificio modificado.');
+                $this->invalidarCacheEstructura();
             } else {
                 Flash::error('Edificio no encontrado.');
             }
@@ -148,6 +185,7 @@ class EstructuraController extends Controller {
             $unidadesModel = new UnidadesModel();
             if ($unidadesModel->toggleEstado($id)) {
                 Flash::success('Estado de la unidad modificado.');
+                $this->invalidarCacheEstructura();
             } else {
                 Flash::error('Unidad no encontrada.');
             }

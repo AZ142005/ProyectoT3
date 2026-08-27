@@ -22,6 +22,12 @@
         <button onclick="window.print()" class="btn btn-primary fw-bold">Imprimir / Guardar PDF</button>
     </div>
 
+    <?php if (!empty($truncado)): ?>
+    <div class="alert alert-warning no-print mb-3" role="alert">
+        ⚠️ <strong>Atención:</strong> Este reporte contiene 5,000 registros (máximo permitido). Algunos morosos podrían no aparecer. Use filtros para reducir el resultado.
+    </div>
+    <?php endif; ?>
+
     <!-- Cabecera Oficial -->
     <div class="text-center mb-4 border-bottom pb-3">
         <h2 class="fw-bold mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h2>

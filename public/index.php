@@ -9,6 +9,7 @@ use App\Controllers\AuthController;
 use App\Controllers\EstructuraController;
 use App\Controllers\PagoController;
 use App\Controllers\ResidenteController;
+use App\Core\Auth;
 use App\Core\Router;
 use App\Core\Security;
 use App\Core\UserRole;
@@ -25,6 +26,21 @@ session_set_cookie_params([
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Session timeout: auto-expire after 30 minutes of inactivity
+if (Auth::check() && isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 1800) {
+    $flash = $_SESSION['flash'] ?? null;
+    session_unset();
+    session_destroy();
+    session_start();
+    $_SESSION['flash'] = $flash ?? [];
+    $_SESSION['flash']['warning'] = 'Su sesión ha expirado por inactividad. Por favor, inicie sesión nuevamente.';
+    header('Location: /auth/login');
+    exit;
+}
+if (Auth::check()) {
+    $_SESSION['last_activity'] = time();
 }
 
 // Generar token CSRF si no existe en la sesión actual

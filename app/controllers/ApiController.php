@@ -29,8 +29,12 @@ class ApiController extends Controller {
             return;
         }
 
-        // Límite de tamaño del body JSON: 10KB
+        // Límite de tamaño del body JSON: 1-10KB
         $rawBody = file_get_contents('php://input');
+        if ($rawBody === false || strlen($rawBody) < 1) {
+            $this->json(['success' => false, 'error' => 'Payload vacío o inválido.'], 400);
+            return;
+        }
         if (strlen($rawBody) > 10240) {
             $this->json(['success' => false, 'error' => 'Payload demasiado grande.'], 413);
             return;

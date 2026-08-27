@@ -40,8 +40,8 @@ class MovimientosModel extends BaseModel {
             );
             $stmtCount->execute(['uid' => $unidadId]);
             $cnt = intval($stmtCount->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
-            if ($cnt >= 20) {
-                throw new Exception("Se ha alcanzado el límite de 20 ajustes por día para esta unidad.");
+            if ($cnt >= 10) {
+                throw new Exception("Se ha alcanzado el límite de 10 ajustes por día para esta unidad.");
             }
         }
 

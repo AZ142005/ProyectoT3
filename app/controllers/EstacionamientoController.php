@@ -176,6 +176,13 @@ class EstacionamientoController extends Controller {
     public function guardarVehiculo() {
         Auth::requireRole('admin');
 
+        // G3-03: Rate limit vehicle creation — max 50 per hour per admin
+        if (!\App\Core\RateLimiter::attempt('vehiculo_' . Auth::id(), 50, 3600)) {
+            Flash::error('Ha excedido el límite de 50 vehículos por hora.');
+            $this->redirect('/admin/estacionamientos');
+            return;
+        }
+
         $vehiculosModel = new VehiculosModel();
         $unidadesModel = new UnidadesModel();
 

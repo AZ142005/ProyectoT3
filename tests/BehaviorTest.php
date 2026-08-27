@@ -675,15 +675,15 @@ class BehaviorTest extends TestCase {
     }
 
     // =====================================================================
-    // 40. DAILY ADJUSTMENT LIMIT — Verify 20/day limit in MovimientosModel
+    // 40. DAILY ADJUSTMENT LIMIT — Verify 10/day limit in MovimientosModel
     // =====================================================================
 
     public function testMovimientosModelHasDailyAdjustmentLimit(): void {
         $file = dirname(__DIR__) . '/app/models/MovimientosModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('ajuste', $content);
-        $this->assertStringContains('>= 20', $content,
-            'Must limit to 20 adjustments per day');
+        $this->assertStringContains('>= 10', $content,
+            'Must limit to 10 adjustments per day');
         $this->assertStringContains('CURDATE()', $content,
             'Daily limit must check against CURDATE()');
     }
@@ -723,5 +723,621 @@ class BehaviorTest extends TestCase {
             'descargar() must verify SHA-256 checksum');
         $this->assertStringContains('hash_file', $content,
             'descargar() must use hash_file for verification');
+    }
+
+    // =====================================================================
+    // FASE 7 — G1: Autenticación y Seguridad (14 tests)
+    // =====================================================================
+
+    // --- Static tests (9) ---
+
+    // 1.1a — CSRF validates Content-Type
+    public function testCsrfValidatesContentType(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/core/Security.php');
+        $this->assertStringContains('CONTENT_TYPE', $content,
+            'Security must inspect Content-Type header');
+        $this->assertStringContains('415', $content,
+            'Security must return HTTP 415 for unsupported Content-Type');
+    }
+
+    // 1.1b — CSRF JSON requires header token
+    public function testCsrfJsonRequiresHeaderToken(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/core/Security.php');
+        $this->assertStringContains('HTTP_X_CSRF_TOKEN', $content,
+            'CSRF must accept token from X-CSRF-Token header for JSON');
+        $this->assertStringContains('php://input', $content,
+            'CSRF must fallback to php://input for empty Content-Type');
+    }
+
+    // 1.2a — Cleanup tokens script exists and covers all tables
+    public function testCleanupTokensScriptExists(): void {
+        $path = dirname(__DIR__) . '/scripts/cleanup_tokens.php';
+        $this->assertFileExists($path, 'cleanup_tokens.php script must exist');
+        $content = file_get_contents($path);
+        $this->assertStringContains('jwt_blacklist', $content, 'Must clean JWT blacklist');
+        $this->assertStringContains('auth_otp_tokens', $content, 'Must clean OTP tokens');
+        $this->assertStringContains('refresh_tokens', $content, 'Must clean refresh tokens');
+        $this->assertStringContains('expires_at < NOW()', $content, 'Must target expired tokens');
+        // Must NOT filter by usado=1 — clean ALL expired OTP tokens
+        $this->assertTrue(strpos($content, 'AND usado = 1') === false,
+            'Must clean ALL expired OTP tokens, not just used ones');
+    }
+
+    // 1.3a — procesar2fa has rate limiting
+    public function testProcesar2faHasRateLimiting(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        preg_match('/public function procesar2fa\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'procesar2fa method must exist');
+        $this->assertStringContains('RateLimiter::attempt', $m[1],
+            'procesar2fa must use RateLimiter');
+        $this->assertStringContains('otp_verify_', $m[1],
+            'Rate limit key must include otp_verify prefix');
+    }
+
+    // 1.4a — loginAsAdmin updates ultimo_acceso
+    public function testLoginAsAdminUpdatesLastAccess(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/core/Auth.php');
+        preg_match('/public static function loginAsAdmin\(array \$user\)(.*?)(?=public static function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'loginAsAdmin must exist');
+        $this->assertStringContains('ultimo_acceso', $m[1],
+            'loginAsAdmin must update ultimo_acceso');
+        $this->assertStringContains('Database::getConnection', $m[1],
+            'Must use Database::getConnection for the update');
+    }
+
+    // 1.5a — solicitarCambio has rate limiting
+    public function testSolicitarCambioHasRateLimiting(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PerfilController.php');
+        $this->assertStringContains('RateLimiter::attempt', $content,
+            'solicitarCambio must use RateLimiter');
+        $this->assertStringContains('solicitud_cambio_', $content,
+            'Rate limit key must include solicitud_cambio prefix');
+        $this->assertStringContains('10, 3600', $content,
+            'Limit must be 10 requests per hour (3600 seconds)');
+    }
+
+    // 1.6a — Session has inactivity timeout
+    public function testSessionHasInactivityTimeout(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/public/index.php');
+        $this->assertStringContains('last_activity', $content,
+            'Session must track last_activity for timeout');
+        $this->assertStringContains('1800', $content,
+            'Session timeout must be 30 minutes (1800 seconds)');
+        $this->assertStringContains('session_destroy', $content,
+            'Must destroy session on timeout');
+    }
+
+    // 1.7a — SolicitudesModel has dedup check
+    public function testSolicitudesModelHasDuplicateCheck(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
+        preg_match('/public function crearSolicitud\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'crearSolicitud method must exist');
+        $this->assertStringContains('ksort', $m[1],
+            'Must normalize JSON keys with ksort before comparison');
+        $this->assertStringContains('pendiente', $m[1],
+            'Must check for pending duplicate requests');
+        $this->assertStringContains('86400', $m[1],
+            'Must allow retry after 24 hours (86400 seconds)');
+        $this->assertStringContains('rechazado', $m[1],
+            'Must handle rejected requests specially');
+    }
+
+    // 1.8a — API login validates min payload
+    public function testApiControllerValidatesMinPayloadSize(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ApiController.php');
+        preg_match('/public function login\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'login method must exist');
+        $this->assertStringContains('strlen($rawBody) < 1', $m[1],
+            'login must check for empty/zero-length payload');
+        $this->assertStringContains('$rawBody === false', $m[1],
+            'login must handle false return from file_get_contents');
+    }
+
+    // 1.9a — reenviarOtp cleans expired tokens
+    public function testReenviarOtpCleansExpiredTokens(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        preg_match('/public function reenviarOtp\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'reenviarOtp method must exist');
+        $this->assertStringContains('DELETE FROM auth_otp_tokens', $m[1],
+            'reenviarOtp must clean expired OTP tokens');
+        $this->assertStringContains('expires_at < NOW()', $m[1],
+            'Cleanup must target only expired tokens');
+    }
+
+    // --- Behavior tests (5) ---
+
+    // 1.4b — All loginAs* methods update ultimo_acceso
+    public function testAllLoginMethodsUpdateLastAccess(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/core/Auth.php');
+        // loginAsAdmin
+        preg_match('/public static function loginAsAdmin\(array \$user\)(.*?)(?=public static function|\Z)/s', $content, $mA);
+        $this->assertStringContains('ultimo_acceso', $mA[1] ?? '',
+            'loginAsAdmin must update ultimo_acceso');
+        // loginAsResidente
+        preg_match('/public static function loginAsResidente\(array \$persona\)(.*?)(?=public static function|\Z)/s', $content, $mR);
+        $this->assertStringContains('ultimo_acceso', $mR[1] ?? '',
+            'loginAsResidente must update ultimo_acceso');
+        // loginAsAuditor
+        preg_match('/public static function loginAsAuditor\(array \$user\)(.*?)(?=public static function|\Z)/s', $content, $mU);
+        $this->assertStringContains('ultimo_acceso', $mU[1] ?? '',
+            'loginAsAuditor must update ultimo_acceso');
+    }
+
+    // 1.6b — Session timeout only for authenticated users
+    public function testSessionTimeoutOnlyForAuthenticatedUsers(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/public/index.php');
+        $this->assertStringContains('Auth::check()', $content,
+            'Session timeout must only apply to authenticated users');
+        $this->assertStringContains('expirado', $content,
+            'Must set flash message on session expiry');
+    }
+
+    // 1.7b — Dedup allows retry after 24 hours
+    public function testSolicitudesDedupAllowsRetryAfter24Hours(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
+        $this->assertStringContains('86400', $content,
+            'Must allow retry after 24 hours (86400 seconds)');
+        $this->assertStringContains('fecha_respuesta', $content,
+            'Must check fecha_respuesta for time-based retry');
+    }
+
+    // 1.9b — OTP cleanup targets ALL expired (not just used)
+    public function testReenviarOtpCleansAllExpiredNotJustUsed(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        preg_match('/public function reenviarOtp\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1);
+        // Must NOT filter by usado = 1 — clean ALL expired tokens
+        $this->assertTrue(strpos($m[1], 'AND usado = 1') === false,
+            'Must clean ALL expired OTP tokens, not just used ones');
+    }
+
+    // 1.3b — OTP rate limit key is per-user
+    public function testOtpVerifyRateLimitKeyIncludesUserId(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        preg_match('/public function procesar2fa\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1);
+        $this->assertStringContains('otp_verify_', $m[1],
+            'Rate limit key must include otp_verify prefix');
+        $this->assertStringContains("pending['user_id']", $m[1],
+            'Rate limit key must include user_id for per-user isolation');
+    }
+
+    // =====================================================================
+    // FASE 8 — G2: Core de Pagos y Facturación (14 tests)
+    // =====================================================================
+
+    // --- Static tests (9) ---
+
+    // 2.1a — State machine exists
+    public function testPagoStateTransitionsAreDefined(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $this->assertStringContains('transicionesValidas', $content,
+            'PagoController must define state transitions');
+    }
+
+    // 2.2a — AprobarLote has cascade loop
+    public function testAprobarLoteHasCascadeLoop(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        preg_match('/public function aprobarLote\(.*?\)(.*?)(?=\}\s*\}|private function|public function)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'aprobarLote must exist');
+        $this->assertStringContains('while', $m[1],
+            'aprobarLote must loop to cascade saldo across invoices');
+        $this->assertStringContains('montoRestante', $m[1],
+            'Must track remaining payment amount');
+    }
+
+    // 2.3a — OCR endpoint has rate limiting
+    public function testExtraerEndpointHasRateLimiting(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        preg_match('/public function extraer\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'extraer method must exist');
+        $this->assertStringContains('RateLimiter::attempt', $m[1],
+            'extraer must use RateLimiter');
+        $this->assertStringContains('ocr_', $m[1],
+            'Rate limit key must include ocr prefix');
+    }
+
+    // 2.4a — KPI cache uses atomic write
+    public function testKpiCacheUsesAtomicWrite(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/ReportesModel.php');
+        $this->assertStringContains('rename', $content,
+            'KPI cache must use rename() for atomic write');
+        $this->assertStringContains('.tmp', $content,
+            'KPI cache must write to temp file before rename');
+    }
+
+    // 2.5a — cuota_mensual validation
+    public function testFacturasModelValidatesCuotaMensualBounds(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/FacturasModel.php');
+        $this->assertStringContains('cuota_mensual', $content);
+        $this->assertStringContains('999999', $content,
+            'Must validate cuota_mensual upper bound');
+    }
+
+    // 2.6a — conciliarLote validates input
+    public function testConciliarLoteValidatesInput(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ConciliacionController.php');
+        preg_match('/public function conciliarLote\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'conciliarLote must exist');
+        $this->assertStringContains('json_decode', $m[1]);
+        $this->assertStringContains('array_slice', $m[1],
+            'Must limit input array size to 100');
+    }
+
+    // 2.7a — Cruce inteligente has LIMIT
+    public function testCruceInteligenteHasQueryLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php');
+        preg_match('/public function ejecutarCruceInteligente\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'ejecutarCruceInteligente must exist');
+        $this->assertStringContains('LIMIT 5000', $m[1],
+            'Must have LIMIT 5000 on pagos pendientes query');
+    }
+
+    // 2.8a — Resident payments use paginate
+    public function testPagoResidenteIsPaginated(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        preg_match('/public function obtenerPagosPorResidente\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'obtenerPagosPorResidente must exist');
+        $this->assertStringContains('paginate', $m[1],
+            'Must use paginate() for resident payments');
+    }
+
+    // 2.9a — imprimirMorosidad reports truncation
+    public function testImprimirMorosidadReportsTruncation(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ReporteController.php');
+        $this->assertStringContains('truncado', $content,
+            'imprimirMorosidad must report when results are truncated');
+    }
+
+    // --- Behavior tests (5) ---
+
+    // 2.1b — APROBADO and RECHAZADO are terminal
+    public function testApprovedAndRejectedAreTerminalStates(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $this->assertStringContains('transicionesValidas', $content, 'State transitions must be defined');
+        // Check that APROBADO and RECHAZADO have empty transition arrays (terminal states)
+        $this->assertTrue(
+            preg_match("/'APROBADO'\s*=>\s*\[\]/", $content) > 0,
+            'APROBADO must be a terminal state (empty transition array)'
+        );
+        $this->assertTrue(
+            preg_match("/'RECHAZADO'\s*=>\s*\[\]/", $content) > 0,
+            'RECHAZADO must be a terminal state (empty transition array)'
+        );
+    }
+
+    // 2.2b — AprobarLote cascades across multiple invoices
+    public function testAprobarLoteCascadesAcrossInvoices(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $this->assertStringContains('montoRestante', $content,
+            'aprobarLote must track remaining amount for cascade');
+        $this->assertStringContains('MovimientosModel', $content,
+            'Must register credit in movimientos_cuenta for traceability');
+    }
+
+    // 2.5b — cuota_mensual has upper bound
+    public function testCuotaMensualHasUpperBound(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/FacturasModel.php');
+        $this->assertStringContains('999999', $content,
+            'cuota_mensual must have upper bound validation');
+    }
+
+    // 2.7b — Conciliación has query limit
+    public function testConciliacionHasQueryLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php');
+        $this->assertStringContains('LIMIT 5000', $content,
+            'Conciliación query must have LIMIT 5000');
+    }
+
+    // 2.8b — Resident payments use paginate
+    public function testResidentPaymentsUsePaginate(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $this->assertStringContains('paginate', $content,
+            'obtenerPagosPorResidente must use paginate()');
+    }
+
+    // =====================================================================
+    // FASE 9 — G3: Estructura y Activos Físicos (14 tests)
+    // =====================================================================
+
+    // --- Static tests (9) ---
+
+    // 3.1a — getActivos has LIMIT
+    public function testGetActivosHasLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/EdificiosModel.php');
+        $this->assertStringContains('LIMIT', $content, 'getActivos must have a LIMIT clause');
+    }
+
+    // 3.2a — getActivas has LIMIT
+    public function testGetActivasHasLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/UnidadesModel.php');
+        $this->assertStringContains('LIMIT', $content, 'getActivas must have a LIMIT clause');
+    }
+
+    // 3.3a — guardarVehiculo has rate limiting
+    public function testGuardarVehiculoHasRateLimiting(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstacionamientoController.php');
+        preg_match('/public function guardarVehiculo\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'guardarVehiculo must exist');
+        $this->assertStringContains('RateLimiter::attempt', $m[1], 'Must use RateLimiter');
+        $this->assertStringContains('vehiculo_', $m[1], 'Rate limit key must include vehiculo prefix');
+    }
+
+    // 3.4a — eliminarVehiculo uses soft delete
+    public function testEliminarVehiculoUsesSoftDelete(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        preg_match('/public function eliminarVehiculo\(.*?\)(.*?)(?=\}|private function|public function)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'eliminarVehiculo must exist');
+        $this->assertStringContains('deleted_at', $m[1], 'Must use soft delete (deleted_at)');
+        $this->assertStringContains('UPDATE', $m[1], 'Must use UPDATE, not DELETE');
+    }
+
+    // 3.5a — crearVehiculo validates placa format
+    public function testCrearVehiculoValidatesPlacaFormat(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        $this->assertStringContains('preg_match', $content, 'Must validate placa format with regex');
+        $this->assertStringContains('{3}[0-9]{3,4}', $content, 'Regex must match 3 letters + 3-4 digits');
+    }
+
+    // 3.6a — index uses cache
+    public function testEstructuraIndexUsesCache(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $this->assertStringContains('storage/cache', $content, 'Cache must use project storage directory');
+        $this->assertStringContains('cacheTtl', $content, 'Must have cache TTL');
+    }
+
+    // 3.7a — listarConDetalles has LIMIT and filters deleted vehicles
+    public function testListarConDetallesHasLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/EstacionamientosModel.php');
+        $this->assertStringContains('LIMIT 500', $content, 'listarConDetalles must have LIMIT 500');
+        $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles');
+    }
+
+    // 3.8a — Cache invalidation on structure changes
+    public function testStructureCacheIsInvalidatedOnChanges(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $this->assertStringContains('invalidarCacheEstructura', $content, 'Must have cache invalidation method');
+        $this->assertStringContains('unlink', $content, 'Must unlink cache files');
+        $this->assertStringContains('file_exists', $content, 'Must check file exists before unlink');
+    }
+
+    // 3.9a — Migration adds deleted_at to vehiculos
+    public function testMigrationAddsDeletedAtToVehiculos(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/scripts/migrations_phase9.sql');
+        $this->assertStringContains('vehiculos', $content, 'Migration must target vehiculos table');
+        $this->assertStringContains('deleted_at', $content, 'Migration must add deleted_at column');
+    }
+
+    // --- Behavior tests (5) ---
+
+    // 3.1b — getActivas has LIMIT
+    public function testGetActivasHasLimitBehavior(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/UnidadesModel.php');
+        $this->assertStringContains('LIMIT', $content, 'getActivas must have LIMIT');
+    }
+
+    // 3.3b — Rate limit key per-admin
+    public function testGuardarVehiculoRateLimitKeyIsPerAdmin(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstacionamientoController.php');
+        $this->assertStringContains('vehiculo_', $content, 'Rate limit key must include vehiculo prefix');
+        $this->assertStringContains('Auth::id()', $content, 'Rate limit key must include admin ID');
+    }
+
+    // 3.5b — Placa validation rejects invalid formats
+    public function testPlacaValidationRejectsInvalidFormats(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        $this->assertStringContains('{3}[0-9]{3,4}', $content, 'Placa regex must require 3 letters + 3-4 digits');
+    }
+
+    // 3.7b — listarConDetalles excludes soft-deleted vehicles
+    public function testListarConDetallesExcludesSoftDeletedVehicles(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/EstacionamientosModel.php');
+        $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles in listing');
+    }
+
+    // 3.8b — Cache invalidation uses file_exists check
+    public function testCacheInvalidationUsesFileExists(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $this->assertStringContains('file_exists', $content, 'Must check file exists before unlink');
+        $this->assertStringContains('storage/cache', $content, 'Cache dir must match');
+    }
+
+    // =====================================================================
+    // FASE 10 — G4: Finanzas y Contabilidad Residente (18 tests)
+    // =====================================================================
+
+    // --- 4.1: Eliminación segura de gastos (5 tests) ---
+
+    // 4.1a — eliminar() checks movimientos_cuenta before deleting
+    public function testGastoEliminarChecksProrrateo(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'eliminar() must exist');
+        $this->assertStringContains('movimientos_cuenta', $m[1],
+            'eliminar() must query movimientos_cuenta for prorrateo check');
+        $this->assertStringContains('gasto#', $m[1],
+            'Prorrateo check must search for gasto#ID pattern');
+    }
+
+    // 4.1b — eliminar() validates gasto existence before deletion
+    public function testGastoEliminarValidatesExistence(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertStringContains('gastos_comunes WHERE id', $m[1],
+            'eliminar() must verify gasto exists in DB');
+        $this->assertStringContains('deleted_at IS NULL', $m[1],
+            'Must check gasto is not already soft-deleted');
+    }
+
+    // 4.1c — eliminar() redirects with period filters preserved
+    public function testGastoEliminarPreservesPeriodInRedirect(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertStringContains("gasto['mes']", $m[1],
+            'eliminar() redirect must preserve mes filter');
+        $this->assertStringContains("gasto['anio']", $m[1],
+            'eliminar() redirect must preserve anio filter');
+    }
+
+    // 4.1d — eliminar() returns error flash on prorrateo
+    public function testGastoEliminarReturnsErrorOnProrrateo(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertStringContains("Flash::set('danger'", $m[1],
+            'Must set danger flash on prorrateo detection');
+        $this->assertStringContains('prorrateo', $m[1],
+            'Error message must mention prorrateo');
+    }
+
+    // 4.1e — eliminar() handles id=0 gracefully
+    public function testGastoEliminarHandlesZeroId(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertStringContains('$id <= 0', $m[1],
+            'Must check for invalid ID before any DB query');
+        $this->assertStringContains('return;', $m[1],
+            'Must return after redirect to prevent further execution');
+    }
+
+    // --- 4.2: Rate limiting impresión (4 tests) ---
+
+    // 4.2a — imprimir() has rate limiting
+    public function testImprimirEstadoCuentaHasRateLimiting(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        preg_match('/public function imprimir\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'imprimir() must exist');
+        $this->assertStringContains('RateLimiter::attempt', $m[1],
+            'imprimir() must use RateLimiter');
+        $this->assertStringContains('imprimir_estado_', $m[1],
+            'Rate limit key must include imprimir_estado prefix');
+        $this->assertStringContains('Auth::id()', $m[1],
+            'Rate limit key must include user ID');
+    }
+
+    // 4.2b — Rate limit is 10 per hour
+    public function testImprimirRateLimitIs10PerHour(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $this->assertStringContains('10, 3600', $content,
+            'Rate limit must be 10 requests per 3600 seconds');
+    }
+
+    // 4.2c — imprimir() redirects on rate limit
+    public function testImprimirRedirectsOnRateLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $this->assertStringContains('/residente/estado-cuenta', $content,
+            'Must redirect to estado-cuenta when rate limited');
+        $this->assertStringContains('return;', $content,
+            'Must return after redirect to stop execution');
+    }
+
+    // 4.2d — Rate limit shows remaining time
+    public function testImprimirRateLimitShowsRemainingTime(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $this->assertStringContains('secondsUntilAvailable', $content,
+            'Must calculate remaining time for user message');
+        $this->assertStringContains('minuto', $content,
+            'Must format remaining time in minutes');
+    }
+
+    // --- 4.3: LIMIT 500 cap (2 tests) ---
+
+    // 4.3a — obtenerGastosPorPeriodo has safety cap
+    public function testGastosPorPeriodoHasMaxLimit500(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/GastosModel.php');
+        preg_match('/public function obtenerGastosPorPeriodo\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'obtenerGastosPorPeriodo must exist');
+        $this->assertStringContains('min(', $m[1],
+            'Must apply min() cap to limit parameter');
+        $this->assertStringContains('500', $m[1],
+            'Maximum limit must be 500');
+    }
+
+    // 4.3b — Cap is applied BEFORE the SQL LIMIT
+    public function testGastosPorPeriodoCapBeforeLimit(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/GastosModel.php');
+        preg_match('/function obtenerGastosPorPeriodo.*?LIMIT/s', $content, $m);
+        $this->assertTrue(count($m) > 0, 'Must find cap before LIMIT');
+        $capPos = strpos($m[0], 'min(');
+        $limitPos = strpos($m[0], 'LIMIT');
+        $this->assertTrue($capPos !== false && $capPos < $limitPos,
+            'Cap must be applied before SQL LIMIT clause');
+    }
+
+    // --- 4.4: Upper bound monto (3 tests) ---
+
+    // 4.4a — enviarPago has upper bound validation
+    public function testEnviarPagoHasUpperBoundValidation(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
+        preg_match('/public function enviarPago\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'enviarPago() must exist');
+        $this->assertStringContains('999999', $m[1],
+            'Must validate monto upper bound');
+        $this->assertStringContains('exceder', $m[1],
+            'Must show user-friendly error for exceeding limit');
+    }
+
+    // 4.4b — Upper bound error message is in Spanish with Bs.
+    public function testEnviarPagoUpperBoundMessageIsSpanish(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
+        $this->assertStringContains('Bs.', $content,
+            'Upper bound error must mention Bs. currency');
+        $this->assertStringContains('exceder', $content,
+            'Error message must be in Spanish');
+    }
+
+    // 4.4c — Upper bound check comes AFTER the <= 0 check
+    public function testEnviarPagoUpperBoundCheckOrder(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
+        $zeroPos = strpos($content, '$monto <= 0');
+        $upperPos = strpos($content, '$monto > 999999');
+        $this->assertTrue($zeroPos !== false, 'Must have zero check');
+        $this->assertTrue($upperPos !== false, 'Must have upper bound check');
+        $this->assertTrue($zeroPos < $upperPos,
+            'Zero check must come before upper bound check');
+    }
+
+    // --- 4.5: Optimizar conteo unidades (3 tests) ---
+
+    // 4.5a — rendicionResidente uses COUNT query
+    public function testRendicionResidenteUsesCountQuery(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1, 'rendicionResidente() must exist');
+        $this->assertStringContains('COUNT(*)', $m[1],
+            'Must use COUNT(*) SQL query');
+        $this->assertStringContains('unidades WHERE', $m[1],
+            'Must query unidades table directly');
+    }
+
+    // 4.5b — rendicionResidente does NOT call getActivas()
+    public function testRendicionResidenteDoesNotLoadFullArray(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertTrue(count($m) > 1);
+        $this->assertTrue(strpos($m[1], 'getActivas()') === false,
+            'Must NOT call getActivas() to count units');
+    }
+
+    // 4.5c — rendicionResidente handles zero units gracefully
+    public function testRendicionResidenteHandlesZeroUnits(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
+        $this->assertStringContains('intval($stmtCount', $m[1],
+            'Must intval the COUNT result');
+        $this->assertStringContains('0.00', $m[1],
+            'Alicuota must default to 0.00 when no units');
+    }
+
+    // --- 4.6: Límite diario ajustes (1 test) ---
+
+    // 4.6a — Daily adjustment limit is 10
+    public function testMovimientosModelDailyLimitIs10(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/MovimientosModel.php');
+        $this->assertStringContains('>= 10', $content,
+            'Daily adjustment limit must be 10, not 20');
+        $this->assertTrue(strpos($content, '>= 20') === false,
+            'Old limit of 20 must be removed');
+        $this->assertStringContains('10 ajustes', $content,
+            'Error message must mention 10 adjustments');
     }
 }

@@ -4,7 +4,7 @@ namespace App\Models;
 class EdificiosModel extends BaseModel {
     protected string $table = 'edificios';
 
-    public function getActivos() {
+    public function getActivos(int $limite = 500) {
         $sql = "
             SELECT e.*, COUNT(u.id) as total_unidades
             FROM edificios e
@@ -12,6 +12,7 @@ class EdificiosModel extends BaseModel {
             WHERE e.estado = 1
             GROUP BY e.id
             ORDER BY e.nombre ASC
+            LIMIT {$limite}
         ";
         return $this->db()->query($sql)->fetchAll();
     }

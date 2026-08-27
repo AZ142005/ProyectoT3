@@ -261,8 +261,12 @@ class ConciliacionBancariaService {
             LEFT JOIN personas per ON u.propietario_id = per.id
             WHERE p.estado IN ('PENDIENTE', 'EN REVISIÓN')
             ORDER BY p.fecha_pago ASC
+            LIMIT 5000
         ";
         $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
+        if (count($pagosPendientes) >= 5000) {
+            error_log("[CONCILIACION] WARNING: 5000+ pagos pendientes — resultados truncados.");
+        }
 
         // Fase B.3: Indexar pagos por referencia normalizada para búsqueda O(1)
         $indexByRef = [];

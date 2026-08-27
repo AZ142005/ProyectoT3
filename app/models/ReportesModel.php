@@ -141,11 +141,13 @@ class ReportesModel extends BaseModel {
             'tasa_morosidad'   => $tasaMorosidad
         ];
 
-        // Guardar caché en archivo
-        file_put_contents($cacheFile, json_encode([
+        // Atomic write: temp file → rename prevents race condition
+        $tempFile = $cacheFile . '.' . getmypid() . '.tmp';
+        file_put_contents($tempFile, json_encode([
             'data'      => $kpis,
             'timestamp' => time()
-        ]), LOCK_EX);
+        ]));
+        rename($tempFile, $cacheFile);
 
         return $kpis;
     }

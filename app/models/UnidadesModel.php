@@ -4,13 +4,14 @@ namespace App\Models;
 class UnidadesModel extends BaseModel {
     protected string $table = 'unidades';
 
-    public function getActivas() {
+    public function getActivas(int $limite = 500) {
         $sql = "
             SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id, e.nombre as edificio_nombre
             FROM unidades u
             LEFT JOIN edificios e ON u.edificio_id = e.id
             WHERE u.estado = 1
             ORDER BY e.nombre ASC, u.numero ASC
+            LIMIT {$limite}
         ";
         return $this->db()->query($sql)->fetchAll();
     }

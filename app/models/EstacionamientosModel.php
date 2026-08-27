@@ -34,10 +34,11 @@ class EstacionamientosModel extends BaseModel {
                 FROM estacionamientos e
                 LEFT JOIN edificios ed ON e.edificio_id = ed.id
                 LEFT JOIN unidades u ON e.unidad_id = u.id
-                LEFT JOIN vehiculos v ON v.estacionamiento_id = e.id";
+                LEFT JOIN vehiculos v ON v.estacionamiento_id = e.id
+                       AND (v.deleted_at IS NULL OR v.deleted_at = '')";
         
         $sql = $this->baseQuery($sql, $incluirEliminados);
-        $sql .= " ORDER BY e.numero ASC";
+        $sql .= " ORDER BY e.numero ASC LIMIT 500";
 
         $stmt = $this->db()->prepare($sql);
         $stmt->execute();

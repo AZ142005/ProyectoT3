@@ -135,11 +135,21 @@ class ConciliacionController extends Controller {
     public function conciliarLote() {
         Auth::requireRole('admin');
 
-        $itemsJson = $_POST['items_json'] ?? '';
+        $itemsJson = trim($_POST['items_json'] ?? '');
+        if (empty($itemsJson)) {
+            Flash::set('danger', 'No se proporcionaron datos de conciliación.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
         $items = json_decode($itemsJson, true);
-        $adminId = Auth::id() ?? 1;
-
         if (!is_array($items) || empty($items)) {
+            Flash::set('danger', 'Formato de datos inválido. Intente de nuevo.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+        // Limit array size to 100
+        $items = array_slice($items, 0, 100);
+        $adminId = Auth::id() ?? 1;
             Flash::set('danger', 'No se seleccionaron elementos válidos para conciliar.');
             $this->redirect('/admin/conciliacion');
             return;
