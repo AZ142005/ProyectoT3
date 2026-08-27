@@ -249,11 +249,12 @@ class ConciliacionBancariaService {
     public function ejecutarCruceInteligente(array $movimientosExtracto): array {
         $db = Database::getConnection();
 
-        // Obtener todos los pagos pendientes o en revisión con datos del residente
         $sqlPagos = "
-            SELECT p.id, p.unidad_id, p.monto, p.fecha_pago, p.referencia, p.banco_origen, p.banco_destino, p.estado,
+            SELECT p.id, p.unidad_id, p.monto, p.fecha_pago, p.referencia,
+                   p.banco_pagador AS banco_origen, p.banco_receptor AS banco_destino,
+                   p.banco_pagador, p.banco_receptor, p.estado,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
-                   per.email AS residente_email, per.telefono AS residente_telefono,
+                   per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre
             FROM pagos p
             LEFT JOIN unidades u ON p.unidad_id = u.id
