@@ -23,9 +23,8 @@ $isAuditor = ($role === 'auditor');
                 <h1 class="text-xl font-bold text-on-surface">Mi Perfil de Usuario</h1>
             </div>
             <div class="flex items-center gap-3">
-                <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">logout</span>
-                    <span class="hidden sm:inline">Salir</span>
+                <a href="<?= $isAuditor ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
                 </a>
             </div>
         </header>

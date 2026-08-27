@@ -68,7 +68,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
                 <small class="text-[11px] text-slate-400 block truncate"><?= e(ucfirst($_au['role'] ?? 'admin')) ?></small>
             </div>
         </a>
-        <a href="/admin/logout" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Cerrar Sesión">
+        <a href="/admin/logout" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center" title="Cerrar Sesión">
             <span class="material-symbols-outlined text-[18px]">logout</span>
         </a>
     </div>

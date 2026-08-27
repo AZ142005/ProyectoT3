@@ -21,9 +21,8 @@
                     <span class="hidden sm:inline">Agregar Unidad</span>
                 </button>
                 <div class="w-px h-6 bg-outline-variant mx-1"></div>
-                <a href="/admin/logout" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2.5 rounded-lg border border-red-200 transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">logout</span>
-                    <span class="hidden sm:inline">Cerrar Sesión</span>
+                <a href="/admin/logout" onclick="return confirm('¿Está seguro de que desea cerrar sesión?');" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
                 </a>
             </div>
         </header>
