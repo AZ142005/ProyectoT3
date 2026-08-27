@@ -79,86 +79,138 @@ $isAuditor = ($role === 'auditor');
             </div>
         </div>
 
-        <!-- Formulario de Solicitud de Cambio -->
-        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm md:col-span-2">
-            <h3 class="font-bold text-on-surface text-base mb-1 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">edit_note</span>
-                Solicitar Actualización de Datos
-            </h3>
-            <p class="text-xs text-on-surface-variant mb-6">Los cambios serán revisados y aprobados por la administración antes de ser aplicados.</p>
+        <?php if ($isAdmin): ?>
+            <!-- Formulario para Administrador: Actualización Directa -->
+            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm md:col-span-2">
+                <h3 class="font-bold text-on-surface text-base mb-1 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">manage_accounts</span>
+                    Actualizar Datos del Administrador
+                </h3>
+                <p class="text-xs text-on-surface-variant mb-6">Actualice su nombre institucional, correo electrónico o contraseña de acceso.</p>
 
-            <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
-                <?= csrf_field() ?>
+                <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
+                    <?= csrf_field() ?>
 
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Teléfono Móvil</label>
-                    <input type="text" name="telefono" value="<?= e($persona['telefono'] ?? '') ?>" placeholder="Ej: 0412-1234567"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nombre Completo</label>
+                        <input type="text" name="nombre" value="<?= e($user['name'] ?? '') ?>" required
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Correo Electrónico</label>
+                        <input type="email" name="email" value="<?= e($user['email'] ?? '') ?>" required
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nueva Contraseña (Opcional)</label>
+                        <input type="password" name="password" placeholder="Dejar en blanco para conservar la actual"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="flex justify-end mt-2">
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px]">save</span>
+                            <span>Guardar Cambios</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        <?php elseif ($isAuditor): ?>
+            <!-- Información para Auditor -->
+            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm md:col-span-2 flex flex-col justify-center">
+                <div class="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-2">policy</span>
+                    <h4 class="font-bold text-dark text-base mb-1">Perfil de Auditoría y Fiscalización</h4>
+                    <p class="text-xs text-slate-500 max-w-md mx-auto">Este perfil cuenta con facultades de supervisión y solo lectura inmutable sobre libros y transacciones.</p>
                 </div>
-
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Correo Electrónico</label>
-                    <input type="email" name="email" value="<?= e($persona['email'] ?? $user['email']) ?>" placeholder="usuario@ejemplo.com"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
-                </div>
-
-                <div class="flex justify-end mt-2">
-                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-sm transition-all">
-                        Enviar Solicitud
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Historial de Solicitudes -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-        <h3 class="font-bold text-on-surface text-base mb-4">Historial de Solicitudes Enviadas</h3>
-
-        <?php if (empty($solicitudes)): ?>
-            <p class="text-sm text-slate-500 text-center py-6">No ha realizado solicitudes de cambio de datos recientemente.</p>
+            </div>
         <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b border-background text-xs font-bold text-slate-400 uppercase">
-                            <th class="py-3 px-2">Fecha</th>
-                            <th class="py-3 px-2">Datos Solicitados</th>
-                            <th class="py-3 px-2 text-center">Estado</th>
-                            <th class="py-3 px-2">Observaciones Admin</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-background">
-                        <?php foreach ($solicitudes as $s): ?>
-                            <?php $json = json_decode($s['datos_nuevos_json'], true); ?>
-                            <tr>
-                                <td class="py-3 px-2 text-xs text-slate-500"><?= date('d/m/Y H:i', strtotime($s['fecha_solicitud'])) ?></td>
-                                <td class="py-3 px-2">
-                                    <?php if (is_array($json)): ?>
-                                        <?php foreach ($json as $k => $v): ?>
-                                            <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
-                                                <strong><?= e(ucfirst($k)) ?>:</strong> <?= e($v) ?>
-                                            </span>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="py-3 px-2 text-center">
-                                    <?php if ($s['estado'] === 'aprobado'): ?>
-                                        <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Aprobado</span>
-                                    <?php elseif ($s['estado'] === 'rechazado'): ?>
-                                        <span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">Rechazado</span>
-                                    <?php else: ?>
-                                        <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">Pendiente</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="py-3 px-2 text-xs italic text-slate-500"><?= e($s['motivo_admin'] ?? '-') ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <!-- Formulario de Solicitud de Cambio para Residentes -->
+            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm md:col-span-2">
+                <h3 class="font-bold text-on-surface text-base mb-1 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">edit_note</span>
+                    Solicitar Actualización de Datos
+                </h3>
+                <p class="text-xs text-on-surface-variant mb-6">Los cambios serán revisados y aprobados por la administración antes de ser aplicados.</p>
+
+                <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
+                    <?= csrf_field() ?>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Teléfono Móvil</label>
+                        <input type="text" name="telefono" value="<?= e($persona['telefono'] ?? '') ?>" placeholder="Ej: 0412-1234567"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Correo Electrónico</label>
+                        <input type="email" name="email" value="<?= e($persona['email'] ?? $user['email']) ?>" placeholder="usuario@ejemplo.com"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+
+                    <div class="flex justify-end mt-2">
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px]">send</span>
+                            <span>Enviar Solicitud</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if (!$isAdmin && !$isAuditor): ?>
+        <!-- Historial de Solicitudes para Residentes -->
+        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+            <h3 class="font-bold text-on-surface text-base mb-4">Historial de Solicitudes Enviadas</h3>
+
+            <?php if (empty($solicitudes)): ?>
+                <p class="text-sm text-slate-500 text-center py-6">No ha realizado solicitudes de cambio de datos recientemente.</p>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-background text-xs font-bold text-slate-400 uppercase">
+                                <th class="py-3 px-2">Fecha</th>
+                                <th class="py-3 px-2">Datos Solicitados</th>
+                                <th class="py-3 px-2 text-center">Estado</th>
+                                <th class="py-3 px-2">Observaciones Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-background">
+                            <?php foreach ($solicitudes as $s): ?>
+                                <?php $json = json_decode($s['datos_nuevos_json'], true); ?>
+                                <tr>
+                                    <td class="py-3 px-2 text-xs text-slate-500"><?= date('d/m/Y H:i', strtotime($s['fecha_solicitud'])) ?></td>
+                                    <td class="py-3 px-2">
+                                        <?php if (is_array($json)): ?>
+                                            <?php foreach ($json as $k => $v): ?>
+                                                <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
+                                                    <strong><?= e(ucfirst($k)) ?>:</strong> <?= e($v) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3 px-2 text-center">
+                                        <?php if ($s['estado'] === 'aprobado'): ?>
+                                            <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Aprobado</span>
+                                        <?php elseif ($s['estado'] === 'rechazado'): ?>
+                                            <span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">Rechazado</span>
+                                        <?php else: ?>
+                                            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">Pendiente</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3 px-2 text-xs italic text-slate-500"><?= e($s['motivo_admin'] ?? '-') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 <?php if ($isAdmin || $isAuditor): ?>
             </div>
         </div>

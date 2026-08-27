@@ -163,7 +163,7 @@ $router->get('/residente/cartelera', [\App\Controllers\ComunicadoController::cla
 
 // --- Perfil y Solicitudes de Cambio de Datos (RF 9) ---
 $router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'], ['auth']);
-$router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], [UserRole::RESIDENTE]);
+$router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], ['auth']);
 $router->get('/admin/solicitudes-datos', [\App\Controllers\PerfilController::class, 'listarSolicitudes'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-datos/procesar', [\App\Controllers\PerfilController::class, 'procesarSolicitud'], [UserRole::ADMIN]);
 

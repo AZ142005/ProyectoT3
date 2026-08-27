@@ -38,19 +38,74 @@ class PerfilController extends Controller {
     }
 
     /**
-     * Procesa la solicitud enviada por el residente para actualizar sus datos.
+     * Procesa la actualización de datos personales (directa para admin, vía solicitud para residentes).
      */
     public function solicitarCambio() {
-        Auth::requireRole('residente');
+        Auth::requireLogin();
 
-        // G1-05: Max 10 change requests per hour per resident
+        $user = Auth::user();
+        $role = Auth::role();
+
+        if ($role === 'auditor') {
+            Flash::set('danger', 'El rol de auditor es de solo lectura y fiscalización.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        // G1-05: Max 10 change requests per hour per user
         if (!\App\Core\RateLimiter::attempt('solicitud_cambio_' . Auth::id(), 10, 3600)) {
             Flash::set('danger', 'Ha excedido el límite de 10 solicitudes de cambio por hora.');
             $this->redirect('/perfil');
             return;
         }
 
-        $user = Auth::user();
+        // Manejo para Administradores: Actualización directa de su perfil
+        if ($role === 'admin') {
+            $nombre = trim($_POST['nombre'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = trim($_POST['password'] ?? '');
+
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                Flash::set('danger', 'Debe proporcionar un correo electrónico válido.');
+                $this->redirect('/perfil');
+                return;
+            }
+
+            try {
+                $db = \App\Core\Database::getConnection();
+                
+                if (!empty($nombre)) {
+                    $stmt = $db->prepare("UPDATE usuarios SET nombre_completo = :nombre, email = :email WHERE id = :id");
+                    $stmt->execute(['nombre' => $nombre, 'email' => $email, 'id' => $user['id']]);
+                    $_SESSION['auth_user']['name'] = $nombre;
+                } else {
+                    $stmt = $db->prepare("UPDATE usuarios SET email = :email WHERE id = :id");
+                    $stmt->execute(['email' => $email, 'id' => $user['id']]);
+                }
+                $_SESSION['auth_user']['email'] = $email;
+
+                if (!empty($password)) {
+                    if (strlen($password) < 6) {
+                        Flash::set('danger', 'La nueva contraseña debe tener al menos 6 caracteres.');
+                        $this->redirect('/perfil');
+                        return;
+                    }
+                    $hash = password_hash($password, PASSWORD_BCRYPT);
+                    $stmtPass = $db->prepare("UPDATE usuarios SET password = :password WHERE id = :id");
+                    $stmtPass->execute(['password' => $hash, 'id' => $user['id']]);
+                }
+
+                Flash::set('success', 'Sus datos de administrador han sido actualizados correctamente.');
+            } catch (\Exception $e) {
+                error_log("[PERFIL] Error al actualizar datos de admin: " . $e->getMessage());
+                Flash::set('danger', 'Error al actualizar sus datos.');
+            }
+
+            $this->redirect('/perfil');
+            return;
+        }
+
+        // Manejo para Residentes: Creación de solicitud formal para revisión
         $personaId = $user['persona_id'] ?? 0;
 
         if ($personaId <= 0) {
@@ -62,6 +117,12 @@ class PerfilController extends Controller {
         $telefono = trim($_POST['telefono'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $direccion = trim($_POST['direccion'] ?? '');
+
+        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Flash::set('danger', 'El formato del correo electrónico no es válido.');
+            $this->redirect('/perfil');
+            return;
+        }
 
         try {
             $solicitudesModel = new SolicitudesModel();
