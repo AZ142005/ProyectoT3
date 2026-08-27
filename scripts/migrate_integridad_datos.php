@@ -67,16 +67,21 @@ try {
 
     // 2. Añadir índices para rendimiento en consultas del AuditorController
     echo "2. Verificando índices de rendimiento...\n";
-    $indices = $db->query("SHOW INDEX FROM log_auditoria WHERE Key_name != 'PRIMARY'")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('idx_usuario_id', $indices ?? [])) {
+    $checkIndex = function(string $table, string $index) use ($db): bool {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND INDEX_NAME = :index");
+        $stmt->execute(['table' => $table, 'index' => $index]);
+        return (int)$stmt->fetchColumn() > 0;
+    };
+
+    if (!$checkIndex('log_auditoria', 'idx_usuario_id')) {
         $db->exec("CREATE INDEX idx_usuario_id ON log_auditoria (usuario_id)");
         echo "   ✔ Índice 'idx_usuario_id' creado.\n";
     }
-    if (!in_array('idx_tabla_registro', $indices ?? [])) {
+    if (!$checkIndex('log_auditoria', 'idx_tabla_registro')) {
         $db->exec("CREATE INDEX idx_tabla_registro ON log_auditoria (tabla_afectada, registro_id)");
         echo "   ✔ Índice 'idx_tabla_registro' creado.\n";
     }
-    if (!in_array('idx_created_at', $indices ?? [])) {
+    if (!$checkIndex('log_auditoria', 'idx_created_at')) {
         $db->exec("CREATE INDEX idx_created_at ON log_auditoria (created_at)");
         echo "   ✔ Índice 'idx_created_at' creado.\n";
     }
@@ -93,6 +98,70 @@ try {
         } else {
             echo "   ℹ '{$tabla}.deleted_at' ya existe.\n";
         }
+    }
+
+    // 4. Asegurar columnas requeridas en estacionamientos, vehiculos y comunicados
+    echo "4. Verificando columnas estructurales en módulos auxiliares...\n";
+
+    // estacionamientos: edificio_id, fecha_registro
+    $colsEst = $db->query("SHOW COLUMNS FROM estacionamientos")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('edificio_id', $colsEst)) {
+        $db->exec("ALTER TABLE estacionamientos ADD COLUMN edificio_id INT NULL AFTER tipo");
+        echo "   ✔ Columna 'edificio_id' agregada a 'estacionamientos'.\n";
+    }
+    if (!$checkIndex('estacionamientos', 'idx_estacionamiento_edificio')) {
+        $db->exec("CREATE INDEX idx_estacionamiento_edificio ON estacionamientos (edificio_id)");
+        echo "   ✔ Índice 'idx_estacionamiento_edificio' creado.\n";
+    }
+    if (!in_array('fecha_registro', $colsEst)) {
+        $db->exec("ALTER TABLE estacionamientos ADD COLUMN fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        echo "   ✔ Columna 'fecha_registro' agregada a 'estacionamientos'.\n";
+    }
+
+    // vehiculos: unidad_id, estacionamiento_id, observaciones, fecha_registro
+    $colsVeh = $db->query("SHOW COLUMNS FROM vehiculos")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('unidad_id', $colsVeh)) {
+        $db->exec("ALTER TABLE vehiculos ADD COLUMN unidad_id INT NULL AFTER id");
+        echo "   ✔ Columna 'unidad_id' agregada a 'vehiculos'.\n";
+    }
+    if (!$checkIndex('vehiculos', 'idx_vehiculos_unidad')) {
+        $db->exec("CREATE INDEX idx_vehiculos_unidad ON vehiculos (unidad_id)");
+        echo "   ✔ Índice 'idx_vehiculos_unidad' creado.\n";
+    }
+    if (!in_array('estacionamiento_id', $colsVeh)) {
+        $db->exec("ALTER TABLE vehiculos ADD COLUMN estacionamiento_id INT NULL AFTER persona_id");
+        echo "   ✔ Columna 'estacionamiento_id' agregada a 'vehiculos'.\n";
+    }
+    if (!$checkIndex('vehiculos', 'idx_vehiculos_estacionamiento')) {
+        $db->exec("CREATE INDEX idx_vehiculos_estacionamiento ON vehiculos (estacionamiento_id)");
+        echo "   ✔ Índice 'idx_vehiculos_estacionamiento' creado.\n";
+    }
+    if (!in_array('observaciones', $colsVeh)) {
+        $db->exec("ALTER TABLE vehiculos ADD COLUMN observaciones VARCHAR(255) NULL AFTER color");
+        echo "   ✔ Columna 'observaciones' agregada a 'vehiculos'.\n";
+    }
+    if (!in_array('fecha_registro', $colsVeh)) {
+        $db->exec("ALTER TABLE vehiculos ADD COLUMN fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        echo "   ✔ Columna 'fecha_registro' agregada a 'vehiculos'.\n";
+    }
+
+    // comunicados: nivel_urgencia, unidad_id, fecha_publicacion
+    $colsCom = $db->query("SHOW COLUMNS FROM comunicados")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('nivel_urgencia', $colsCom)) {
+        $db->exec("ALTER TABLE comunicados ADD COLUMN nivel_urgencia ENUM('normal', 'importante', 'urgente') DEFAULT 'normal' AFTER contenido");
+        echo "   ✔ Columna 'nivel_urgencia' agregada a 'comunicados'.\n";
+    }
+    if (!in_array('unidad_id', $colsCom)) {
+        $db->exec("ALTER TABLE comunicados ADD COLUMN unidad_id INT NULL AFTER edificio_id");
+        echo "   ✔ Columna 'unidad_id' agregada a 'comunicados'.\n";
+    }
+    if (!$checkIndex('comunicados', 'idx_comunicados_unidad')) {
+        $db->exec("CREATE INDEX idx_comunicados_unidad ON comunicados (unidad_id)");
+        echo "   ✔ Índice 'idx_comunicados_unidad' creado.\n";
+    }
+    if (!in_array('fecha_publicacion', $colsCom)) {
+        $db->exec("ALTER TABLE comunicados ADD COLUMN fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        echo "   ✔ Columna 'fecha_publicacion' agregada a 'comunicados'.\n";
     }
 
     echo "\n========================================================\n";
