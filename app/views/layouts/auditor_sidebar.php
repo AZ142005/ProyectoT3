@@ -34,21 +34,21 @@ $navItems = [
     <div class="p-3 border-t border-slate-800 bg-slate-950/40">
         <?php $_au = App\Core\Auth::user(); ?>
         <a href="/perfil" 
-           class="flex items-center gap-3 p-2.5 rounded-2xl transition-all <?= ($activeRoute ?? '') === 'perfil' ? 'bg-primary/20 border-2 border-primary text-white shadow-md' : 'bg-slate-800/80 border border-slate-700/70 hover:border-primary/60 hover:bg-slate-800 text-slate-200 shadow-sm' ?> group block" 
+           class="flex items-center gap-3 p-2.5 rounded-2xl transition-all <?= ($activeRoute ?? '') === 'perfil' ? 'bg-emerald-950/40 border border-emerald-600/50 text-white shadow-sm' : 'bg-slate-800/60 border border-slate-700/60 hover:border-emerald-800/60 hover:bg-slate-800/90 text-slate-200 shadow-sm' ?> group block" 
            title="Acceder a Mi Perfil de Usuario">
             <div class="relative shrink-0">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-hover border border-white/20 flex items-center justify-center text-white font-bold text-base shadow-sm">
+                <div class="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/50 flex items-center justify-center text-emerald-300/90 font-bold text-base shadow-sm">
                     <?= e(strtoupper(substr($_au['name'] ?? $_au['email'] ?? 'A', 0, 1))) ?>
                 </div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" title="En línea"></span>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-600 border-2 border-slate-900 rounded-full" title="En línea"></span>
             </div>
             <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold text-white truncate group-hover:text-primary-container transition-colors"><?= e($_au['name'] ?? 'Auditor') ?></p>
-                    <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary-container group-hover:translate-x-0.5 transition-all">chevron_right</span>
+                    <p class="text-xs font-bold text-slate-200 truncate group-hover:text-emerald-300 transition-colors"><?= e($_au['name'] ?? 'Auditor') ?></p>
+                    <span class="material-symbols-outlined text-[16px] text-slate-500 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all">chevron_right</span>
                 </div>
                 <div class="flex items-center gap-1.5 mt-1">
-                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/50">
+                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400/90 bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-900/60">
                         <span class="material-symbols-outlined text-[11px]">account_circle</span>
                         <span>Mi Perfil</span>
                     </span>
