@@ -19,10 +19,6 @@
                         <span class="hidden sm:inline">Generar Respaldo</span>
                     </button>
                 </form>
-                <a href="/perfil" class="text-slate-600 hover:text-primary font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">account_circle</span>
-                    <span class="hidden sm:inline">Perfil</span>
-                </a>
                 <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                     <span class="material-symbols-outlined text-[18px]">logout</span>
                 </a>
