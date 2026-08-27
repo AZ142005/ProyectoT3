@@ -81,8 +81,22 @@ try {
         echo "   ✔ Índice 'idx_created_at' creado.\n";
     }
 
+    // 3. Añadir columnas deleted_at para soporte de soft-delete en todas las tablas
+    echo "3. Verificando columnas 'deleted_at' para soft-delete...\n";
+    $tablasSoftDelete = ['facturas', 'comunicados', 'estacionamientos', 'vehiculos', 'gastos_comunes', 'pagos', 'comprobantes_pago'];
+
+    foreach ($tablasSoftDelete as $tabla) {
+        $cols = $db->query("SHOW COLUMNS FROM {$tabla}")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('deleted_at', $cols)) {
+            $db->exec("ALTER TABLE {$tabla} ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL");
+            echo "   ✔ Columna 'deleted_at' agregada a tabla '{$tabla}'.\n";
+        } else {
+            echo "   ℹ '{$tabla}.deleted_at' ya existe.\n";
+        }
+    }
+
     echo "\n========================================================\n";
-    echo "✅ MIGRACIÓN FASE 4 COMPLETADA CON ÉXITO.\n";
+    echo "✅ MIGRACIÓN INTEGRIDAD DE DATOS COMPLETADA CON ÉXITO.\n";
     echo "========================================================\n";
 
 } catch (Exception $e) {
