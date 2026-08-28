@@ -147,13 +147,13 @@ $isAuditor = ($role === 'auditor');
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Teléfono Móvil</label>
                         <div class="flex items-center gap-2">
                             <select name="telefono_codigo" id="perfil_telefono_codigo"
-                                    class="w-44 px-3 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm font-semibold focus:bg-white focus:border-primary focus:outline-none cursor-pointer shrink-0">
-                                <option value="0412" <?= $telPrefix === '0412' ? 'selected' : '' ?>>0412 (Digitel)</option>
-                                <option value="0422" <?= $telPrefix === '0422' ? 'selected' : '' ?>>0422 (Digitel)</option>
-                                <option value="0414" <?= $telPrefix === '0414' ? 'selected' : '' ?>>0414 (Movistar)</option>
-                                <option value="0424" <?= $telPrefix === '0424' ? 'selected' : '' ?>>0424 (Movistar)</option>
-                                <option value="0416" <?= $telPrefix === '0416' ? 'selected' : '' ?>>0416 (Movilnet)</option>
-                                <option value="0426" <?= $telPrefix === '0426' ? 'selected' : '' ?>>0426 (Movilnet)</option>
+                                    class="w-28 px-3 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm font-semibold focus:bg-white focus:border-primary focus:outline-none cursor-pointer shrink-0">
+                                <option value="0412" <?= $telPrefix === '0412' ? 'selected' : '' ?>>0412</option>
+                                <option value="0422" <?= $telPrefix === '0422' ? 'selected' : '' ?>>0422</option>
+                                <option value="0414" <?= $telPrefix === '0414' ? 'selected' : '' ?>>0414</option>
+                                <option value="0424" <?= $telPrefix === '0424' ? 'selected' : '' ?>>0424</option>
+                                <option value="0416" <?= $telPrefix === '0416' ? 'selected' : '' ?>>0416</option>
+                                <option value="0426" <?= $telPrefix === '0426' ? 'selected' : '' ?>>0426</option>
                             </select>
                             <input type="text" name="telefono_numero" id="perfil_telefono_numero" maxlength="7" placeholder="1234567"
                                    value="<?= e($telNum) ?>"

@@ -38,14 +38,28 @@
                 <?= csrf_field() ?>
 
                 <!-- Campo Cédula -->
+                <?php
+                    $postCedulaRaw = normalizarCedula($_POST['cedula'] ?? '');
+                    $postTipo = strtoupper($_POST['cedula_tipo'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E']) ? substr($postCedulaRaw, 0, 1) : 'V'));
+                    $postNum  = $_POST['cedula_numero'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E']) ? substr($postCedulaRaw, 1) : $postCedulaRaw);
+                ?>
                 <div class="flex flex-col gap-2">
-                    <label for="cedula" class="text-base font-bold text-on-surface">Cédula de Identidad</label>
-                    <div class="relative">
-                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[22px]">badge</span>
-                        <input type="text" id="cedula" name="cedula" required autocomplete="off"
-                               placeholder="Ej: V12345678"
-                               value="<?= e($_POST['cedula'] ?? '') ?>"
-                               class="w-full pl-12 pr-5 py-4 text-lg bg-background border-2 border-outline-variant rounded-2xl text-on-surface placeholder-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all">
+                    <label class="text-base font-bold text-on-surface">Cédula de Identidad</label>
+                    <div class="flex items-center gap-2">
+                        <select name="cedula_tipo" id="cedula_tipo"
+                                class="w-24 py-4 text-lg bg-background border-2 border-outline-variant rounded-2xl text-on-surface font-black text-center focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer shrink-0">
+                            <option value="V" <?= $postTipo === 'V' ? 'selected' : '' ?>>V</option>
+                            <option value="E" <?= $postTipo === 'E' ? 'selected' : '' ?>>E</option>
+                        </select>
+                        <div class="relative flex-1">
+                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[22px]">badge</span>
+                            <input type="text" id="cedula_numero" name="cedula_numero" required autocomplete="off"
+                                   inputmode="numeric" pattern="[0-9]{5,8}" minlength="5" maxlength="8"
+                                   placeholder="12345678"
+                                   value="<?= e($postNum) ?>"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8)"
+                                   class="w-full pl-12 pr-5 py-4 text-lg bg-background border-2 border-outline-variant rounded-2xl text-on-surface placeholder-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all tracking-wider font-medium">
+                        </div>
                     </div>
                 </div>
 

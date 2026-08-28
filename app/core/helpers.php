@@ -88,16 +88,33 @@ if (!function_exists('diasHastaVencimiento')) {
     }
 }
 
+if (!function_exists('normalizarCedula')) {
+    /**
+     * Normaliza una cédula eliminando guiones, puntos, espacios y convirtiendo a mayúsculas.
+     *
+     * @param string|null $cedula
+     * @return string
+     */
+    function normalizarCedula($cedula) {
+        $cedula = strtoupper(trim($cedula ?? ''));
+        return preg_replace('/[\s\.\-]/', '', $cedula);
+    }
+}
+
 if (!function_exists('validarCedula')) {
     /**
-     * Valida el formato de una cédula venezolana (V/E + número).
+     * Valida el formato de una cédula venezolana (V/E opcional + 5 a 8 dígitos numéricos).
+     * Rechaza iniciales inválidas (ej: Z12345678) o longitudes menores a 5 o mayores a 8 dígitos.
      *
      * @param string $cedula
      * @return bool
      */
     function validarCedula($cedula) {
-        $cedula = preg_replace('/^[VEve]/', '', $cedula);
-        return preg_match('/^\d{7,8}$/', $cedula);
+        $cedula = normalizarCedula($cedula);
+        if (empty($cedula)) {
+            return false;
+        }
+        return (bool)preg_match('/^(?:[VE])?\d{5,8}$/', $cedula);
     }
 }
 

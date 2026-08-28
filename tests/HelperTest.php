@@ -51,8 +51,14 @@ class HelperTest extends TestCase {
     }
 
     // =====================================================================
-    // validarCedula()
+    // normalizarCedula() & validarCedula()
     // =====================================================================
+
+    public function testNormalizarCedula(): void {
+        $this->assertEquals('V12345678', normalizarCedula('v-12.345.678'));
+        $this->assertEquals('E8765432', normalizarCedula('  e- 8765432  '));
+        $this->assertEquals('V99123', normalizarCedula('V 99123'));
+    }
 
     public function testValidarCedulaValidV(): void {
         $this->assertTrue(validarCedula('V12345678'),
@@ -74,9 +80,26 @@ class HelperTest extends TestCase {
             "Cédula V con 7 dígitos debe ser válida");
     }
 
+    public function testValidarCedulaValid5Digits(): void {
+        $this->assertTrue(validarCedula('V99123'),
+            "Cédula V con 5 dígitos debe ser válida");
+        $this->assertTrue(validarCedula('V123456'),
+            "Cédula V con 6 dígitos debe ser válida");
+    }
+
     public function testValidarCedulaInvalidTooShort(): void {
-        $this->assertFalse(validarCedula('V123456'),
-            "Cédula con 6 dígitos debe ser inválida");
+        $this->assertFalse(validarCedula('V1234'),
+            "Cédula con menos de 5 dígitos debe ser inválida");
+    }
+
+    public function testValidarCedulaInvalidTooLong(): void {
+        $this->assertFalse(validarCedula('V123456789'),
+            "Cédula con más de 8 dígitos debe ser inválida");
+    }
+
+    public function testValidarCedulaInvalidPrefix(): void {
+        $this->assertFalse(validarCedula('Z12345678'),
+            "Cédula con prefijo no autorizado (ej: Z) debe ser inválida");
     }
 
     public function testValidarCedulaInvalidLetters(): void {

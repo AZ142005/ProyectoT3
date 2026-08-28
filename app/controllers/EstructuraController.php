@@ -222,9 +222,22 @@ class EstructuraController extends Controller {
         Auth::requireRole('admin');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id        = intval($_POST['id'] ?? 0);
-            $unidadId  = intval($_POST['unidad_id'] ?? 0);
-            $cedula    = trim($_POST['cedula'] ?? '');
+            $id           = intval($_POST['id'] ?? 0);
+            $unidadId     = intval($_POST['unidad_id'] ?? 0);
+            $cedulaTipo   = strtoupper(trim($_POST['cedula_tipo'] ?? 'V'));
+            $cedulaNumero = preg_replace('/[^0-9]/', '', trim($_POST['cedula_numero'] ?? ''));
+
+            // Fallback si se envía el campo 'cedula' directo
+            if (empty($cedulaNumero) && !empty($_POST['cedula'])) {
+                $raw = normalizarCedula($_POST['cedula']);
+                if (in_array(substr($raw, 0, 1), ['V', 'E'], true)) {
+                    $cedulaTipo = substr($raw, 0, 1);
+                    $cedulaNumero = substr($raw, 1);
+                } else {
+                    $cedulaNumero = $raw;
+                }
+            }
+
             $nombre    = trim($_POST['nombre'] ?? '');
             $apellido  = trim($_POST['apellido'] ?? '');
             $tipo      = trim($_POST['tipo'] ?? 'propietario');
@@ -233,15 +246,29 @@ class EstructuraController extends Controller {
             $telefono  = !empty($telNumero) ? ($telCodigo . $telNumero) : trim($_POST['telefono'] ?? '');
             $email     = trim($_POST['email'] ?? '');
 
-            // 1. Validaciones previas de formato y obligatoriedad (Cédula primero)
-            if (empty($cedula) || empty($nombre) || empty($apellido) || $unidadId <= 0) {
+            // 1. Validaciones previas de formato y obligatoriedad
+            if (empty($cedulaNumero) || empty($nombre) || empty($apellido) || $unidadId <= 0) {
                 Flash::error('La cédula, el nombre, el apellido y la unidad son obligatorios.');
                 $this->redirect('/admin/estructura');
                 return;
             }
 
+            if (!in_array($cedulaTipo, ['V', 'E'], true)) {
+                Flash::error('Tipo de documento no válido (debe seleccionar V o E).');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            if (strlen($cedulaNumero) < 5 || strlen($cedulaNumero) > 8 || !ctype_digit($cedulaNumero)) {
+                Flash::error('El número de cédula debe contener entre 5 y 8 dígitos numéricos.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            $cedula = $cedulaTipo . $cedulaNumero;
+
             if (!validarCedula($cedula)) {
-                Flash::error('El formato de la cédula no es válido (use V-12345678 o E-12345678).');
+                Flash::error('El formato de la cédula no es válido (use inicial V o E seguida de 5 a 8 dígitos).');
                 $this->redirect('/admin/estructura');
                 return;
             }

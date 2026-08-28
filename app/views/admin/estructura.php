@@ -359,11 +359,20 @@
                     <input type="hidden" id="residente_unidad_id_input" name="unidad_id" value="0">
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Cédula -->
+                        <!-- Cédula de Identidad con Selector de Tipo -->
                         <div class="flex flex-col gap-1">
-                            <label for="residente_cedula" class="text-xs font-bold text-on-surface-variant uppercase">Cédula de Identidad *</label>
-                            <input type="text" id="residente_cedula" name="cedula" required placeholder="Ej: V-12345678"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                            <label class="text-xs font-bold text-on-surface-variant uppercase">Cédula de Identidad *</label>
+                            <div class="flex items-center gap-1.5">
+                                <select id="residente_cedula_tipo" name="cedula_tipo"
+                                        class="w-20 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-black text-sm focus:outline-none focus:border-primary cursor-pointer shrink-0 text-center">
+                                    <option value="V" selected>V</option>
+                                    <option value="E">E</option>
+                                </select>
+                                <input type="text" id="residente_cedula_numero" name="cedula_numero" required
+                                       inputmode="numeric" pattern="[0-9]{5,8}" minlength="5" maxlength="8" placeholder="12345678"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8)"
+                                       class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm tracking-wider">
+                            </div>
                         </div>
 
                         <!-- Tipo de Residente -->
@@ -396,15 +405,16 @@
                             <label class="text-xs font-bold text-on-surface-variant uppercase">Teléfono Móvil (Opcional)</label>
                             <div class="flex items-center gap-1.5">
                                 <select id="residente_telefono_codigo" name="telefono_codigo"
-                                        class="w-36 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-semibold text-xs focus:outline-none focus:border-primary cursor-pointer shrink-0">
-                                    <option value="0412">0412 (Digitel)</option>
-                                    <option value="0422">0422 (Digitel)</option>
-                                    <option value="0414">0414 (Movistar)</option>
-                                    <option value="0424">0424 (Movistar)</option>
-                                    <option value="0416">0416 (Movilnet)</option>
-                                    <option value="0426">0426 (Movilnet)</option>
+                                        class="w-28 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-semibold text-xs focus:outline-none focus:border-primary cursor-pointer shrink-0">
+                                    <option value="0412">0412</option>
+                                    <option value="0422">0422</option>
+                                    <option value="0414">0414</option>
+                                    <option value="0424">0424</option>
+                                    <option value="0416">0416</option>
+                                    <option value="0426">0426</option>
                                 </select>
                                 <input type="text" id="residente_telefono_numero" name="telefono_numero" maxlength="7" placeholder="1234567"
+                                       inputmode="numeric" pattern="[0-9]{7}"
                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 7)"
                                        class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm tracking-wider">
                             </div>
@@ -590,7 +600,18 @@ function cargarFormularioEdicionResidente(idx) {
     if (!r) return;
 
     document.getElementById('residente_id_input').value = r.id;
-    document.getElementById('residente_cedula').value = r.cedula || '';
+    
+    // Normalizar y separar Cédula (Tipo V/E y 5-8 dígitos)
+    let rawCed = String(r.cedula || '').toUpperCase().replace(/[^VE0-9]/g, '');
+    let tipoDoc = 'V';
+    let numDoc = rawCed;
+    if (rawCed.startsWith('V') || rawCed.startsWith('E')) {
+        tipoDoc = rawCed.charAt(0);
+        numDoc = rawCed.substring(1);
+    }
+    document.getElementById('residente_cedula_tipo').value = tipoDoc;
+    document.getElementById('residente_cedula_numero').value = numDoc;
+
     document.getElementById('residente_nombre').value = r.nombre || '';
     document.getElementById('residente_apellido').value = r.apellido || '';
     document.getElementById('residente_tipo').value = r.tipo || 'propietario';
@@ -624,7 +645,8 @@ function cargarFormularioEdicionResidente(idx) {
 
 function resetFormularioResidente() {
     document.getElementById('residente_id_input').value = '0';
-    document.getElementById('residente_cedula').value = '';
+    document.getElementById('residente_cedula_tipo').value = 'V';
+    document.getElementById('residente_cedula_numero').value = '';
     document.getElementById('residente_nombre').value = '';
     document.getElementById('residente_apellido').value = '';
     document.getElementById('residente_tipo').value = 'propietario';

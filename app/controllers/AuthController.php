@@ -79,9 +79,10 @@ class AuthController extends Controller {
 
                     // 2. Buscar en la tabla de residentes (Personas) — only if admin wasn't found or wasn't locked
                     if (!$usuario && empty($error)) {
+                        $cedulaBusqueda = normalizarCedula($identificador);
                         $residente = $esEmail
                             ? $personasModel->getActiveByEmail($identificador)
-                            : $personasModel->getActiveByCedula($identificador);
+                            : ($personasModel->getActiveByCedula($cedulaBusqueda) ?: $personasModel->getActiveByCedula($identificador));
 
                         if ($residente) {
                             if ($personasModel->estaBloqueado((int)$residente['id'])) {
@@ -288,15 +289,31 @@ class AuthController extends Controller {
                 $minutos = ceil($segundos / 60);
                 $error = "Demasiados intentos de registro. Intente de nuevo en {$minutos} minuto(s).";
             } else {
-                $cedula            = trim($_POST['cedula'] ?? '');
+                $cedulaTipo   = strtoupper(trim($_POST['cedula_tipo'] ?? 'V'));
+                $cedulaNumero = preg_replace('/[^0-9]/', '', trim($_POST['cedula_numero'] ?? ''));
+
+                if (empty($cedulaNumero) && !empty($_POST['cedula'])) {
+                    $raw = normalizarCedula($_POST['cedula']);
+                    if (in_array(substr($raw, 0, 1), ['V', 'E'], true)) {
+                        $cedulaTipo = substr($raw, 0, 1);
+                        $cedulaNumero = substr($raw, 1);
+                    } else {
+                        $cedulaNumero = $raw;
+                    }
+                }
+
                 $email             = trim($_POST['email'] ?? '');
                 $password          = trim($_POST['password'] ?? '');
                 $password_confirm  = trim($_POST['password_confirm'] ?? '');
 
-                if (empty($cedula) || empty($email) || empty($password) || empty($password_confirm)) {
+                if (empty($cedulaNumero) || empty($email) || empty($password) || empty($password_confirm)) {
                     $error = 'Todos los campos son obligatorios.';
-                } elseif (!validarCedula($cedula)) {
-                    $error = 'El formato de la cédula no es válido. Use el formato V-12345678 o E-12345678.';
+                } elseif (!in_array($cedulaTipo, ['V', 'E'], true)) {
+                    $error = 'Tipo de documento no válido (debe seleccionar V o E).';
+                } elseif (strlen($cedulaNumero) < 5 || strlen($cedulaNumero) > 8 || !ctype_digit($cedulaNumero)) {
+                    $error = 'El número de cédula debe contener entre 5 y 8 dígitos numéricos.';
+                } elseif (!validarCedula($cedulaTipo . $cedulaNumero)) {
+                    $error = 'El formato de la cédula no es válido.';
                 } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $error = 'El formato de correo electrónico no es válido.';
                 } elseif (strlen($password) < 8) {
@@ -304,9 +321,10 @@ class AuthController extends Controller {
                 } elseif ($password !== $password_confirm) {
                     $error = 'Las contraseñas no coinciden.';
                 } else {
+                    $cedula = $cedulaTipo . $cedulaNumero;
                     $personasModel = new PersonasModel();
 
-                    $persona = $personasModel->getActiveByCedula($cedula);
+                    $persona = $personasModel->getActiveByCedula($cedula) ?: $personasModel->getActiveByCedula($cedulaTipo . '-' . $cedulaNumero);
                     if (!$persona) {
                         $error = 'La cédula ingresada no está registrada en el sistema del condominio. Consulta con la administración.';
                     } elseif (!empty($persona['email']) && !empty($persona['password'])) {
@@ -315,7 +333,7 @@ class AuthController extends Controller {
                         $error = 'Este correo electrónico ya está registrado.';
                     } else {
                         $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-                        $result = $personasModel->register($cedula, $email, $hashedPassword);
+                        $result = $personasModel->register($persona['cedula'], $email, $hashedPassword);
 
                         if ($result) {
                             $success = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.';
