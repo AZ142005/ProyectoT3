@@ -3,9 +3,11 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Core\Database;
 use App\Core\Flash;
 use App\Models\EdificiosModel;
 use App\Models\UnidadesModel;
+use App\Models\PersonasModel;
 
 class EstructuraController extends Controller {
 
@@ -32,6 +34,7 @@ class EstructuraController extends Controller {
 
         $edificiosModel = new EdificiosModel();
         $unidadesModel  = new UnidadesModel();
+        $personasModel  = new PersonasModel();
 
         $filtroEdificio = intval($_GET['edificio_id'] ?? 0);
 
@@ -49,11 +52,29 @@ class EstructuraController extends Controller {
             } else {
                 $edificios = $edificiosModel->getAll();
                 $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+                foreach ($unidades as &$u) {
+                    $residentes = $personasModel->getByUnidadId((int)$u['id'], true);
+                    foreach ($residentes as &$r) {
+                        $r['es_titular'] = ((int)($u['propietario_id'] ?? 0) === (int)$r['id']);
+                    }
+                    unset($r);
+                    $u['residentes'] = $residentes;
+                }
+                unset($u);
                 file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
             }
         } else {
             $edificios = $edificiosModel->getAll();
             $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+            foreach ($unidades as &$u) {
+                $residentes = $personasModel->getByUnidadId((int)$u['id'], true);
+                foreach ($residentes as &$r) {
+                    $r['es_titular'] = ((int)($u['propietario_id'] ?? 0) === (int)$r['id']);
+                }
+                unset($r);
+                $u['residentes'] = $residentes;
+            }
+            unset($u);
             file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
         }
 
@@ -188,6 +209,196 @@ class EstructuraController extends Controller {
                 $this->invalidarCacheEstructura();
             } else {
                 Flash::error('Unidad no encontrada.');
+            }
+        }
+
+        $this->redirect('/admin/estructura');
+    }
+
+    /**
+     * Registra, actualiza o reactiva un residente (propietario/inquilino) asociado a una unidad.
+     */
+    public function guardarResidente() {
+        Auth::requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id        = intval($_POST['id'] ?? 0);
+            $unidadId  = intval($_POST['unidad_id'] ?? 0);
+            $cedula    = trim($_POST['cedula'] ?? '');
+            $nombre    = trim($_POST['nombre'] ?? '');
+            $apellido  = trim($_POST['apellido'] ?? '');
+            $tipo      = trim($_POST['tipo'] ?? 'propietario');
+            $telefono  = trim($_POST['telefono'] ?? '');
+            $email     = trim($_POST['email'] ?? '');
+
+            // 1. Validaciones previas de formato y obligatoriedad (Cédula primero)
+            if (empty($cedula) || empty($nombre) || empty($apellido) || $unidadId <= 0) {
+                Flash::error('La cédula, el nombre, el apellido y la unidad son obligatorios.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            if (!validarCedula($cedula)) {
+                Flash::error('El formato de la cédula no es válido (use V-12345678 o E-12345678).');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                Flash::error('El formato del correo electrónico no es válido.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            if (!empty($telefono) && !validarTelefono($telefono)) {
+                Flash::error('El formato del teléfono no es válido (ej: 0412-1234567).');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            if (!in_array($tipo, ['propietario', 'inquilino', 'ambos'], true)) {
+                Flash::error('El tipo de residente seleccionado no es válido.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            $personasModel = new PersonasModel();
+            $unidadesModel = new UnidadesModel();
+
+            // 2. Validar Unidad Activa
+            $unidad = $unidadesModel->getById($unidadId);
+            if (!$unidad || $unidad['estado'] != 1) {
+                Flash::error('La unidad seleccionada no existe o se encuentra inactiva.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            // 3. Validar Unicidad de Email en activos
+            if (!empty($email) && $personasModel->emailExistsActive($email, $id > 0 ? $id : null)) {
+                Flash::error('El correo electrónico ya se encuentra registrado por otro residente activo.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
+            $personaExistente = $personasModel->getByCedula($cedula);
+            $datosPersona = [
+                'cedula'    => $cedula,
+                'nombre'    => $nombre,
+                'apellido'  => $apellido,
+                'tipo'      => $tipo,
+                'telefono'  => $telefono,
+                'email'     => $email,
+                'unidad_id' => $unidadId
+            ];
+
+            // 4. Ejecución Transaccional Atómica
+            $db = Database::getConnection();
+            $db->beginTransaction();
+
+            try {
+                $targetPersonaId = 0;
+                $msgExito = '';
+
+                if ($id > 0) {
+                    // Edición explícita
+                    if ($personaExistente && $personaExistente['id'] != $id && $personaExistente['estado'] == 1) {
+                        $db->rollBack();
+                        Flash::error('La cédula indicada ya pertenece a otro residente registrado.');
+                        $this->redirect('/admin/estructura');
+                        return;
+                    }
+                    $personasModel->updateResidente($id, $datosPersona);
+                    $targetPersonaId = $id;
+                    $msgExito = 'Datos del residente actualizados exitosamente.';
+                } else {
+                    // Creación o Reactivación
+                    if ($personaExistente) {
+                        if ($personaExistente['estado'] == 1) {
+                            $db->rollBack();
+                            Flash::error('Esta cédula ya se encuentra activa en el apartamento ' . ($personaExistente['unidad_id'] ?? 'N/A') . '.');
+                            $this->redirect('/admin/estructura');
+                            return;
+                        }
+                        // Reactivación de cédula inactiva
+                        $personasModel->updateResidente((int)$personaExistente['id'], $datosPersona);
+                        $targetPersonaId = (int)$personaExistente['id'];
+                        $msgExito = 'Residente reactivado y asignado a la unidad exitosamente.';
+                    } else {
+                        // Inserción limpia
+                        $targetPersonaId = $personasModel->createResidente($datosPersona);
+                        $msgExito = 'Residente registrado y asignado exitosamente.';
+                    }
+                }
+
+                // 5. Asignación de titular si corresponde
+                if ($targetPersonaId > 0 && in_array($tipo, ['propietario', 'ambos'])) {
+                    if (empty($unidad['propietario_id']) || $unidad['propietario_id'] == $targetPersonaId) {
+                        $unidadesModel->setPropietario($unidadId, $targetPersonaId);
+                    }
+                }
+
+                $db->commit();
+                Flash::success($msgExito);
+
+                // 6. Invalidación de Caché Resiliente
+                try {
+                    $this->invalidarCacheEstructura();
+                } catch (\Throwable $eCache) {
+                    error_log("[ESTRUCTURA] Advertencia al invalidar caché: " . $eCache->getMessage());
+                }
+
+            } catch (\Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                error_log("[ESTRUCTURA] Error al guardar residente: " . $e->getMessage());
+                Flash::error('Error interno al guardar los datos del residente.');
+            }
+        }
+
+        $this->redirect('/admin/estructura');
+    }
+
+    /**
+     * Desvincula lógicamente a un residente de una unidad y promueve/limpia propietario.
+     */
+    public function desvincularResidente() {
+        Auth::requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $personaId = intval($_POST['persona_id'] ?? 0);
+            $unidadId  = intval($_POST['unidad_id'] ?? 0);
+
+            if ($personaId > 0 && $unidadId > 0) {
+                $db = Database::getConnection();
+                $db->beginTransaction();
+
+                try {
+                    $personasModel = new PersonasModel();
+                    $unidadesModel = new UnidadesModel();
+
+                    $personasModel->desvincularResidente($personaId);
+                    $unidadesModel->gestionarBajaPropietario($unidadId, $personaId);
+
+                    $db->commit();
+                    Flash::success('Residente desvinculado de la unidad exitosamente.');
+
+                    // Invalidación de Caché Resiliente
+                    try {
+                        $this->invalidarCacheEstructura();
+                    } catch (\Throwable $eCache) {
+                        error_log("[ESTRUCTURA] Advertencia al invalidar caché: " . $eCache->getMessage());
+                    }
+
+                } catch (\Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
+                    error_log("[ESTRUCTURA] Error al desvincular residente: " . $e->getMessage());
+                    Flash::error('Error interno al desvincular al residente.');
+                }
+            } else {
+                Flash::error('Datos inválidos para la desvinculación.');
             }
         }
 

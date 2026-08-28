@@ -328,6 +328,30 @@ class ModelTest extends TestCase {
         );
     }
 
+    /**
+     * Verifica que PersonasModel tenga métodos para gestión completa de residentes.
+     */
+    public function testPersonasModelResidentMethodsExist(): void {
+        $content = file_get_contents($this->modelsPath . 'PersonasModel.php');
+
+        $this->assertStringContains('function getByUnidadId', $content, "Debe existir getByUnidadId()");
+        $this->assertStringContains('function createResidente', $content, "Debe existir createResidente()");
+        $this->assertStringContains('function updateResidente', $content, "Debe existir updateResidente()");
+        $this->assertStringContains('function desvincularResidente', $content, "Debe existir desvincularResidente()");
+        $this->assertStringContains('function getByCedula', $content, "Debe existir getByCedula()");
+        $this->assertStringContains('function emailExistsActive', $content, "Debe existir emailExistsActive()");
+    }
+
+    /**
+     * Verifica que UnidadesModel tenga métodos para asignación y gestión de propietario.
+     */
+    public function testUnidadesModelOwnerMethodsExist(): void {
+        $content = file_get_contents($this->modelsPath . 'UnidadesModel.php');
+
+        $this->assertStringContains('function setPropietario', $content, "Debe existir setPropietario()");
+        $this->assertStringContains('function gestionarBajaPropietario', $content, "Debe existir gestionarBajaPropietario()");
+    }
+
     // =====================================================================
     // MANEJO DE ERRORES
     // =====================================================================

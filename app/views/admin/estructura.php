@@ -164,9 +164,18 @@
                                             </td>
                                             <td class="p-3.5 font-bold text-primary"><?= e(formatearMoneda($u['cuota_mensual'])) ?></td>
                                             <td class="p-3.5">
-                                                <span class="bg-background text-on-surface font-bold text-xs px-2.5 py-1 rounded-full border border-outline-variant">
-                                                    <?= intval($u['total_residentes'] ?? 0) ?> res.
-                                                </span>
+                                                <button type="button" 
+                                                        data-unidad-id="<?= e($u['id']) ?>" 
+                                                        data-unidad-numero="<?= e($u['numero']) ?>" 
+                                                        data-edificio-nombre="<?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>" 
+                                                        data-propietario-id="<?= e($u['propietario_id'] ?? 0) ?>" 
+                                                        data-residentes="<?= htmlspecialchars(json_encode($u['residentes'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
+                                                        onclick="openModalGestionResidentes(this)" 
+                                                        class="bg-background hover:bg-slate-200 text-on-surface font-bold text-xs px-2.5 py-1 rounded-full border border-outline-variant inline-flex items-center gap-1.5 transition-all shadow-sm group cursor-pointer"
+                                                        title="Gestionar Residentes de <?= e($u['numero']) ?>">
+                                                    <span class="material-symbols-outlined text-[15px] text-primary group-hover:scale-110 transition-transform">group</span>
+                                                    <span><?= intval($u['total_residentes'] ?? 0) ?> res.</span>
+                                                </button>
                                             </td>
                                             <td class="p-3.5">
                                                 <?php if ($u['estado'] == 1): ?>
@@ -178,13 +187,24 @@
                                             <td class="p-3.5 text-right">
                                                 <div class="inline-flex items-center gap-1">
                                                     <button type="button" 
+                                                            data-unidad-id="<?= e($u['id']) ?>" 
+                                                            data-unidad-numero="<?= e($u['numero']) ?>" 
+                                                            data-edificio-nombre="<?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>" 
+                                                            data-propietario-id="<?= e($u['propietario_id'] ?? 0) ?>" 
+                                                            data-residentes="<?= htmlspecialchars(json_encode($u['residentes'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
+                                                            onclick="openModalGestionResidentes(this)" 
+                                                            class="p-1.5 text-on-surface-variant hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors" 
+                                                            title="Gestionar Residentes">
+                                                        <span class="material-symbols-outlined text-lg">person_add</span>
+                                                    </button>
+                                                    <button type="button" 
                                                             data-id="<?= e($u['id']) ?>" 
                                                             data-numero="<?= e($u['numero']) ?>" 
                                                             data-edificio-id="<?= e($u['edificio_id']) ?>" 
                                                             data-cuota="<?= e($u['cuota_mensual']) ?>" 
                                                             onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, this.dataset.cuota)" 
                                                             class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
-                                                            title="Editar">
+                                                            title="Editar Unidad">
                                                         <span class="material-symbols-outlined text-lg">edit</span>
                                                     </button>
                                                     <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
@@ -288,7 +308,119 @@
     </div>
 </div>
 
+<!-- MODAL: GESTIÓN DE RESIDENTES (PROPIETARIOS E INQUILINOS) -->
+<div id="modalGestionResidentes" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 md:p-8 space-y-6 transform transition-all border border-outline-variant my-8 max-h-[90vh] flex flex-col">
+        <!-- Cabecera del Modal -->
+        <div class="flex items-start justify-between border-b border-background pb-4 shrink-0">
+            <div>
+                <div class="inline-flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-1">
+                    <span class="material-symbols-outlined text-[18px]">apartment</span>
+                    <span id="modalResidenteEdificioTexto">Torre</span>
+                </div>
+                <h3 class="text-xl font-black text-on-surface flex items-center gap-2">
+                    <span>Residentes de</span>
+                    <span id="modalResidenteUnidadNumero" class="text-primary font-black bg-primary/10 px-2.5 py-0.5 rounded-xl">Apto</span>
+                </h3>
+            </div>
+            <button type="button" onclick="closeModalGestionResidentes()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-xl hover:bg-background transition-colors">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto pr-1 space-y-6 flex-1">
+            <!-- Sección 1: Lista de Residentes Actuales -->
+            <div>
+                <h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px] text-primary">groups</span>
+                    <span>Habitantes Registrados en esta Unidad</span>
+                </h4>
+
+                <div id="contenedorListaResidentes" class="space-y-2.5">
+                    <!-- Se llena dinámicamente con JS -->
+                </div>
+            </div>
+
+            <!-- Sección 2: Formulario de Registro / Edición -->
+            <div class="bg-background/60 rounded-2xl p-5 border border-outline-variant">
+                <div class="flex items-center justify-between mb-4 border-b border-outline-variant/50 pb-2.5">
+                    <h4 id="formularioResidenteTitulo" class="text-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[18px]">person_add</span>
+                        <span>Registrar Nuevo Residente</span>
+                    </h4>
+                    <button type="button" id="btnCancelarEdicionResidente" onclick="resetFormularioResidente()" class="hidden text-xs text-on-surface-variant hover:text-primary font-bold transition-colors">
+                        + Registrar Nuevo
+                    </button>
+                </div>
+
+                <form method="POST" action="/admin/estructura/residente/guardar" id="formResidente" class="space-y-4">
+                    <?= csrf_field() ?>
+                    <input type="hidden" id="residente_id_input" name="id" value="0">
+                    <input type="hidden" id="residente_unidad_id_input" name="unidad_id" value="0">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Cédula -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_cedula" class="text-xs font-bold text-on-surface-variant uppercase">Cédula de Identidad *</label>
+                            <input type="text" id="residente_cedula" name="cedula" required placeholder="Ej: V-12345678"
+                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                        </div>
+
+                        <!-- Tipo de Residente -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_tipo" class="text-xs font-bold text-on-surface-variant uppercase">Tipo de Residente *</label>
+                            <select id="residente_tipo" name="tipo" required
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm cursor-pointer">
+                                <option value="propietario">Propietario</option>
+                                <option value="inquilino">Inquilino</option>
+                                <option value="ambos">Ambos (Propietario / Residente)</option>
+                            </select>
+                        </div>
+
+                        <!-- Nombre -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_nombre" class="text-xs font-bold text-on-surface-variant uppercase">Nombre *</label>
+                            <input type="text" id="residente_nombre" name="nombre" required placeholder="Ej: Carlos"
+                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                        </div>
+
+                        <!-- Apellido -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_apellido" class="text-xs font-bold text-on-surface-variant uppercase">Apellido *</label>
+                            <input type="text" id="residente_apellido" name="apellido" required placeholder="Ej: Mendoza"
+                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                        </div>
+
+                        <!-- Teléfono -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_telefono" class="text-xs font-bold text-on-surface-variant uppercase">Teléfono Móvil (Opcional)</label>
+                            <input type="text" id="residente_telefono" name="telefono" placeholder="Ej: 0412-1234567"
+                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                        </div>
+
+                        <!-- Email -->
+                        <div class="flex flex-col gap-1">
+                            <label for="residente_email" class="text-xs font-bold text-on-surface-variant uppercase">Correo Electrónico (Opcional)</label>
+                            <input type="email" id="residente_email" name="email" placeholder="Ej: habitante@correo.com"
+                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/50">
+                        <button type="submit" id="btnSubmitResidente" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-primary hover:bg-primary-hover text-white shadow-sm transition-all flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+                            <span id="btnSubmitResidenteTexto">Guardar Residente</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+let currentModalResidentesData = [];
+
 function openModalEdificio() {
     document.getElementById('edificio_id_input').value = '0';
     document.getElementById('edificio_nombre').value = '';
@@ -341,5 +473,156 @@ function closeModalUnidad() {
     const m = document.getElementById('modalUnidad');
     m.classList.add('hidden');
     m.classList.remove('flex');
+}
+
+// GESTIÓN DE RESIDENTES
+function openModalGestionResidentes(btn) {
+    const unidadId = btn.dataset.unidadId;
+    const unidadNumero = btn.dataset.unidadNumero;
+    const edificioNombre = btn.dataset.edificioNombre;
+    const propietarioId = parseInt(btn.dataset.propietarioId || '0');
+    
+    let residentes = [];
+    try {
+        residentes = JSON.parse(btn.dataset.residentes || '[]');
+    } catch(e) {
+        residentes = [];
+    }
+    currentModalResidentesData = residentes;
+
+    document.getElementById('modalResidenteEdificioTexto').innerText = edificioNombre || 'Edificio';
+    document.getElementById('modalResidenteUnidadNumero').innerText = unidadNumero || 'Unidad';
+    document.getElementById('residente_unidad_id_input').value = unidadId;
+
+    renderListaResidentes(residentes, unidadId, propietarioId);
+    resetFormularioResidente();
+
+    const m = document.getElementById('modalGestionResidentes');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+}
+
+function renderListaResidentes(residentes, unidadId, propietarioId) {
+    const container = document.getElementById('contenedorListaResidentes');
+    if (!residentes || residentes.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-6 bg-background rounded-xl border border-dashed border-outline-variant">
+                <span class="material-symbols-outlined text-on-surface-variant/40 text-3xl mb-1">person_off</span>
+                <p class="text-xs font-semibold text-on-surface-variant">Esta unidad no tiene residentes registrados aún.</p>
+                <p class="text-[11px] text-on-surface-variant/70">Completa el formulario inferior para registrar a su propietario o inquilino.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    residentes.forEach((r, idx) => {
+        const esTitular = r.es_titular || (parseInt(r.id) === propietarioId);
+        let badgeRol = '';
+
+        if (esTitular) {
+            badgeRol = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                <span class="material-symbols-outlined text-[12px]">verified_user</span> Propietario Titular
+            </span>`;
+        } else if (r.tipo === 'propietario') {
+            badgeRol = `<span class="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                <span class="material-symbols-outlined text-[12px]">group</span> Co-Propietario
+            </span>`;
+        } else if (r.tipo === 'ambos') {
+            badgeRol = `<span class="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                <span class="material-symbols-outlined text-[12px]">home</span> Titular Residente
+            </span>`;
+        } else {
+            badgeRol = `<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                <span class="material-symbols-outlined text-[12px]">badge</span> Inquilino
+            </span>`;
+        }
+
+        const telefonoHtml = r.telefono ? `<span class="inline-flex items-center gap-0.5 text-xs text-on-surface-variant"><span class="material-symbols-outlined text-[13px]">phone</span>${escapeHtml(r.telefono)}</span>` : '';
+        const emailHtml = r.email ? `<span class="inline-flex items-center gap-0.5 text-xs text-on-surface-variant"><span class="material-symbols-outlined text-[13px]">mail</span>${escapeHtml(r.email)}</span>` : '';
+
+        html += `
+            <div class="bg-white p-3.5 rounded-xl border border-outline-variant shadow-sm flex items-center justify-between gap-3 hover:border-primary/40 transition-all">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-sm text-on-surface">${escapeHtml(r.nombre)} ${escapeHtml(r.apellido)}</span>
+                        <span class="text-xs font-semibold text-on-surface-variant bg-background px-1.5 py-0.5 rounded">${escapeHtml(r.cedula)}</span>
+                        ${badgeRol}
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
+                        ${telefonoHtml}
+                        ${emailHtml}
+                    </div>
+                </div>
+                <div class="inline-flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="cargarFormularioEdicionResidente(${idx})" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar Residente">
+                        <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <form method="POST" action="/admin/estructura/residente/desvincular" style="display:inline" onsubmit="return confirm('¿Está seguro de desvincular a este residente de la unidad?');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="persona_id" value="${escapeHtml(r.id)}">
+                        <input type="hidden" name="unidad_id" value="${escapeHtml(unidadId)}">
+                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desvincular Residente">
+                            <span class="material-symbols-outlined text-lg">person_remove</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function cargarFormularioEdicionResidente(idx) {
+    const r = currentModalResidentesData[idx];
+    if (!r) return;
+
+    document.getElementById('residente_id_input').value = r.id;
+    document.getElementById('residente_cedula').value = r.cedula || '';
+    document.getElementById('residente_nombre').value = r.nombre || '';
+    document.getElementById('residente_apellido').value = r.apellido || '';
+    document.getElementById('residente_tipo').value = r.tipo || 'propietario';
+    document.getElementById('residente_telefono').value = r.telefono || '';
+    document.getElementById('residente_email').value = r.email || '';
+
+    document.getElementById('formularioResidenteTitulo').innerHTML = `
+        <span class="material-symbols-outlined text-primary text-[18px]">edit</span>
+        <span>Editar Datos del Residente (${escapeHtml(r.nombre)} ${escapeHtml(r.apellido)})</span>
+    `;
+    document.getElementById('btnSubmitResidenteTexto').innerText = 'Actualizar Residente';
+    document.getElementById('btnCancelarEdicionResidente').classList.remove('hidden');
+}
+
+function resetFormularioResidente() {
+    document.getElementById('residente_id_input').value = '0';
+    document.getElementById('residente_cedula').value = '';
+    document.getElementById('residente_nombre').value = '';
+    document.getElementById('residente_apellido').value = '';
+    document.getElementById('residente_tipo').value = 'propietario';
+    document.getElementById('residente_telefono').value = '';
+    document.getElementById('residente_email').value = '';
+
+    document.getElementById('formularioResidenteTitulo').innerHTML = `
+        <span class="material-symbols-outlined text-primary text-[18px]">person_add</span>
+        <span>Registrar Nuevo Residente</span>
+    `;
+    document.getElementById('btnSubmitResidenteTexto').innerText = 'Guardar Residente';
+    document.getElementById('btnCancelarEdicionResidente').classList.add('hidden');
+}
+
+function closeModalGestionResidentes() {
+    const m = document.getElementById('modalGestionResidentes');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 </script>

@@ -72,4 +72,39 @@ class UnidadesModel extends BaseModel {
         $actualId = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$id;
         return parent::toggleEstado('unidades', $actualId);
     }
+
+    /**
+     * Asigna el propietario oficial de la unidad.
+     */
+    public function setPropietario(int $unidadId, ?int $propietarioId): bool {
+        $stmt = $this->db()->prepare("UPDATE unidades SET propietario_id = :pid WHERE id = :uid");
+        return $stmt->execute(['pid' => $propietarioId, 'uid' => $unidadId]);
+    }
+
+    /**
+     * Gestiona la baja de un propietario:
+     * Si la persona era el titular actual, promueve al siguiente co-propietario activo en la unidad;
+     * si no hay otro, establece NULL.
+     */
+    public function gestionarBajaPropietario(int $unidadId, int $personaIdDesvinculada): bool {
+        $stmt = $this->db()->prepare("SELECT propietario_id FROM unidades WHERE id = :uid");
+        $stmt->execute(['uid' => $unidadId]);
+        $propietarioActual = $stmt->fetchColumn();
+
+        if ((int)$propietarioActual === $personaIdDesvinculada) {
+            // Buscar otro propietario activo en la misma unidad
+            $stmtOtro = $this->db()->prepare("
+                SELECT id FROM personas 
+                WHERE unidad_id = :uid AND id != :pid AND estado = 1 AND tipo IN ('propietario', 'ambos') 
+                ORDER BY id ASC LIMIT 1
+            ");
+            $stmtOtro->execute(['uid' => $unidadId, 'pid' => $personaIdDesvinculada]);
+            $nuevoPropietario = $stmtOtro->fetchColumn();
+
+            $nuevoId = $nuevoPropietario ? (int)$nuevoPropietario : null;
+            $stmtUpd = $this->db()->prepare("UPDATE unidades SET propietario_id = :npid WHERE id = :uid");
+            return $stmtUpd->execute(['npid' => $nuevoId, 'uid' => $unidadId]);
+        }
+        return true;
+    }
 }
