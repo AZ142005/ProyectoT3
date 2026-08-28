@@ -114,9 +114,23 @@ class PerfilController extends Controller {
             return;
         }
 
-        $telefono = trim($_POST['telefono'] ?? '');
-        $email = trim($_POST['email'] ?? '');
+        $telCodigo = trim($_POST['telefono_codigo'] ?? '');
+        $telNumero = trim($_POST['telefono_numero'] ?? '');
+        $telefono  = !empty($telNumero) ? ($telCodigo . $telNumero) : trim($_POST['telefono'] ?? '');
+        $email     = trim($_POST['email'] ?? '');
         $direccion = trim($_POST['direccion'] ?? '');
+
+        if (!empty($telNumero) && (strlen($telNumero) !== 7 || !ctype_digit($telNumero))) {
+            Flash::set('danger', 'El número de teléfono debe contener exactamente 7 dígitos numéricos tras el código de operadora.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        if (!empty($telefono) && !validarTelefono($telefono)) {
+            Flash::set('danger', 'El formato del teléfono no es válido (use una operadora válida como 0412, 0414, 0424, 0416 o 0426).');
+            $this->redirect('/perfil');
+            return;
+        }
 
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Flash::set('danger', 'El formato del correo electrónico no es válido.');

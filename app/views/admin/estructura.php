@@ -391,11 +391,22 @@
                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
                         </div>
 
-                        <!-- Teléfono -->
+                        <!-- Teléfono Móvil con Selector de Operadora -->
                         <div class="flex flex-col gap-1">
-                            <label for="residente_telefono" class="text-xs font-bold text-on-surface-variant uppercase">Teléfono Móvil (Opcional)</label>
-                            <input type="text" id="residente_telefono" name="telefono" placeholder="Ej: 0412-1234567"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
+                            <label class="text-xs font-bold text-on-surface-variant uppercase">Teléfono Móvil (Opcional)</label>
+                            <div class="flex items-center gap-1.5">
+                                <select id="residente_telefono_codigo" name="telefono_codigo"
+                                        class="w-36 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-semibold text-xs focus:outline-none focus:border-primary cursor-pointer shrink-0">
+                                    <option value="0412">0412 (Digitel)</option>
+                                    <option value="0414">0414 (Movistar)</option>
+                                    <option value="0424">0424 (Movistar)</option>
+                                    <option value="0416">0416 (Movilnet)</option>
+                                    <option value="0426">0426 (Movilnet)</option>
+                                </select>
+                                <input type="text" id="residente_telefono_numero" name="telefono_numero" maxlength="7" placeholder="1234567"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 7)"
+                                       class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm tracking-wider">
+                            </div>
                         </div>
 
                         <!-- Email -->
@@ -582,7 +593,24 @@ function cargarFormularioEdicionResidente(idx) {
     document.getElementById('residente_nombre').value = r.nombre || '';
     document.getElementById('residente_apellido').value = r.apellido || '';
     document.getElementById('residente_tipo').value = r.tipo || 'propietario';
-    document.getElementById('residente_telefono').value = r.telefono || '';
+    
+    // Separar operadora (4 dígitos) y número (7 dígitos)
+    let tel = r.telefono ? String(r.telefono).replace(/[^0-9]/g, '') : '';
+    if (tel.length >= 11) {
+        let code = tel.substring(0, 4);
+        let num = tel.substring(4, 11);
+        const sel = document.getElementById('residente_telefono_codigo');
+        if (Array.from(sel.options).some(o => o.value === code)) {
+            sel.value = code;
+        }
+        document.getElementById('residente_telefono_numero').value = num;
+    } else if (tel.length > 0) {
+        document.getElementById('residente_telefono_numero').value = tel.slice(-7);
+    } else {
+        document.getElementById('residente_telefono_codigo').value = '0412';
+        document.getElementById('residente_telefono_numero').value = '';
+    }
+
     document.getElementById('residente_email').value = r.email || '';
 
     document.getElementById('formularioResidenteTitulo').innerHTML = `
@@ -599,7 +627,8 @@ function resetFormularioResidente() {
     document.getElementById('residente_nombre').value = '';
     document.getElementById('residente_apellido').value = '';
     document.getElementById('residente_tipo').value = 'propietario';
-    document.getElementById('residente_telefono').value = '';
+    document.getElementById('residente_telefono_codigo').value = '0412';
+    document.getElementById('residente_telefono_numero').value = '';
     document.getElementById('residente_email').value = '';
 
     document.getElementById('formularioResidenteTitulo').innerHTML = `

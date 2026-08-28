@@ -138,10 +138,27 @@ $isAuditor = ($role === 'auditor');
                 <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
                     <?= csrf_field() ?>
 
+                    <?php
+                        $telRaw = preg_replace('/[^0-9]/', '', $persona['telefono'] ?? '');
+                        $telPrefix = strlen($telRaw) >= 4 ? substr($telRaw, 0, 4) : '0412';
+                        $telNum = strlen($telRaw) >= 11 ? substr($telRaw, 4, 7) : (strlen($telRaw) > 4 ? substr($telRaw, 4) : '');
+                    ?>
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nuevo Teléfono Móvil</label>
-                        <input type="text" name="telefono" value="<?= e($persona['telefono'] ?? '') ?>" placeholder="Ej: 0412-1234567"
-                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                        <div class="flex items-center gap-2">
+                            <select name="telefono_codigo" id="perfil_telefono_codigo"
+                                    class="w-44 px-3 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm font-semibold focus:bg-white focus:border-primary focus:outline-none cursor-pointer shrink-0">
+                                <option value="0412" <?= $telPrefix === '0412' ? 'selected' : '' ?>>0412 (Digitel)</option>
+                                <option value="0414" <?= $telPrefix === '0414' ? 'selected' : '' ?>>0414 (Movistar)</option>
+                                <option value="0424" <?= $telPrefix === '0424' ? 'selected' : '' ?>>0424 (Movistar)</option>
+                                <option value="0416" <?= $telPrefix === '0416' ? 'selected' : '' ?>>0416 (Movilnet)</option>
+                                <option value="0426" <?= $telPrefix === '0426' ? 'selected' : '' ?>>0426 (Movilnet)</option>
+                            </select>
+                            <input type="text" name="telefono_numero" id="perfil_telefono_numero" maxlength="7" placeholder="1234567"
+                                   value="<?= e($telNum) ?>"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 7)"
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none tracking-wider">
+                        </div>
                     </div>
 
                     <div>

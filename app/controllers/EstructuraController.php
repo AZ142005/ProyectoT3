@@ -228,7 +228,9 @@ class EstructuraController extends Controller {
             $nombre    = trim($_POST['nombre'] ?? '');
             $apellido  = trim($_POST['apellido'] ?? '');
             $tipo      = trim($_POST['tipo'] ?? 'propietario');
-            $telefono  = trim($_POST['telefono'] ?? '');
+            $telCodigo = trim($_POST['telefono_codigo'] ?? '');
+            $telNumero = trim($_POST['telefono_numero'] ?? '');
+            $telefono  = !empty($telNumero) ? ($telCodigo . $telNumero) : trim($_POST['telefono'] ?? '');
             $email     = trim($_POST['email'] ?? '');
 
             // 1. Validaciones previas de formato y obligatoriedad (Cédula primero)
@@ -250,8 +252,14 @@ class EstructuraController extends Controller {
                 return;
             }
 
+            if (!empty($telNumero) && (strlen($telNumero) !== 7 || !ctype_digit($telNumero))) {
+                Flash::error('El número de teléfono debe contener exactamente 7 dígitos numéricos tras el código de operadora.');
+                $this->redirect('/admin/estructura');
+                return;
+            }
+
             if (!empty($telefono) && !validarTelefono($telefono)) {
-                Flash::error('El formato del teléfono no es válido (ej: 0412-1234567).');
+                Flash::error('El formato del teléfono no es válido (use una operadora válida como 0412, 0414, 0424, 0416 o 0426).');
                 $this->redirect('/admin/estructura');
                 return;
             }
