@@ -80,7 +80,13 @@
                                             <span><?= intval($edificio['total_unidades']) ?> unidades</span>
                                         </div>
                                         <div class="flex items-center gap-1.5">
-                                            <button onclick="editEdificio(<?= json_encode($edificio, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
+                                            <button type="button" 
+                                                    data-id="<?= e($edificio['id']) ?>" 
+                                                    data-nombre="<?= e($edificio['nombre']) ?>" 
+                                                    data-descripcion="<?= e($edificio['descripcion'] ?? '') ?>" 
+                                                    onclick="editEdificio(this.dataset.id, this.dataset.nombre, this.dataset.descripcion)" 
+                                                    class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
+                                                    title="Editar">
                                                 <span class="material-symbols-outlined text-lg">edit</span>
                                             </button>
                                             <form method="POST" action="/admin/estructura/edificio/toggle" style="display:inline">
@@ -171,7 +177,14 @@
                                             </td>
                                             <td class="p-3.5 text-right">
                                                 <div class="inline-flex items-center gap-1">
-                                                    <button onclick="editUnidad(<?= json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar">
+                                                    <button type="button" 
+                                                            data-id="<?= e($u['id']) ?>" 
+                                                            data-numero="<?= e($u['numero']) ?>" 
+                                                            data-edificio-id="<?= e($u['edificio_id']) ?>" 
+                                                            data-cuota="<?= e($u['cuota_mensual']) ?>" 
+                                                            onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, this.dataset.cuota)" 
+                                                            class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
+                                                            title="Editar">
                                                         <span class="material-symbols-outlined text-lg">edit</span>
                                                     </button>
                                                     <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
@@ -197,7 +210,7 @@
 </div>
 
 <!-- MODAL: AGREGAR / EDITAR EDIFICIO -->
-<div id="modalEdificio" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+<div id="modalEdificio" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-5 transform transition-all border border-outline-variant">
         <div class="flex items-center justify-between border-b border-background pb-3">
             <h3 id="modalEdificioTitle" class="text-base font-bold text-on-surface">Agregar Edificio</h3>
@@ -231,7 +244,7 @@
 </div>
 
 <!-- MODAL: AGREGAR / EDITAR UNIDAD -->
-<div id="modalUnidad" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+<div id="modalUnidad" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-5 transform transition-all border border-outline-variant">
         <div class="flex items-center justify-between border-b border-background pb-3">
             <h3 id="modalUnidadTitle" class="text-base font-bold text-on-surface">Agregar Unidad</h3>
@@ -281,19 +294,25 @@ function openModalEdificio() {
     document.getElementById('edificio_nombre').value = '';
     document.getElementById('edificio_descripcion').value = '';
     document.getElementById('modalEdificioTitle').innerText = 'Agregar Edificio';
-    document.getElementById('modalEdificio').classList.remove('hidden');
+    const m = document.getElementById('modalEdificio');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
 }
 
-function editEdificio(ed) {
-    document.getElementById('edificio_id_input').value = ed.id;
-    document.getElementById('edificio_nombre').value = ed.nombre;
-    document.getElementById('edificio_descripcion').value = ed.descripcion || '';
+function editEdificio(id, nombre, descripcion) {
+    document.getElementById('edificio_id_input').value = id;
+    document.getElementById('edificio_nombre').value = nombre || '';
+    document.getElementById('edificio_descripcion').value = descripcion || '';
     document.getElementById('modalEdificioTitle').innerText = 'Editar Edificio';
-    document.getElementById('modalEdificio').classList.remove('hidden');
+    const m = document.getElementById('modalEdificio');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
 }
 
 function closeModalEdificio() {
-    document.getElementById('modalEdificio').classList.add('hidden');
+    const m = document.getElementById('modalEdificio');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
 }
 
 function openModalUnidad() {
@@ -302,19 +321,25 @@ function openModalUnidad() {
     document.getElementById('unidad_edificio_id').value = '';
     document.getElementById('unidad_cuota_mensual').value = '';
     document.getElementById('modalUnidadTitle').innerText = 'Agregar Unidad';
-    document.getElementById('modalUnidad').classList.remove('hidden');
+    const m = document.getElementById('modalUnidad');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
 }
 
-function editUnidad(u) {
-    document.getElementById('unidad_id_input').value = u.id;
-    document.getElementById('unidad_numero').value = u.numero;
-    document.getElementById('unidad_edificio_id').value = u.edificio_id;
-    document.getElementById('unidad_cuota_mensual').value = u.cuota_mensual;
+function editUnidad(id, numero, edificioId, cuotaMensual) {
+    document.getElementById('unidad_id_input').value = id;
+    document.getElementById('unidad_numero').value = numero || '';
+    document.getElementById('unidad_edificio_id').value = edificioId || '';
+    document.getElementById('unidad_cuota_mensual').value = cuotaMensual || '';
     document.getElementById('modalUnidadTitle').innerText = 'Editar Unidad';
-    document.getElementById('modalUnidad').classList.remove('hidden');
+    const m = document.getElementById('modalUnidad');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
 }
 
 function closeModalUnidad() {
-    document.getElementById('modalUnidad').classList.add('hidden');
+    const m = document.getElementById('modalUnidad');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
 }
 </script>
