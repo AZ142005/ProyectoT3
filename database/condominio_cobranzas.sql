@@ -1,6 +1,6 @@
 -- ========================================================
 -- BASE DE DATOS: CONDOMINIO DIGITAL (PROYECTO T3)
--- Fecha de Exportación: 2026-08-27 21:04:28
+-- Fecha de Exportación: 2026-08-28 14:30:45
 -- ========================================================
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -451,7 +451,7 @@ CREATE TABLE `personas` (
   `telefono` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `unidad_id` int(11) DEFAULT NULL,
-  `tipo` enum('propietario','residente','ambos') DEFAULT 'residente',
+  `tipo` enum('propietario','inquilino','ambos') NOT NULL DEFAULT 'propietario',
   `password` varchar(255) DEFAULT NULL,
   `estado` tinyint(4) DEFAULT 1,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -461,12 +461,12 @@ CREATE TABLE `personas` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `cedula` (`cedula`),
   KEY `unidad_id` (`unidad_id`),
+  KEY `idx_personas_unidad_estado` (`unidad_id`,`estado`),
   CONSTRAINT `personas_ibfk_1` FOREIGN KEY (`unidad_id`) REFERENCES `unidades` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Volcado de datos para la tabla `personas`
 INSERT INTO `personas` (`id`, `cedula`, `nombre`, `apellido`, `telefono`, `email`, `unidad_id`, `tipo`, `password`, `estado`, `fecha_registro`, `intentos_fallidos`, `bloqueado_hasta`, `two_factor_enabled`) VALUES
-('1', 'V12345678', 'Juan', 'Perez', '04121234567', 'juan@email.com', '1', 'ambos', '$2y$10$mmO7CsSgLvjxieJYEM2BrO3DyeWdgdr0o4E4xg0UskD.ftJ4jFG2a', '1', '2026-07-02 14:00:52', '0', NULL, '0'),
 ('2', 'V87654321', 'Maria', 'Gomez', '04127654321', 'maria@email.com', '2', 'propietario', '$2y$10$kPLbyrYMVLKwBWKVy3YIpu9Lt2vtnLfXqvkWU0YIA8cD/gWtiYYnC', '1', '2026-07-02 14:00:52', '0', NULL, '0');
 
 -- --------------------------------------------------------
@@ -483,7 +483,7 @@ CREATE TABLE `rate_limits` (
   PRIMARY KEY (`id`),
   KEY `idx_key_ip` (`key`,`ip`),
   KEY `idx_window` (`window_start`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Volcado de datos para la tabla `rate_limits`
 INSERT INTO `rate_limits` (`id`, `key`, `ip`, `attempts`, `window_start`) VALUES
@@ -511,7 +511,11 @@ INSERT INTO `rate_limits` (`id`, `key`, `ip`, `attempts`, `window_start`) VALUES
 ('22', 'register', '::1', '1', '2026-08-27 16:06:48'),
 ('23', 'register', '::1', '1', '2026-08-27 16:20:10'),
 ('24', 'register', '::1', '1', '2026-08-27 16:20:28'),
-('25', 'register', '::1', '1', '2026-08-27 16:20:41');
+('25', 'register', '::1', '1', '2026-08-27 16:20:41'),
+('26', 'login', '127.0.0.1', '1', '2026-08-28 08:51:06'),
+('27', 'solicitud_cambio_1', '127.0.0.1', '1', '2026-08-28 08:51:19'),
+('28', 'login', '127.0.0.1', '1', '2026-08-28 08:51:45'),
+('29', 'login', '127.0.0.1', '1', '2026-08-28 09:59:04');
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `refresh_tokens`
@@ -623,7 +627,7 @@ CREATE TABLE `usuarios` (
 
 -- Volcado de datos para la tabla `usuarios`
 INSERT INTO `usuarios` (`id`, `usuario`, `email`, `password`, `nombre_completo`, `rol`, `estado`, `ultimo_acceso`, `fecha_registro`, `intentos_fallidos`, `bloqueado_hasta`, `two_factor_enabled`) VALUES
-('1', 'admin', 'admin@conjunto.com', '$2y$12$Ibe1jsv3HxyQtyHMqjCk6.zGOHm6CPoDO8wbRbfQ8H/YSoLx0BqjC', 'Junior', 'admin', '1', '2026-08-27 16:02:41', '2026-07-02 14:00:52', '0', NULL, '0');
+('1', 'admin', 'admin@conjunto.com', '$2y$12$MfAH2ZrJjnc5dhe0QEAsNuVxNmcAfTQiaE4ljpZF7gi9tP3LCYwXW', 'Junior', 'admin', '1', '2026-08-28 10:28:26', '2026-07-02 14:00:52', '0', NULL, '0');
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `vehiculos`
