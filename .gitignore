@@ -24,3 +24,16 @@ Desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Agentes de IA y configuración de asistentes
+.agents/
+.cursor/
+.freebuff/
+.gemini/
+.windsurf/
+.cline/
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+skills/
+
