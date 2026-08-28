@@ -127,7 +127,7 @@ class PerfilController extends Controller {
         }
 
         if (!empty($telefono) && !validarTelefono($telefono)) {
-            Flash::set('danger', 'El formato del teléfono no es válido (use una operadora válida como 0412, 0414, 0424, 0416 o 0426).');
+            Flash::set('danger', 'El formato del teléfono no es válido (use una operadora válida como 0412, 0422, 0414, 0424, 0416 o 0426).');
             $this->redirect('/perfil');
             return;
         }

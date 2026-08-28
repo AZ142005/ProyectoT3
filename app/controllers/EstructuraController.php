@@ -259,7 +259,7 @@ class EstructuraController extends Controller {
             }
 
             if (!empty($telefono) && !validarTelefono($telefono)) {
-                Flash::error('El formato del teléfono no es válido (use una operadora válida como 0412, 0414, 0424, 0416 o 0426).');
+                Flash::error('El formato del teléfono no es válido (use una operadora válida como 0412, 0422, 0414, 0424, 0416 o 0426).');
                 $this->redirect('/admin/estructura');
                 return;
             }

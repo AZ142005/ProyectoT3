@@ -149,6 +149,7 @@ $isAuditor = ($role === 'auditor');
                             <select name="telefono_codigo" id="perfil_telefono_codigo"
                                     class="w-44 px-3 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm font-semibold focus:bg-white focus:border-primary focus:outline-none cursor-pointer shrink-0">
                                 <option value="0412" <?= $telPrefix === '0412' ? 'selected' : '' ?>>0412 (Digitel)</option>
+                                <option value="0422" <?= $telPrefix === '0422' ? 'selected' : '' ?>>0422 (Digitel)</option>
                                 <option value="0414" <?= $telPrefix === '0414' ? 'selected' : '' ?>>0414 (Movistar)</option>
                                 <option value="0424" <?= $telPrefix === '0424' ? 'selected' : '' ?>>0424 (Movistar)</option>
                                 <option value="0416" <?= $telPrefix === '0416' ? 'selected' : '' ?>>0416 (Movilnet)</option>

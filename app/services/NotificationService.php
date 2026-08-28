@@ -34,8 +34,8 @@ class NotificationService {
             ];
         }
 
-        // Móviles venezolanos (0412, 0414, 0424, 0416, 0426)
-        if (preg_match('/^0?(412|414|424|416|426)([0-9]{7})$/', $digits, $matches)) {
+        // Móviles venezolanos (0412, 0422, 0414, 0424, 0416, 0426)
+        if (preg_match('/^0?(412|422|414|424|416|426)([0-9]{7})$/', $digits, $matches)) {
             return [
                 'es_movil' => true,
                 'telefono' => '58' . $matches[1] . $matches[2],

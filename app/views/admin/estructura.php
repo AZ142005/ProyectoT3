@@ -398,6 +398,7 @@
                                 <select id="residente_telefono_codigo" name="telefono_codigo"
                                         class="w-36 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-semibold text-xs focus:outline-none focus:border-primary cursor-pointer shrink-0">
                                     <option value="0412">0412 (Digitel)</option>
+                                    <option value="0422">0422 (Digitel)</option>
                                     <option value="0414">0414 (Movistar)</option>
                                     <option value="0424">0424 (Movistar)</option>
                                     <option value="0416">0416 (Movilnet)</option>
