@@ -1,6 +1,6 @@
 <div class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
     <!-- Encabezado de Identificación del Residente -->
-    <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4">
+    <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4 border-b-4 border-institutional-brown">
         <div>
             <h2 class="text-2xl font-bold"><?= e($residente['nombre'] . ' ' . $residente['apellido']) ?></h2>
             <p class="text-sm opacity-90 mt-1 flex flex-wrap gap-x-4 gap-y-1">

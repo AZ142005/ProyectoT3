@@ -34,7 +34,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
 }
 ?>
 <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0 shrink-0">
-    <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+    <div class="p-5 border-b border-[#4a2c11]/80 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-primary-container text-3xl">domain</span>
             <div>

@@ -22,10 +22,15 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#27ae60", // Verde del sistema original
+                        "primary": "#27ae60", // Verde institucional principal
                         "primary-hover": "#1e8449",
-                        "primary-container": "#facc15", // Amarillo de resaltado
+                        "primary-container": "#facc15", // Amarillo institucional de resaltado
                         "on-primary-container": "#6c5700",
+                        "institutional-green": "#27ae60",
+                        "institutional-yellow": "#facc15",
+                        "institutional-brown": "#4a2c11", // Marrón oscuro institucional (RNF 1)
+                        "institutional-brown-dark": "#2d1a0c",
+                        "institutional-brown-light": "#6d4c41",
                         "background": "#f0f7f0", // Color verde claro de fondo heredado
                         "on-surface": "#2c3e50",
                         "on-surface-variant": "#5a7a6a",
@@ -39,6 +44,40 @@
         }
     </script>
     <style>
+        :root {
+            --color-institutional-green: #27ae60;
+            --color-institutional-green-hover: #1e8449;
+            --color-institutional-yellow: #facc15;
+            --color-institutional-brown: #4a2c11;
+            --color-institutional-brown-dark: #2d1a0c;
+            --color-institutional-brown-light: #6d4c41;
+            --bs-primary: #27ae60;
+        }
+
+        /* RNF 1: Paleta institucional (Verde, Amarillo y en menor medida Marrón) */
+        .border-institutional-brown {
+            border-color: #4a2c11 !important;
+        }
+        .bg-institutional-brown {
+            background-color: #4a2c11 !important;
+            color: #ffffff !important;
+        }
+        .text-institutional-brown {
+            color: #4a2c11 !important;
+        }
+        .badge-institutional-brown {
+            background-color: #f7f3ee;
+            color: #4a2c11;
+            border: 1px solid #d7ccc8;
+        }
+        .header-institutional-accent {
+            border-bottom: 2px solid #4a2c11;
+        }
+        .card-institutional-accent {
+            border-top: 3px solid #27ae60;
+            border-bottom: 2px solid #4a2c11;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
         }

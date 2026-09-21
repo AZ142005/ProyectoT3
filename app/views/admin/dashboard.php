@@ -8,7 +8,7 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Barra superior -->
-        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
+        <header class="bg-white border-b-2 border-institutional-brown/40 h-16 px-6 flex justify-between items-center shrink-0">
             <div class="flex items-center gap-3">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
