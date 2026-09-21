@@ -313,6 +313,8 @@ class PagoModel extends BaseModel {
 
             $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Rechazado", "Su pago Ref. " . $info['referencia'] . " ha sido rechazado. Motivo: " . $motivo, "danger", "/pagos/subir");
+        } elseif ($nuevoEstado === 'EN REVISIÓN') {
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago en Revisión", "Su pago Ref. " . $info['referencia'] . " por Bs. " . number_format(floatval($info['monto']), 2) . " está siendo revisado por la administración.", "info", "/pagos");
         }
     }
 
@@ -428,12 +430,12 @@ class PagoModel extends BaseModel {
                                 'abono_pago',
                                 $montoRestante,
                                 "Saldo a favor por exceso de pago en lote",
-                                $pago['id']
+                                $sqlPago['id']
                             );
                         }
                     }
 
-                    $this->notificarCambioEstadoPago($db, $pago['id'], 'APROBADO', 'Aprobación masiva por lote');
+                    $this->notificarCambioEstadoPago($db, $sqlPago['id'], 'APROBADO', 'Aprobación masiva por lote');
                     $procesados++;
                 }
             }

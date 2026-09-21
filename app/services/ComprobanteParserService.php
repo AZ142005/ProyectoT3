@@ -154,8 +154,8 @@ class ComprobanteParserService {
         // Prioridad al formato venezolano (punto=miles, coma=decimal): 1.250,50
         // El formato internacional (punto=decimal): 150.00
         // Se distinguen ANTES de aplicar str_replace para evitar inflación 100x.
-        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{2})/i', $texto, $matchesMonto)) {
-            // Formato venezolano: 1.250,50 → remover puntos de miles, cambiar coma por punto
+        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i', $texto, $matchesMonto)) {
+            // Formato venezolano: 1.250,50 o 450,20 → remover puntos de miles, cambiar coma por punto
             $montoStr = str_replace('.', '', $matchesMonto[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
@@ -164,8 +164,8 @@ class ComprobanteParserService {
             // Formato internacional: 1500.00 → usar directamente (NO strip de puntos)
             $resultado['monto'] = round(floatval($matchesMonto[1]), 2);
             $resultado['detectado'] = true;
-        } elseif (preg_match('/([0-9]{1,3}(?:\.[0-9]{3})+,[0-9]{2})/', $texto, $matchesMontoVen)) {
-            // Monto venezolano sin prefijo de etiqueta
+        } elseif (preg_match('/([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/', $texto, $matchesMontoVen)) {
+            // Monto venezolano sin prefijo de etiqueta (con o sin separador de miles)
             $montoStr = str_replace('.', '', $matchesMontoVen[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
@@ -189,18 +189,29 @@ class ComprobanteParserService {
     }
 
     /**
-     * Procesa un archivo comprobante cargado.
-     * Soporta PDF (con extracción nativa de streams) y formatos de texto.
+     * Procesa texto plano reconocido (ej. mediante motor OCR en cliente o servicio externo).
      *
-     * Mensaje de fallback para la UI:
-     * "La extracción automática funciona mejor con comprobantes de texto plano.
-     *  Si algún dato no se completa automáticamente, ingréselo manualmente."
-     *
-     * @param string $tmpPath  Ruta temporal del archivo cargado
-     * @param string $extension Extensión del archivo (pdf, txt, jpg, etc.)
+     * @param string $texto
      * @return array Resultado del análisis heurístico
      */
-    public function procesarArchivo(string $tmpPath, string $extension): array {
+    public function procesarTextoOcr(string $texto): array {
+        return $this->analizarTexto($texto);
+    }
+
+    /**
+     * Procesa un archivo comprobante cargado.
+     * Soporta PDF (con extracción nativa de streams) e integración con texto OCR.
+     *
+     * @param string $tmpPath   Ruta temporal del archivo cargado
+     * @param string $extension Extensión del archivo (pdf, txt, jpg, etc.)
+     * @param string|null $textoOcr Texto pre-extraído vía OCR si aplica
+     * @return array Resultado del análisis heurístico
+     */
+    public function procesarArchivo(string $tmpPath, string $extension, ?string $textoOcr = null): array {
+        if (!empty($textoOcr)) {
+            return $this->analizarTexto($textoOcr);
+        }
+
         $ext = strtolower($extension);
 
         if ($ext === 'pdf') {
@@ -220,8 +231,8 @@ class ComprobanteParserService {
             return $this->analizarTexto($texto);
         }
 
-        // Para imágenes y otros formatos no soportados, retornar sin datos
-        error_log("[ComprobanteParserService] procesarArchivo: formato '{$ext}' no soportado para extracción automática. El usuario deberá ingresar los datos manualmente.");
+        // Para imágenes sin texto OCR proporcionado
+        error_log("[ComprobanteParserService] procesarArchivo: formato '{$ext}' requiere extracción OCR para análisis automático. El usuario deberá ingresar los datos manualmente.");
         return [
             'banco'      => null,
             'referencia' => null,

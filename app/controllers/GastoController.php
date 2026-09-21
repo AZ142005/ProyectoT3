@@ -200,4 +200,175 @@ class GastoController extends Controller {
             'title'               => 'Rendición de Cuentas y Justificación de Gastos'
         ]);
     }
+
+    /**
+     * Muestra la interfaz de ingesta y carga del PDF Maestro de Gastos (RF 30, RF 31).
+     */
+    public function cargarMaestro() {
+        Auth::requireRole('admin');
+
+        $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
+        $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));
+
+        $categoriasModel = new CategoriasGastosModel();
+        $categorias = $categoriasModel->getActivas();
+
+        $renglones = $_SESSION['maestro_renglones_preview'] ?? [];
+        $archivo = $_SESSION['maestro_archivo_preview'] ?? null;
+
+        $this->render('admin/gastos/cargar_maestro', [
+            'mes'        => $mes,
+            'anio'       => $anio,
+            'categorias' => $categorias,
+            'renglones'  => $renglones,
+            'archivo'    => $archivo,
+            'layout'     => 'admin',
+            'title'      => 'Ingesta de PDF Maestro de Gastos'
+        ]);
+    }
+
+    /**
+     * Procesa la extracción estructurada del PDF Maestro (RF 30, RF 31, RF 32).
+     */
+    public function parsearMaestro() {
+        Auth::requireRole('admin');
+
+        $mes = intval($_POST['mes'] ?? date('n'));
+        $anio = intval($_POST['anio'] ?? date('Y'));
+        $textoManual = trim($_POST['texto_manual'] ?? '');
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+               || !empty($_POST['ajax']);
+
+        $categoriasModel = new CategoriasGastosModel();
+        $categorias = $categoriasModel->getActivas();
+        $parserService = new \App\Services\GastoParserService();
+
+        $nombreArchivoSoporte = null;
+        $renglonesExtraidos = [];
+
+        // 1. Carga de archivo PDF Maestro
+        if (!empty($_FILES['pdf_maestro']) && $_FILES['pdf_maestro']['error'] === UPLOAD_ERR_OK) {
+            $uploader = new \App\Services\FileUploader(
+                UPLOADS_PATH . '/soportes',
+                ['application/pdf'],
+                ['pdf'],
+                10485760 // 10MB
+            );
+            $nombreArchivoSoporte = $uploader->upload($_FILES['pdf_maestro']);
+
+            if (!$nombreArchivoSoporte) {
+                if ($isAjax) {
+                    $this->json(['success' => false, 'message' => 'Archivo no válido. Solo se aceptan PDFs de hasta 10MB.']);
+                    return;
+                }
+                Flash::set('danger', 'Archivo no válido. Solo se aceptan PDFs de hasta 10MB.');
+                $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+                return;
+            }
+
+            $rutaCompleta = UPLOADS_PATH . '/soportes/' . $nombreArchivoSoporte;
+            $resultado = $parserService->procesarPdfMaestro($rutaCompleta, $mes, $anio, $categorias);
+            $renglonesExtraidos = $resultado['renglones'];
+        } elseif (!empty($textoManual)) {
+            // 2. Extracción de texto manual/pegado
+            $renglonesExtraidos = $parserService->analizarLineasGastos($textoManual, 1, $categorias, $mes, $anio);
+        } else {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Debe adjuntar un archivo PDF maestro o ingresar el texto de los gastos.']);
+                return;
+            }
+            Flash::set('danger', 'Debe adjuntar un archivo PDF maestro o ingresar el texto de los gastos.');
+            $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+            return;
+        }
+
+        if (empty($renglonesExtraidos)) {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'No se detectaron renglones estructurados en el documento. Puede agregarlos manualmente.']);
+                return;
+            }
+            Flash::set('warning', 'No se pudieron extraer renglones de gastos automáticamente. Puede ingresarlos manualmente en la tabla.');
+        }
+
+        if ($isAjax) {
+            $this->json([
+                'success'   => true,
+                'archivo'   => $nombreArchivoSoporte,
+                'renglones' => $renglonesExtraidos,
+                'total'     => count($renglonesExtraidos),
+                'suma'      => round(array_sum(array_column($renglonesExtraidos, 'monto_total')), 2)
+            ]);
+            return;
+        }
+
+        $_SESSION['maestro_renglones_preview'] = $renglonesExtraidos;
+        $_SESSION['maestro_archivo_preview'] = $nombreArchivoSoporte;
+
+        Flash::set('info', 'Se detectaron ' . count($renglonesExtraidos) . ' renglones en el PDF Maestro. Revise y confirme antes de guardar.');
+        $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+    }
+
+    /**
+     * Guarda el lote confirmado de gastos comunes desde el PDF Maestro (RF 31, RF 33, RF 34).
+     */
+    public function importarMaestro() {
+        Auth::requireRole('admin');
+
+        $mes = intval($_POST['mes'] ?? date('n'));
+        $anio = intval($_POST['anio'] ?? date('Y'));
+        $archivoMaestro = trim($_POST['archivo_maestro'] ?? '');
+        $gastosRaw = $_POST['gastos'] ?? [];
+        $adminId = Auth::id() ?? 1;
+
+        if (empty($gastosRaw) || !is_array($gastosRaw)) {
+            Flash::set('danger', 'No hay gastos especificados para importar.');
+            $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+            return;
+        }
+
+        $itemsAImportar = [];
+        foreach ($gastosRaw as $g) {
+            $monto = floatval($g['monto_total'] ?? 0);
+            $proveedor = trim($g['proveedor'] ?? '');
+            $descripcion = trim($g['descripcion'] ?? '');
+
+            if ($monto > 0 && !empty($proveedor) && !empty($descripcion)) {
+                $itemsAImportar[] = [
+                    'categoria_id'          => intval($g['categoria_id'] ?? 1),
+                    'descripcion'           => $descripcion,
+                    'monto_total'           => $monto,
+                    'fecha_gasto'           => !empty($g['fecha_gasto']) ? trim($g['fecha_gasto']) : sprintf('%04d-%02d-01', $anio, $mes),
+                    'proveedor'             => $proveedor,
+                    'nro_factura_proveedor' => !empty($g['nro_factura_proveedor']) ? trim($g['nro_factura_proveedor']) : null,
+                    'pagina_soporte'        => max(1, intval($g['pagina_soporte'] ?? 1)),
+                    'extracto_texto'        => !empty($g['extracto_texto']) ? trim($g['extracto_texto']) : null
+                ];
+            }
+        }
+
+        if (empty($itemsAImportar)) {
+            Flash::set('danger', 'Ningún renglón contiene datos válidos (monto > 0, proveedor y descripción requeridos).');
+            $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+            return;
+        }
+
+        try {
+            $gastosModel = new GastosModel();
+            $resultado = $gastosModel->importarGastosMaestro($itemsAImportar, $adminId, $archivoMaestro, $mes, $anio);
+
+            unset($_SESSION['maestro_renglones_preview'], $_SESSION['maestro_archivo_preview']);
+
+            $msg = "Se importaron exitosamente {$resultado['procesados']} gastos comunes desde el PDF Maestro.";
+            if ($resultado['omitidos'] > 0) {
+                $msg .= " ({$resultado['omitidos']} fueron omitidos por duplicidad o datos incompletos).";
+            }
+            Flash::set('success', $msg);
+            $this->redirect("/admin/gastos?mes={$mes}&anio={$anio}");
+        } catch (\Exception $e) {
+            error_log("[GASTO] Error al importar lote maestro: " . $e->getMessage());
+            Flash::set('danger', 'Ocurrió un error al guardar los gastos en la base de datos.');
+            $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
+        }
+    }
 }

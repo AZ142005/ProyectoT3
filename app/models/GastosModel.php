@@ -62,24 +62,29 @@ class GastosModel extends BaseModel {
             }
         }
 
+        $paginaSoporte = !empty($datos['pagina_soporte']) ? intval($datos['pagina_soporte']) : 1;
+        $extractoTexto = !empty($datos['extracto_texto']) ? trim($datos['extracto_texto']) : null;
+
         $sql = "
             INSERT INTO gastos_comunes 
-            (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, admin_id)
-            VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :admin_id)
+            (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id)
+            VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id)
         ";
 
         $stmt = $db->prepare($sql);
         $stmt->execute([
-            'cat_id'   => intval($datos['categoria_id']),
-            'mes'      => $mes,
-            'anio'     => $anio,
-            'desc'     => trim($datos['descripcion']),
-            'monto'    => $montoTotal,
-            'fecha'    => !empty($datos['fecha_gasto']) ? $datos['fecha_gasto'] : date('Y-m-d'),
-            'prov'     => $proveedor,
-            'nro_fac'  => $nroFactura,
-            'soporte'  => !empty($datos['soporte_digital']) ? trim($datos['soporte_digital']) : null,
-            'admin_id' => intval($datos['admin_id'])
+            'cat_id'          => intval($datos['categoria_id']),
+            'mes'             => $mes,
+            'anio'            => $anio,
+            'desc'            => trim($datos['descripcion']),
+            'monto'           => $montoTotal,
+            'fecha'           => !empty($datos['fecha_gasto']) ? $datos['fecha_gasto'] : date('Y-m-d'),
+            'prov'            => $proveedor,
+            'nro_fac'         => $nroFactura,
+            'soporte'         => !empty($datos['soporte_digital']) ? trim($datos['soporte_digital']) : null,
+            'pagina_soporte'  => $paginaSoporte,
+            'extracto_texto'  => $extractoTexto,
+            'admin_id'        => intval($datos['admin_id'])
         ]);
 
         $gastoId = intval($db->lastInsertId());
@@ -235,5 +240,114 @@ class GastosModel extends BaseModel {
         }
 
         return $actualizado;
+    }
+
+    /**
+     * Importa un lote de gastos estructurados a partir de un PDF Maestro (RF 30, RF 31, RF 34).
+     * Ejecuta dentro de una transacción PDO y registra auditoría.
+     *
+     * @param array $items Array de gastos a importar
+     * @param int $adminId ID del administrador autenticado
+     * @param string $archivoMaestro Nombre del archivo PDF maestro en uploads/soportes/
+     * @param int $mes Mes del período
+     * @param int $anio Año del período
+     * @return array ['procesados' => int, 'omitidos' => int, 'ids' => array]
+     */
+    public function importarGastosMaestro(array $items, int $adminId, string $archivoMaestro, int $mes, int $anio): array {
+        $db = $this->db();
+        $procesados = 0;
+        $omitidos = 0;
+        $ids = [];
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+
+        $db->beginTransaction();
+        try {
+            $stmtCheck = $db->prepare("
+                SELECT id FROM gastos_comunes 
+                WHERE mes = :mes AND anio = :anio AND nro_factura_proveedor = :factura AND proveedor = :proveedor AND deleted_at IS NULL
+            ");
+
+            $sqlInsert = "
+                INSERT INTO gastos_comunes 
+                (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id)
+                VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id)
+            ";
+            $stmtInsert = $db->prepare($sqlInsert);
+
+            $stmtLog = $db->prepare("
+                INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_nuevo, detalles, ip_address)
+                VALUES (:usuario_id, :admin_id, 'crear_gasto_maestro', 'gastos_comunes', :registro_id, 'activo', :detalles, :ip)
+            ");
+
+            foreach ($items as $item) {
+                $monto = floatval($item['monto_total'] ?? 0);
+                $proveedor = trim($item['proveedor'] ?? '');
+                $descripcion = trim($item['descripcion'] ?? '');
+                $nroFactura = !empty($item['nro_factura_proveedor']) ? trim($item['nro_factura_proveedor']) : null;
+                $categoriaId = intval($item['categoria_id'] ?? 1);
+                $fechaGasto = !empty($item['fecha_gasto']) ? trim($item['fecha_gasto']) : sprintf('%04d-%02d-01', $anio, $mes);
+                $paginaSoporte = max(1, intval($item['pagina_soporte'] ?? 1));
+                $extractoTexto = !empty($item['extracto_texto']) ? trim($item['extracto_texto']) : null;
+
+                if ($monto <= 0 || empty($proveedor) || empty($descripcion)) {
+                    $omitidos++;
+                    continue;
+                }
+
+                // Evitar duplicados por proveedor y factura en el mismo período
+                if (!empty($nroFactura)) {
+                    $stmtCheck->execute([
+                        'mes'       => $mes,
+                        'anio'      => $anio,
+                        'factura'   => $nroFactura,
+                        'proveedor' => $proveedor
+                    ]);
+                    if ($stmtCheck->rowCount() > 0) {
+                        $omitidos++;
+                        continue;
+                    }
+                }
+
+                $stmtInsert->execute([
+                    'cat_id'          => $categoriaId,
+                    'mes'             => $mes,
+                    'anio'            => $anio,
+                    'desc'            => mb_substr($descripcion, 0, 255),
+                    'monto'           => round($monto, 2),
+                    'fecha'           => $fechaGasto,
+                    'prov'            => mb_substr($proveedor, 0, 150),
+                    'nro_fac'         => $nroFactura ? mb_substr($nroFactura, 0, 100) : null,
+                    'soporte'         => $archivoMaestro,
+                    'pagina_soporte'  => $paginaSoporte,
+                    'extracto_texto'  => $extractoTexto,
+                    'admin_id'        => $adminId
+                ]);
+
+                $gastoId = intval($db->lastInsertId());
+                $ids[] = $gastoId;
+                $procesados++;
+
+                $stmtLog->execute([
+                    'usuario_id'  => $adminId,
+                    'admin_id'    => $adminId,
+                    'registro_id' => $gastoId,
+                    'detalles'    => "PDF Maestro: {$archivoMaestro} (Pág. {$paginaSoporte}) | {$proveedor} | Bs. {$monto}",
+                    'ip'          => $ip
+                ]);
+            }
+
+            $db->commit();
+            return [
+                'procesados' => $procesados,
+                'omitidos'   => $omitidos,
+                'ids'        => $ids
+            ];
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("[GastosModel] Error importarGastosMaestro: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

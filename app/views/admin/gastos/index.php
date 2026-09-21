@@ -36,10 +36,16 @@
             <p class="text-muted small mb-0">Control de facturas, pagos a proveedores y distribución de cuotas</p>
         </div>
         <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
-            <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto">
-                <span class="material-symbols-outlined fs-6">add</span>
-                <span>Nuevo Gasto</span>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/admin/gastos/maestro?mes=<?= e($filtros['mes']) ?>&anio=<?= e($filtros['anio']) ?>" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                    <span class="material-symbols-outlined fs-6">picture_as_pdf</span>
+                    <span>Ingesta PDF Maestro</span>
+                </a>
+                <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto">
+                    <span class="material-symbols-outlined fs-6">add</span>
+                    <span>Nuevo Gasto</span>
+                </button>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -131,6 +137,11 @@
                                             <a href="/uploads/soportes/<?= e($g['soporte_digital']) ?>" target="_blank" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                                                 <span class="material-symbols-outlined fs-6">visibility</span> Ver Doc
                                             </a>
+                                            <?php if (!empty($g['pagina_soporte'])): ?>
+                                                <span class="badge bg-light text-primary border border-primary-subtle d-block mt-1" style="font-size: 11px;">
+                                                    Pág. <?= e($g['pagina_soporte']) ?>
+                                                </span>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge bg-secondary text-white">Sin Soporte</span>
                                         <?php endif; ?>

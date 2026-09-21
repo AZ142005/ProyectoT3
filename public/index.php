@@ -177,6 +177,9 @@ $router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\Conciliaci
 
 // --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
 $router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/gastos/maestro', [\App\Controllers\GastoController::class, 'cargarMaestro'], [UserRole::ADMIN]);
+$router->post('/admin/gastos/parsear-maestro', [\App\Controllers\GastoController::class, 'parsearMaestro'], [UserRole::ADMIN]);
+$router->post('/admin/gastos/importar-maestro', [\App\Controllers\GastoController::class, 'importarMaestro'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/eliminar', [\App\Controllers\GastoController::class, 'eliminar'], [UserRole::ADMIN]);
 $router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'rendicionResidente'], [UserRole::RESIDENTE]);

@@ -7,6 +7,7 @@ use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\PagoModel;
 use App\Models\EdificiosModel;
+use App\Services\ComprobanteParserService;
 
 class PagoController extends Controller {
     
@@ -194,7 +195,8 @@ class PagoController extends Controller {
     }
 
     /**
-     * Endpoint de extracción simulada OCR de datos de comprobante (POST).
+     * Endpoint de extracción y análisis de datos de comprobante (POST).
+     * Soporta texto pre-extraído vía OCR en cliente o extracción nativa desde PDF.
      */
     public function extraer() {
         Auth::requireLogin();
@@ -203,15 +205,70 @@ class PagoController extends Controller {
             $this->json(['success' => false, 'error' => 'Demasiadas solicitudes de análisis.'], 429);
             return;
         }
-        $bancos = ['Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial', 'BNC', 'Bancaribe'];
-        
+
+        $parser = new ComprobanteParserService();
+        $resultado = [
+            'banco'      => null,
+            'referencia' => null,
+            'monto'      => null,
+            'fecha'      => null,
+            'detectado'  => false
+        ];
+
+        // 1. Caso A: Texto extraído vía OCR en cliente (Tesseract.js para imágenes)
+        $textoExtraido = trim($_POST['texto_extraido'] ?? '');
+        if (!empty($textoExtraido)) {
+            if (mb_strlen($textoExtraido) > 50000) {
+                $textoExtraido = mb_substr($textoExtraido, 0, 50000);
+            }
+            $resultado = $parser->analizarTexto($textoExtraido);
+        }
+        // 2. Caso B: Archivo PDF subido directamente para extracción nativa en backend
+        elseif (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
+            $tmpPath = $_FILES['comprobante']['tmp_name'];
+            $nombreOriginal = $_FILES['comprobante']['name'] ?? '';
+            $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
+
+            if ($extension === 'pdf') {
+                $resultado = $parser->procesarArchivo($tmpPath, 'pdf');
+            } else {
+                $this->json([
+                    'success'   => false,
+                    'detectado' => false,
+                    'error'     => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
+                ], 400);
+                return;
+            }
+        } else {
+            $this->json([
+                'success' => false,
+                'error'   => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
+            ], 400);
+            return;
+        }
+
+        $nombresBancos = [
+            'mercantil'  => 'Banco Mercantil',
+            'banesco'    => 'Banesco',
+            'venezuela'  => 'Banco de Venezuela',
+            'provincial' => 'BBVA Provincial',
+            'bancamiga'  => 'Bancamiga'
+        ];
+
+        $bancoPagador = $resultado['banco'] ? ($nombresBancos[$resultado['banco']] ?? ucfirst($resultado['banco'])) : '';
+        $bancoReceptor = $bancoPagador ? 'Banco Mercantil' : '';
+
         $this->json([
             'success'        => true,
-            'banco_pagador'  => $bancos[array_rand($bancos)],
-            'banco_receptor' => $bancos[array_rand($bancos)],
-            'referencia'     => strval(rand(10000000, 99999999)),
-            'monto'          => number_format(rand(30, 250) + (rand(0, 99) / 100), 2, '.', ''),
-            'fecha_pago'     => date('Y-m-d')
+            'detectado'      => (bool)$resultado['detectado'],
+            'banco_pagador'  => $bancoPagador,
+            'banco_receptor' => $bancoReceptor,
+            'referencia'     => $resultado['referencia'] ?? '',
+            'monto'          => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
+            'fecha_pago'     => $resultado['fecha'] ?? date('Y-m-d'),
+            'mensaje'        => $resultado['detectado']
+                ? 'Datos del comprobante detectados exitosamente.'
+                : 'No se pudieron detectar todos los datos con certeza. Por favor verifique los campos.'
         ]);
     }
 

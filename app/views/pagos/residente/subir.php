@@ -94,7 +94,7 @@
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Banco Receptor (Destino)</label>
                         <input type="text" id="banco_receptor" name="banco_receptor" placeholder="Ej. Mercantil"
-                               class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                                class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium">
                     </div>
 
                     <div class="flex flex-col gap-1.5">
@@ -130,6 +130,9 @@
     </form>
 </div>
 
+<!-- Tesseract.js v5 CDN para OCR en cliente (agnóstico de servidor) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <script>
     const fileInput = document.getElementById('comprobante');
     const dropzone = document.getElementById('dropzone');
@@ -141,6 +144,8 @@
     const btnOCR = document.getElementById('btnOCR');
     const ocrText = document.getElementById('ocrText');
     const ocrSpinner = document.getElementById('ocrSpinner');
+
+    let currentObjectURL = null;
 
     // Manejo de Dropzone visual (Drag and Drop)
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -163,42 +168,38 @@
     dropzone.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
         const files = dt.files;
-        if(files.length) {
+        if (files && files.length > 0) {
             fileInput.files = files;
-            handleFile(files[0]);
+            handleFiles(files[0]);
         }
     }, false);
 
-    // Manejo del Input File convencional
-    fileInput.addEventListener('change', function(e) {
-        if(this.files.length) {
-            handleFile(this.files[0]);
-        } else {
-            resetPreview();
+    // Selección por clic tradicional
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handleFiles(this.files[0]);
         }
     });
 
-    let currentObjectURL = null;
-
-    function handleFile(file) {
-        // Validar tamaño máximo (5MB)
+    function handleFiles(file) {
+        // Validar tamaño (5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert("El archivo excede el tamaño máximo permitido de 5 MB.");
+            alert("El archivo excede el tamaño máximo permitido de 5MB.");
             fileInput.value = '';
             resetPreview();
             return;
-        }
-
-        // Liberar URL previa de memoria si existía
-        if (currentObjectURL) {
-            URL.revokeObjectURL(currentObjectURL);
-            currentObjectURL = null;
         }
 
         dropzoneInitial.classList.add('hidden');
         dropzonePreview.classList.remove('hidden');
         dropzonePreview.classList.add('flex');
         btnOCR.disabled = false;
+
+        // Liberar URL previa de memoria si existía
+        if (currentObjectURL) {
+            URL.revokeObjectURL(currentObjectURL);
+            currentObjectURL = null;
+        }
 
         currentObjectURL = URL.createObjectURL(file);
 
@@ -230,27 +231,58 @@
         btnOCR.disabled = true;
     }
 
-    // Autocompletar OCR simulado (AJAX)
-    btnOCR.addEventListener('click', function(e) {
+    // Autocompletar OCR híbrido (Tesseract.js para imágenes en cliente, extracción directa en servidor para PDF)
+    btnOCR.addEventListener('click', async function(e) {
         e.preventDefault();
         
         const file = fileInput.files[0];
         if (!file) return;
 
         btnOCR.disabled = true;
-        ocrText.textContent = "Extrayendo...";
         ocrSpinner.classList.remove('hidden');
 
-        const formData = new FormData();
-        formData.append('comprobante', file);
-        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+        try {
+            const formData = new FormData();
+            const csrfInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                formData.append('csrf_token', csrfInput.value);
+            }
 
-        fetch('/pagos/extraer', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
+            // Flujo A: Imágenes (JPG / PNG) analizadas con Tesseract.js en el navegador
+            if (file.type.startsWith('image/')) {
+                ocrText.textContent = "Iniciando motor OCR...";
+
+                if (typeof Tesseract === 'undefined') {
+                    throw new Error("Librería OCR no disponible. Verifique su conexión a internet.");
+                }
+
+                const result = await Tesseract.recognize(file, 'spa', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const pct = Math.round((m.progress || 0) * 100);
+                            ocrText.textContent = `Leyendo imagen (${pct}%)...`;
+                        } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
+                            ocrText.textContent = "Cargando motor de visión...";
+                        }
+                    }
+                });
+
+                const textoExtraido = result?.data?.text || '';
+                formData.append('texto_extraido', textoExtraido);
+                ocrText.textContent = "Estructurando datos bancarios...";
+            } else {
+                // Flujo B: PDF analizado directamente en el servidor mediante streams nativos FlateDecode
+                ocrText.textContent = "Analizando PDF...";
+                formData.append('comprobante', file);
+            }
+
+            const response = await fetch('/pagos/extraer', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
             if (data.success) {
                 const inputs = {
                     'monto': data.monto,
@@ -260,27 +292,32 @@
                     'banco_receptor': data.banco_receptor
                 };
 
+                let camposLlenados = 0;
                 for (const [id, value] of Object.entries(inputs)) {
                     const el = document.getElementById(id);
-                    if (el) {
+                    if (el && value) {
                         el.value = value;
-                        // Efecto visual de actualización
-                        el.classList.add('bg-blue-50', 'border-primary');
+                        camposLlenados++;
+                        el.classList.add('bg-emerald-50', 'border-primary');
                         setTimeout(() => {
-                            el.classList.remove('bg-blue-50', 'border-primary');
-                        }, 800);
+                            el.classList.remove('bg-emerald-50', 'border-primary');
+                        }, 1200);
                     }
                 }
+
+                if (!data.detectado || camposLlenados < 2) {
+                    alert(data.mensaje || "Se extrajeron datos parciales. Por favor complete o revise los campos requeridos.");
+                }
+            } else {
+                alert(data.error || "No se pudieron extraer datos del comprobante.");
             }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Error al conectar con el servidor OCR.");
-        })
-        .finally(() => {
+        } catch (err) {
+            console.error("Error en proceso OCR:", err);
+            alert("No se pudo completar el reconocimiento automático (" + (err.message || "error inesperado") + "). Por favor ingrese los datos manualmente.");
+        } finally {
             btnOCR.disabled = false;
             ocrText.textContent = "Extraer datos automáticamente";
             ocrSpinner.classList.add('hidden');
-        });
+        }
     });
 </script>

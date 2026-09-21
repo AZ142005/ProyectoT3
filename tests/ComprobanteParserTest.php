@@ -84,8 +84,34 @@ class ComprobanteParserTest extends TestCase {
     public function testProcesarArchivoReturnsFalseDetectedForUnsupportedFormat() {
         $service = new ComprobanteParserService();
 
-        // Imagen JPG no soportada
+        // Imagen JPG sin texto OCR previo retorna detectado false
         $resultado = $service->procesarArchivo('/tmp/comprobante.jpg', 'jpg');
         $this->assertFalse($resultado['detectado']);
+    }
+
+    public function testProcesarTextoOcrExtractsDataSuccessfully() {
+        $service = new ComprobanteParserService();
+
+        $textoOcr = "Banco Mercantil Pago Movil Aprobado\nRef: 99887766\nMonto: Bs. 450,20\nFecha: 20/09/2026";
+        $resultado = $service->procesarTextoOcr($textoOcr);
+
+        $this->assertTrue($resultado['detectado']);
+        $this->assertEquals('mercantil', $resultado['banco']);
+        $this->assertEquals('99887766', $resultado['referencia']);
+        $this->assertEquals(450.20, $resultado['monto']);
+        $this->assertEquals('2026-09-20', $resultado['fecha']);
+    }
+
+    public function testProcesarArchivoWithTextoOcrDelegatesToAnalizarTexto() {
+        $service = new ComprobanteParserService();
+
+        $textoOcr = "Transferencia Banesco Ref: 55443322 Monto: 1800.00 Fecha: 18-09-2026";
+        $resultado = $service->procesarArchivo('/tmp/screenshot.png', 'png', $textoOcr);
+
+        $this->assertTrue($resultado['detectado']);
+        $this->assertEquals('banesco', $resultado['banco']);
+        $this->assertEquals('55443322', $resultado['referencia']);
+        $this->assertEquals(1800.00, $resultado['monto']);
+        $this->assertEquals('2026-09-18', $resultado['fecha']);
     }
 }
