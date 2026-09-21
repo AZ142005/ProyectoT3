@@ -16,6 +16,35 @@ class UnidadesModel extends BaseModel {
         return $this->db()->query($sql)->fetchAll();
     }
 
+    /**
+     * Obtiene los apartamentos actualmente disponibles para registro.
+     * Criterio: Unidad activa, sin propietario asignado, sin residentes activos
+     * y sin solicitudes de registro en estado 'pendiente'.
+     *
+     * @param int $limite
+     * @return array
+     */
+    public function getDisponibles(int $limite = 500): array {
+        $sql = "
+            SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id, e.nombre as edificio_nombre
+            FROM unidades u
+            INNER JOIN edificios e ON u.edificio_id = e.id
+            WHERE u.estado = 1
+              AND u.propietario_id IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM personas p 
+                  WHERE p.unidad_id = u.id AND p.estado = 1
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM solicitudes_registro sr 
+                  WHERE sr.unidad_id = u.id AND sr.estado = 'pendiente'
+              )
+            ORDER BY e.nombre ASC, u.numero ASC
+            LIMIT {$limite}
+        ";
+        return $this->db()->query($sql)->fetchAll();
+    }
+
     public function getAllWithEdificio($edificioId = null) {
         $sql = "
             SELECT u.*, e.nombre as edificio_nombre,

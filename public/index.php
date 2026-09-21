@@ -169,6 +169,11 @@ $router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::cl
 $router->get('/admin/solicitudes-datos', [\App\Controllers\PerfilController::class, 'listarSolicitudes'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-datos/procesar', [\App\Controllers\PerfilController::class, 'procesarSolicitud'], [UserRole::ADMIN]);
 
+// --- Módulo de Solicitudes de Registro de Residentes ---
+$router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistroController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/solicitudes-registro/aprobar', [\App\Controllers\SolicitudesRegistroController::class, 'aprobar'], [UserRole::ADMIN]);
+$router->post('/admin/solicitudes-registro/rechazar', [\App\Controllers\SolicitudesRegistroController::class, 'rechazar'], [UserRole::ADMIN]);
+
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);

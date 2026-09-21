@@ -9,6 +9,8 @@ use App\Core\RateLimiter;
 use App\Models\PersonasModel;
 use App\Models\UsuariosModel;
 use App\Models\OtpModel;
+use App\Models\SolicitudesRegistroModel;
+use App\Models\UnidadesModel;
 use App\Services\NotificationService;
 
 class AuthController extends Controller {
@@ -106,8 +108,22 @@ class AuthController extends Controller {
                                 $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
                             }
                         } else {
-                            // 3. Ninguna coincidencia
-                            $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                            // 3. Verificar si existe una solicitud de registro pendiente o rechazada
+                            $solicitudesModel = new SolicitudesRegistroModel();
+                            $solicitud = $solicitudesModel->buscarUltimaPorIdentificador($identificador);
+
+                            if ($solicitud && password_verify($password, $solicitud['password_hash'])) {
+                                if ($solicitud['estado'] === 'pendiente') {
+                                    $error = 'Su cuenta se encuentra en estado PENDIENTE de aprobación por la administración. No tiene permisos de acceso hasta que sea validada.';
+                                } elseif ($solicitud['estado'] === 'rechazada') {
+                                    $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
+                                    $error = "Su solicitud de registro fue rechazada por la administración{$motivo}";
+                                } else {
+                                    $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                                }
+                            } else {
+                                $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                            }
                         }
                     }
                 }
@@ -282,6 +298,8 @@ class AuthController extends Controller {
 
         $error = '';
         $success = '';
+        $unidadesModel = new UnidadesModel();
+        $apartamentosDisponibles = $unidadesModel->getDisponibles();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!RateLimiter::attempt('register', 5, 3600)) {
@@ -289,8 +307,10 @@ class AuthController extends Controller {
                 $minutos = ceil($segundos / 60);
                 $error = "Demasiados intentos de registro. Intente de nuevo en {$minutos} minuto(s).";
             } else {
-                $cedulaTipo   = strtoupper(trim($_POST['cedula_tipo'] ?? 'V'));
-                $cedulaNumero = preg_replace('/[^0-9]/', '', trim($_POST['cedula_numero'] ?? ''));
+                $nombre           = trim($_POST['nombre'] ?? '');
+                $apellido         = trim($_POST['apellido'] ?? '');
+                $cedulaTipo       = strtoupper(trim($_POST['cedula_tipo'] ?? 'V'));
+                $cedulaNumero     = preg_replace('/[^0-9]/', '', trim($_POST['cedula_numero'] ?? ''));
 
                 if (empty($cedulaNumero) && !empty($_POST['cedula'])) {
                     $raw = normalizarCedula($_POST['cedula']);
@@ -302,20 +322,31 @@ class AuthController extends Controller {
                     }
                 }
 
+                $telCodigo         = trim($_POST['telefono_codigo'] ?? '');
+                $telNumero         = trim($_POST['telefono_numero'] ?? '');
+                $telefono          = !empty($telNumero) ? ($telCodigo . $telNumero) : trim($_POST['telefono'] ?? '');
                 $email             = trim($_POST['email'] ?? '');
+                $unidadId          = intval($_POST['unidad_id'] ?? 0);
+                $numeroResidentes  = intval($_POST['numero_residentes'] ?? 1);
                 $password          = trim($_POST['password'] ?? '');
                 $password_confirm  = trim($_POST['password_confirm'] ?? '');
 
-                if (empty($cedulaNumero) || empty($email) || empty($password) || empty($password_confirm)) {
-                    $error = 'Todos los campos son obligatorios.';
+                if (empty($nombre) || empty($apellido) || empty($cedulaNumero) || empty($email) || empty($password) || empty($password_confirm) || $unidadId <= 0) {
+                    $error = 'Todos los campos marcados con (*) son obligatorios.';
                 } elseif (!in_array($cedulaTipo, ['V', 'E'], true)) {
                     $error = 'Tipo de documento no válido (debe seleccionar V o E).';
                 } elseif (strlen($cedulaNumero) < 5 || strlen($cedulaNumero) > 8 || !ctype_digit($cedulaNumero)) {
                     $error = 'El número de cédula debe contener entre 5 y 8 dígitos numéricos.';
                 } elseif (!validarCedula($cedulaTipo . $cedulaNumero)) {
                     $error = 'El formato de la cédula no es válido.';
+                } elseif (!empty($telNumero) && (strlen($telNumero) !== 7 || !ctype_digit($telNumero))) {
+                    $error = 'El número de teléfono debe contener exactamente 7 dígitos tras la operadora.';
+                } elseif (!empty($telefono) && !validarTelefono($telefono)) {
+                    $error = 'El formato del teléfono no es válido (use operadoras 0412, 0422, 0414, 0424, 0416 o 0426).';
                 } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $error = 'El formato de correo electrónico no es válido.';
+                } elseif ($numeroResidentes < 1 || $numeroResidentes > 20) {
+                    $error = 'El número de residentes debe ser entre 1 y 20 personas.';
                 } elseif (strlen($password) < 8 || !validarPassword($password)) {
                     $error = 'La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.';
                 } elseif ($password !== $password_confirm) {
@@ -324,24 +355,42 @@ class AuthController extends Controller {
                     $cedula = $cedulaTipo . $cedulaNumero;
                     $personasModel = new PersonasModel();
                     $usuariosModel = new UsuariosModel();
+                    $solicitudesModel = new SolicitudesRegistroModel();
 
-                    $persona = $personasModel->getActiveByCedula($cedula) ?: $personasModel->getActiveByCedula($cedulaTipo . '-' . $cedulaNumero);
-                    if (!$persona) {
-                        $error = 'La cédula ingresada no está registrada en el sistema del condominio. Consulta con la administración.';
-                    } elseif (!empty($persona['password'])) {
-                        $error = 'Esta cédula ya tiene una cuenta registrada. Usa el formulario de inicio de sesión.';
-                    } elseif ($personasModel->emailExistsActive($email, (int)$persona['id'])) {
-                        $error = 'Este correo electrónico ya está registrado por otro residente.';
+                    $persona = $personasModel->getByCedula($cedula) ?: $personasModel->getByCedula($cedulaTipo . '-' . $cedulaNumero);
+                    if ($persona && (int)($persona['estado'] ?? 0) === 1) {
+                        $error = 'Esta cédula ya se encuentra registrada como residente activo en el condominio. Use el formulario de inicio de sesión.';
+                    } elseif ($persona && $personasModel->emailExistsActive($email, (int)$persona['id'])) {
+                        $error = 'Este correo electrónico ya está registrado por otro residente activo.';
+                    } elseif (!$persona && $personasModel->emailExistsActive($email)) {
+                        $error = 'Este correo electrónico ya está registrado por otro residente activo.';
                     } elseif ($usuariosModel->getActiveByEmail($email)) {
                         $error = 'Este correo electrónico ya está registrado en el sistema.';
                     } else {
-                        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-                        $result = $personasModel->register($persona['cedula'], $email, $hashedPassword);
+                        try {
+                            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                            $solicitudId = $solicitudesModel->crearSolicitud([
+                                'cedula'            => $cedula,
+                                'nombre'            => $nombre,
+                                'apellido'          => $apellido,
+                                'telefono'          => $telefono,
+                                'email'             => $email,
+                                'unidad_id'         => $unidadId,
+                                'numero_residentes' => $numeroResidentes,
+                                'password_hash'     => $hashedPassword,
+                            ]);
 
-                        if ($result) {
-                            $success = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.';
-                        } else {
-                            $error = 'Ocurrió un error al registrar tu cuenta. Intenta de nuevo.';
+                            if ($solicitudId > 0) {
+                                $success = '¡Su solicitud de registro ha sido enviada con éxito! Su cuenta se encuentra en estado PENDIENTE y está sujeta a verificación administrativa. No podrá iniciar sesión hasta que sea aprobada por la administración.';
+                                $apartamentosDisponibles = $unidadesModel->getDisponibles();
+                            } else {
+                                $error = 'Ocurrió un error al procesar la solicitud de registro. Intente de nuevo.';
+                            }
+                        } catch (\RuntimeException $re) {
+                            $error = $re->getMessage();
+                        } catch (\Exception $e) {
+                            error_log("[AUTH REGISTRO] Error: " . $e->getMessage());
+                            $error = 'Error interno al procesar el registro. Intente más tarde.';
                         }
                     }
                 }
@@ -349,10 +398,11 @@ class AuthController extends Controller {
         }
 
         $this->render('auth/register', [
-            'error'   => $error,
-            'success' => $success,
-            'showNav' => false,
-            'title'   => 'Crear Cuenta - Condominio Digital'
+            'error'                   => $error,
+            'success'                 => $success,
+            'apartamentosDisponibles' => $apartamentosDisponibles,
+            'showNav'                 => false,
+            'title'                   => 'Crear Cuenta - Condominio Digital'
         ]);
     }
 

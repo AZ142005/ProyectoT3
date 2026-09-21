@@ -26,6 +26,9 @@ try {
 // Auto-descubrir archivos de test
 $testFiles = glob(__DIR__ . '/*Test.php');
 $filter = $argv[1] ?? null;
+if ($filter && str_starts_with($filter, '--filter=')) {
+    $filter = substr($filter, 9);
+}
 
 $allResults = [];
 $startTime = microtime(true);
