@@ -323,14 +323,17 @@ class AuthController extends Controller {
                 } else {
                     $cedula = $cedulaTipo . $cedulaNumero;
                     $personasModel = new PersonasModel();
+                    $usuariosModel = new UsuariosModel();
 
                     $persona = $personasModel->getActiveByCedula($cedula) ?: $personasModel->getActiveByCedula($cedulaTipo . '-' . $cedulaNumero);
                     if (!$persona) {
                         $error = 'La cédula ingresada no está registrada en el sistema del condominio. Consulta con la administración.';
-                    } elseif (!empty($persona['email']) && !empty($persona['password'])) {
+                    } elseif (!empty($persona['password'])) {
                         $error = 'Esta cédula ya tiene una cuenta registrada. Usa el formulario de inicio de sesión.';
-                    } elseif ($personasModel->emailExists($email)) {
-                        $error = 'Este correo electrónico ya está registrado.';
+                    } elseif ($personasModel->emailExistsActive($email, (int)$persona['id'])) {
+                        $error = 'Este correo electrónico ya está registrado por otro residente.';
+                    } elseif ($usuariosModel->getActiveByEmail($email)) {
+                        $error = 'Este correo electrónico ya está registrado en el sistema.';
                     } else {
                         $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
                         $result = $personasModel->register($persona['cedula'], $email, $hashedPassword);

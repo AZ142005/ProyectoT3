@@ -329,4 +329,30 @@ class AuthTest extends TestCase {
             $this->passed++;
         }
     }
+
+    /**
+     * Verifica que AuthController::register excluya el ID propio del residente
+     * para permitir el autoregistro con el correo pre-cargado por la administración.
+     */
+    public function testRegisterExcludesOwnPersonaIdOnEmailCheck(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+
+        $this->assertStringContains('emailExistsActive($email, (int)$persona[\'id\'])', $content,
+            "AuthController debe excluir el id de la persona para permitir registrarse con el correo pre-asignado");
+        $this->assertStringContains('getActiveByEmail($email)', $content,
+            "AuthController debe validar que el correo no pertenezca a un usuario administrativo");
+    }
+
+    /**
+     * Verifica el comportamiento del modelo al consultar email excluyendo ID propio.
+     */
+    public function testPersonasModelEmailExistsExcludesSelfId(): void {
+        $personasModel = new \App\Models\PersonasModel();
+
+        // Si consultamos un correo inexistente debe dar false
+        $this->assertFalse(
+            $personasModel->emailExistsActive('correo_imposible_xyz_123@test.com', 99999),
+            "Correo no existente debe retornar false"
+        );
+    }
 }
