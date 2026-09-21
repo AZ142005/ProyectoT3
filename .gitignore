@@ -37,4 +37,8 @@ AGENTS.md
 GEMINI.md
 CLAUDE.md
 skills/
+# Python
+__pycache__/
+*.pyc
+~$*.docx
 

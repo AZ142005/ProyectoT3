@@ -58,16 +58,17 @@ class Router {
 
             if (preg_match($regex, $uri, $matches)) {
                 // Ejecutar middlewares de autorización asignados a la ruta
+                $allowedRoles = [];
                 foreach ($routeInfo['middlewares'] as $mw) {
                     if ($mw === 'auth') {
                         Auth::requireLogin();
-                    } elseif ($mw === UserRole::ADMIN || $mw === 'admin') {
-                        Auth::requireRole(UserRole::ADMIN);
-                    } elseif ($mw === UserRole::RESIDENTE || $mw === 'residente') {
-                        Auth::requireRole(UserRole::RESIDENTE);
-                    } elseif ($mw === UserRole::AUDITOR || $mw === 'auditor') {
-                        Auth::requireRole(UserRole::AUDITOR);
+                    } elseif (in_array($mw, [UserRole::ADMIN, 'admin', UserRole::RESIDENTE, 'residente', UserRole::AUDITOR, 'auditor'], true)) {
+                        $allowedRoles[] = $mw;
                     }
+                }
+
+                if (!empty($allowedRoles)) {
+                    Auth::requireRole($allowedRoles);
                 }
 
                 // Ejecutar middleware global de control de roles (bloqueo mutaciones Auditor)

@@ -243,33 +243,20 @@ class EstacionamientoController extends Controller {
     }
 
     /**
-     * Elimina un vehículo registrado.
+     * Elimina un vehículo registrado (Admin).
      */
     public function eliminarVehiculo() {
-        Auth::requireLogin();
+        Auth::requireRole(UserRole::ADMIN);
 
         $id = intval($_POST['id'] ?? 0);
         $vehiculosModel = new VehiculosModel();
 
-        if (Auth::role() === 'residente') {
-            $residente = $this->getAuthenticatedResidente();
-            $unidadId = $residente['unidad_id'] ?? null;
-            if (!$unidadId) {
-                Flash::error("No se pudo determinar la unidad asociada a su cuenta.");
-                $this->redirect('/residente/dashboard');
-                return;
-            }
-        } else {
-            $unidadId = null; // Admin can delete any
-        }
-
-        if ($vehiculosModel->eliminarVehiculo($id, $unidadId)) {
+        if ($id > 0 && $vehiculosModel->eliminarVehiculo($id, null)) {
             Flash::success("El vehículo ha sido eliminado correctamente.");
         } else {
             Flash::error("No se pudo eliminar el vehículo especificado.");
         }
 
-        $redirectUrl = (Auth::role() === 'admin') ? '/admin/estacionamientos' : '/residente/dashboard';
-        $this->redirect($redirectUrl);
+        $this->redirect('/admin/estacionamientos');
     }
 }
