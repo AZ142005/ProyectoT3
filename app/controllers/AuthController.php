@@ -316,8 +316,8 @@ class AuthController extends Controller {
                     $error = 'El formato de la cédula no es válido.';
                 } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $error = 'El formato de correo electrónico no es válido.';
-                } elseif (strlen($password) < 8) {
-                    $error = 'La contraseña debe tener al menos 8 caracteres.';
+                } elseif (strlen($password) < 8 || !validarPassword($password)) {
+                    $error = 'La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.';
                 } elseif ($password !== $password_confirm) {
                     $error = 'Las contraseñas no coinciden.';
                 } else {

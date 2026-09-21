@@ -85,8 +85,8 @@ class PerfilController extends Controller {
                 $_SESSION['auth_user']['email'] = $email;
 
                 if (!empty($password)) {
-                    if (strlen($password) < 6) {
-                        Flash::set('danger', 'La nueva contraseña debe tener al menos 6 caracteres.');
+                    if (strlen($password) < 8 || !validarPassword($password)) {
+                        Flash::set('danger', 'La nueva contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.');
                         $this->redirect('/perfil');
                         return;
                     }

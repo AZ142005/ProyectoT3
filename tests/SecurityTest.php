@@ -368,6 +368,23 @@ class SecurityTest extends TestCase {
     }
 
     /**
+     * Verifica que el perfil valide longitud mínima de password de al menos 8 caracteres.
+     */
+    public function testPerfilEnforcesMinimumPasswordLength(): void {
+        $perfilFile = dirname(__DIR__) . '/app/controllers/PerfilController.php';
+        $content = file_get_contents($perfilFile);
+
+        $this->assertStringContains('strlen', $content,
+            "PerfilController debe usar strlen() para validar longitud de password");
+
+        if (preg_match('/strlen\s*\(\s*\$password\s*\)\s*<\s*(\d+)/', $content, $matches)) {
+            $minLength = (int) $matches[1];
+            $this->assertGreaterThan(7, $minLength,
+                "Longitud mínima de password en PerfilController debe ser >= 8 caracteres (OWASP)");
+        }
+    }
+
+    /**
      * Verifica que el password se hashee con bcrypt antes de guardar.
      */
     public function testPasswordIsHashedWithBcrypt(): void {

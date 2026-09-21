@@ -105,8 +105,9 @@ $isAuditor = ($role === 'auditor');
 
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nueva Contraseña (Opcional)</label>
-                        <input type="password" name="password" placeholder="Dejar en blanco para conservar la actual"
+                        <input type="password" name="password" minlength="8" placeholder="Mínimo 8 caracteres (letras y números), o dejar en blanco"
                                class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                        <small class="text-slate-400 text-xs mt-1 block">Debe contener al menos 8 caracteres con letras y números.</small>
                     </div>
 
                     <div class="flex justify-end mt-2">

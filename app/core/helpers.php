@@ -190,3 +190,30 @@ if (!function_exists('sanitize_exception_message')) {
         return $msg;
     }
 }
+
+if (!function_exists('validarPassword')) {
+    /**
+     * Valida los requisitos mínimos de complejidad y longitud de una contraseña:
+     * - Al menos 8 caracteres de longitud.
+     * - Al menos una letra (mayúscula o minúscula).
+     * - Al menos un número.
+     *
+     * @param string|null $password
+     * @return bool
+     */
+    function validarPassword(?string $password): bool {
+        if ($password === null) {
+            return false;
+        }
+        if (strlen($password) < 8) {
+            return false;
+        }
+        if (!preg_match('/[a-zA-Z]/', $password)) {
+            return false;
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            return false;
+        }
+        return true;
+    }
+}

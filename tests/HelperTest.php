@@ -320,6 +320,46 @@ class HelperTest extends TestCase {
     }
 
     // =====================================================================
+    // validarPassword() — Validación de longitud y complejidad
+    // =====================================================================
+
+    public function testValidarPasswordValid(): void {
+        $this->assertTrue(validarPassword('Password123'),
+            "Password con letras mayúsculas, minúsculas y números debe ser válido");
+        $this->assertTrue(validarPassword('clave123'),
+            "Password con minúsculas y números (>= 8 chars) debe ser válido");
+        $this->assertTrue(validarPassword('ADMINISTRADOR1'),
+            "Password con mayúsculas y números (>= 8 chars) debe ser válido");
+        $this->assertTrue(validarPassword('a1b2c3d4e5'),
+            "Password alfanumérico mixto debe ser válido");
+    }
+
+    public function testValidarPasswordInvalidTooShort(): void {
+        $this->assertFalse(validarPassword('Pass1'),
+            "Password con menos de 8 caracteres debe ser inválido");
+        $this->assertFalse(validarPassword('Abc1234'),
+            "Password con 7 caracteres debe ser inválido");
+        $this->assertFalse(validarPassword(''),
+            "Password vacío debe ser inválido");
+        $this->assertFalse(validarPassword(null),
+            "Password null debe ser inválido");
+    }
+
+    public function testValidarPasswordInvalidNoNumbers(): void {
+        $this->assertFalse(validarPassword('PasswordSinNumero'),
+            "Password sin ningún número debe ser inválido");
+        $this->assertFalse(validarPassword('abcdefgh'),
+            "Password de solo letras debe ser inválido");
+    }
+
+    public function testValidarPasswordInvalidNoLetters(): void {
+        $this->assertFalse(validarPassword('12345678'),
+            "Password de solo números debe ser inválido");
+        $this->assertFalse(validarPassword('1234567890'),
+            "Password numérico largo sin letras debe ser inválido");
+    }
+
+    // =====================================================================
     // ARCHIVOS DE HELPERS
     // =====================================================================
 

@@ -81,7 +81,7 @@
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[22px]">lock</span>
                         <input type="password" id="password" name="password" required
-                               placeholder="Mínimo 6 caracteres"
+                               placeholder="Mínimo 8 caracteres (letras y números)" minlength="8"
                                class="w-full pl-12 pr-14 py-4 text-lg bg-background border-2 border-outline-variant rounded-2xl text-on-surface placeholder-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all">
                         <button type="button" onclick="togglePassword('password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[22px]">visibility</span>
@@ -95,7 +95,7 @@
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[22px]">lock_reset</span>
                         <input type="password" id="password_confirm" name="password_confirm" required
-                               placeholder="Repite tu contraseña"
+                               placeholder="Repite tu contraseña" minlength="8"
                                class="w-full pl-12 pr-14 py-4 text-lg bg-background border-2 border-outline-variant rounded-2xl text-on-surface placeholder-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all">
                         <button type="button" onclick="togglePassword('password_confirm', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[22px]">visibility</span>
