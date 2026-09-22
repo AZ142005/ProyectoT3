@@ -59,8 +59,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <?php
                         $postCedulaRaw = normalizarCedula($_POST['cedula'] ?? '');
-                        $postTipo = strtoupper($_POST['cedula_tipo'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E']) ? substr($postCedulaRaw, 0, 1) : 'V'));
-                        $postNum  = $_POST['cedula_numero'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E']) ? substr($postCedulaRaw, 1) : $postCedulaRaw);
+                        $postTipo = strtoupper($_POST['cedula_tipo'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E', 'J', 'G']) ? substr($postCedulaRaw, 0, 1) : 'V'));
+                        $postNum  = $_POST['cedula_numero'] ?? (in_array(substr($postCedulaRaw, 0, 1), ['V', 'E', 'J', 'G']) ? substr($postCedulaRaw, 1) : $postCedulaRaw);
                     ?>
                     <div class="flex flex-col gap-1.5">
                         <label class="text-sm font-bold text-on-surface">Cédula de Identidad *</label>
@@ -69,6 +69,8 @@
                                     class="w-20 py-3 text-base bg-background border-2 border-outline-variant rounded-xl text-on-surface font-black text-center focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer shrink-0">
                                 <option value="V" <?= $postTipo === 'V' ? 'selected' : '' ?>>V</option>
                                 <option value="E" <?= $postTipo === 'E' ? 'selected' : '' ?>>E</option>
+                                <option value="J" <?= $postTipo === 'J' ? 'selected' : '' ?>>J</option>
+                                <option value="G" <?= $postTipo === 'G' ? 'selected' : '' ?>>G</option>
                             </select>
                             <div class="relative flex-1">
                                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[20px]">id_card</span>

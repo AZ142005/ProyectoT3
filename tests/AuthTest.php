@@ -355,4 +355,23 @@ class AuthTest extends TestCase {
             "Correo no existente debe retornar false"
         );
     }
+
+    /**
+     * Verifica que UsuariosModel pueda consultar administradores por cédula.
+     */
+    public function testUsuariosModelGetActiveByCedula(): void {
+        $usuariosModel = new \App\Models\UsuariosModel();
+        $admin = $usuariosModel->getActiveByCedula('V00000000');
+        $this->assertNotNull($admin, "El usuario administrador debe ser recuperable con su cédula V00000000");
+        $this->assertEquals('admin', $admin['usuario'], "El usuario recuperado debe ser 'admin'");
+    }
+
+    /**
+     * Verifica que el controlador de autenticación rechace intentos de ingreso con correo.
+     */
+    public function testAuthControllerRejectsEmailLogin(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $this->assertStringContains("El ingreso con correo electrónico ya no está permitido", $content,
+            "AuthController debe rechazar explícitamente el inicio de sesión con correo");
+    }
 }

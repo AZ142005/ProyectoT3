@@ -230,7 +230,7 @@ class EstructuraController extends Controller {
             // Fallback si se envía el campo 'cedula' directo
             if (empty($cedulaNumero) && !empty($_POST['cedula'])) {
                 $raw = normalizarCedula($_POST['cedula']);
-                if (in_array(substr($raw, 0, 1), ['V', 'E'], true)) {
+                if (in_array(substr($raw, 0, 1), ['V', 'E', 'J', 'G'], true)) {
                     $cedulaTipo = substr($raw, 0, 1);
                     $cedulaNumero = substr($raw, 1);
                 } else {
@@ -253,8 +253,8 @@ class EstructuraController extends Controller {
                 return;
             }
 
-            if (!in_array($cedulaTipo, ['V', 'E'], true)) {
-                Flash::error('Tipo de documento no válido (debe seleccionar V o E).');
+            if (!in_array($cedulaTipo, ['V', 'E', 'J', 'G'], true)) {
+                Flash::error('Tipo de documento no válido (debe seleccionar V, E, J o G).');
                 $this->redirect('/admin/estructura');
                 return;
             }

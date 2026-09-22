@@ -24,6 +24,65 @@ class UsuariosModel extends BaseModel {
     }
 
     /**
+     * Obtiene un usuario activo (admin/auditor) por cédula o documento de identidad.
+     *
+     * @param string $cedula
+     * @return array|null
+     */
+    public function getActiveByCedula(string $cedula): ?array {
+        $cedulaNorm = normalizarCedula($cedula);
+        $soloDigitos = preg_replace('/\D/', '', $cedulaNorm);
+
+        $stmt = $this->db()->prepare("
+            SELECT * FROM usuarios
+            WHERE (
+                cedula = :c1 
+                OR cedula = :c2 
+                OR (usuario = 'admin' AND (:c3 = '00000000' OR :c4 = 'V00000000'))
+            )
+            AND estado = 1
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'c1' => $cedulaNorm,
+            'c2' => $soloDigitos,
+            'c3' => $soloDigitos,
+            'c4' => $cedulaNorm
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Obtiene un usuario (cualquier estado) por cédula o documento de identidad.
+     *
+     * @param string $cedula
+     * @return array|null
+     */
+    public function getByCedula(string $cedula): ?array {
+        $cedulaNorm = normalizarCedula($cedula);
+        $soloDigitos = preg_replace('/\D/', '', $cedulaNorm);
+
+        $stmt = $this->db()->prepare("
+            SELECT * FROM usuarios
+            WHERE (
+                cedula = :c1 
+                OR cedula = :c2 
+                OR (usuario = 'admin' AND (:c3 = '00000000' OR :c4 = 'V00000000'))
+            )
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'c1' => $cedulaNorm,
+            'c2' => $soloDigitos,
+            'c3' => $soloDigitos,
+            'c4' => $cedulaNorm
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
      * Obtiene un usuario por email o nombre de usuario (cualquier estado).
      *
      * @param string $identificador

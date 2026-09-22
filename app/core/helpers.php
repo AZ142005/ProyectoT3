@@ -103,7 +103,7 @@ if (!function_exists('normalizarCedula')) {
 
 if (!function_exists('validarCedula')) {
     /**
-     * Valida el formato de una cédula venezolana (V/E opcional + 5 a 8 dígitos numéricos).
+     * Valida el formato de una cédula o documento de identidad venezolano (V/E/J/G opcional + 5 a 8 dígitos numéricos).
      * Rechaza iniciales inválidas (ej: Z12345678) o longitudes menores a 5 o mayores a 8 dígitos.
      *
      * @param string $cedula
@@ -114,7 +114,7 @@ if (!function_exists('validarCedula')) {
         if (empty($cedula)) {
             return false;
         }
-        return (bool)preg_match('/^(?:[VE])?\d{5,8}$/', $cedula);
+        return (bool)preg_match('/^(?:[VEJG])?\d{5,8}$/', $cedula);
     }
 }
 

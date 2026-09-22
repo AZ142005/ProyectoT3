@@ -70,6 +70,16 @@ class HelperTest extends TestCase {
             "Cédula E con 8 dígitos debe ser válida");
     }
 
+    public function testValidarCedulaValidJ(): void {
+        $this->assertTrue(validarCedula('J12345678'),
+            "Documento J con 8 dígitos debe ser válido");
+    }
+
+    public function testValidarCedulaValidG(): void {
+        $this->assertTrue(validarCedula('G12345678'),
+            "Documento G con 8 dígitos debe ser válido");
+    }
+
     public function testValidarCedulaValidWithoutPrefix(): void {
         $this->assertTrue(validarCedula('12345678'),
             "Cédula sin prefijo V/E con 8 dígitos debe ser válida");

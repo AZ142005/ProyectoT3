@@ -367,6 +367,8 @@
                                         class="w-20 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-black text-sm focus:outline-none focus:border-primary cursor-pointer shrink-0 text-center">
                                     <option value="V" selected>V</option>
                                     <option value="E">E</option>
+                                    <option value="J">J</option>
+                                    <option value="G">G</option>
                                 </select>
                                 <input type="text" id="residente_cedula_numero" name="cedula_numero" required
                                        inputmode="numeric" pattern="[0-9]{5,8}" minlength="5" maxlength="8" placeholder="12345678"
@@ -601,11 +603,11 @@ function cargarFormularioEdicionResidente(idx) {
 
     document.getElementById('residente_id_input').value = r.id;
     
-    // Normalizar y separar Cédula (Tipo V/E y 5-8 dígitos)
-    let rawCed = String(r.cedula || '').toUpperCase().replace(/[^VE0-9]/g, '');
+    // Normalizar y separar Cédula (Tipo V/E/J/G y 5-8 dígitos)
+    let rawCed = String(r.cedula || '').toUpperCase().replace(/[^VEJG0-9]/g, '');
     let tipoDoc = 'V';
     let numDoc = rawCed;
-    if (rawCed.startsWith('V') || rawCed.startsWith('E')) {
+    if (rawCed.startsWith('V') || rawCed.startsWith('E') || rawCed.startsWith('J') || rawCed.startsWith('G')) {
         tipoDoc = rawCed.charAt(0);
         numDoc = rawCed.substring(1);
     }
