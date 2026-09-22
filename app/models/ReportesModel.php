@@ -192,7 +192,7 @@ class ReportesModel extends BaseModel {
             'Email',
             'Facturas Vencidas',
             'Días de Mora Máx.',
-            'Total Deuda ($)'
+            'Total Deuda (Bs)'
         ], ';');
 
         foreach ($datos as $row) {

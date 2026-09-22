@@ -301,12 +301,24 @@ class RouterTest extends TestCase {
     }
 
     /**
-     * Verifica que las vistas de login y register existan.
+     * Verifica que la ruta de confirmación de registro exitoso esté definida.
+     */
+    public function testRegistroExitosoRouteExists(): void {
+        $this->assertTrue(
+            str_contains($this->indexContent, "'/auth/registro-exitoso'"),
+            "La ruta '/auth/registro-exitoso' debe estar definida"
+        );
+    }
+
+    /**
+     * Verifica que las vistas de login, register y registro_exitoso existan.
      */
     public function testAuthViewsExist(): void {
         $this->assertFileExists(dirname(__DIR__) . '/app/views/auth/login.php',
             "La vista auth/login.php debe existir");
         $this->assertFileExists(dirname(__DIR__) . '/app/views/auth/register.php',
             "La vista auth/register.php debe existir");
+        $this->assertFileExists(dirname(__DIR__) . '/app/views/auth/registro_exitoso.php',
+            "La vista auth/registro_exitoso.php debe existir");
     }
 }

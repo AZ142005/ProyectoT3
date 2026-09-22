@@ -3,6 +3,7 @@ use App\Core\Flash;
 
 $mensaje = Flash::get('success');
 $error   = Flash::get('error');
+$info    = Flash::get('info');
 ?>
 
 <?php if (!empty($mensaje)): ?>
@@ -16,5 +17,12 @@ $error   = Flash::get('error');
     <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2 shadow-sm">
         <span class="material-symbols-outlined text-[20px] shrink-0 text-red-600">error</span>
         <span><?= e($error) ?></span>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($info)): ?>
+    <div class="bg-blue-50 text-blue-700 border border-blue-200 rounded-xl p-4 text-sm mb-6 flex items-start gap-2 shadow-sm">
+        <span class="material-symbols-outlined text-[20px] shrink-0 text-blue-600">info</span>
+        <span><?= e($info) ?></span>
     </div>
 <?php endif; ?>

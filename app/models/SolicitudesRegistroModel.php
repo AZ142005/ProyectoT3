@@ -187,19 +187,67 @@ class SolicitudesRegistroModel extends BaseModel {
     }
 
     /**
+     * Genera candidatos de búsqueda para cédula.
+     *
+     * @param string $identificador
+     * @return array
+     */
+    private function generarCandidatosCedula(string $identificador): array {
+        $candidatos = [];
+        $talCual = trim($identificador);
+        if ($talCual !== '') {
+            $candidatos[] = $talCual;
+        }
+
+        if (function_exists('normalizarCedula')) {
+            $norm = normalizarCedula($identificador);
+        } else {
+            $norm = strtoupper(preg_replace('/[\s\.\-]/', '', $identificador));
+        }
+        if ($norm !== '') {
+            $candidatos[] = $norm;
+        }
+
+        $soloDigitos = preg_replace('/\D/', '', $identificador);
+        if (strlen($soloDigitos) >= 4) {
+            $candidatos[] = $soloDigitos;
+            $candidatos[] = 'V' . $soloDigitos;
+            $candidatos[] = 'E' . $soloDigitos;
+            $candidatos[] = 'V-' . $soloDigitos;
+            $candidatos[] = 'E-' . $soloDigitos;
+        }
+
+        return array_values(array_unique($candidatos));
+    }
+
+    /**
      * Busca una solicitud pendiente por cédula o correo.
      *
      * @param string $identificador
      * @return array|null
      */
     public function buscarPendientePorIdentificador(string $identificador): ?array {
-        $stmt = $this->db()->prepare("
-            SELECT * FROM solicitudes_registro 
-            WHERE (cedula = :id1 OR LOWER(email) = LOWER(:id2)) 
-              AND estado = 'pendiente'
-            ORDER BY id DESC LIMIT 1
-        ");
-        $stmt->execute(['id1' => $identificador, 'id2' => $identificador]);
+        $candidatos = $this->generarCandidatosCedula($identificador);
+        if (empty($candidatos)) {
+            $candidatos = [trim($identificador)];
+        }
+
+        $placeholders = [];
+        $params = [':email' => trim($identificador)];
+        foreach ($candidatos as $idx => $cand) {
+            $ph = ":ced_{$idx}";
+            $placeholders[] = $ph;
+            $params[$ph] = $cand;
+        }
+        $inClause = implode(', ', $placeholders);
+
+        $sql = 'SELECT * FROM solicitudes_registro '
+             . 'WHERE (cedula IN (' . $inClause . ') OR LOWER(email) = LOWER(:email)) '
+             . 'AND estado = \'pendiente\' '
+             . 'ORDER BY id DESC LIMIT 1';
+
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
@@ -211,15 +259,30 @@ class SolicitudesRegistroModel extends BaseModel {
      * @return array|null
      */
     public function buscarUltimaPorIdentificador(string $identificador): ?array {
-        $stmt = $this->db()->prepare("
-            SELECT * FROM solicitudes_registro 
-            WHERE (cedula = :id1 OR LOWER(email) = LOWER(:id2)) 
-            ORDER BY id DESC LIMIT 1
-        ");
-        $stmt->execute(['id1' => $identificador, 'id2' => $identificador]);
+        $candidatos = $this->generarCandidatosCedula($identificador);
+        if (empty($candidatos)) {
+            $candidatos = [trim($identificador)];
+        }
+
+        $placeholders = [];
+        $params = [':email' => trim($identificador)];
+        foreach ($candidatos as $idx => $cand) {
+            $ph = ":ced_{$idx}";
+            $placeholders[] = $ph;
+            $params[$ph] = $cand;
+        }
+        $inClause = implode(', ', $placeholders);
+
+        $sql = 'SELECT * FROM solicitudes_registro '
+             . 'WHERE (cedula IN (' . $inClause . ') OR LOWER(email) = LOWER(:email)) '
+             . 'ORDER BY id DESC LIMIT 1';
+
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
+
 
     /**
      * Aprueba formalmente una solicitud de registro:

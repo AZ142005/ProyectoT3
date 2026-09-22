@@ -12,10 +12,25 @@
         <!-- Tarjeta del formulario -->
         <div class="bg-white rounded-3xl border border-outline-variant shadow-xl shadow-slate-200/50 p-8 md:p-10">
             <?php if (!empty($error)): ?>
-                <div class="bg-red-50 text-red-700 border border-red-200 rounded-2xl p-4 mb-6 flex items-start gap-3 text-lg">
-                    <span class="material-symbols-outlined text-[22px] shrink-0 mt-0.5">error</span>
-                    <span><?= e($error) ?></span>
-                </div>
+                <?php 
+                $esAdvertencia = (
+                    stripos($error, 'pendiente') !== false ||
+                    stripos($error, 'verificada') !== false ||
+                    stripos($error, 'inactiva') !== false ||
+                    stripos($error, 'revisión') !== false
+                );
+                ?>
+                <?php if ($esAdvertencia): ?>
+                    <div class="bg-amber-50 text-amber-800 border border-amber-300 rounded-2xl p-4 mb-6 flex items-start gap-3 text-base md:text-lg">
+                        <span class="material-symbols-outlined text-amber-600 text-[24px] shrink-0 mt-0.5">schedule</span>
+                        <span class="leading-relaxed"><?= e($error) ?></span>
+                    </div>
+                <?php else: ?>
+                    <div class="bg-red-50 text-red-700 border border-red-200 rounded-2xl p-4 mb-6 flex items-start gap-3 text-base md:text-lg">
+                        <span class="material-symbols-outlined text-red-500 text-[24px] shrink-0 mt-0.5">error</span>
+                        <span class="leading-relaxed"><?= e($error) ?></span>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
 
             <form method="POST" action="/auth/login" class="flex flex-col gap-6" novalidate>
@@ -68,6 +83,11 @@
                 <span class="material-symbols-outlined">person_add</span>
                 Crear Cuenta de Residente
             </a>
+
+            <!-- Nota Informativa de Registro -->
+            <div class="mt-4 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-600 text-center leading-relaxed">
+                <strong>Nota:</strong> Los nuevos registros están sujetos a verificación y aprobación de la administración antes de poder iniciar sesión.
+            </div>
         </div>
 
         <p class="text-center text-sm text-on-surface-variant mt-8">
@@ -76,6 +96,12 @@
     </div>
 </div>
 
+<style>
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+</style>
 <script>
 function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);

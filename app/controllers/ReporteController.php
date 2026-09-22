@@ -102,9 +102,43 @@ class ReporteController extends Controller {
             return;
         }
 
+        $numUnidad = $detalle['unidad']['unidad_numero'] ?? '';
+        $torre = $detalle['unidad']['edificio_nombre'] ?: 'Sin Torre';
+        $propietario = $detalle['unidad']['propietario_nombre'] ?: 'Propietario';
+        $cedula = $detalle['unidad']['propietario_cedula'] ?: 'N/A';
+        $codigoAviso = 'COB-' . date('Ym') . '-' . $numUnidad;
+        $fechaEmision = date('d/m/Y');
+        $totalBs = number_format(floatval($detalle['total_deuda']), 2);
+
+        $lineasFacturas = "";
+        if (!empty($detalle['facturas'])) {
+            foreach ($detalle['facturas'] as $f) {
+                $concepto = $f['descripcion'] ?? 'Cuota de Condominio';
+                $venc = $f['fecha_vencimiento'] ?? '';
+                $dias = isset($f['dias_vencido']) ? intval($f['dias_vencido']) : 0;
+                $monto = number_format(floatval($f['saldo'] ?? 0), 2);
+                $lineasFacturas .= "• " . $concepto . " (Venc: " . $venc . " | " . $dias . " d): Bs. " . $monto . "\n";
+            }
+        }
+
+        $mensajeCarta = "CONJUNTO RESIDENCIAL \"LAS MESETAS DE MORÓN\"\n"
+            . "Junta de Condominio & Administración General\n"
+            . "RIF: J-30948572-0 | Morón, Estado Trujillo\n\n"
+            . "AVISO OFICIAL: " . $codigoAviso . "\n"
+            . "CARTA DE COBRO / RECORDATORIO DE MOROSIDAD\n\n"
+            . "Destinatario: " . $propietario . " (C.I: " . $cedula . ")\n"
+            . "Unidad: Apto/Unidad " . $numUnidad . " (" . $torre . ")\n"
+            . "Fecha de Emisión: " . $fechaEmision . "\n\n"
+            . "DETALLE DE CUOTAS Y OBLIGACIONES VENCIDAS:\n"
+            . $lineasFacturas . "\n"
+            . "TOTAL GENERAL ADEUDADO: Bs. " . $totalBs . "\n\n"
+            . "Por medio de la presente se le notifica formalmente el saldo adeudado. Le solicitamos realizar el pago correspondiente a la brevedad y registrar su comprobante en el portal.\n\n"
+            . "Atentamente,\n"
+            . "ADMINISTRACIÓN GENERAL & JUNTA DE CONDOMINIO";
+
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
             $detalle['unidad']['propietario_telefono'] ?? '',
-            "Estimado(a) " . $detalle['unidad']['propietario_nombre'] . ", le escribimos de la Administración del Condominio Las Mesetas de Morón para enviarle su aviso de cobro por la Unidad " . $detalle['unidad']['unidad_numero'] . " por un total de Bs. " . number_format($detalle['total_deuda'], 2)
+            $mensajeCarta
         );
 
         $analisisTel = \App\Services\NotificationService::analizarTelefono($detalle['unidad']['propietario_telefono'] ?? '');
@@ -146,13 +180,14 @@ class ReporteController extends Controller {
 
         $cuerpoHtml = $emailService->renderTemplate('aviso_cobro', [
             'nombrePropietario' => $detalle['unidad']['propietario_nombre'],
+            'cedulaPropietario' => $detalle['unidad']['propietario_cedula'] ?? '',
             'numeroUnidad'      => $detalle['unidad']['unidad_numero'],
             'nombreEdificio'    => $detalle['unidad']['edificio_nombre'],
             'facturas'          => $detalle['facturas'],
             'totalDeuda'        => $detalle['total_deuda']
         ]);
 
-        $asunto = "⚠️ Aviso Oficial de Cobro - Unidad " . $detalle['unidad']['unidad_numero'];
+        $asunto = "📄 Carta de Cobro Oficial - Unidad " . $detalle['unidad']['unidad_numero'];
 
         $notifService->encolarNotificacion(
             $detalle['unidad']['propietario_email'],
@@ -166,14 +201,14 @@ class ReporteController extends Controller {
         if (!empty($detalle['unidad']['propietario_id'])) {
             $notifService->registrarNotificacionResidente(
                 $detalle['unidad']['propietario_id'],
-                "Aviso de Deuda Vencida",
-                "Se ha emitido un aviso de cobro por Bs. " . number_format($detalle['total_deuda'], 2) . " correspondiente a su unidad.",
+                "Carta de Cobro Oficial Emitida",
+                "Se ha emitido formalmente su Carta de Cobro por Bs. " . number_format($detalle['total_deuda'], 2) . " para su unidad.",
                 "warning",
                 "/residente/notificaciones"
             );
         }
 
-        \App\Core\Flash::set('success', 'Aviso de cobro encolado exitosamente para envío.');
+        \App\Core\Flash::set('success', 'Carta de cobro encolada exitosamente para envío.');
         $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
     }
 }

@@ -18,22 +18,6 @@
                 </div>
             <?php endif; ?>
 
-            <?php if (!empty($success)): ?>
-                <div class="bg-amber-50 text-amber-800 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-3 text-base">
-                    <span class="material-symbols-outlined text-amber-600 text-[26px] shrink-0 mt-0.5">hourglass_top</span>
-                    <div>
-                        <h4 class="font-bold text-amber-900 text-lg mb-1">¡Solicitud Enviada con Éxito!</h4>
-                        <p class="leading-relaxed"><?= e($success) ?></p>
-                        <div class="mt-4 pt-3 border-t border-amber-200/60 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-amber-700 text-[20px]">info</span>
-                            <span class="text-sm font-medium text-amber-800">No podrás iniciar sesión hasta que la administración confirme y apruebe tu registro.</span>
-                        </div>
-                        <a href="/auth/login" class="inline-flex items-center gap-1.5 mt-4 font-bold text-primary hover:underline text-base">
-                            <span class="material-symbols-outlined text-[18px]">arrow_back</span> Volver a la pantalla de acceso
-                        </a>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <!-- Nota informativa de flujo con aprobación -->
             <div class="bg-blue-50 text-blue-800 border border-blue-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
@@ -43,7 +27,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="/auth/register" class="flex flex-col gap-5" novalidate>
+            <form id="formRegistro" method="POST" action="/auth/register" class="flex flex-col gap-5" novalidate>
                 <?= csrf_field() ?>
 
                 <!-- Fila: Nombre y Apellido -->
@@ -210,6 +194,48 @@
                     </div>
                 </div>
 
+                <!-- Panel Responsive: Cumplimiento de Seguridad y Coincidencia en Tiempo Real -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col gap-3 transition-all" id="password_feedback_panel">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+                            Requisitos de Seguridad
+                        </span>
+                        <span id="password_strength_badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600 transition-all">
+                            <span class="material-symbols-outlined text-[14px]" id="password_strength_icon">info</span>
+                            <span id="password_strength_text">Pendiente</span>
+                        </span>
+                    </div>
+
+                    <!-- Checklist de requisitos mínimos: responsive (1 col en móvil estrecho, 3 cols en tablet/desktop) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/80">
+                        <div id="rule_length" class="flex items-center gap-1.5 text-xs text-slate-500 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 rule-icon">radio_button_unchecked</span>
+                            <span>Mín. 8 caracteres</span>
+                        </div>
+                        <div id="rule_letter" class="flex items-center gap-1.5 text-xs text-slate-500 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 rule-icon">radio_button_unchecked</span>
+                            <span>Al menos 1 letra</span>
+                        </div>
+                        <div id="rule_number" class="flex items-center gap-1.5 text-xs text-slate-500 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] text-slate-400 rule-icon">radio_button_unchecked</span>
+                            <span>Al menos 1 número</span>
+                        </div>
+                    </div>
+
+                    <!-- Coincidencia de Contraseñas Responsive -->
+                    <div class="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 text-xs text-slate-600">
+                            <span class="material-symbols-outlined text-[16px] text-slate-500">lock_reset</span>
+                            <span class="font-medium">Coincidencia de clave y confirmación:</span>
+                        </div>
+                        <span id="password_match_badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600 transition-all" aria-live="polite">
+                            <span class="material-symbols-outlined text-[14px]" id="password_match_icon">pending</span>
+                            <span id="password_match_text">Esperando confirmación</span>
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Botón de Envío -->
                 <button type="submit"
                         class="w-full bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary text-white font-bold text-base py-3.5 rounded-xl shadow-lg shadow-primary/20 transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2 mt-3">
@@ -239,6 +265,12 @@
     </div>
 </div>
 
+<style>
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+</style>
 <script>
 function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);
@@ -251,4 +283,152 @@ function togglePassword(inputId, btn) {
         icon.textContent = 'visibility';
     }
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const passInput = document.getElementById('password');
+    const confirmInput = document.getElementById('password_confirm');
+    const ruleLength = document.getElementById('rule_length');
+    const ruleLetter = document.getElementById('rule_letter');
+    const ruleNumber = document.getElementById('rule_number');
+    const strengthBadge = document.getElementById('password_strength_badge');
+    const strengthIcon = document.getElementById('password_strength_icon');
+    const strengthText = document.getElementById('password_strength_text');
+    const matchBadge = document.getElementById('password_match_badge');
+    const matchIcon = document.getElementById('password_match_icon');
+    const matchText = document.getElementById('password_match_text');
+    const form = document.getElementById('formRegistro');
+
+    function updateRule(element, isValid, isTyping) {
+        if (!element) return;
+        const icon = element.querySelector('.rule-icon');
+        if (!isTyping) {
+            element.className = 'flex items-center gap-1.5 text-xs text-slate-500 transition-colors';
+            if (icon) {
+                icon.textContent = 'radio_button_unchecked';
+                icon.className = 'material-symbols-outlined text-[16px] text-slate-400 rule-icon';
+            }
+        } else if (isValid) {
+            element.className = 'flex items-center gap-1.5 text-xs text-emerald-700 font-semibold transition-colors';
+            if (icon) {
+                icon.textContent = 'check_circle';
+                icon.className = 'material-symbols-outlined text-[16px] text-emerald-600 rule-icon';
+            }
+        } else {
+            element.className = 'flex items-center gap-1.5 text-xs text-rose-600 font-medium transition-colors';
+            if (icon) {
+                icon.textContent = 'cancel';
+                icon.className = 'material-symbols-outlined text-[16px] text-rose-500 rule-icon';
+            }
+        }
+    }
+
+    function updateInputBorders(input, state) {
+        if (!input) return;
+        input.classList.remove('border-emerald-500', 'border-rose-500', 'border-amber-400', 'border-outline-variant');
+        if (state === 'valid') {
+            input.classList.add('border-emerald-500');
+        } else if (state === 'invalid') {
+            input.classList.add('border-rose-500');
+        } else if (state === 'warning') {
+            input.classList.add('border-amber-400');
+        } else {
+            input.classList.add('border-outline-variant');
+        }
+    }
+
+    function validate() {
+        const pass = passInput ? passInput.value : '';
+        const confirm = confirmInput ? confirmInput.value : '';
+        const isTypingPass = pass.length > 0;
+        const isTypingConfirm = confirm.length > 0;
+
+        // Reglas de seguridad: mín 8 caracteres, al menos 1 letra, al menos 1 número
+        const okLength = pass.length >= 8;
+        const okLetter = /[a-zA-Z]/.test(pass);
+        const okNumber = /[0-9]/.test(pass);
+        const totalOk = (okLength ? 1 : 0) + (okLetter ? 1 : 0) + (okNumber ? 1 : 0);
+        const isSecurityValid = (totalOk === 3);
+
+        // Actualizar checklist visual
+        updateRule(ruleLength, okLength, isTypingPass);
+        updateRule(ruleLetter, okLetter, isTypingPass);
+        updateRule(ruleNumber, okNumber, isTypingPass);
+
+        // Actualizar badge de seguridad y borde del input principal
+        if (!isTypingPass) {
+            strengthBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600 transition-all';
+            strengthIcon.textContent = 'info';
+            strengthText.textContent = 'Pendiente';
+            updateInputBorders(passInput, 'default');
+        } else if (isSecurityValid) {
+            strengthBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 transition-all';
+            strengthIcon.textContent = 'check_circle';
+            strengthText.textContent = 'Segura';
+            updateInputBorders(passInput, 'valid');
+        } else {
+            strengthBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 transition-all';
+            strengthIcon.textContent = 'warning';
+            strengthText.textContent = 'Incompleta (' + totalOk + '/3)';
+            updateInputBorders(passInput, 'warning');
+        }
+
+        // Validar coincidencia de clave con confirmación
+        if (!isTypingConfirm) {
+            matchBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600 transition-all';
+            matchIcon.textContent = 'pending';
+            matchText.textContent = 'Esperando confirmación';
+            updateInputBorders(confirmInput, 'default');
+        } else if (pass === confirm) {
+            matchBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 transition-all';
+            matchIcon.textContent = 'check_circle';
+            matchText.textContent = '¡Coinciden!';
+            updateInputBorders(confirmInput, 'valid');
+        } else {
+            matchBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300 transition-all';
+            matchIcon.textContent = 'cancel';
+            matchText.textContent = 'No coinciden';
+            updateInputBorders(confirmInput, 'invalid');
+        }
+
+        return {
+            isSecurityValid,
+            isMatch: isTypingConfirm && pass === confirm
+        };
+    }
+
+    if (passInput) {
+        passInput.addEventListener('input', validate);
+    }
+    if (confirmInput) {
+        confirmInput.addEventListener('input', validate);
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            const { isSecurityValid, isMatch } = validate();
+            const passVal = passInput ? passInput.value : '';
+            const confirmVal = confirmInput ? confirmInput.value : '';
+
+            if (!isSecurityValid) {
+                e.preventDefault();
+                if (passInput) {
+                    passInput.focus();
+                    passInput.classList.add('ring-4', 'ring-rose-500/20');
+                    setTimeout(() => passInput.classList.remove('ring-4', 'ring-rose-500/20'), 1500);
+                }
+                return false;
+            }
+
+            if (!isMatch || passVal !== confirmVal) {
+                e.preventDefault();
+                if (confirmInput) {
+                    confirmInput.focus();
+                    confirmInput.classList.add('ring-4', 'ring-rose-500/20');
+                    setTimeout(() => confirmInput.classList.remove('ring-4', 'ring-rose-500/20'), 1500);
+                }
+                return false;
+            }
+        });
+    }
+});
 </script>

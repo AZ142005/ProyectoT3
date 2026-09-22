@@ -12,7 +12,7 @@
         <div class="flex items-center gap-2">
             <a href="/pagos" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">payments</span>
-                Gestionar Pagos (Módulo 3)
+                Gestionar Pagos
             </a>
             <a href="/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-rose-600/80 hover:bg-rose-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>

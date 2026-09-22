@@ -35,16 +35,31 @@
             <h4 class="fw-bold text-dark mb-1">Cruce Inteligente de Pagos</h4>
             <p class="text-muted small mb-0">Conciliación automática y detección de coincidencias bancarias</p>
         </div>
-        <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
-            <span class="material-symbols-outlined fs-6">upload_file</span>
-            <span>Importar Extracto</span>
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <?php if (!empty($lotes)): ?>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted fw-bold text-nowrap">Lote activo:</label>
+                    <select class="form-select form-select-sm shadow-sm" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
+                        <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
+                        <?php foreach ($lotes as $l): ?>
+                            <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
+                                <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (int)$l['pendientes'] ?> pend.]
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+            <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
+                <span class="material-symbols-outlined fs-6">upload_file</span>
+                <span>Importar Extracto</span>
+            </button>
+        </div>
     </div>
 
     <!-- Selector de Lote y Métricas Rápidas -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-100" role="button" onclick="document.getElementById('exactas-tab').click();" style="cursor: pointer;" title="Ver Coincidencias Exactas">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Exactas</span>
@@ -57,7 +72,7 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-100" role="button" onclick="document.getElementById('sugeridas-tab').click();" style="cursor: pointer;" title="Ver Sugerencias Difusas">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Sugeridas</span>
@@ -65,12 +80,12 @@
                     </div>
                     <span class="material-symbols-outlined fs-1 text-warning opacity-50">rule</span>
                 </div>
-                <small class="text-muted mt-2 d-block">Fuzzy Match Jaro-Winkler ≥ 85%</small>
+                <small class="text-muted mt-2 d-block">Fuzzy Match (Fecha + Monto)</small>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-danger">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-danger h-100" role="button" onclick="document.getElementById('inconsistencias-tab').click();" style="cursor: pointer;" title="Ver Inconsistencias">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Inconsistencias / Alertas</span>
@@ -83,7 +98,7 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-100" role="button" onclick="document.getElementById('sin-coincidencia-tab').click();" style="cursor: pointer;" title="Ver Sin Coincidencia">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Sin Coincidencia</span>
@@ -98,7 +113,7 @@
 
     <!-- Pestañas de Resultados del Cruce -->
     <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <ul class="nav nav-pills card-header-pills" id="cruceTabs" role="tablist">
                 <li class="nav-item">
                     <button class="nav-link active fw-bold" id="exactas-tab" data-bs-toggle="tab" data-bs-target="#exactas" type="button">
@@ -113,6 +128,11 @@
                 <li class="nav-item">
                     <button class="nav-link fw-bold" id="inconsistencias-tab" data-bs-toggle="tab" data-bs-target="#inconsistencias" type="button">
                         🔴 Inconsistencias (<?= count($resultadoCruce['inconsistencias']) ?>)
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold" id="sin-coincidencia-tab" data-bs-toggle="tab" data-bs-target="#sin-coincidencia" type="button">
+                        ⚪ Sin Coincidencia (<?= count($resultadoCruce['sin_coincidencia']) ?>)
                     </button>
                 </li>
             </ul>
@@ -173,6 +193,7 @@
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
                                                     <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
+                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
                                                     <button type="submit" class="btn btn-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1">
                                                         <span class="material-symbols-outlined fs-6">check</span> Conciliar
                                                     </button>
@@ -236,6 +257,7 @@
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
                                                     <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
+                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
                                                     <button type="submit" class="btn btn-warning btn-sm font-weight-bold" onclick="return confirm('¿Confirmar conciliación sugerida por similitud difusa?');">
                                                         Aprobar Cruce
                                                     </button>
@@ -287,6 +309,58 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- TAB 4: SIN COINCIDENCIA -->
+                <div class="tab-pane fade" id="sin-coincidencia" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4 py-3">Fecha Movimiento</th>
+                                    <th class="py-3">Banco / Descripción</th>
+                                    <th class="py-3 text-center">Referencia Banco</th>
+                                    <th class="py-3 text-end">Monto (Crédito)</th>
+                                    <th class="py-3 text-center">Estado Cruce</th>
+                                    <th class="py-3 text-end pe-4">Lote</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($resultadoCruce['sin_coincidencia'])): ?>
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <span class="material-symbols-outlined display-4 d-block mb-2 text-success">check_circle</span>
+                                            Todos los créditos del extracto cuentan con coincidencias o inconsistencias detectadas.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($resultadoCruce['sin_coincidencia'] as $sc): ?>
+                                        <tr>
+                                            <td class="ps-4 small text-muted">
+                                                <div class="fw-bold text-dark"><?= date('d/m/Y', strtotime($sc['extracto']['fecha_movimiento'])) ?></div>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark"><?= e($sc['extracto']['banco']) ?></div>
+                                                <small class="text-muted"><?= e(substr($sc['extracto']['descripcion_banco'] ?: ($sc['extracto']['descripcion'] ?? ''), 0, 50)) ?></small>
+                                            </td>
+                                            <td class="text-center font-monospace fw-bold text-secondary">
+                                                <?= e($sc['extracto']['referencia_bancaria'] ?: ($sc['extracto']['referencia'] ?? 'N/A')) ?>
+                                            </td>
+                                            <td class="text-end font-monospace fw-bold text-dark">
+                                                Bs. <?= number_format($sc['extracto']['monto'], 2) ?>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary rounded-pill px-3 py-1">Sin Pago Pendiente</span>
+                                            </td>
+                                            <td class="text-end pe-4 text-muted small font-monospace">
+                                                <?= e($sc['extracto']['lote_importacion'] ?? '') ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -309,18 +383,18 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-muted">Entidad Bancaria <span class="text-danger">*</span></label>
                         <select name="banco" required class="form-select">
+                            <option value="venezuela">Banco de Venezuela (CSV / TXT / PDF)</option>
                             <option value="mercantil">Banco Mercantil (CSV / TXT)</option>
                             <option value="banesco">Banesco (CSV / TXT)</option>
-                            <option value="venezuela">Banco de Venezuela (CSV / TXT)</option>
                             <option value="provincial">BBVA Provincial (CSV / TXT)</option>
                             <option value="generico_csv">Formato CSV Genérico</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Archivo de Extracto (.CSV o .TXT) <span class="text-danger">*</span></label>
-                        <input type="file" name="archivo_extracto" required accept=".csv,.txt" class="form-control">
-                        <div class="form-text small text-muted">Los movimientos de débito/comisiones se clasificarán automáticamente como descartados.</div>
+                        <label class="form-label fw-bold small text-muted">Archivo de Extracto (.CSV, .TXT o .PDF) <span class="text-danger">*</span></label>
+                        <input type="file" name="archivo_extracto" required accept=".csv,.txt,.pdf" class="form-control">
+                        <div class="form-text small text-muted">Soporta estados de cuenta PDF de Banco de Venezuela y archivos CSV/TXT. Los débitos y comisiones se clasificarán automáticamente como descartados.</div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -335,7 +409,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <form id="formLoteExactas" method="POST" action="/admin/conciliacion/conciliar-lote" class="d-none">
     <?= csrf_field() ?>
@@ -346,7 +419,8 @@
     function conciliarLoteExactas() {
         const items = <?= json_encode(array_map(fn($m) => [
             'extracto_id' => $m['extracto']['id'],
-            'pago_id'     => $m['pago']['id']
+            'pago_id'     => $m['pago']['id'],
+            'origen_tipo' => $m['pago']['origen_tabla'] ?? 'pago'
         ], $resultadoCruce['coincidencias_exactas'])) ?>;
 
         if (items.length === 0) return;

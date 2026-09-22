@@ -295,7 +295,7 @@
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="unidad_cuota_mensual" class="text-xs font-bold text-on-surface-variant uppercase">Cuota Mensual ($) *</label>
+                <label for="unidad_cuota_mensual" class="text-xs font-bold text-on-surface-variant uppercase">Cuota Mensual (Bs) *</label>
                 <input type="number" step="0.01" min="0" id="unidad_cuota_mensual" name="cuota_mensual" required placeholder="Ej: 150.00"
                        class="w-full px-3.5 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary focus:bg-white text-sm">
             </div>

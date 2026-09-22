@@ -24,6 +24,19 @@ class UsuariosModel extends BaseModel {
     }
 
     /**
+     * Obtiene un usuario por email o nombre de usuario (cualquier estado).
+     *
+     * @param string $identificador
+     * @return array|null
+     */
+    public function getByEmailOrUsuario(string $identificador): ?array {
+        $stmt = $this->db()->prepare("SELECT * FROM usuarios WHERE LOWER(email) = LOWER(:id1) OR usuario = :id2");
+        $stmt->execute(['id1' => $identificador, 'id2' => $identificador]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
      * Incrementa el contador de intentos fallidos de login.
      * A los 5 intentos, bloquea la cuenta por 30 minutos.
      */

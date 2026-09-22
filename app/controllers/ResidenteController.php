@@ -73,17 +73,25 @@ class ResidenteController extends Controller {
         // Obtener facturas pendientes para el dropdown
         $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
 
+        $cuentasModel = new \App\Models\CuentasBancariasModel();
+        $cuentasBancarias = $cuentasModel->getActivas();
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error)) {
             // CSRF ya validado por el middleware global
             $factura_id = $_POST['factura_id'] ?? 0;
+            $cuenta_bancaria_id = intval($_POST['cuenta_bancaria_id'] ?? 0);
             $monto = floatval($_POST['monto'] ?? 0);
             $metodo_pago = $_POST['metodo_pago'] ?? '';
             $referencia = trim($_POST['referencia'] ?? '');
             $fecha_pago = $_POST['fecha_pago'] ?? date('Y-m-d');
             $observaciones = trim($_POST['observaciones'] ?? '');
 
+            $cuentaReceptora = ($cuenta_bancaria_id > 0) ? $cuentasModel->getActivaById($cuenta_bancaria_id) : null;
+
             if ($factura_id <= 0) {
                 $error = "Seleccione una factura válida";
+            } elseif (!$cuentaReceptora) {
+                $error = "Debe seleccionar una cuenta bancaria receptora autorizada y activa.";
             } elseif ($monto <= 0) {
                 $error = "Ingrese un monto válido mayor a cero";
             } elseif ($monto > 999999.99) {
@@ -111,6 +119,7 @@ class ResidenteController extends Controller {
 
                     if (empty($error)) {
                         // Guardar comprobante
+                        $obsCompleta = trim("Cuenta Destino: {$cuentaReceptora['banco']} ({$cuentaReceptora['numero_cuenta']}) | " . $observaciones);
                         $result = $comprobantesModel->create([
                             'residente_id'  => $residente_id,
                             'factura_id'    => $factura_id,
@@ -119,7 +128,7 @@ class ResidenteController extends Controller {
                             'referencia'    => $referencia,
                             'fecha_pago'    => $fecha_pago,
                             'archivo'       => $archivo,
-                            'observaciones' => $observaciones
+                            'observaciones' => $obsCompleta
                         ]);
 
                         if ($result) {
@@ -136,13 +145,14 @@ class ResidenteController extends Controller {
         }
 
         $this->render('residente/enviar_pago', [
-            'residente' => $residente,
-            'factura_id' => $selected_factura_id,
+            'residente'           => $residente,
+            'factura_id'          => $selected_factura_id,
             'facturas_pendientes' => $facturas_pendientes,
-            'mensaje' => $mensaje,
-            'error' => $error,
-            'showNav' => true,
-            'title' => 'Enviar Pago - Condominio Digital'
+            'cuentasBancarias'    => $cuentasBancarias,
+            'mensaje'             => $mensaje,
+            'error'               => $error,
+            'showNav'             => true,
+            'title'               => 'Enviar Pago - Condominio Digital'
         ]);
     }
 

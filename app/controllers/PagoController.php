@@ -80,11 +80,14 @@ class PagoController extends Controller {
      */
     public function nuevo() {
         $residente = $this->getAuthenticatedResidente();
+        $cuentasModel = new \App\Models\CuentasBancariasModel();
+        $cuentasBancarias = $cuentasModel->getActivas();
         
         $this->render('pagos/residente/subir', [
-            'residente' => $residente,
-            'showNav'   => true,
-            'title'     => 'Registrar Pago'
+            'residente'        => $residente,
+            'cuentasBancarias' => $cuentasBancarias,
+            'showNav'          => true,
+            'title'            => 'Registrar Pago'
         ]);
     }
 
@@ -102,13 +105,23 @@ class PagoController extends Controller {
         
         $unidadId = $residente['unidad_id'];
         
-        // Validación de datos básicos, ahora con bancos
+        // Validación de datos básicos con cuentas autorizadas
+        $cuenta_bancaria_id = intval($_POST['cuenta_bancaria_id'] ?? 0);
         $banco_pagador = trim($_POST['banco_pagador'] ?? '');
-        $banco_receptor = trim($_POST['banco_receptor'] ?? '');
         $monto = floatval($_POST['monto'] ?? 0);
         $fecha_pago = $_POST['fecha_pago'] ?? '';
         $referencia = trim($_POST['referencia'] ?? '');
         $observaciones = trim($_POST['observaciones'] ?? '');
+
+        // Validar cuenta receptora autorizada y activa
+        $cuentasModel = new \App\Models\CuentasBancariasModel();
+        $cuentaReceptora = ($cuenta_bancaria_id > 0) ? $cuentasModel->getActivaById($cuenta_bancaria_id) : null;
+        if (!$cuentaReceptora) {
+            Flash::error("Debe seleccionar una cuenta bancaria receptora autorizada y activa.");
+            $this->redirect('/pagos/nuevo');
+            return;
+        }
+        $banco_receptor = $cuentaReceptora['banco'];
         
         if ($monto <= 0) {
             Flash::error("El monto del pago debe ser mayor a cero.");
@@ -146,12 +159,13 @@ class PagoController extends Controller {
         }
 
         $datos = [
-            'monto'          => $monto,
-            'fecha_pago'     => $fecha_pago,
-            'referencia'     => $referencia,
-            'observaciones'  => $observaciones,
-            'banco_pagador'  => $banco_pagador,
-            'banco_receptor' => $banco_receptor
+            'monto'              => $monto,
+            'fecha_pago'         => $fecha_pago,
+            'referencia'         => $referencia,
+            'observaciones'      => $observaciones,
+            'banco_pagador'      => $banco_pagador,
+            'banco_receptor'     => $banco_receptor,
+            'cuenta_bancaria_id' => $cuenta_bancaria_id
         ];
         
         $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);

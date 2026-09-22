@@ -81,10 +81,31 @@ class AuthController extends Controller {
 
                     // 2. Buscar en la tabla de residentes (Personas) — only if admin wasn't found or wasn't locked
                     if (!$usuario && empty($error)) {
-                        $cedulaBusqueda = normalizarCedula($identificador);
-                        $residente = $esEmail
-                            ? $personasModel->getActiveByEmail($identificador)
-                            : ($personasModel->getActiveByCedula($cedulaBusqueda) ?: $personasModel->getActiveByCedula($identificador));
+                        $residente = null;
+                        $variantesCedula = [];
+
+                        if ($esEmail) {
+                            $residente = $personasModel->getActiveByEmail($identificador);
+                        } else {
+                            $cedulaNorm = normalizarCedula($identificador);
+                            $soloDigitos = preg_replace('/\D/', '', $identificador);
+                            $variantesCedula = array_values(array_unique(array_filter([
+                                $identificador,
+                                $cedulaNorm,
+                                $soloDigitos,
+                                strlen($soloDigitos) >= 4 ? ('V' . $soloDigitos) : null,
+                                strlen($soloDigitos) >= 4 ? ('E' . $soloDigitos) : null,
+                                strlen($soloDigitos) >= 4 ? ('V-' . $soloDigitos) : null,
+                                strlen($soloDigitos) >= 4 ? ('E-' . $soloDigitos) : null,
+                            ])));
+
+                            foreach ($variantesCedula as $vCed) {
+                                $residente = $personasModel->getActiveByCedula($vCed);
+                                if ($residente) {
+                                    break;
+                                }
+                            }
+                        }
 
                         if ($residente) {
                             if ($personasModel->estaBloqueado((int)$residente['id'])) {
@@ -108,21 +129,41 @@ class AuthController extends Controller {
                                 $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
                             }
                         } else {
-                            // 3. Verificar si existe una solicitud de registro pendiente o rechazada
+                            // 3. Si no se encuentra un usuario administrador activo ni residente activo:
                             $solicitudesModel = new SolicitudesRegistroModel();
                             $solicitud = $solicitudesModel->buscarUltimaPorIdentificador($identificador);
 
-                            if ($solicitud && password_verify($password, $solicitud['password_hash'])) {
-                                if ($solicitud['estado'] === 'pendiente') {
-                                    $error = 'Su cuenta se encuentra en estado PENDIENTE de aprobación por la administración. No tiene permisos de acceso hasta que sea validada.';
-                                } elseif ($solicitud['estado'] === 'rechazada') {
-                                    $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
-                                    $error = "Su solicitud de registro fue rechazada por la administración{$motivo}";
-                                } else {
-                                    $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
-                                }
+                            if ($solicitud && $solicitud['estado'] === 'pendiente') {
+                                $error = 'Su cuenta se encuentra en proceso de revisión y aún no ha sido verificada por la administración. No podrá iniciar sesión hasta que su solicitud sea validada y aprobada.';
+                            } elseif ($solicitud && $solicitud['estado'] === 'rechazada') {
+                                $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
+                                $error = "Su solicitud de registro fue rechazada por la administración{$motivo}";
                             } else {
-                                $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                                // b. Si no hay solicitud pero existe en personas con estado != 1:
+                                $personaInactiva = null;
+                                if ($esEmail) {
+                                    $personaInactiva = $personasModel->getByEmail($identificador);
+                                } else {
+                                    foreach ($variantesCedula as $vCed) {
+                                        $personaInactiva = $personasModel->getByCedula($vCed);
+                                        if ($personaInactiva) {
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if ($personaInactiva && (int)($personaInactiva['estado'] ?? 0) !== 1) {
+                                    $error = 'Su cuenta de residente se encuentra inactiva o aún no ha sido verificada. Por favor, comuníquese con la administración.';
+                                } else {
+                                    // c. Si no hay lo anterior pero existe en usuarios con estado != 1:
+                                    $usuarioInactivo = $usuariosModel->getByEmailOrUsuario($identificador);
+                                    if ($usuarioInactivo && (int)($usuarioInactivo['estado'] ?? 0) !== 1) {
+                                        $error = 'Su cuenta de usuario se encuentra inactiva o aún no ha sido verificada. Por favor, contacte a la administración.';
+                                    } else {
+                                        // d. Si nada de lo anterior coincide, mantener el error genérico:
+                                        $error = 'Credenciales incorrectas. Verifica tu correo/cédula y contraseña.';
+                                    }
+                                }
                             }
                         }
                     }
@@ -381,8 +422,8 @@ class AuthController extends Controller {
                             ]);
 
                             if ($solicitudId > 0) {
-                                $success = '¡Su solicitud de registro ha sido enviada con éxito! Su cuenta se encuentra en estado PENDIENTE y está sujeta a verificación administrativa. No podrá iniciar sesión hasta que sea aprobada por la administración.';
-                                $apartamentosDisponibles = $unidadesModel->getDisponibles();
+                                $this->redirect('/auth/registro-exitoso');
+                                return;
                             } else {
                                 $error = 'Ocurrió un error al procesar la solicitud de registro. Intente de nuevo.';
                             }
@@ -399,10 +440,24 @@ class AuthController extends Controller {
 
         $this->render('auth/register', [
             'error'                   => $error,
-            'success'                 => $success,
             'apartamentosDisponibles' => $apartamentosDisponibles,
             'showNav'                 => false,
             'title'                   => 'Crear Cuenta - Condominio Digital'
+        ]);
+    }
+
+    /**
+     * Pantalla de confirmación tras un registro exitoso de residente.
+     */
+    public function registroExitoso() {
+        if (Auth::check()) {
+            $this->redirectByRole();
+            return;
+        }
+
+        $this->render('auth/registro_exitoso', [
+            'showNav' => false,
+            'title'   => 'Registro Exitoso - Condominio Digital'
         ]);
     }
 

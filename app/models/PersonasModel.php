@@ -130,6 +130,16 @@ class PersonasModel extends BaseModel {
     }
 
     /**
+     * Consulta un registro por correo electrónico (cualquier estado).
+     */
+    public function getByEmail(string $email): ?array {
+        $stmt = $this->db()->prepare("SELECT * FROM personas WHERE LOWER(email) = LOWER(:email)");
+        $stmt->execute(['email' => $email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
      * Verifica si un correo electrónico ya está en uso por otra persona activa.
      */
     public function emailExistsActive(string $email, ?int $excludeId = null): bool {

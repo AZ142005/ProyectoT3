@@ -267,4 +267,96 @@ class SolicitudesRegistroTest extends TestCase {
             $db->exec("DELETE FROM unidades WHERE id = {$testUnidadId}");
         }
     }
+
+    public function testBuscarUltimaPorIdentificadorVariantes(): void {
+        $db = $this->getDb();
+        $model = new SolicitudesRegistroModel();
+
+        $stmtEd = $db->query("SELECT id FROM edificios WHERE estado = 1 LIMIT 1");
+        $edificioId = $stmtEd->fetchColumn();
+        if (!$edificioId) {
+            $db->exec("INSERT INTO edificios (nombre, direccion, estado) VALUES ('Edif Test Identificador', 'Calle Test', 1)");
+            $edificioId = (int)$db->lastInsertId();
+        }
+
+        $testNumero = 'TEST-VAR-' . rand(1000, 9999);
+        $stmtInsU = $db->prepare("
+            INSERT INTO unidades (edificio_id, numero, cuota_mensual, estado, propietario_id)
+            VALUES (:eid, :num, 50.00, 1, NULL)
+        ");
+        $stmtInsU->execute(['eid' => $edificioId, 'num' => $testNumero]);
+        $testUnidadId = (int)$db->lastInsertId();
+
+        $numRandom = (string)rand(80000000, 89999999);
+        $testCedulaGuardada = 'V' . $numRandom;
+        $testEmail = 'variante_' . rand(1000, 9999) . '@test.com';
+
+        try {
+            $solicitudId = $model->crearSolicitud([
+                'unidad_id'         => $testUnidadId,
+                'cedula'            => $testCedulaGuardada,
+                'nombre'            => 'Prueba',
+                'apellido'          => 'Variantes',
+                'email'             => $testEmail,
+                'telefono'          => '04121234567',
+                'numero_residentes' => 2,
+                'password_hash'     => password_hash('PassTest123', PASSWORD_BCRYPT),
+            ]);
+
+            $this->assertGreaterThan(0, $solicitudId, "La solicitud debe haberse creado");
+
+            // 1. Buscar por correo exacto
+            $resEmail = $model->buscarUltimaPorIdentificador($testEmail);
+            $this->assertNotNull($resEmail, "Debe encontrar por email exacto");
+            $this->assertEquals($solicitudId, (int)$resEmail['id'], "ID debe coincidir por email");
+
+            // 2. Buscar por correo en mayúsculas
+            $resEmailUpper = $model->buscarUltimaPorIdentificador(strtoupper($testEmail));
+            $this->assertNotNull($resEmailUpper, "Debe encontrar por email en mayúsculas");
+            $this->assertEquals($solicitudId, (int)$resEmailUpper['id'], "ID debe coincidir por email mayúsculas");
+
+            // 3. Buscar por cédula exacta guardada (ej. VXXXXXXXX)
+            $resCedExacta = $model->buscarUltimaPorIdentificador($testCedulaGuardada);
+            $this->assertNotNull($resCedExacta, "Debe encontrar por cédula exacta");
+            $this->assertEquals($solicitudId, (int)$resCedExacta['id'], "ID debe coincidir por cédula exacta");
+
+            // 4. Buscar por cédula con guión (ej. V-XXXXXXXX)
+            $resCedGuion = $model->buscarUltimaPorIdentificador('V-' . $numRandom);
+            $this->assertNotNull($resCedGuion, "Debe encontrar por cédula con guión");
+            $this->assertEquals($solicitudId, (int)$resCedGuion['id'], "ID debe coincidir por cédula con guión");
+
+            // 5. Buscar por solo números (ej. XXXXXXXX)
+            $resSoloNumeros = $model->buscarUltimaPorIdentificador($numRandom);
+            $this->assertNotNull($resSoloNumeros, "Debe encontrar por solo dígitos");
+            $this->assertEquals($solicitudId, (int)$resSoloNumeros['id'], "ID debe coincidir por solo dígitos");
+
+            // 6. Verificar que buscarPendientePorIdentificador también funciona con todas las variantes
+            $resPendienteGuion = $model->buscarPendientePorIdentificador('V-' . $numRandom);
+            $this->assertNotNull($resPendienteGuion, "buscarPendientePorIdentificador debe encontrar con guión");
+            $this->assertEquals($solicitudId, (int)$resPendienteGuion['id'], "ID de pendiente debe coincidir con guión");
+
+            $resPendienteNumeros = $model->buscarPendientePorIdentificador($numRandom);
+            $this->assertNotNull($resPendienteNumeros, "buscarPendientePorIdentificador debe encontrar con solo dígitos");
+            $this->assertEquals($solicitudId, (int)$resPendienteNumeros['id'], "ID de pendiente debe coincidir con solo dígitos");
+
+        } finally {
+            $this->cleanup($testCedulaGuardada, $testEmail, $testUnidadId);
+            $db->exec("DELETE FROM unidades WHERE id = {$testUnidadId}");
+        }
+    }
+
+    public function testPersonasAndUsuariosGetMethods(): void {
+        $personasModel = new \App\Models\PersonasModel();
+        $usuariosModel = new \App\Models\UsuariosModel();
+
+        $this->assertTrue(method_exists($personasModel, 'getByEmail'), "PersonasModel debe tener getByEmail");
+        $this->assertTrue(method_exists($usuariosModel, 'getByEmailOrUsuario'), "UsuariosModel debe tener getByEmailOrUsuario");
+
+        $inexistenteP = $personasModel->getByEmail('no_existe_' . rand(1000, 9999) . '@test.com');
+        $this->assertNull($inexistenteP, "getByEmail de un email inexistente debe retornar null");
+
+        $inexistenteU = $usuariosModel->getByEmailOrUsuario('no_existe_' . rand(1000, 9999) . '@test.com');
+        $this->assertNull($inexistenteU, "getByEmailOrUsuario de un identificador inexistente debe retornar null");
+    }
 }
+

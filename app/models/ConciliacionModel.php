@@ -26,8 +26,8 @@ class ConciliacionModel extends BaseModel {
 
         $sqlInsert = "
             INSERT INTO extractos_bancarios 
-            (banco, fecha_movimiento, referencia_bancaria, descripcion_banco, monto, tipo_movimiento, estado_conciliacion, lote_importacion)
-            VALUES (:banco, :fecha, :ref, :desc, :monto, :tipo, :estado, :lote)
+            (banco, fecha_movimiento, referencia_bancaria, referencia, descripcion_banco, descripcion, monto, tipo_movimiento, estado_conciliacion, lote_importacion)
+            VALUES (:banco, :fecha, :ref_bancaria, :referencia, :desc_banco, :descripcion, :monto, :tipo, :estado, :lote)
         ";
         $stmtInsert = $db->prepare($sqlInsert);
 
@@ -62,14 +62,16 @@ class ConciliacionModel extends BaseModel {
             }
 
             $stmtInsert->execute([
-                'banco'   => $banco,
-                'fecha'   => $fecha,
-                'ref'     => $referencia,
-                'desc'    => $desc,
-                'monto'   => $montoAbs,
-                'tipo'    => $tipo,
-                'estado'  => $estado,
-                'lote'    => $lote
+                'banco'         => $banco,
+                'fecha'         => $fecha,
+                'ref_bancaria'  => $referencia,
+                'referencia'    => $referencia,
+                'desc_banco'    => $desc,
+                'descripcion'   => $desc,
+                'monto'         => $montoAbs,
+                'tipo'          => $tipo,
+                'estado'        => $estado,
+                'lote'          => $lote
             ]);
 
             $insertados++;

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <title><?= e($title ?? 'Sistema de Cobranzas - Condominio') ?></title>
+    <!-- Favicon / Icono de la ventana del navegador -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
     <!-- Google Fonts & Material Symbols -->
     <link href="https://fonts.googleapis.com" rel="preconnect"/>
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -52,6 +56,14 @@
             --color-institutional-brown-dark: #2d1a0c;
             --color-institutional-brown-light: #6d4c41;
             --bs-primary: #27ae60;
+        }
+
+        /* Ocultar icono nativo de revelar contraseña del navegador (Edge / IE) para evitar duplicación con el botón personalizado */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         /* RNF 1: Paleta institucional (Verde, Amarillo y en menor medida Marrón) */

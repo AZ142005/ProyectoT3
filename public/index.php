@@ -104,6 +104,8 @@ $router->any('/', [AuthController::class, 'login']);
 $router->any('/login', [AuthController::class, 'login']);
 $router->any('/auth/login', [AuthController::class, 'login']);
 $router->any('/auth/register', [AuthController::class, 'register']);
+$router->get('/auth/registro-exitoso', [AuthController::class, 'registroExitoso']);
+$router->get('/registro-exitoso', [AuthController::class, 'registroExitoso']);
 $router->get('/logout', [AuthController::class, 'logout'], ['auth']);
 $router->get('/auth/logout', [AuthController::class, 'logout'], ['auth']);
 $router->get('/admin/login', [AdminAuthController::class, 'login']);
@@ -126,6 +128,7 @@ $router->get('/residente/historial', [ResidenteController::class, 'historial'], 
 // --- Módulo de Administración ---
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [UserRole::ADMIN]);
 $router->get('/admin/comprobantes', [AdminController::class, 'listarComprobantes'], [UserRole::ADMIN]);
+$router->get('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
 $router->post('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
 $router->any('/admin/facturas/generar', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN]);
 
@@ -179,6 +182,12 @@ $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::cl
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\ConciliacionController::class, 'conciliarLote'], [UserRole::ADMIN]);
+
+// --- Módulo de Cuentas Bancarias Autorizadas ---
+$router->get('/admin/cuentas-bancarias', [\App\Controllers\CuentaBancariaController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/cuentas-bancarias/guardar', [\App\Controllers\CuentaBancariaController::class, 'guardar'], [UserRole::ADMIN]);
+$router->post('/admin/cuentas-bancarias/toggle', [\App\Controllers\CuentaBancariaController::class, 'toggle'], [UserRole::ADMIN]);
+$router->post('/admin/cuentas-bancarias/eliminar', [\App\Controllers\CuentaBancariaController::class, 'eliminar'], [UserRole::ADMIN]);
 
 // --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
 $router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN]);

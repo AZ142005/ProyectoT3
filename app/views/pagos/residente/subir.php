@@ -91,10 +91,36 @@
                                class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium">
                     </div>
 
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Banco Receptor (Destino)</label>
-                        <input type="text" id="banco_receptor" name="banco_receptor" placeholder="Ej. Mercantil"
-                                class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                    <div class="flex flex-col gap-1.5 sm:col-span-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Cuenta Bancaria Destino (Autorizada) <span class="text-red-500">*</span></label>
+                        <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
+                                class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold">
+                            <option value="">-- Seleccione la cuenta receptora autorizada --</option>
+                            <?php foreach ($cuentasBancarias as $cb): ?>
+                                <option value="<?= e($cb['id']) ?>" 
+                                        data-banco="<?= e($cb['banco']) ?>"
+                                        data-cuenta="<?= e($cb['numero_cuenta']) ?>"
+                                        data-titular="<?= e($cb['titular']) ?>"
+                                        data-doc="<?= e($cb['tipo_identificacion'] . '-' . $cb['identificacion']) ?>"
+                                        data-telefono="<?= e($cb['telefono_pago_movil'] ?? '') ?>">
+                                    <?= e($cb['banco']) ?> - <?= e(chunk_split($cb['numero_cuenta'], 4, ' ')) ?> (<?= e($cb['titular']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <!-- Tarjeta con datos oficiales de la cuenta seleccionada -->
+                        <div id="cardInfoCuenta" class="hidden mt-2 p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-950 shadow-sm">
+                            <div class="font-bold text-sm text-primary mb-2 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[18px]">verified</span>
+                                <span id="infoBanco"></span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                <div><span class="text-slate-500 block">Número de Cuenta (20 dígitos):</span> <span id="infoNumero" class="font-mono font-bold text-dark text-xs select-all"></span></div>
+                                <div><span class="text-slate-500 block">Titular:</span> <span id="infoTitular" class="font-bold text-dark"></span></div>
+                                <div><span class="text-slate-500 block">RIF / Cédula:</span> <span id="infoDoc" class="font-bold text-dark select-all"></span></div>
+                                <div id="wrapperInfoTelefono"><span class="text-slate-500 block">Teléfono Pago Móvil:</span> <span id="infoTelefono" class="font-bold text-success select-all"></span></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex flex-col gap-1.5">
@@ -220,6 +246,31 @@
         }
     }
 
+    function actualizarInfoCuenta(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        const card = document.getElementById('cardInfoCuenta');
+        if (!opt || !opt.value) {
+            card.classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('infoBanco').textContent = opt.getAttribute('data-banco') || '';
+        document.getElementById('infoNumero').textContent = (opt.getAttribute('data-cuenta') || '').replace(/(\d{4})/g, '$1 ').trim();
+        document.getElementById('infoTitular').textContent = opt.getAttribute('data-titular') || '';
+        document.getElementById('infoDoc').textContent = opt.getAttribute('data-doc') || '';
+        
+        const tel = opt.getAttribute('data-telefono');
+        const wrapTel = document.getElementById('wrapperInfoTelefono');
+        if (tel) {
+            document.getElementById('infoTelefono').textContent = tel;
+            wrapTel.classList.remove('hidden');
+        } else {
+            wrapTel.classList.add('hidden');
+        }
+
+        card.classList.remove('hidden');
+    }
+
     function resetPreview() {
         if (currentObjectURL) {
             URL.revokeObjectURL(currentObjectURL);
@@ -288,8 +339,7 @@
                     'monto': data.monto,
                     'referencia': data.referencia,
                     'fecha_pago': data.fecha_pago,
-                    'banco_pagador': data.banco_pagador,
-                    'banco_receptor': data.banco_receptor
+                    'banco_pagador': data.banco_pagador
                 };
 
                 let camposLlenados = 0;
@@ -302,6 +352,21 @@
                         setTimeout(() => {
                             el.classList.remove('bg-emerald-50', 'border-primary');
                         }, 1200);
+                    }
+                }
+
+                // Autoseleccionar cuenta bancaria receptora autorizada coincidente
+                if (data.banco_receptor) {
+                    const selCuenta = document.getElementById('cuenta_bancaria_id');
+                    const bncLower = data.banco_receptor.toLowerCase();
+                    for (let i = 0; i < selCuenta.options.length; i++) {
+                        const optBnc = (selCuenta.options[i].getAttribute('data-banco') || '').toLowerCase();
+                        if (optBnc && (optBnc.includes(bncLower) || bncLower.includes(optBnc))) {
+                            selCuenta.selectedIndex = i;
+                            actualizarInfoCuenta(selCuenta);
+                            camposLlenados++;
+                            break;
+                        }
                     }
                 }
 

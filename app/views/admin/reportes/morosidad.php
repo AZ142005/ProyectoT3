@@ -134,7 +134,7 @@
                             <th class="py-3">Propietario / Contacto</th>
                             <th class="py-3 text-center">Facturas Vencidas</th>
                             <th class="py-3 text-center">Días de Mora</th>
-                            <th class="py-3 text-end pe-4">Monto Total ($)</th>
+                            <th class="py-3 text-end pe-4">Monto Total (Bs)</th>
                             <th class="py-3 text-center pe-3">Acciones</th>
                         </tr>
                     </thead>

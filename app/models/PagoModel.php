@@ -42,21 +42,22 @@ class PagoModel extends BaseModel {
                 }
             }
 
-            $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor)
-                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor)";
+            $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, observaciones, estado, banco_pagador, banco_receptor, cuenta_bancaria_id)
+                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";
             
             $stmt = $db->prepare($sql);
             $result = $stmt->execute([
-                'residente_id'  => $residenteId,
-                'unidad_id'     => $unidadId,
-                'monto'         => $monto,
-                'fecha_pago'    => $fechaPago,
-                'metodo_pago'   => $datos['metodo_pago'] ?? '',
-                'referencia'    => $referencia,
-                'archivo'       => $filename,
-                'observaciones' => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
-                'banco_pagador' => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
-                'banco_receptor'=> !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null
+                'residente_id'       => $residenteId,
+                'unidad_id'          => $unidadId,
+                'monto'              => $monto,
+                'fecha_pago'         => $fechaPago,
+                'metodo_pago'        => $datos['metodo_pago'] ?? '',
+                'referencia'         => $referencia,
+                'archivo'            => $filename,
+                'observaciones'      => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
+                'banco_pagador'      => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
+                'banco_receptor'     => !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null,
+                'cuenta_bancaria_id' => !empty($datos['cuenta_bancaria_id']) ? intval($datos['cuenta_bancaria_id']) : null
             ]);
 
             $db->commit();

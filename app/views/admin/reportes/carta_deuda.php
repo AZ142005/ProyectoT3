@@ -56,7 +56,7 @@
                 <div class="col-8">
                     <h3 class="fw-bold text-success mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h3>
                     <p class="small text-muted mb-0">Junta de Condominio & Administración General</p>
-                    <p class="small text-muted mb-0">RIF: J-30948572-0 | Morón, Estado Carabobo</p>
+                    <p class="small text-muted mb-0">RIF: J-30948572-0 | Morón, Estado Trujillo</p>
                 </div>
                 <div class="col-4 text-end">
                     <div class="border p-2 rounded bg-light text-center">
@@ -68,7 +68,7 @@
 
             <!-- Destinatario -->
             <div class="mb-4">
-                <p class="mb-1"><strong>Fecha:</strong> Morón, <?= date('d de m de Y') ?></p>
+                <p class="mb-1"><strong>Fecha:</strong> <?= date('d/m/Y') ?></p>
                 <p class="mb-1"><strong>Ciudadano(a):</strong> <?= e($unidad['propietario_nombre'] ?: 'Propietario / Residente') ?></p>
                 <p class="mb-1"><strong>Cédula de Identidad:</strong> <?= e($unidad['propietario_cedula'] ?: 'N/A') ?></p>
                 <p class="mb-0"><strong>Inmueble:</strong> Edificio <?= e($unidad['edificio_nombre']) ?> - Apto/Unidad <?= e($unidad['unidad_numero']) ?></p>
@@ -119,13 +119,6 @@
                 </table>
             </div>
 
-            <!-- Instrucciones de Pago -->
-            <div class="bg-light p-3 border rounded-3 mb-4 small">
-                <h6 class="fw-bold text-dark mb-2">Cuentas Bancarias Autorizadas del Condominio:</h6>
-                <p class="mb-1"><strong>Banco Mercantil (Cuenta Corriente):</strong> Nro. 0105-0000-00-0000000000</p>
-                <p class="mb-1"><strong>Pago Móvil:</strong> Banco Mercantil (0105) | C.I/RIF: J-30948572-0 | Teléf: 0414-0000000</p>
-                <p class="mb-0 text-muted">Una vez realizado el depósito o transferencia, recuerde cargar su comprobante mediante su portal en línea.</p>
-            </div>
 
             <!-- Firmas -->
             <div class="row text-center mt-5 pt-4">

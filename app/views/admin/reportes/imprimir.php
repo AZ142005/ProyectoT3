@@ -69,7 +69,7 @@
                 <th>Contacto</th>
                 <th class="text-center">Cuotas Vencidas</th>
                 <th class="text-center">Días Mora</th>
-                <th class="text-end">Deuda Total ($)</th>
+                <th class="text-end">Deuda Total (Bs)</th>
             </tr>
         </thead>
         <tbody>

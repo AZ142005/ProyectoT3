@@ -41,7 +41,7 @@ class ConciliacionController extends Controller {
 
         $banco = trim($_POST['banco'] ?? 'mercantil');
 
-        $bancosPermitidos = ['mercantil', 'provincial', 'banco_de_venezuela', 'banco_plaza', 'banco_exterior', 'bbva', 'bancaribe', 'banco_nacional_de_crédito', 'banco_del_tesoro', 'banco_munivalle'];
+        $bancosPermitidos = ['mercantil', 'provincial', 'venezuela', 'banco_de_venezuela', 'bdv', 'banesco', 'banco_plaza', 'banco_exterior', 'bbva', 'bancaribe', 'banco_nacional_de_crédito', 'banco_del_tesoro', 'banco_munivalle', 'generico_csv'];
         if (!in_array($banco, $bancosPermitidos, true)) {
             Flash::set('danger', 'Banco no reconocido. Seleccione un banco válido.');
             $this->redirect('/admin/conciliacion');
@@ -57,8 +57,8 @@ class ConciliacionController extends Controller {
         $file = $_FILES['archivo_extracto'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($ext, ['csv', 'txt'])) {
-            Flash::set('danger', 'Formato no permitido. Solo se aceptan archivos .CSV o .TXT de extractos bancarios.');
+        if (!in_array($ext, ['csv', 'txt', 'pdf'], true)) {
+            Flash::set('danger', 'Formato no permitido. Solo se aceptan archivos .CSV, .TXT o .PDF de extractos bancarios.');
             $this->redirect('/admin/conciliacion');
             return;
         }
@@ -68,16 +68,16 @@ class ConciliacionController extends Controller {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime = finfo_file($finfo, $file['tmp_name']);
             finfo_close($finfo);
-            if (!in_array($mime, ['text/csv', 'text/plain', 'text/comma-separated-values', 'application/octet-stream', 'text/x-csv'], true)) {
-                Flash::set('danger', 'El contenido del archivo no corresponde a un extracto bancario.');
+            if (!in_array($mime, ['text/csv', 'text/plain', 'text/comma-separated-values', 'application/octet-stream', 'text/x-csv', 'application/pdf', 'application/x-pdf'], true)) {
+                Flash::set('danger', 'El contenido del archivo no corresponde a un extracto bancario válido.');
                 $this->redirect('/admin/conciliacion');
                 return;
             }
         }
 
-        // Límite de tamaño: 5MB para extractos bancarios
-        if ($file['size'] > 5 * 1024 * 1024) {
-            Flash::set('danger', 'El archivo excede el tamaño máximo permitido de 5MB.');
+        // Límite de tamaño: 10MB para extractos bancarios
+        if ($file['size'] > 10 * 1024 * 1024) {
+            Flash::set('danger', 'El archivo excede el tamaño máximo permitido de 10MB.');
             $this->redirect('/admin/conciliacion');
             return;
         }
@@ -108,6 +108,7 @@ class ConciliacionController extends Controller {
 
         $extractoId = intval($_POST['extracto_id'] ?? 0);
         $pagoId = intval($_POST['pago_id'] ?? 0);
+        $origenTipo = trim($_POST['origen_tipo'] ?? 'auto');
         $adminId = Auth::id() ?? 1;
 
         if ($extractoId <= 0 || $pagoId <= 0) {
@@ -118,7 +119,7 @@ class ConciliacionController extends Controller {
 
         try {
             $conciliacionService = new ConciliacionBancariaService();
-            $resultado = $conciliacionService->conciliarYaprobar($extractoId, $pagoId, $adminId);
+            $resultado = $conciliacionService->conciliarYaprobar($extractoId, $pagoId, $adminId, $origenTipo);
 
             Flash::set('success', $resultado['mensaje']);
         } catch (\Exception $e) {

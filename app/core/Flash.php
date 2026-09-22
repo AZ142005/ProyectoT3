@@ -5,7 +5,8 @@ class Flash {
     private static $key = 'flash';
 
     public static function set(string $type, string $message): void {
-        $_SESSION[self::$key][$type] = $message;
+        $normalizedType = ($type === 'danger') ? 'error' : $type;
+        $_SESSION[self::$key][$normalizedType] = $message;
     }
 
     public static function success(string $message): void {
@@ -25,8 +26,9 @@ class Flash {
     }
 
     public static function get(string $type): string {
-        $message = $_SESSION[self::$key][$type] ?? '';
-        unset($_SESSION[self::$key][$type]);
+        $normalizedType = ($type === 'danger') ? 'error' : $type;
+        $message = $_SESSION[self::$key][$normalizedType] ?? ($_SESSION[self::$key][$type] ?? '');
+        unset($_SESSION[self::$key][$normalizedType], $_SESSION[self::$key][$type]);
         return $message;
     }
 
