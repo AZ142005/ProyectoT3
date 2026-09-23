@@ -104,17 +104,16 @@ class ResidenteController extends Controller {
 
                 if (!$factura_valida) {
                     $error = "La factura seleccionada no es válida para su unidad.";
+                } elseif (!isset($_FILES['comprobante']) || $_FILES['comprobante']['error'] !== UPLOAD_ERR_OK) {
+                    $error = "El comprobante de pago (archivo) es obligatorio y debe ser válido.";
                 } else {
-                    $archivo = '';
-                    if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
-                        $uploader = new \App\Services\FileUploader();
-                        $uploadedName = $uploader->upload($_FILES['comprobante']);
+                    $uploader = new \App\Services\FileUploader();
+                    $uploadedName = $uploader->upload($_FILES['comprobante']);
 
-                        if (!$uploadedName) {
-                            $error = "Formato o tamaño de archivo no permitido. Solo se aceptan JPG, PNG y PDF.";
-                        } else {
-                            $archivo = $uploadedName;
-                        }
+                    if (!$uploadedName) {
+                        $error = "Formato o tamaño de archivo no permitido. Solo se aceptan JPG, PNG y PDF (Máx. 5MB).";
+                    } else {
+                        $archivo = $uploadedName;
                     }
 
                     if (empty($error)) {

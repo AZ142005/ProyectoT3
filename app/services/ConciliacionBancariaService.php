@@ -254,6 +254,144 @@ class ConciliacionBancariaService {
     }
 
     /**
+     * Normaliza el nombre de una entidad bancaria a un identificador canónico en minúsculas.
+     */
+    public function normalizarNombreBanco(?string $banco): string {
+        if (empty($banco)) {
+            return '';
+        }
+        $b = mb_strtolower(trim($banco), 'UTF-8');
+        $b = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $b);
+        $b = preg_replace('/[^a-z0-9]/', ' ', $b);
+        $b = preg_replace('/\s+/', ' ', trim($b));
+
+        if (str_contains($b, '0102') || str_contains($b, 'venezuela') || str_contains($b, 'bdv')) {
+            return 'venezuela';
+        }
+        if (str_contains($b, '0105') || str_contains($b, 'mercantil')) {
+            return 'mercantil';
+        }
+        if (str_contains($b, '0134') || str_contains($b, 'banesco')) {
+            return 'banesco';
+        }
+        if (str_contains($b, '0108') || str_contains($b, 'provincial') || str_contains($b, 'bbva')) {
+            return 'provincial';
+        }
+        if (str_contains($b, '0114') || str_contains($b, 'bancaribe') || str_contains($b, 'caribe')) {
+            return 'bancaribe';
+        }
+        if (str_contains($b, '0191') || str_contains($b, 'bnc') || str_contains($b, 'nacional de credito')) {
+            return 'bnc';
+        }
+        if (str_contains($b, '0163') || str_contains($b, 'tesoro')) {
+            return 'tesoro';
+        }
+        if (str_contains($b, '0115') || str_contains($b, 'exterior')) {
+            return 'exterior';
+        }
+        if (str_contains($b, '0138') || str_contains($b, 'plaza')) {
+            return 'plaza';
+        }
+        if (str_contains($b, '0172') || str_contains($b, 'bancamiga')) {
+            return 'bancamiga';
+        }
+        if (str_contains($b, '0171') || str_contains($b, 'activo')) {
+            return 'activo';
+        }
+        if (str_contains($b, 'sofitasa')) {
+            return 'sofitasa';
+        }
+        if (str_contains($b, 'fondo comun') || str_contains($b, 'bfc')) {
+            return 'bfc';
+        }
+        if (str_contains($b, '100') && str_contains($b, 'banco')) {
+            return '100banco';
+        }
+
+        return str_replace(' ', '', $b);
+    }
+
+    /**
+     * Extrae y normaliza el banco de destino de un registro de pago o comprobante.
+     */
+    public function extraerBancoPago(array $pago): string {
+        // 1. Banco receptor directo en el modelo
+        $banco = $pago['banco_receptor'] ?? ($pago['banco_destino'] ?? '');
+        if (!empty($banco)) {
+            $norm = $this->normalizarNombreBanco($banco);
+            if (!empty($norm)) {
+                return $norm;
+            }
+        }
+
+        // 2. Extraer desde observaciones (ej. "Cuenta Destino: Banco de Venezuela (...)")
+        $obs = $pago['observaciones'] ?? '';
+        if (!empty($obs)) {
+            if (preg_match('/Cuenta Destino:\s*([^(\n\r|]+)/i', $obs, $matches)) {
+                $norm = $this->normalizarNombreBanco($matches[1]);
+                if (!empty($norm)) {
+                    return $norm;
+                }
+            }
+            $norm = $this->normalizarNombreBanco($obs);
+            if (!empty($norm)) {
+                return $norm;
+            }
+        }
+
+        // 3. Fallback: banco pagador si no se determinó el receptor
+        if (!empty($pago['banco_pagador']) || !empty($pago['banco_origen'])) {
+            $norm = $this->normalizarNombreBanco($pago['banco_pagador'] ?? $pago['banco_origen']);
+            if (!empty($norm)) {
+                return $norm;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Compara si el banco del extracto coincide con el banco del pago reportado.
+     */
+    public function sonBancosCoincidentes(?string $bancoExtracto, array $pago): bool {
+        $extNorm = $this->normalizarNombreBanco($bancoExtracto ?? '');
+        $pagoNorm = $this->extraerBancoPago($pago);
+
+        // Si el extracto no tiene banco explícito o es formato CSV genérico
+        if (empty($extNorm) || $extNorm === 'genericocsv' || $extNorm === 'generico') {
+            return true;
+        }
+
+        // Si el pago no tiene banco identificable, no puede garantizarse coincidencia 100% exacta
+        if (empty($pagoNorm)) {
+            return false;
+        }
+
+        return $extNorm === $pagoNorm;
+    }
+
+    /**
+     * Compara si dos fechas coinciden en año, mes y día exactos (Y-m-d).
+     */
+    public function sonFechasCoincidentes(?string $fechaExtracto, ?string $fechaPago): bool {
+        if (empty($fechaExtracto) || empty($fechaPago)) {
+            return false;
+        }
+
+        $strExt = str_replace('/', '-', trim($fechaExtracto));
+        $strPago = str_replace('/', '-', trim($fechaPago));
+
+        $tsExt = strtotime($strExt);
+        $tsPago = strtotime($strPago);
+
+        if ($tsExt === false || $tsPago === false) {
+            return false;
+        }
+
+        return date('Y-m-d', $tsExt) === date('Y-m-d', $tsPago);
+    }
+
+    /**
      * Ejecuta el motor de cruce inteligente jerárquico de 3 niveles entre extracto y pagos reportados (pagos y comprobantes).
      */
     public function ejecutarCruceInteligente(array $movimientosExtracto): array {
@@ -262,8 +400,9 @@ class ConciliacionBancariaService {
         $sqlPagos = "
             SELECT 'pago' AS origen_tabla,
                    p.id, p.unidad_id, p.monto, p.fecha_pago, p.referencia,
-                   p.banco_pagador AS banco_origen, p.banco_receptor AS banco_destino,
-                   p.banco_pagador, p.banco_receptor, p.estado,
+                   p.banco_pagador AS banco_origen, COALESCE(p.banco_receptor, cb.banco) AS banco_destino,
+                   p.banco_pagador, COALESCE(p.banco_receptor, cb.banco) AS banco_receptor, p.estado,
+                   p.observaciones,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
                    per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
@@ -272,6 +411,7 @@ class ConciliacionBancariaService {
             LEFT JOIN unidades u ON p.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
             LEFT JOIN personas per ON u.propietario_id = per.id
+            LEFT JOIN cuentas_bancarias cb ON p.cuenta_bancaria_id = cb.id
             WHERE p.estado IN ('PENDIENTE', 'EN REVISIÓN')
 
             UNION ALL
@@ -280,6 +420,7 @@ class ConciliacionBancariaService {
                    c.id, f.unidad_id, c.monto, c.fecha_pago, c.referencia,
                    NULL AS banco_origen, NULL AS banco_destino,
                    NULL AS banco_pagador, NULL AS banco_receptor, c.estado,
+                   c.observaciones,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
                    per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
@@ -329,6 +470,7 @@ class ConciliacionBancariaService {
 
             $encontradoExacto = false;
             $candidatoFuzzy = null;
+            $candidatoAlerta = null;
             $mejorSimilitud = 0.0;
 
             // Nivel 1: Búsqueda exacta O(1) por índice de referencia completa
@@ -341,15 +483,39 @@ class ConciliacionBancariaService {
 
                 $diferenciaMonto = abs($montoMov - floatval($pago['monto']));
                 if ($diferenciaMonto < 0.01) {
-                    $coincidenciasExactas[] = [
-                        'extracto'      => $mov,
-                        'pago'          => $pago,
-                        'similitud'     => 1.0,
-                        'clasificacion' => 'COINCIDENCIA_EXACTA'
-                    ];
-                    $pagosEmparejadosKeys[] = $pagoKey;
-                    $encontradoExacto = true;
-                    break;
+                    $fechaCoincide = $this->sonFechasCoincidentes($fechaMov, $pago['fecha_pago'] ?? null);
+                    $bancoCoincide = $this->sonBancosCoincidentes($mov['banco'] ?? '', $pago);
+
+                    if ($fechaCoincide && $bancoCoincide) {
+                        $coincidenciasExactas[] = [
+                            'extracto'      => $mov,
+                            'pago'          => $pago,
+                            'similitud'     => 1.0,
+                            'clasificacion' => 'COINCIDENCIA_EXACTA'
+                        ];
+                        $pagosEmparejadosKeys[] = $pagoKey;
+                        $encontradoExacto = true;
+                        break;
+                    } else {
+                        // Coincide Referencia y Monto al 100%, pero difiere Fecha o Banco
+                        $alertas = [];
+                        if (!$fechaCoincide) {
+                            $fExt = !empty($fechaMov) ? date('d/m/Y', strtotime($fechaMov)) : 'N/A';
+                            $fPago = !empty($pago['fecha_pago']) ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A';
+                            $alertas[] = "Fecha dispar (Extracto: {$fExt} vs Pago: {$fPago})";
+                        }
+                        if (!$bancoCoincide) {
+                            $bExt = !empty($mov['banco']) ? $mov['banco'] : 'Extracto';
+                            $bPago = $pago['banco_receptor'] ?? ($pago['banco_destino'] ?? 'No especificado');
+                            $alertas[] = "Banco dispar (Extracto: {$bExt} vs Pago: {$bPago})";
+                        }
+
+                        if ($candidatoFuzzy === null || $mejorSimilitud < 0.95) {
+                            $candidatoFuzzy = $pago;
+                            $mejorSimilitud = 0.95;
+                            $candidatoAlerta = implode(' | ', $alertas);
+                        }
+                    }
                 }
             }
 
@@ -371,15 +537,38 @@ class ConciliacionBancariaService {
                     $lenM = strlen($refMovNormalizada);
                     if ($lenP >= 6 && $lenM >= 6) {
                         if (str_ends_with($refMovNormalizada, $refPagoNorm) || str_ends_with($refPagoNorm, $refMovNormalizada)) {
-                            $coincidenciasExactas[] = [
-                                'extracto'      => $mov,
-                                'pago'          => $pago,
-                                'similitud'     => 1.0,
-                                'clasificacion' => 'COINCIDENCIA_EXACTA'
-                            ];
-                            $pagosEmparejadosKeys[] = $pagoKey;
-                            $encontradoExacto = true;
-                            break;
+                            $fechaCoincide = $this->sonFechasCoincidentes($fechaMov, $pago['fecha_pago'] ?? null);
+                            $bancoCoincide = $this->sonBancosCoincidentes($mov['banco'] ?? '', $pago);
+
+                            if ($fechaCoincide && $bancoCoincide) {
+                                $coincidenciasExactas[] = [
+                                    'extracto'      => $mov,
+                                    'pago'          => $pago,
+                                    'similitud'     => 1.0,
+                                    'clasificacion' => 'COINCIDENCIA_EXACTA'
+                                ];
+                                $pagosEmparejadosKeys[] = $pagoKey;
+                                $encontradoExacto = true;
+                                break;
+                            } else {
+                                $alertas = [];
+                                if (!$fechaCoincide) {
+                                    $fExt = !empty($fechaMov) ? date('d/m/Y', strtotime($fechaMov)) : 'N/A';
+                                    $fPago = !empty($pago['fecha_pago']) ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A';
+                                    $alertas[] = "Fecha dispar (Extracto: {$fExt} vs Pago: {$fPago})";
+                                }
+                                if (!$bancoCoincide) {
+                                    $bExt = !empty($mov['banco']) ? $mov['banco'] : 'Extracto';
+                                    $bPago = $pago['banco_receptor'] ?? ($pago['banco_destino'] ?? 'No especificado');
+                                    $alertas[] = "Banco dispar (Extracto: {$bExt} vs Pago: {$bPago})";
+                                }
+
+                                if ($candidatoFuzzy === null || $mejorSimilitud < 0.90) {
+                                    $candidatoFuzzy = $pago;
+                                    $mejorSimilitud = 0.90;
+                                    $candidatoAlerta = implode(' | ', $alertas);
+                                }
+                            }
                         }
                     }
                 }
@@ -390,31 +579,33 @@ class ConciliacionBancariaService {
             }
 
             // Nivel 2: Fuzzy Match — buscar en pagos no emparejados cercanos en monto y similitud
-            foreach ($pagosPendientes as $pago) {
-                $pagoKey = ($pago['origen_tabla'] ?? 'pago') . '_' . $pago['id'];
-                if (in_array($pagoKey, $pagosEmparejadosKeys, true)) {
-                    continue;
-                }
-
-                $montoPago = floatval($pago['monto']);
-                $diferenciaMonto = abs($montoMov - $montoPago);
-
-                if ($diferenciaMonto < 0.01) {
-                    $refPagoNorm = $this->normalizarReferencia($pago['referencia']);
-
-                    // Coincidencia de sufijo parcial de 4 o 5 dígitos con monto idéntico
-                    if (strlen($refPagoNorm) >= 4 && (str_ends_with($refMovNormalizada, $refPagoNorm) || str_ends_with($refPagoNorm, $refMovNormalizada))) {
-                        $candidatoFuzzy = $pago;
-                        $mejorSimilitud = 0.95;
-                        break;
+            if ($candidatoFuzzy === null) {
+                foreach ($pagosPendientes as $pago) {
+                    $pagoKey = ($pago['origen_tabla'] ?? 'pago') . '_' . $pago['id'];
+                    if (in_array($pagoKey, $pagosEmparejadosKeys, true)) {
+                        continue;
                     }
 
-                    $diferenciaDias = abs(strtotime($fechaMov) - strtotime($pago['fecha_pago'])) / 86400;
-                    if ($diferenciaDias <= 30) {
-                        $similitud = $this->calcularSimilitudJaroWinkler($refMovNormalizada, $refPagoNorm);
-                        if ($similitud >= 0.85 && $similitud > $mejorSimilitud) {
-                            $mejorSimilitud = $similitud;
+                    $montoPago = floatval($pago['monto']);
+                    $diferenciaMonto = abs($montoMov - $montoPago);
+
+                    if ($diferenciaMonto < 0.01) {
+                        $refPagoNorm = $this->normalizarReferencia($pago['referencia']);
+
+                        // Coincidencia de sufijo parcial de 4 o 5 dígitos con monto idéntico
+                        if (strlen($refPagoNorm) >= 4 && (str_ends_with($refMovNormalizada, $refPagoNorm) || str_ends_with($refPagoNorm, $refMovNormalizada))) {
                             $candidatoFuzzy = $pago;
+                            $mejorSimilitud = 0.95;
+                            break;
+                        }
+
+                        $diferenciaDias = abs(strtotime($fechaMov) - strtotime($pago['fecha_pago'])) / 86400;
+                        if ($diferenciaDias <= 30) {
+                            $similitud = $this->calcularSimilitudJaroWinkler($refMovNormalizada, $refPagoNorm);
+                            if ($similitud >= 0.85 && $similitud > $mejorSimilitud) {
+                                $mejorSimilitud = $similitud;
+                                $candidatoFuzzy = $pago;
+                            }
                         }
                     }
                 }
@@ -422,12 +613,16 @@ class ConciliacionBancariaService {
 
             if ($candidatoFuzzy !== null) {
                 $pagoFuzzyKey = ($candidatoFuzzy['origen_tabla'] ?? 'pago') . '_' . $candidatoFuzzy['id'];
-                $coincidenciasSugeridas[] = [
+                $sugerencia = [
                     'extracto'      => $mov,
                     'pago'          => $candidatoFuzzy,
                     'similitud'     => round($mejorSimilitud * 100, 1),
                     'clasificacion' => 'COINCIDENCIA_SUGERIDA'
                 ];
+                if (!empty($candidatoAlerta)) {
+                    $sugerencia['alerta'] = $candidatoAlerta;
+                }
+                $coincidenciasSugeridas[] = $sugerencia;
                 $pagosEmparejadosKeys[] = $pagoFuzzyKey;
             } else {
                 $sinCoincidencia[] = [

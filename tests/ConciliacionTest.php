@@ -179,16 +179,18 @@ class ConciliacionTest extends TestCase {
         $factura = $db->query("SELECT id FROM facturas LIMIT 1")->fetch();
         $facturaId = $factura ? $factura['id'] : null;
 
-        // Insertar comprobante de prueba en estado pendiente
+        // Insertar comprobante de prueba en estado pendiente con banco de destino identificado
+        $fechaPago = date('Y-m-d');
         $stmt = $db->prepare("
             INSERT INTO comprobantes_pago (residente_id, factura_id, monto, metodo_pago, referencia, fecha_pago, estado, observaciones)
-            VALUES (:residente_id, :factura_id, :monto, 'pago_movil', :referencia, CURDATE(), 'pendiente', 'Test Cruce Unitario')
+            VALUES (:residente_id, :factura_id, :monto, 'pago_movil', :referencia, :fecha_pago, 'pendiente', 'Cuenta Destino: Banco de Venezuela (01020000000000007558) | Test Cruce Unitario')
         ");
         $stmt->execute([
             'residente_id' => $residenteId,
             'factura_id'   => $facturaId,
             'monto'        => $testMonto,
-            'referencia'   => $testRef
+            'referencia'   => $testRef,
+            'fecha_pago'   => $fechaPago
         ]);
         $comprobanteId = (int)$db->lastInsertId();
 
@@ -209,7 +211,7 @@ class ConciliacionTest extends TestCase {
 
             $resultado = $service->ejecutarCruceInteligente($movimientosSimulados);
 
-            $this->assertEquals(1, count($resultado['coincidencias_exactas']), "Debe encontrar 1 coincidencia exacta en comprobantes_pago");
+            $this->assertEquals(1, count($resultado['coincidencias_exactas']), "Debe encontrar 1 coincidencia exacta en comprobantes_pago con 4 dimensiones válidas");
             $match = $resultado['coincidencias_exactas'][0];
             $this->assertEquals($comprobanteId, $match['pago']['id'], "El ID del pago debe ser el del comprobante insertado");
             $this->assertEquals('comprobante', $match['pago']['origen_tabla'], "El origen_tabla debe ser 'comprobante'");
@@ -218,6 +220,140 @@ class ConciliacionTest extends TestCase {
         } finally {
             $db->prepare("DELETE FROM comprobantes_pago WHERE id = :id")->execute(['id' => $comprobanteId]);
         }
+    }
+
+    public function testCruceInteligenteRechazaCoincidenciaExactaSiFechaDifiere() {
+        $db = \App\Core\Database::getConnection();
+        $service = new ConciliacionBancariaService();
+        $testRef = '777888999' . rand(100, 999);
+        $testMonto = 3200.00;
+
+        $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch();
+        $residenteId = $persona ? $persona['id'] : null;
+        $factura = $db->query("SELECT id FROM facturas LIMIT 1")->fetch();
+        $facturaId = $factura ? $factura['id'] : null;
+
+        // Comprobante con fecha de pago 5 días en el pasado
+        $fechaPago = date('Y-m-d', strtotime('-5 days'));
+        $stmt = $db->prepare("
+            INSERT INTO comprobantes_pago (residente_id, factura_id, monto, metodo_pago, referencia, fecha_pago, estado, observaciones)
+            VALUES (:residente_id, :factura_id, :monto, 'transferencia', :referencia, :fecha_pago, 'pendiente', 'Cuenta Destino: Banco de Venezuela (0102...)')
+        ");
+        $stmt->execute([
+            'residente_id' => $residenteId,
+            'factura_id'   => $facturaId,
+            'monto'        => $testMonto,
+            'referencia'   => $testRef,
+            'fecha_pago'   => $fechaPago
+        ]);
+        $comprobanteId = (int)$db->lastInsertId();
+
+        try {
+            // Movimiento bancario registrado HOY (fecha distinta al pago)
+            $movimientosSimulados = [
+                [
+                    'id'                  => 888888,
+                    'banco'               => 'Banco de Venezuela',
+                    'fecha_movimiento'    => date('Y-m-d'),
+                    'referencia_bancaria' => $testRef,
+                    'descripcion'         => 'TRANSF TEST FECHA DISPAR',
+                    'monto'               => $testMonto,
+                    'tipo_movimiento'     => 'credito'
+                ]
+            ];
+
+            $resultado = $service->ejecutarCruceInteligente($movimientosSimulados);
+
+            // NO debe ser clasificado como coincidencia exacta porque difiere la fecha
+            $this->assertEquals(0, count($resultado['coincidencias_exactas']), "No debe ser coincidencia exacta si la fecha difiere");
+            // Debe ser redirigido a sugeridas con alerta explicativa
+            $this->assertEquals(1, count($resultado['coincidencias_sugeridas']), "Debe enviarse a sugeridas para revisión manual");
+            $sug = $resultado['coincidencias_sugeridas'][0];
+            $this->assertTrue(isset($sug['alerta']), "Debe incluir alerta explicativa");
+            $this->assertTrue(str_contains($sug['alerta'], 'Fecha dispar'), "Alerta debe indicar 'Fecha dispar'");
+        } finally {
+            $db->prepare("DELETE FROM comprobantes_pago WHERE id = :id")->execute(['id' => $comprobanteId]);
+        }
+    }
+
+    public function testCruceInteligenteRechazaCoincidenciaExactaSiBancoDifiere() {
+        $db = \App\Core\Database::getConnection();
+        $service = new ConciliacionBancariaService();
+        $testRef = '444555666' . rand(100, 999);
+        $testMonto = 1800.75;
+
+        $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch();
+        $residenteId = $persona ? $persona['id'] : null;
+        $factura = $db->query("SELECT id FROM facturas LIMIT 1")->fetch();
+        $facturaId = $factura ? $factura['id'] : null;
+
+        // Comprobante reportado con cuenta destino Banesco
+        $stmt = $db->prepare("
+            INSERT INTO comprobantes_pago (residente_id, factura_id, monto, metodo_pago, referencia, fecha_pago, estado, observaciones)
+            VALUES (:residente_id, :factura_id, :monto, 'transferencia', :referencia, CURDATE(), 'pendiente', 'Cuenta Destino: Banesco Banco Universal (0134...)')
+        ");
+        $stmt->execute([
+            'residente_id' => $residenteId,
+            'factura_id'   => $facturaId,
+            'monto'        => $testMonto,
+            'referencia'   => $testRef
+        ]);
+        $comprobanteId = (int)$db->lastInsertId();
+
+        try {
+            // Movimiento bancario registrado en extracto de Banco de Venezuela (banco distinto al pago)
+            $movimientosSimulados = [
+                [
+                    'id'                  => 777777,
+                    'banco'               => 'Banco de Venezuela',
+                    'fecha_movimiento'    => date('Y-m-d'),
+                    'referencia_bancaria' => $testRef,
+                    'descripcion'         => 'TRANSF TEST BANCO DISPAR',
+                    'monto'               => $testMonto,
+                    'tipo_movimiento'     => 'credito'
+                ]
+            ];
+
+            $resultado = $service->ejecutarCruceInteligente($movimientosSimulados);
+
+            // NO debe ser clasificado como coincidencia exacta porque difiere el banco
+            $this->assertEquals(0, count($resultado['coincidencias_exactas']), "No debe ser coincidencia exacta si el banco difiere");
+            // Debe ser redirigido a sugeridas con alerta explicativa
+            $this->assertEquals(1, count($resultado['coincidencias_sugeridas']), "Debe enviarse a sugeridas para revisión manual");
+            $sug = $resultado['coincidencias_sugeridas'][0];
+            $this->assertTrue(isset($sug['alerta']), "Debe incluir alerta explicativa");
+            $this->assertTrue(str_contains($sug['alerta'], 'Banco dispar'), "Alerta debe indicar 'Banco dispar'");
+        } finally {
+            $db->prepare("DELETE FROM comprobantes_pago WHERE id = :id")->execute(['id' => $comprobanteId]);
+        }
+    }
+
+    public function testNormalizadoresBancoYFecha() {
+        $service = new ConciliacionBancariaService();
+
+        // Normalización de banco
+        $this->assertEquals('venezuela', $service->normalizarNombreBanco('Banco de Venezuela S.A.'));
+        $this->assertEquals('venezuela', $service->normalizarNombreBanco('BDV'));
+        $this->assertEquals('venezuela', $service->normalizarNombreBanco('0102'));
+        $this->assertEquals('mercantil', $service->normalizarNombreBanco('BANCO MERCANTIL C.A.'));
+        $this->assertEquals('banesco', $service->normalizarNombreBanco('Banesco Banco Universal'));
+        $this->assertEquals('provincial', $service->normalizarNombreBanco('BBVA Provincial'));
+        $this->assertEquals('bnc', $service->normalizarNombreBanco('Banco Nacional de Crédito'));
+
+        // Comparación de fechas
+        $this->assertTrue($service->sonFechasCoincidentes('2026-09-22', '2026-09-22'));
+        $this->assertTrue($service->sonFechasCoincidentes('22/09/2026', '2026-09-22'));
+        $this->assertFalse($service->sonFechasCoincidentes('2026-09-21', '2026-09-22'));
+        $this->assertFalse($service->sonFechasCoincidentes('', '2026-09-22'));
+
+        // Comparación de bancos con pago
+        $pagoVenezuela = ['banco_receptor' => 'Banco de Venezuela', 'observaciones' => ''];
+        $pagoMercantil = ['banco_receptor' => '', 'observaciones' => 'Cuenta Destino: Banco Mercantil (0105...)'];
+
+        $this->assertTrue($service->sonBancosCoincidentes('venezuela', $pagoVenezuela));
+        $this->assertFalse($service->sonBancosCoincidentes('mercantil', $pagoVenezuela));
+        $this->assertTrue($service->sonBancosCoincidentes('mercantil', $pagoMercantil));
+        $this->assertFalse($service->sonBancosCoincidentes('banesco', $pagoMercantil));
     }
 }
 

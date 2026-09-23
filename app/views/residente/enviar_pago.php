@@ -105,9 +105,9 @@
                 </div>
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-sm font-semibold text-on-surface-variant">Comprobante de Pago (Archivo)</label>
+                    <label class="text-sm font-semibold text-on-surface-variant">Comprobante de Pago (Archivo) <span class="text-red-500">*</span></label>
                     <div class="border-2 border-dashed border-outline-variant hover:border-primary rounded-2xl p-6 bg-background/50 hover:bg-background transition-colors text-center cursor-pointer relative">
-                        <input type="file" name="comprobante" accept=".jpg,.jpeg,.png,.pdf"
+                        <input type="file" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
                                class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
                         <span class="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-1">upload_file</span>
                         <div class="text-sm text-on-surface-variant">Haz clic o arrastra para subir tu comprobante</div>

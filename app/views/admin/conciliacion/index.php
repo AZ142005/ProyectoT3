@@ -239,6 +239,9 @@
                                             <td>
                                                 <div class="fw-bold text-dark"><?= e($match['pago']['residente_nombre']) ?></div>
                                                 <small class="text-muted">Apto <?= e($match['pago']['unidad_numero']) ?> | Fecha: <?= date('d/m/Y', strtotime($match['pago']['fecha_pago'])) ?></small>
+                                                <?php if (!empty($match['alerta'])): ?>
+                                                    <div><span class="badge bg-warning text-dark border border-warning-subtle mt-1" style="font-size: 0.75rem;"><span class="material-symbols-outlined align-middle" style="font-size: 13px;">warning</span> <?= e($match['alerta']) ?></span></div>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="text-center font-monospace small">
                                                 <span class="text-muted">Bco:</span> <strong><?= e($match['extracto']['referencia_bancaria']) ?></strong><br>
