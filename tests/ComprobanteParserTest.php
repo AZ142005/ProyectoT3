@@ -114,4 +114,39 @@ class ComprobanteParserTest extends TestCase {
         $this->assertEquals(1800.00, $resultado['monto']);
         $this->assertEquals('2026-09-18', $resultado['fecha']);
     }
+
+    public function testDetectaMetodoPagoYCuentaDestino() {
+        $service = new ComprobanteParserService();
+
+        // Caso 1: Pago móvil BDV hacia cuenta Mercantil 0105
+        $texto1 = "Pago Móvil BDV Exitoso\nReferencia: 0591395041816\nCuenta Destino: 01050000000000001234\nMonto: Bs. 3.250,00\nFecha: 22/09/2026";
+        $r1 = $service->analizarTexto($texto1);
+
+        $this->assertTrue($r1['detectado']);
+        $this->assertEquals('pago_movil', $r1['metodo_pago']);
+        $this->assertEquals('0591395041816', $r1['referencia']);
+        $this->assertEquals(3250.00, $r1['monto']);
+        $this->assertEquals('0105', $r1['cuenta_destino_prefijo']);
+        $this->assertEquals('2026-09-22', $r1['fecha']);
+
+        // Caso 2: Transferencia Banesco hacia Banco de Venezuela
+        $texto2 = "Comprobante de Transferencia Bancaria Banesco\nNro Operación: 88776655\nBanco Destino: Banco de Venezuela\nTotal: Bs. 1500.50\nFecha: 15-08-2026";
+        $r2 = $service->analizarTexto($texto2);
+
+        $this->assertTrue($r2['detectado']);
+        $this->assertEquals('transferencia', $r2['metodo_pago']);
+        $this->assertEquals('88776655', $r2['referencia']);
+        $this->assertEquals(1500.50, $r2['monto']);
+        $this->assertEquals('venezuela', $r2['banco_receptor']);
+    }
+
+    public function testDetectaFechaTextualEnEspanol() {
+        $service = new ComprobanteParserService();
+
+        $texto = "Transferencia Provincial Ref: 12345678 Monto: Bs. 850,00 Fecha: 22 de Septiembre 2026";
+        $r = $service->analizarTexto($texto);
+
+        $this->assertTrue($r['detectado']);
+        $this->assertEquals('2026-09-22', $r['fecha']);
+    }
 }

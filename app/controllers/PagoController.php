@@ -266,21 +266,67 @@ class PagoController extends Controller {
             'banesco'    => 'Banesco',
             'venezuela'  => 'Banco de Venezuela',
             'provincial' => 'BBVA Provincial',
-            'bancamiga'  => 'Bancamiga'
+            'bancamiga'  => 'Bancamiga',
+            'bnc'        => 'Banco Nacional de Crédito',
+            'bancaribe'  => 'Bancaribe',
+            'tesoro'     => 'Banco del Tesoro',
+            'exterior'   => 'Banco Exterior',
+            'plaza'      => 'Banco Plaza',
+            'activo'     => 'Banco Activo',
+            'sofitasa'   => 'Banco Sofitasa',
+            '100banco'   => '100% Banco',
+            'bfc'        => 'Banco Fondo Común'
         ];
 
         $bancoPagador = $resultado['banco'] ? ($nombresBancos[$resultado['banco']] ?? ucfirst($resultado['banco'])) : '';
-        $bancoReceptor = $bancoPagador ? 'Banco Mercantil' : '';
+        
+        // Resolver dinámicamente la cuenta bancaria autorizada receptora
+        $cuentasModel = new \App\Models\CuentasBancariasModel();
+        $cuentasActivas = $cuentasModel->getActivas();
+        $cuentaSugeridaId = null;
+        $bancoReceptor = '';
+
+        // 1. Por prefijo de 4 dígitos de cuenta destino (ej. '0102', '0105', etc.)
+        if (!empty($resultado['cuenta_destino_prefijo'])) {
+            foreach ($cuentasActivas as $ca) {
+                if (str_starts_with($ca['numero_cuenta'], $resultado['cuenta_destino_prefijo'])) {
+                    $cuentaSugeridaId = (int)$ca['id'];
+                    $bancoReceptor = $ca['banco'];
+                    break;
+                }
+            }
+        }
+
+        // 2. Por coincidencia de nombre de banco receptor detectado en comprobante
+        if (!$cuentaSugeridaId && !empty($resultado['banco_receptor'])) {
+            $conciliacionService = new \App\Services\ConciliacionBancariaService();
+            $normBcoRec = $conciliacionService->normalizarNombreBanco($resultado['banco_receptor']);
+            foreach ($cuentasActivas as $ca) {
+                if ($conciliacionService->normalizarNombreBanco($ca['banco']) === $normBcoRec) {
+                    $cuentaSugeridaId = (int)$ca['id'];
+                    $bancoReceptor = $ca['banco'];
+                    break;
+                }
+            }
+        }
+
+        // 3. Fallback: si existe una sola cuenta autorizada activa, asociarla por defecto
+        if (!$cuentaSugeridaId && count($cuentasActivas) === 1) {
+            $cuentaSugeridaId = (int)$cuentasActivas[0]['id'];
+            $bancoReceptor = $cuentasActivas[0]['banco'];
+        }
 
         $this->json([
-            'success'        => true,
-            'detectado'      => (bool)$resultado['detectado'],
-            'banco_pagador'  => $bancoPagador,
-            'banco_receptor' => $bancoReceptor,
-            'referencia'     => $resultado['referencia'] ?? '',
-            'monto'          => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
-            'fecha_pago'     => $resultado['fecha'] ?? date('Y-m-d'),
-            'mensaje'        => $resultado['detectado']
+            'success'            => true,
+            'detectado'          => (bool)$resultado['detectado'],
+            'banco_pagador'      => $bancoPagador,
+            'banco_receptor'     => $bancoReceptor,
+            'cuenta_bancaria_id' => $cuentaSugeridaId,
+            'metodo_pago'        => $resultado['metodo_pago'] ?? '',
+            'referencia'         => $resultado['referencia'] ?? '',
+            'monto'              => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
+            'fecha_pago'         => $resultado['fecha'] ?? '',
+            'mensaje'            => $resultado['detectado']
                 ? 'Datos del comprobante detectados exitosamente.'
                 : 'No se pudieron detectar todos los datos con certeza. Por favor verifique los campos.'
         ]);

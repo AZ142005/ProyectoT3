@@ -110,24 +110,46 @@ class ComprobanteParserService {
      */
     public function analizarTexto(string $texto): array {
         $resultado = [
-            'banco'      => null,
-            'referencia' => null,
-            'monto'      => null,
-            'fecha'      => null,
-            'detectado'  => false
+            'banco'                  => null,
+            'banco_pagador'          => null,
+            'banco_receptor'         => null,
+            'cuenta_destino_prefijo' => null,
+            'metodo_pago'            => null,
+            'referencia'             => null,
+            'monto'                  => null,
+            'fecha'                  => null,
+            'detectado'              => false
         ];
 
         if (empty(trim($texto))) {
             return $resultado;
         }
 
-        // 1. Detección de Banco
+        // 1. Detección de Método de Pago
+        if (preg_match('/(?:pago\s*m[oó]vil|pagomovil|p2p|c2p)/iu', $texto)) {
+            $resultado['metodo_pago'] = 'pago_movil';
+            $resultado['detectado'] = true;
+        } elseif (preg_match('/(?:transferencia|traspaso|d[eé]bito\s+en\s+cuenta|cr[eé]dito\s+en\s+cuenta)/iu', $texto)) {
+            $resultado['metodo_pago'] = 'transferencia';
+            $resultado['detectado'] = true;
+        }
+
+        // 2. Detección de Banco Pagador / Emisor
         $bancos = [
-            'mercantil'  => ['mercantil', 'banco mercantil'],
-            'banesco'    => ['banesco', 'banco universal banesco'],
-            'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv', 'bancaribe'],
-            'provincial' => ['provincial', 'bbva', 'bbva provincial'],
-            'bancamiga'  => ['bancamiga'],
+            'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv', '0102'],
+            'mercantil'  => ['mercantil', 'banco mercantil', '0105'],
+            'banesco'    => ['banesco', 'banco universal banesco', '0134'],
+            'provincial' => ['provincial', 'bbva', 'bbva provincial', '0108'],
+            'bancamiga'  => ['bancamiga', '0172'],
+            'bnc'        => ['bnc', 'nacional de credito', '0191'],
+            'bancaribe'  => ['bancaribe', 'caribe', '0114'],
+            'tesoro'     => ['tesoro', 'banco del tesoro', '0163'],
+            'exterior'   => ['exterior', 'banco exterior', '0115'],
+            'plaza'      => ['plaza', 'banco plaza', '0138'],
+            'activo'     => ['activo', 'banco activo', '0171'],
+            'sofitasa'   => ['sofitasa', '0137'],
+            '100banco'   => ['100% banco', '100banco', '0156'],
+            'bfc'        => ['fondo comun', 'bfc', '0151'],
             'pago_movil' => ['pago movil', 'pagomovil', 'c2p', 'p2p']
         ];
 
@@ -135,54 +157,96 @@ class ComprobanteParserService {
             foreach ($patrones as $patron) {
                 if (stripos($texto, $patron) !== false) {
                     $resultado['banco'] = $bancoKey === 'pago_movil' ? 'mercantil' : $bancoKey;
+                    $resultado['banco_pagador'] = $resultado['banco'];
                     $resultado['detectado'] = true;
                     break 2;
                 }
             }
         }
 
-        // 2. Detección de Referencia (6 a 12 dígitos)
-        if (preg_match('/(?:ref|referencia|comprobante|nro|operaci[oó]n|transacci[oó]n|secuencia)[:\s#]*([0-9]{6,12})/i', $texto, $matchesRef)) {
+        // 3. Detección de Cuenta Receptora / Destino (código bancario de 4 dígitos o número de 20 dígitos)
+        if (preg_match('/(?:cuenta\s+(?:destino|beneficiario|receptora)|destino|acreditad[oa]\s+a)[:\s#]*([0-9]{4})/iu', $texto, $matchesCta)) {
+            $resultado['cuenta_destino_prefijo'] = $matchesCta[1];
+            $resultado['detectado'] = true;
+        } elseif (preg_match('/\b(0102|0105|0134|0108|0172|0191|0114|0163|0115|0138|0171|0137|0156|0151)[0-9]{16}\b/', $texto, $matchesCtaCompleta)) {
+            $resultado['cuenta_destino_prefijo'] = $matchesCtaCompleta[1];
+            $resultado['detectado'] = true;
+        }
+
+        // Detección de mención explícita de banco destino
+        if (preg_match('/(?:banco\s+(?:destino|receptor|beneficiario)|destino)[:\s]*([a-zA-Z\s]{4,30})/iu', $texto, $matchesBcoDestino)) {
+            $posibleBco = trim($matchesBcoDestino[1]);
+            foreach ($bancos as $bKey => $pats) {
+                if ($bKey === 'pago_movil') continue;
+                foreach ($pats as $p) {
+                    if (stripos($posibleBco, $p) !== false) {
+                        $resultado['banco_receptor'] = $bKey;
+                        $resultado['detectado'] = true;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        // 4. Detección de Referencia (6 a 16 dígitos)
+        if (preg_match('/(?:ref|referencia|comprobante|nro|operaci[oó]n|transacci[oó]n|secuencia|aprobaci[oó]n)[:\s#]*([0-9]{6,16})/iu', $texto, $matchesRef)) {
             $resultado['referencia'] = $matchesRef[1];
             $resultado['detectado'] = true;
-        } elseif (preg_match('/\b([0-9]{7,10})\b/', $texto, $matchesRefIsolated)) {
+        } elseif (preg_match('/\b([0-9]{7,14})\b/', $texto, $matchesRefIsolated)) {
             $resultado['referencia'] = $matchesRefIsolated[1];
             $resultado['detectado'] = true;
         }
 
-        // 3. Detección de Monto con distinción correcta de formato
-        // Prioridad al formato venezolano (punto=miles, coma=decimal): 1.250,50
-        // El formato internacional (punto=decimal): 150.00
-        // Se distinguen ANTES de aplicar str_replace para evitar inflación 100x.
+        // 5. Detección de Monto con distinción correcta de formato
         if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i', $texto, $matchesMonto)) {
-            // Formato venezolano: 1.250,50 o 450,20 → remover puntos de miles, cambiar coma por punto
             $montoStr = str_replace('.', '', $matchesMonto[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
             $resultado['detectado'] = true;
         } elseif (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]+\.[0-9]{2})\b/i', $texto, $matchesMonto)) {
-            // Formato internacional: 1500.00 → usar directamente (NO strip de puntos)
             $resultado['monto'] = round(floatval($matchesMonto[1]), 2);
             $resultado['detectado'] = true;
         } elseif (preg_match('/([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/', $texto, $matchesMontoVen)) {
-            // Monto venezolano sin prefijo de etiqueta (con o sin separador de miles)
             $montoStr = str_replace('.', '', $matchesMontoVen[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
             $resultado['detectado'] = true;
         } elseif (preg_match('/\b([0-9]+\.[0-9]{2})\b/', $texto, $matchesDec)) {
-            // Monto decimal estándar
             $resultado['monto'] = round(floatval($matchesDec[1]), 2);
             $resultado['detectado'] = true;
         }
 
-        // 4. Detección de Fecha (dd/mm/aaaa o dd-mm-aaaa)
+        // 6. Detección de Fecha (dd/mm/aaaa, dd-mm-aaaa, o texto en español)
         if (preg_match('/([0-3]?[0-9])[\/\-]([0-1]?[0-9])[\/\-](202[0-9])/', $texto, $matchesFecha)) {
             $dia  = sprintf('%02d', $matchesFecha[1]);
             $mes  = sprintf('%02d', $matchesFecha[2]);
             $anio = $matchesFecha[3];
             $resultado['fecha'] = "{$anio}-{$mes}-{$dia}";
             $resultado['detectado'] = true;
+        } elseif (preg_match('/(202[0-9])[\/\-]([0-1]?[0-9])[\/\-]([0-3]?[0-9])/', $texto, $matchesFechaIso)) {
+            $anio = $matchesFechaIso[1];
+            $mes  = sprintf('%02d', $matchesFechaIso[2]);
+            $dia  = sprintf('%02d', $matchesFechaIso[3]);
+            $resultado['fecha'] = "{$anio}-{$mes}-{$dia}";
+            $resultado['detectado'] = true;
+        } else {
+            $mesesEsp = [
+                'enero' => '01', 'febrero' => '02', 'marzo' => '03', 'abril' => '04',
+                'mayo' => '05', 'junio' => '06', 'julio' => '07', 'agosto' => '08',
+                'septiembre' => '09', 'setiembre' => '09', 'octubre' => '10', 'noviembre' => '11', 'diciembre' => '12',
+                'ene' => '01', 'feb' => '02', 'mar' => '03', 'abr' => '04',
+                'may' => '05', 'jun' => '06', 'jul' => '07', 'ago' => '08',
+                'sep' => '09', 'oct' => '10', 'nov' => '11', 'dic' => '12'
+            ];
+            $mesesRegex = implode('|', array_keys($mesesEsp));
+            if (preg_match('/([0-3]?[0-9])\s+(?:de\s+)?(' . $mesesRegex . ')(?:\s+(?:de\s+|del\s+)?)?(202[0-9])/i', $texto, $mFechaTxt)) {
+                $dia = sprintf('%02d', $mFechaTxt[1]);
+                $mesKey = strtolower(trim($mFechaTxt[2]));
+                $mes = $mesesEsp[$mesKey] ?? '01';
+                $anio = $mFechaTxt[3];
+                $resultado['fecha'] = "{$anio}-{$mes}-{$dia}";
+                $resultado['detectado'] = true;
+            }
         }
 
         return $resultado;
