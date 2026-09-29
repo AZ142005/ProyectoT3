@@ -168,17 +168,17 @@
                         <div id="inconsistencia-banco_pagador"></div>
                     </div>
 
-                    <!-- Cuenta Bancaria Destino Autorizada -->
+                    <!-- Cuenta Oficial para el Pago -->
                     <div class="flex flex-col gap-1.5 sm:col-span-2">
                         <div class="flex items-center justify-between">
-                            <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta Bancaria Destino (Autorizada) <span class="text-red-500">*</span></label>
+                            <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta Oficial para el Pago <span class="text-red-500">*</span></label>
                             <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
                         </div>
                         <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
                                 class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold cursor-pointer">
-                            <option value="">-- Seleccione la cuenta receptora autorizada --</option>
+                            <option value="">-- Seleccione la cuenta oficial del condominio --</option>
                             <?php foreach ($cuentasBancarias as $cb): ?>
                                 <option value="<?= e($cb['id']) ?>" 
                                         data-banco="<?= e($cb['banco']) ?>"
@@ -205,7 +205,7 @@
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de Cuenta (20 dígitos)</span>
-                                        <span id="infoNumero" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoNumero', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -216,14 +216,14 @@
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular Autorizado</span>
-                                        <span id="infoTitular" class="font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
                                 </div>
 
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
-                                        <span id="infoDoc" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoDoc', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -234,7 +234,7 @@
                                 <div id="wrapperInfoTelefono" class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
-                                        <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-xs truncate block select-all"></span>
+                                        <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoTelefono', this)" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -634,7 +634,7 @@
             }
         }
 
-        // 5. Cuenta Bancaria Destino Autorizada
+        // 5. Cuenta Oficial para el Pago
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && (data.cuenta_bancaria_id || data.banco_receptor)) {
             let matchedIndex = -1;
