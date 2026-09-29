@@ -21,9 +21,10 @@ class LiquidacionPagoService {
      * @param float $montoTotal Monto total del pago a procesar
      * @param string $concepto Concepto o referencia descriptiva del pago
      * @param int|null $referenciaId ID del pago o comprobante de origen
+     * @param string|null $referenciaTipo Tipo de origen ('pago' | 'comprobante')
      * @return array Resumen ['total_aplicado_deuda' => float, 'saldo_a_favor_generado' => float, 'facturas_afectadas' => array]
      */
-    public function aplicarPagoAUnidad(PDO $db, int $unidadId, float $montoTotal, string $concepto = '', ?int $referenciaId = null): array {
+    public function aplicarPagoAUnidad(PDO $db, int $unidadId, float $montoTotal, string $concepto = '', ?int $referenciaId = null, ?string $referenciaTipo = null): array {
         $montoTotal = round(floatval($montoTotal), 2);
         if ($montoTotal <= 0.00 || $unidadId <= 0) {
             return [
@@ -122,7 +123,8 @@ class LiquidacionPagoService {
             'abono_pago',
             $montoTotal,
             $descripcion,
-            $referenciaId
+            $referenciaId,
+            $referenciaTipo
         );
 
         return [

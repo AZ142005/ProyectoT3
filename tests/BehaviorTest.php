@@ -993,16 +993,28 @@ class BehaviorTest extends TestCase {
 
     // 2.1b — APROBADO and RECHAZADO are terminal
     public function testApprovedAndRejectedAreTerminalStates(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
-        $this->assertStringContains('transicionesValidas', $content, 'State transitions must be defined');
-        // Check that APROBADO and RECHAZADO have empty transition arrays (terminal states)
-        $this->assertTrue(
-            preg_match("/'APROBADO'\s*=>\s*\[\]/", $content) > 0,
-            'APROBADO must be a terminal state (empty transition array)'
+        $controllerContent = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $this->assertStringContains('transicionesValidas', $controllerContent,
+            'PagoController must consume the centralized state machine');
+
+        // La máquina de estados es única y vive en App\Core\EstadoPago (D1).
+        // Se valida por comportamiento (no por literales de source): las
+        // transiciones inválidas desde un estado terminal deben rechazarse.
+        $this->assertFalse(
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::APROBADO, \App\Core\EstadoPago::PENDIENTE),
+            'APROBADO must be a terminal state'
         );
-        $this->assertTrue(
-            preg_match("/'RECHAZADO'\s*=>\s*\[\]/", $content) > 0,
-            'RECHAZADO must be a terminal state (empty transition array)'
+        $this->assertFalse(
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::APROBADO, \App\Core\EstadoPago::RECHAZADO),
+            'APROBADO must be a terminal state'
+        );
+        $this->assertFalse(
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::RECHAZADO, \App\Core\EstadoPago::APROBADO),
+            'RECHAZADO must be a terminal state'
+        );
+        $this->assertFalse(
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::RECHAZADO, \App\Core\EstadoPago::EN_REVISION),
+            'RECHAZADO must be a terminal state'
         );
     }
 

@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Core\EstadoPago;
 use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\PagoModel;
@@ -188,7 +189,7 @@ class PagoController extends Controller {
             }
             $this->redirect('/pagos');
         } else {
-            Flash::error("No se pudo registrar la información de pago en la base de datos.");
+            Flash::error("No se pudo registrar el pago: es un duplicado o hubo un error de datos.");
             $this->redirect('/pagos/nuevo');
         }
     }
@@ -362,13 +363,10 @@ class PagoController extends Controller {
             $this->redirect('/pagos');
         }
         
-        // Máquina de estados: transiciones válidas permitidas
-        $transicionesValidas = [
-            'PENDIENTE'   => ['EN REVISIÓN', 'APROBADO', 'RECHAZADO'],
-            'EN REVISIÓN' => ['APROBADO', 'RECHAZADO'],
-            'RECHAZADO'   => [],  // Terminal
-            'APROBADO'    => [],  // Terminal
-        ];
+        // Máquina de estados centralizada (fuente única: App\Core\EstadoPago).
+        // Esta validación temprana da mensajes amigables; el modelo la re-valida
+        // bajo el lock FOR UPDATE para bloquear carreras concurrentes.
+        $transicionesValidas = EstadoPago::transicionesValidas();
 
         $pagoModel = new PagoModel();
         $pagoActual = $pagoModel->obtenerPagoPorId($pagoId);
@@ -390,16 +388,21 @@ class PagoController extends Controller {
         }
 
         // Exigir motivo obligatorio si el nuevo estado es RECHAZADO
-        if ($nuevoEstado === \App\Core\EstadoPago::RECHAZADO && (empty($motivo) || mb_strlen($motivo) < 5)) {
+        if ($nuevoEstado === EstadoPago::RECHAZADO && (empty($motivo) || mb_strlen($motivo) < 5)) {
             Flash::error("Debe proporcionar un motivo de rechazo claro y detallado (mínimo 5 caracteres).");
             $this->redirect('/pagos/detalle/' . $pagoId);
         }
-        $exito = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
-        
-        if ($exito) {
-            Flash::success("El pago fue actualizado a estado {$nuevoEstado} exitosamente.");
+
+        $resultado = $pagoModel->cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
+
+        if (!empty($resultado['ok'])) {
+            if (($resultado['code'] ?? '') === 'sin_cambios') {
+                Flash::info($resultado['message'] ?? "El pago ya se encontraba en estado {$nuevoEstado}.");
+            } else {
+                Flash::success("El pago fue actualizado a estado {$nuevoEstado} exitosamente.");
+            }
         } else {
-            Flash::error("Hubo un error de base de datos al registrar el cambio de estado.");
+            Flash::error($resultado['message'] ?? "Hubo un error de base de datos al registrar el cambio de estado.");
         }
         
         $origen = $_POST['origen'] ?? '';
@@ -433,12 +436,19 @@ class PagoController extends Controller {
 
             if ($resultado['procesados'] > 0) {
                 $mensaje = "Se aprobaron {$resultado['procesados']} pago(s) exitosamente.";
+                if (($resultado['duplicados'] ?? 0) > 0) {
+                    $mensaje .= " {$resultado['duplicados']} pago(s) fueron bloqueados por duplicado económico.";
+                }
                 if ($resultado['omitidos'] > 0) {
                     $mensaje .= " ({$resultado['omitidos']} pago(s) fueron omitidos por estar previamente procesados).";
                 }
                 Flash::success($mensaje);
             } else {
-                Flash::error("Ninguno de los pagos seleccionados pudo ser aprobado (ya procesados o no válidos).");
+                if (($resultado['duplicados'] ?? 0) > 0) {
+                    Flash::error("Ninguno de los pagos seleccionados pudo ser aprobado: {$resultado['duplicados']} pago(s) están bloqueados por duplicado económico y el resto ya fue procesado o no es válido.");
+                } else {
+                    Flash::error("Ninguno de los pagos seleccionados pudo ser aprobado (ya procesados o no válidos).");
+                }
             }
         } catch (\Exception $e) {
             error_log("[PAGO] Error aprobacion masiva: " . $e->getMessage());

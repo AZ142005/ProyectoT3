@@ -277,7 +277,8 @@ class ComprobantesModel extends BaseModel {
                 $unidadId,
                 $montoComprobante,
                 $refTexto,
-                $id
+                $id,
+                'comprobante'
             );
 
             // Contexto contable para trazabilidad y compatibilidad de auditoría

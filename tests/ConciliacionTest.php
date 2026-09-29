@@ -439,8 +439,9 @@ class ConciliacionTest extends TestCase {
         try {
             $pagoModel = new \App\Models\PagoModel();
             $motivo = "El comprobante no corresponde al titular ni a la referencia bancaria declarada.";
-            $ok = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, 1);
-            $this->assertTrue($ok);
+            $resultado = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, 1);
+            $this->assertTrue(!empty($resultado['ok']));
+            $this->assertEquals('actualizado', $resultado['code']);
 
             $pagoActual = $pagoModel->obtenerPagoPorId($pagoId);
             $this->assertEquals('RECHAZADO', $pagoActual['estado']);
