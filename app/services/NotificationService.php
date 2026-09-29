@@ -76,6 +76,40 @@ class NotificationService {
     }
 
     /**
+     * Resuelve el teléfono utilizable para WhatsApp del deudor de una unidad.
+     * Prioridad: propietario; si su número está vacío o es línea fija, la primera
+     * persona asociada cuyo número sea móvil.
+     *
+     * @param string|null $telefonoPropietario
+     * @param array $personas Personas de la unidad (['telefono','nombre','apellido'], orden de getByUnidadId)
+     * @return array ['telefono' => string, 'fuente' => 'propietario'|'persona'|'ninguna', 'nombre' => ?string]
+     */
+    public static function resolverTelefonoDeudor(?string $telefonoPropietario, array $personas): array {
+        $candidatos = [
+            ['telefono' => trim((string)$telefonoPropietario), 'fuente' => 'propietario', 'nombre' => null],
+        ];
+        foreach ($personas as $p) {
+            $candidatos[] = [
+                'telefono' => trim((string)($p['telefono'] ?? '')),
+                'fuente'   => 'persona',
+                'nombre'   => trim(($p['nombre'] ?? '') . ' ' . ($p['apellido'] ?? '')),
+            ];
+        }
+
+        foreach ($candidatos as $c) {
+            if ($c['telefono'] === '') {
+                continue;
+            }
+            $info = self::analizarTelefono($c['telefono']);
+            if ($info['es_movil'] && !empty($info['telefono'])) {
+                return $c;
+            }
+        }
+
+        return ['telefono' => '', 'fuente' => 'ninguna', 'nombre' => null];
+    }
+
+    /**
      * Encola una notificación en `notificaciones_cola` cifrando integralmente el email y cuerpo HTML.
      */
     public function encolarNotificacion(

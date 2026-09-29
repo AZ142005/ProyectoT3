@@ -32,7 +32,7 @@
                 </form>
 
                 <?php if (!empty($enlaceWhatsapp)): ?>
-                    <a href="<?= e($enlaceWhatsapp) ?>" target="_blank" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1">
+                    <a href="<?= e($enlaceWhatsapp) ?>" target="_blank" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1" title="Abrir chat de WhatsApp con el número <?= e($telefonoDeudor) ?>">
                         <span class="material-symbols-outlined fs-6">chat</span> WhatsApp (1-Clic)
                     </a>
                 <?php else: ?>
@@ -46,6 +46,13 @@
                 </button>
             </div>
         </div>
+
+        <?php if (!empty($enlaceWhatsapp) && ($resolucionTelefono['fuente'] ?? '') === 'persona'): ?>
+            <p class="small text-muted mb-3" style="max-width: 800px; margin: 0 auto;">
+                El propietario no tiene un número móvil registrado; el chat se abrirá con el número de
+                <strong><?= e($resolucionTelefono['nombre'] ?: 'una persona asociada a la unidad') ?></strong>.
+            </p>
+        <?php endif; ?>
 
         <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 

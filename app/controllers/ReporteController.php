@@ -5,6 +5,7 @@ use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\ReportesModel;
 use App\Models\EdificiosModel;
+use App\Models\PersonasModel;
 
 class ReporteController extends Controller {
 
@@ -136,20 +137,28 @@ class ReporteController extends Controller {
             . "Atentamente,\n"
             . "ADMINISTRACIÓN GENERAL & JUNTA DE CONDOMINIO";
 
+        $resolucionTelefono = \App\Services\NotificationService::resolverTelefonoDeudor(
+            $detalle['unidad']['propietario_telefono'] ?? null,
+            (new PersonasModel())->getByUnidadId($unidadId)
+        );
+        $telefonoDeudor = $resolucionTelefono['telefono'];
+
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
-            $detalle['unidad']['propietario_telefono'] ?? '',
+            $telefonoDeudor,
             $mensajeCarta
         );
 
-        $analisisTel = \App\Services\NotificationService::analizarTelefono($detalle['unidad']['propietario_telefono'] ?? '');
+        $analisisTel = \App\Services\NotificationService::analizarTelefono($telefonoDeudor);
 
         $this->render('admin/reportes/carta_deuda', [
-            'unidad'         => $detalle['unidad'],
-            'facturas'       => $detalle['facturas'],
-            'totalDeuda'     => $detalle['total_deuda'],
-            'enlaceWhatsapp' => $enlaceWhatsapp,
-            'analisisTel'    => $analisisTel,
-            'title'          => 'Carta Oficial de Deuda - Unidad ' . $detalle['unidad']['unidad_numero']
+            'unidad'             => $detalle['unidad'],
+            'facturas'           => $detalle['facturas'],
+            'totalDeuda'         => $detalle['total_deuda'],
+            'enlaceWhatsapp'     => $enlaceWhatsapp,
+            'analisisTel'        => $analisisTel,
+            'telefonoDeudor'     => $telefonoDeudor,
+            'resolucionTelefono' => $resolucionTelefono,
+            'title'              => 'Carta Oficial de Deuda - Unidad ' . $detalle['unidad']['unidad_numero']
         ]);
     }
 

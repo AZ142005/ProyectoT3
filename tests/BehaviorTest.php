@@ -1328,4 +1328,20 @@ class BehaviorTest extends TestCase {
         $this->assertStringContains('name="banco_pagador"', $content, 'enviar_pago.php must include banco_pagador input');
         $this->assertStringContains('data.banco_pagador', $content, 'enviar_pago.php must handle data.banco_pagador from OCR');
     }
+
+    // =====================================================================
+    // 4.8: CARTA DE DEUDA — Resolución del teléfono del deudor
+    // =====================================================================
+
+    public function testCartaDeudaResuelveTelefonoDelDeudor(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ReporteController.php');
+        $this->assertStringContains('resolverTelefonoDeudor', $content,
+            'generarCartaDeuda must resolve the debtor phone with NotificationService');
+        $this->assertStringContains('getByUnidadId', $content,
+            'generarCartaDeuda must use PersonasModel::getByUnidadId for the mobile fallback');
+
+        $view = file_get_contents(dirname(__DIR__) . '/app/views/admin/reportes/carta_deuda.php');
+        $this->assertStringContains('telefonoDeudor', $view,
+            'carta_deuda.php must render the resolved debtor phone');
+    }
 }

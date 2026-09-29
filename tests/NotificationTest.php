@@ -122,4 +122,40 @@ class NotificationTest extends TestCase {
         // Limpieza de prueba
         $db->prepare("DELETE FROM notificaciones WHERE id = :id")->execute(['id' => $notifId]);
     }
+
+    public function testResolverTelefonoDeudorPrefierePropietarioYUsaFallbackMovil() {
+        // 1. Propietario con móvil: se usa tal cual fue registrado
+        $resolucion = NotificationService::resolverTelefonoDeudor('0414-1234567', []);
+        $this->assertEquals('propietario', $resolucion['fuente']);
+        $this->assertEquals('0414-1234567', $resolucion['telefono']);
+        $this->assertNull($resolucion['nombre']);
+
+        // 2. Propietario sin teléfono: fallback a la primera persona con móvil
+        $resolucion = NotificationService::resolverTelefonoDeudor('', [
+            ['telefono' => '0414-1234567', 'nombre' => 'Ana', 'apellido' => 'Pérez']
+        ]);
+        $this->assertEquals('persona', $resolucion['fuente']);
+        $this->assertEquals('0414-1234567', $resolucion['telefono']);
+        $this->assertEquals('Ana Pérez', $resolucion['nombre']);
+
+        // 3. Propietario con línea fija: se salta y usa el móvil de la persona asociada
+        $resolucion = NotificationService::resolverTelefonoDeudor('0212-1234567', [
+            ['telefono' => '0212-9998877', 'nombre' => 'Luis', 'apellido' => 'Gómez'],
+            ['telefono' => '0424-7654321', 'nombre' => 'Ana', 'apellido' => 'Pérez']
+        ]);
+        $this->assertEquals('persona', $resolucion['fuente']);
+        $this->assertEquals('0424-7654321', $resolucion['telefono']);
+        $this->assertEquals('Ana Pérez', $resolucion['nombre']);
+
+        // 4. Sin ningún número disponible
+        $resolucion = NotificationService::resolverTelefonoDeudor(null, []);
+        $this->assertEquals('ninguna', $resolucion['fuente']);
+        $this->assertEquals('', $resolucion['telefono']);
+        $this->assertNull($resolucion['nombre']);
+
+        // 5. Propietario con línea fija y sin personas asociadas
+        $resolucion = NotificationService::resolverTelefonoDeudor('0212-1234567', []);
+        $this->assertEquals('ninguna', $resolucion['fuente']);
+        $this->assertEquals('', $resolucion['telefono']);
+    }
 }
