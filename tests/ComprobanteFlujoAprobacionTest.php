@@ -137,4 +137,26 @@ class ComprobanteFlujoAprobacionTest extends TestCase {
         $this->assertStringContains('download=1', $contentComprobantes,
             "El listado de comprobantes administrativos debe tener enlace de descarga directa");
     }
+
+    /**
+     * Verifica que el botón de retroceso del detalle de pago respete el origen del registro:
+     * los comprobantes vuelven a la Verificación de Pagos y los pagos generales a su listado.
+     */
+    public function testBotonRetrocesoDelDetalleVuelveAlOrigen(): void {
+        $content = file_get_contents(VIEWS_PATH . '/pagos/detalle.php');
+
+        // 1. El detalle de un comprobante regresa a /admin/comprobantes (Verificación de Pagos)
+        $this->assertMatchesRegex(
+            '/\$tipoOrigen\s*===\s*\'comprobante\'[\s\S]{0,700}?href="\/admin\/comprobantes"[\s\S]{0,700}?Volver a Verificaci/',
+            $content,
+            "El detalle de un comprobante debe volver a /admin/comprobantes (Verificación de Pagos)"
+        );
+
+        // 2. El detalle de un pago general regresa a /pagos (Listado General de Pagos)
+        $this->assertMatchesRegex(
+            '/\$tipoOrigen\s*===\s*\'comprobante\'[\s\S]*?else\s*:\s*\?>[\s\S]{0,700}?href="\/pagos"[\s\S]{0,700}?Volver a Pagos/',
+            $content,
+            "El detalle de un pago general debe volver a /pagos (Listado General de Pagos)"
+        );
+    }
 }

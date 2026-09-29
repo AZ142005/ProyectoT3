@@ -61,14 +61,21 @@ $origenForm = match($fromParam) {
                 <!-- Barra de Navegación y Descarga -->
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
-                        <a href="/pagos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                            <span>Volver a Pagos</span>
-                        </a>
-                        <a href="/admin/comprobantes" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
-                            <span>Verificación de Comprobantes</span>
-                        </a>
+                        <?php /* Retroceso consistente con el origen: comprobantes vuelven a Verificación de Pagos; pagos generales a su listado */ if ($tipoOrigen === 'comprobante'): ?>
+                            <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                                <span>Volver a Verificación</span>
+                            </a>
+                        <?php else: ?>
+                            <a href="/pagos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                                <span>Volver a Pagos</span>
+                            </a>
+                            <a href="/admin/comprobantes" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                                <span>Verificación de Comprobantes</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if ($fromParam === 'conciliacion'): ?>
                             <a href="/admin/conciliacion" class="bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs px-3.5 py-2 rounded-xl border border-primary/20 transition-colors inline-flex items-center gap-1.5 shadow-sm">
                                 <span class="material-symbols-outlined text-[16px]">sync_alt</span>
