@@ -4,6 +4,7 @@ namespace Tests;
 use App\Controllers\PagoDirectoController;
 use App\Core\Database;
 use App\Models\PagoModel;
+use App\Models\PersonasModel;
 use App\Models\UnidadesModel;
 use PDO;
 
@@ -170,5 +171,120 @@ class PagoDirectoTest extends TestCase {
                 $db->prepare("DELETE FROM pagos WHERE id = :id")->execute(['id' => $pagoId]);
             }
         }
+    }
+
+    public function testModeloPagoAceptaEstadoEnRevisionConWhitelist(): void {
+        $db = $this->getDb();
+        $unidades = (new UnidadesModel())->getActivas(1);
+
+        if (empty($unidades)) {
+            $this->skip('No hay unidades activas para ejecutar la prueba de estado configurable');
+            return;
+        }
+
+        $unidadId = (int)$unidades[0]['id'];
+        $referenciaRevision = 'TEST-PD-EST-' . time() . '-A';
+        $referenciaInvalida = 'TEST-PD-EST-' . time() . '-B';
+        $pagoModel = new PagoModel();
+
+        try {
+            $okRevision = $pagoModel->crearPago(null, $unidadId, [
+                'monto'       => 2.50,
+                'fecha_pago'  => date('Y-m-d'),
+                'metodo_pago' => 'transferencia',
+                'referencia'  => $referenciaRevision,
+                'estado'      => 'EN REVISIÓN'
+            ], 'test.png');
+            $this->assertTrue($okRevision, 'crearPago() debe aceptar el estado EN REVISIÓN desde $datos');
+
+            $stmt = $db->prepare("SELECT estado FROM pagos WHERE referencia = :ref ORDER BY id DESC LIMIT 1");
+            $stmt->execute(['ref' => $referenciaRevision]);
+            $this->assertEquals('EN REVISIÓN', $stmt->fetchColumn(),
+                'El pago debe quedar guardado en estado EN REVISIÓN cuando $datos lo indica');
+
+            $okInvalido = $pagoModel->crearPago(null, $unidadId, [
+                'monto'       => 3.75,
+                'fecha_pago'  => date('Y-m-d'),
+                'metodo_pago' => 'transferencia',
+                'referencia'  => $referenciaInvalida,
+                'estado'      => 'INVALIDO'
+            ], 'test.png');
+            $this->assertTrue($okInvalido, 'crearPago() debe registrar el pago aunque el estado indicado sea inválido');
+
+            $stmt->execute(['ref' => $referenciaInvalida]);
+            $this->assertEquals('PENDIENTE', $stmt->fetchColumn(),
+                'Un estado fuera de la whitelist de EstadoPago debe caer a PENDIENTE');
+        } finally {
+            $db->prepare("DELETE FROM pagos WHERE referencia IN (:refA, :refB)")
+               ->execute(['refA' => $referenciaRevision, 'refB' => $referenciaInvalida]);
+        }
+    }
+
+    public function testPagoDirectoAtribuidoApareceParaElResidenteDeLaUnidad(): void {
+        $db = $this->getDb();
+
+        $unidadId = (int)$db->query("
+            SELECT p.unidad_id
+            FROM personas p
+            INNER JOIN unidades u ON u.id = p.unidad_id
+            WHERE p.estado = 1 AND u.estado = 1 AND p.unidad_id IS NOT NULL
+            GROUP BY p.unidad_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+        ")->fetchColumn();
+
+        if ($unidadId <= 0) {
+            $this->skip('No hay unidades activas con personas activas para la prueba de atribución');
+            return;
+        }
+
+        $residente = (new PersonasModel())->getPrincipalByUnidadId($unidadId);
+        $this->assertNotNull($residente, 'getPrincipalByUnidadId() debe retornar el residente principal de la unidad');
+
+        if (!is_array($residente)) {
+            return;
+        }
+
+        $referencia = 'TEST-PD-ATR-' . time();
+        $pagoModel = new PagoModel();
+
+        try {
+            $ok = $pagoModel->crearPago((int)$residente['id'], $unidadId, [
+                'monto'       => 4.20,
+                'fecha_pago'  => date('Y-m-d'),
+                'metodo_pago' => 'pago_movil',
+                'referencia'  => $referencia,
+                'estado'      => 'EN REVISIÓN'
+            ], 'test.png');
+            $this->assertTrue($ok, 'crearPago() debe registrar el pago atribuido al residente principal');
+
+            $listado = $pagoModel->obtenerPagosPorResidente((int)$residente['id'], 1, 100);
+            $encontrado = false;
+            foreach ($listado['datos'] as $fila) {
+                if ($fila['referencia'] === $referencia) {
+                    $encontrado = true;
+                    $this->assertEquals('EN REVISIÓN', $fila['estado'],
+                        'El pago atribuido debe aparecer en EN REVISIÓN en "Mis Pagos" del residente');
+                }
+            }
+            $this->assertTrue($encontrado, 'obtenerPagosPorResidente() debe incluir el pago directo atribuido');
+        } finally {
+            $db->prepare("DELETE FROM pagos WHERE referencia = :ref")->execute(['ref' => $referencia]);
+        }
+    }
+
+    public function testControladorPagoDirectoAtribuyeResidenteYUsaEstadoEnRevision(): void {
+        $fuente = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/PagoDirectoController.php');
+
+        $this->assertStringContains('getPrincipalByUnidadId', $fuente,
+            'El controlador debe resolver el residente principal de la unidad');
+        $this->assertStringContains('EstadoPago::EN_REVISION', $fuente,
+            'El controlador debe registrar el pago directo en estado EN REVISIÓN');
+        $this->assertStringContains('crearPago($residenteId', $fuente,
+            'El controlador debe pasar el residente resuelto a crearPago()');
+        $this->assertStringContains('use App\Models\PersonasModel;', $fuente,
+            'El controlador debe importar PersonasModel');
+        $this->assertTrue(strpos($fuente, 'crearPago(null') === false,
+            'El controlador no debe crear el pago directo con residente_id null');
     }
 }
