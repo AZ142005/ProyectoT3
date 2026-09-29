@@ -71,12 +71,14 @@ class PagoModel extends BaseModel {
     }
 
     /**
-     * Inserta en la tabla pagos con estado PENDIENTE.
+     * Inserta en la tabla pagos con estado inicial configurable.
      * Previene pago duplicado y maneja errores de integridad.
      *
      * @param int|null $residenteId Null = pago reportado desde el portal público sin usuario
      * @param int $unidadId
-     * @param array $datos ['monto', 'fecha_pago', 'metodo_pago', 'referencia', ...]
+     * @param array $datos ['monto', 'fecha_pago', 'metodo_pago', 'referencia', 'estado' (opcional), ...]
+     *                     'estado' es opcional: por defecto PENDIENTE; un valor fuera de
+     *                     EstadoPago::all() también cae a PENDIENTE.
      * @param string $filename Nombre de archivo ya guardado por FileUploader
      * @return bool
      */
@@ -86,6 +88,12 @@ class PagoModel extends BaseModel {
         $referencia = !empty($datos['referencia']) ? trim($datos['referencia']) : null;
         $referenciaNorm = self::normalizarReferenciaPago($referencia);
         $fechaPago = $datos['fecha_pago'];
+
+        // Estado inicial configurable (whitelist de EstadoPago); el portal directo lo crea en EN REVISIÓN.
+        $estado = $datos['estado'] ?? EstadoPago::PENDIENTE;
+        if (!in_array($estado, EstadoPago::all(), true)) {
+            $estado = EstadoPago::PENDIENTE;
+        }
 
         $db = $this->db();
 
@@ -111,7 +119,7 @@ class PagoModel extends BaseModel {
             }
 
             $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, referencia_norm, archivo, observaciones, estado, banco_pagador, banco_receptor, cuenta_bancaria_id)
-                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :referencia_norm, :archivo, :observaciones, 'PENDIENTE', :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";
+                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :referencia_norm, :archivo, :observaciones, :estado, :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";
             
             $stmt = $db->prepare($sql);
             $result = $stmt->execute([
@@ -124,6 +132,7 @@ class PagoModel extends BaseModel {
                 'referencia_norm'    => $referenciaNorm,
                 'archivo'            => $filename,
                 'observaciones'      => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
+                'estado'             => $estado,
                 'banco_pagador'      => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
                 'banco_receptor'     => !empty($datos['banco_receptor']) ? trim($datos['banco_receptor']) : null,
                 'cuenta_bancaria_id' => !empty($datos['cuenta_bancaria_id']) ? intval($datos['cuenta_bancaria_id']) : null

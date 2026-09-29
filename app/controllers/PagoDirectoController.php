@@ -2,12 +2,14 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\EstadoPago;
 use App\Core\Flash;
 use App\Core\RateLimiter;
 use App\Models\CuentasBancariasModel;
 use App\Models\EdificiosModel;
 use App\Models\FacturasModel;
 use App\Models\PagoModel;
+use App\Models\PersonasModel;
 use App\Models\UnidadesModel;
 use App\Services\ComprobanteParserService;
 use App\Services\ConciliacionBancariaService;
@@ -17,9 +19,10 @@ use App\Services\FileUploader;
  * Controlador público del portal de pago directo (sin sesión).
  *
  * Permite a cualquier visitante seleccionar una unidad activa, consultar su
- * deuda y reportar un pago con comprobante. El pago se registra a nivel de
- * unidad (residente_id NULL) y sigue el flujo administrativo existente de
- * verificación, conciliación y aprobación.
+ * deuda y reportar un pago con comprobante. Si la unidad tiene personas
+ * activas, el pago se atribuye al residente principal; si no, queda a nivel
+ * de unidad (residente_id NULL). Se registra en estado EN REVISIÓN y sigue el
+ * flujo administrativo existente de verificación, conciliación y aprobación.
  */
 class PagoDirectoController extends Controller {
 
@@ -279,6 +282,11 @@ class PagoDirectoController extends Controller {
             return;
         }
 
+        // Ruta A: atribuir el pago al residente principal de la unidad (si existe).
+        // Sin personas activas, el pago queda a nivel de unidad (residente_id NULL).
+        $residentePrincipal = (new PersonasModel())->getPrincipalByUnidadId($unidadId);
+        $residenteId = $residentePrincipal ? intval($residentePrincipal['id']) : null;
+
         // Si el usuario eligió "OTRO", se registra el nombre de banco especificado.
         if ($esBancoOtro) {
             $bancoPagador = $bancoPagadorOtro;
@@ -294,10 +302,11 @@ class PagoDirectoController extends Controller {
             'observaciones'      => $observacionesCompletas,
             'banco_pagador'      => $bancoPagador,
             'banco_receptor'     => $cuentaReceptora['banco'],
-            'cuenta_bancaria_id' => $cuentaBancariaId
+            'cuenta_bancaria_id' => $cuentaBancariaId,
+            'estado'             => EstadoPago::EN_REVISION,
         ];
 
-        $resultado = (new PagoModel())->crearPago(null, $unidadId, $datos, $nombreArchivo);
+        $resultado = (new PagoModel())->crearPago($residenteId, $unidadId, $datos, $nombreArchivo);
 
         if ($resultado) {
             Flash::set('success', 'Su pago fue registrado exitosamente. La administración verificará la información.');

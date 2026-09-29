@@ -50,6 +50,16 @@ class PersonasModel extends BaseModel {
     }
 
     /**
+     * Retorna el residente principal de una unidad: el primero de los activos
+     * según el orden de getByUnidadId (propietario/ambos primero).
+     * Null si la unidad no tiene personas activas.
+     */
+    public function getPrincipalByUnidadId(int $unidadId): ?array {
+        $residentes = $this->getByUnidadId($unidadId);
+        return $residentes[0] ?? null;
+    }
+
+    /**
      * Inserta un nuevo residente validando tipo y unidad activa.
      */
     public function createResidente(array $data): int|false {
