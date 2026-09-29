@@ -341,17 +341,17 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                             <span class="text-[11px] text-slate-400">Banco del cual salieron los fondos de su cuenta.</span>
                         </div>
 
-                        <!-- Cuenta Bancaria Destino -->
+                        <!-- Cuenta oficial para el pago -->
                         <div class="flex flex-col gap-1.5">
                             <div class="flex items-center justify-between">
-                                <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta Bancaria Destino Autorizada <span class="text-red-500">*</span></label>
+                                <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta oficial para el pago <span class="text-red-500">*</span></label>
                                 <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                     <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                                 </span>
                             </div>
                             <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
                                     class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                                <option value="">-- Seleccione la cuenta autorizada receptora --</option>
+                                <option value="">-- Seleccione la cuenta oficial del condominio --</option>
                                 <?php foreach ($cuentasBancarias as $cb): ?>
                                     <option value="<?= e($cb['id']) ?>"
                                             data-banco="<?= e($cb['banco']) ?>"
@@ -379,7 +379,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                     <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
                                         <div class="min-w-0">
                                             <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de cuenta</span>
-                                            <span id="infoNumero" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                            <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                         </div>
                                         <button type="button" data-copiar="infoNumero" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
                                             <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -389,13 +389,13 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                     <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
                                         <div class="min-w-0">
                                             <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular autorizado</span>
-                                            <span id="infoTitular" class="font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                            <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
                                         </div>
                                     </div>
                                     <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
                                         <div class="min-w-0">
                                             <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
-                                            <span id="infoDoc" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                            <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                         </div>
                                         <button type="button" data-copiar="infoDoc" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
                                             <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -405,7 +405,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                     <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
                                         <div class="min-w-0">
                                             <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
-                                            <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-xs truncate block select-all"></span>
+                                            <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
                                         </div>
                                         <button type="button" data-copiar="infoTelefono" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
                                             <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -1053,7 +1053,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             }
         }
 
-        // 6. Cuenta Bancaria Destino Autorizada
+        // 6. Cuenta oficial para el pago
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && (data.cuenta_bancaria_id || data.banco_receptor)) {
             let matchedIndex = -1;
