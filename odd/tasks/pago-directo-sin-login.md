@@ -31,10 +31,10 @@ Hoy solo un residente autenticado puede reportar/registrar pagos. Los copropieta
 - **Anti-abuso**: rate limit por IP (5/hora) en el reporte y ~60/hora en la consulta de deuda; CSRF global; dedup existente de `PagoModel` (unidad+referencia+fecha+monto).
 
 ## Tareas (IDs estables)
-- [ ] **T1 — Capa de datos**: `scripts/migrate_pago_directo.php` (idempotente, `pagos.residente_id` NULL) + ejecutarlo localmente + ajustes `PagoModel` (`obtenerTodosPagos`, `obtenerPagoPorId`: LEFT JOIN + COALESCE; doc de null).
-- [ ] **T2 — Backend**: `app/controllers/PagoDirectoController.php` (`index()`, `deuda()`, `reportar()`, `exito()`) + rutas `GET /pago-directo`, `GET /pago-directo/deuda`, `POST /pago-directo/reportar`, `GET /pago-directo/exito` en `public/index.php`.
-- [ ] **T3 — UI**: `app/views/pago_directo/index.php` (selección dependiente edificio→unidad + panel de deuda con fetch + formulario de pago + cuentas bancarias oficiales), `app/views/pago_directo/exito.php`, y bloque de acceso en `auth/login.php`.
-- [ ] **T4 — Pruebas y verificación**: `tests/PagoDirectoTest.php` + corrida por clase de la suite + `scripts/check_purity.php` + `scripts/audit_security.php` + smoke test.
+- [x] **T1 — Capa de datos**: `scripts/migrate_pago_directo.php` (idempotente, `pagos.residente_id` NULL) + ejecutarlo localmente + ajustes `PagoModel` (`obtenerTodosPagos`, `obtenerPagoPorId`: LEFT JOIN + COALESCE; doc de null).
+- [x] **T2 — Backend**: `app/controllers/PagoDirectoController.php` (`index()`, `deuda()`, `reportar()`, `exito()`) + rutas `GET /pago-directo`, `GET /pago-directo/deuda`, `POST /pago-directo/reportar`, `GET /pago-directo/exito` en `public/index.php`.
+- [x] **T3 — UI**: `app/views/pago_directo/index.php` (selección dependiente edificio→unidad + panel de deuda con fetch + formulario de pago + cuentas bancarias oficiales), `app/views/pago_directo/exito.php`, y bloque de acceso en `auth/login.php`.
+- [x] **T4 — Pruebas y verificación**: `tests/PagoDirectoTest.php` + corrida por clase de la suite + `scripts/check_purity.php` + `scripts/audit_security.php` + smoke test.
 
 ## Criterios de aceptación
 1. El index muestra una opción visible "Pagar sin iniciar sesión" que lleva a `/pago-directo`.
@@ -58,6 +58,16 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
 ## Línea base de tests (antes del cambio)
 - BehaviorTest 1❌+1⚠ (falta `public/uploads/.htaccess`), ConciliacionTest 2❌, ConfigTest 3❌+2⏭ (entorno), JwtTest 3⚠ (falta `.env`), NotificationTest 1⚠, SecurityTest aborta el runner (preexistente). El resto verde.
 
+## Verificación final (post-implementación)
+- **Migración**: `php scripts/migrate_pago_directo.php` aplicada; 2ª corrida idempotente ("ya aplicada"); `IS_NULLABLE='YES'`; FK `pagos_ibfk_1` intacta.
+- **Tests nuevos**: `php tests/run.php --filter=PagoDirectoTest` → 5 tests / 23 asserts / 0 fallos (re-corrido por el padre como spot check ✅).
+- **Regresión (clases clave)**: ModelTest 130✅; RouterTest 45✅; ComprobanteFlujoAprobacionTest 27✅; ConciliacionTest 71✅/2❌ (fallos de línea base, no tocados).
+- **Gates del proyecto**: `check_purity.php` 0 violaciones; `audit_security.php` 0 vulnerabilidades.
+- **Smoke E2E (servidor embebido + curl)**: `GET /pago-directo` → 200 (contiene "Pagar"); `GET /pago-directo/deuda?unidad_id=1` → JSON `success:true` (total 450, 3 facturas); unidad inválida → 404; `POST /pago-directo/reportar` multipart (cookie+CSRF+PNG) → 302 a `/pago-directo/exito`; fila creada con `residente_id NULL`/`PENDIENTE`, verficada y eliminada (BD restaurada, `pagos` = 0).
+- **Diff**: 9 archivos, +1018/−6 (incluye doc ODD y tests; excluye artefactos de runtime `.atl/` y `storage/`).
+- **RDD / revisión nativa**: assess → `review_due: true`, `high / unassessable`; STATUS → `immutable_review_transport_unsupported` (`next_action: stop`, `retry_safe: false`, `mutation_outcome: not_started`). El runtime activo (OpenCode) no es elegible para revisión inmutable (soportados: claude-code, codex). Resultado tipado preservado; **no** se ejecutó revisión nativa. Decisión de cierre presentada al usuario.
+- **Nota**: artefactos de runtime sucios (`.atl/*`, `storage/cache/estructura/data_0.json`) quedaron fuera de todos los commits.
+
 ## Ruta de implementación por tarea
 - T1–T4: **delegada** a un único writer (disparador: 2+ archivos no triviales y preparación de escritura). Verificación: writer con comandos en primer plano + revisión del padre.
 
@@ -68,6 +78,8 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
 - Ajuste de alcance pedido por el usuario: mostrar la deuda de la unidad al pagador (incluido arriba).
 
 ## Progreso
-- Exploración completa (index/login, flujos de pago residente/anticipado, `comprobantes_pago`, `pagos`, conciliación, migraciones, tests).
-- Decisión de entrega recibida: rama única + mostrar deuda al pagador (ajuste de alcance).
-- Siguiente paso: crear rama `feat/pago-directo-sin-login` → T1.
+- Exploración completa; decisión de entrega: rama única + deuda visible al pagador.
+- T1–T4 implementadas y verificadas. Commits: `7a0b47f` (datos+migración), `ea9f9b7` (controlador+rutas), `ddc863c` (vistas+login), `bf2d84f` (tests) + commit de docs con este registro.
+- Verificación padre: spot check `--filter=PagoDirectoTest` ✅; diff estructural revisado (controlador null-safe, validaciones completas, rate limit).
+- RDD: revisión nativa no ejecutable en OpenCode (`immutable_review_transport_unsupported`); resultado preservado y decisión ofrecida al usuario.
+- Siguiente paso: decisión del usuario sobre el cierre de la revisión (disable clone / mantener / verificación independiente).
