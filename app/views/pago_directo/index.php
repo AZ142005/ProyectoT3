@@ -44,8 +44,17 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 </div>
             <?php endif; ?>
 
-            <!-- Card 1: Identificación de la unidad -->
+            <!-- Card unificada de datos del pago (misma estructura que la vista de residentes) -->
             <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+                <div class="pb-4 border-b border-background mb-6">
+                    <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">payments</span>
+                        Datos del pago
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mt-1">Complete los pasos para reportar su pago.</p>
+                </div>
+
+                <!-- Identificación de la unidad -->
                 <div class="pb-4 border-b border-background mb-6">
                     <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">location_on</span>
@@ -83,10 +92,9 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <!-- Panel de deuda de la unidad -->
-            <div id="panelDeuda" class="hidden bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+                <!-- Estado de cuenta de la unidad -->
+                <div id="panelDeuda" class="hidden mt-6 pt-6 border-t border-background">
                 <div id="deudaLoading" class="flex items-center gap-3 text-on-surface-variant">
                     <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                     Consultando deuda...
@@ -138,18 +146,8 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 </div>
             </div>
 
-            <!-- Card 2: Datos del pago -->
-            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-                <div class="pb-4 border-b border-background mb-6">
-                    <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">payments</span>
-                        Datos del pago
-                    </h2>
-                    <p class="text-sm text-on-surface-variant mt-1">Complete los pasos para reportar su pago.</p>
-                </div>
-
                 <!-- Paso 1: Subida de Comprobante con Extracción Automática -->
-                <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+                <div class="mt-6 bg-slate-50/70 border border-outline-variant rounded-2xl p-5 md:p-6 flex flex-col gap-4">
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <div>
                             <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
@@ -426,7 +424,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 </div>
 
                 <!-- Nota informativa -->
-                <p class="mt-5 text-xs text-on-surface-variant bg-slate-50 border border-slate-200 rounded-2xl p-3.5 leading-relaxed">
+                <p class="mt-5 text-xs text-on-surface-variant/80 leading-relaxed">
                     <strong>Nota:</strong> Su pago quedará asociado a la unidad seleccionada y será verificado por la administración.
                 </p>
 
