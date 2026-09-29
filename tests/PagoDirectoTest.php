@@ -57,6 +57,10 @@ class PagoDirectoTest extends TestCase {
         $this->assertTrue(method_exists(PagoDirectoController::class, 'extraer'),
             'PagoDirectoController debe exponer el método público extraer()');
 
+        $controlador = (string)file_get_contents($base . '/app/controllers/PagoDirectoController.php');
+        $this->assertStringContains("'csrf_token'", $controlador,
+            'La respuesta de extracción debe incluir el token CSRF rotado (permite analizar de nuevo sin recargar)');
+
         $vista = (string)file_get_contents($base . '/app/views/pago_directo/index.php');
         $this->assertStringContains('Tesseract', $vista,
             'La vista pública debe cargar el motor OCR Tesseract.js');
