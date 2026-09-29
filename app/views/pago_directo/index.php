@@ -145,7 +145,53 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         <span class="material-symbols-outlined text-primary">payments</span>
                         Datos del pago
                     </h2>
-                    <p class="text-sm text-on-surface-variant mt-1">Complete la información de la operación realizada.</p>
+                    <p class="text-sm text-on-surface-variant mt-1">Complete los pasos para reportar su pago.</p>
+                </div>
+
+                <!-- Paso 1: Subir comprobante -->
+                <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+                    <div>
+                        <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-primary text-[20px]">document_scanner</span>
+                            Paso 1: Subir Comprobante <span class="text-red-500">*</span>
+                        </h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Cargue la imagen o el PDF de su comprobante de pago.</p>
+                    </div>
+
+                    <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-white rounded-2xl p-6 transition-all text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[170px]">
+                        <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
+                               class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
+
+                        <!-- Estado inicial -->
+                        <div id="dropzoneInitial" class="flex flex-col items-center pointer-events-none">
+                            <div class="w-14 h-14 bg-background rounded-full border border-outline-variant flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-primary">
+                                <span class="material-symbols-outlined text-3xl">upload_file</span>
+                            </div>
+                            <p class="font-bold text-on-surface text-base">Haz clic o arrastra tu comprobante aquí</p>
+                            <p class="text-xs text-slate-500 mt-1">Soporta JPG, PNG y PDF (Máx. 5MB)</p>
+                        </div>
+
+                        <!-- Estado con archivo (previsualización) -->
+                        <div id="dropzonePreview" class="hidden flex-col items-center pointer-events-none w-full">
+                            <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-44 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
+
+                            <div id="pdfPreview" class="hidden flex flex-col items-center">
+                                <span class="material-symbols-outlined text-5xl text-rose-500 mb-1">picture_as_pdf</span>
+                                <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs"></span>
+                            </div>
+
+                            <p class="text-[11px] text-primary font-bold mt-3 bg-primary/10 px-3 py-1 rounded-md">Haz clic para cambiar el archivo</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paso 2: Datos del pago -->
+                <div class="flex items-center justify-between pb-2 border-b border-background mt-6 mb-4">
+                    <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-primary text-[20px]">edit_document</span>
+                        Paso 2: Datos del Pago (Verifique o complete)
+                    </h4>
+                    <span class="text-xs text-slate-400 font-medium">* Campos obligatorios</span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -288,36 +334,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comprobante -->
-                <div class="mt-5 flex flex-col gap-2">
-                    <label for="comprobante" class="text-sm font-semibold text-on-surface-variant">Comprobante de pago <span class="text-red-500">*</span></label>
-                    <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-white rounded-2xl p-6 transition-all text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[170px]">
-                        <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
-                               class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
-
-                        <!-- Estado inicial -->
-                        <div id="dropzoneInitial" class="flex flex-col items-center pointer-events-none">
-                            <div class="w-14 h-14 bg-background rounded-full border border-outline-variant flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-primary">
-                                <span class="material-symbols-outlined text-3xl">upload_file</span>
-                            </div>
-                            <p class="font-bold text-on-surface text-base">Haz clic o arrastra tu comprobante aquí</p>
-                            <p class="text-xs text-slate-500 mt-1">Soporta JPG, PNG y PDF (Máx. 5MB)</p>
-                        </div>
-
-                        <!-- Estado con archivo (previsualización) -->
-                        <div id="dropzonePreview" class="hidden flex-col items-center pointer-events-none w-full">
-                            <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-44 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
-
-                            <div id="pdfPreview" class="hidden flex flex-col items-center">
-                                <span class="material-symbols-outlined text-5xl text-rose-500 mb-1">picture_as_pdf</span>
-                                <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs"></span>
-                            </div>
-
-                            <p class="text-[11px] text-primary font-bold mt-3 bg-primary/10 px-3 py-1 rounded-md">Haz clic para cambiar el archivo</p>
                         </div>
                     </div>
                 </div>
