@@ -58,6 +58,38 @@ class PagoDirectoTest extends TestCase {
         $this->assertStringContains('residente_id', (string)file_get_contents($path), 'La migración debe operar sobre pagos.residente_id');
     }
 
+    public function testRateLimiterBloqueaTrasMaxIntentos(): void {
+        $db = $this->getDb();
+        $key = 'test_rl_' . bin2hex(random_bytes(4));
+
+        try {
+            for ($intento = 1; $intento <= 6; $intento++) {
+                $permitido = \App\Core\RateLimiter::attempt($key, 5, 60);
+
+                if ($intento <= 5) {
+                    $this->assertTrue($permitido, "El intento {$intento} de 5 debe estar permitido");
+                } else {
+                    $this->assertFalse($permitido, 'El intento 6 debe quedar bloqueado por el rate limiter');
+                }
+            }
+
+            $restante = \App\Core\RateLimiter::secondsUntilAvailable($key, 60);
+            $this->assertGreaterThan(0, $restante, 'secondsUntilAvailable() debe indicar espera tras exceder el límite');
+            $this->assertTrue($restante <= 60, 'secondsUntilAvailable() no debe superar la ventana configurada');
+        } finally {
+            $db->prepare("DELETE FROM rate_limits WHERE `key` = :k")->execute(['k' => $key]);
+        }
+    }
+
+    public function testRateLimiterComparaVentanasEnHoraSql(): void {
+        $content = (string)file_get_contents(dirname(__DIR__) . '/app/core/RateLimiter.php');
+
+        $this->assertStringContains('DATE_SUB(NOW(', $content,
+            'attempt() debe comparar la ventana con la hora de MySQL (DATE_SUB(NOW(), ...))');
+        $this->assertStringContains('TIMESTAMPDIFF', $content,
+            'secondsUntilAvailable() debe calcular el tiempo restante en hora de MySQL (TIMESTAMPDIFF)');
+    }
+
     public function testPagoInvitadoConResidenteNuloSeRegistraYSeLimpia(): void {
         $db = $this->getDb();
         $unidades = (new UnidadesModel())->getActivas(1);
