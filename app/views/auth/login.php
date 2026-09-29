@@ -104,6 +104,25 @@
             <div class="mt-4 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-600 text-center leading-relaxed">
                 <strong>Nota:</strong> Los nuevos registros están sujetos a verificación y aprobación de la administración antes de poder iniciar sesión.
             </div>
+
+            <!-- Separador -->
+            <div class="flex items-center gap-4 my-8">
+                <div class="flex-1 h-px bg-outline-variant"></div>
+                <span class="text-sm text-on-surface-variant font-medium">¿Vienes solo a pagar?</span>
+                <div class="flex-1 h-px bg-outline-variant"></div>
+            </div>
+
+            <!-- Acceso a Pago Directo sin Sesión -->
+            <div class="flex flex-col gap-3">
+                <a href="/pago-directo"
+                   class="w-full flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-lg py-4 rounded-2xl border-2 border-amber-300 hover:border-amber-400 transition-all duration-300 active:scale-[0.98]">
+                    <span class="material-symbols-outlined">payments</span>
+                    Pagar sin iniciar sesión
+                </a>
+                <p class="text-xs text-slate-500 text-center leading-relaxed">
+                    Consulta tu deuda y reporta tu pago sin necesidad de crear una cuenta.
+                </p>
+            </div>
         </div>
 
         <p class="text-center text-sm text-on-surface-variant mt-8">
