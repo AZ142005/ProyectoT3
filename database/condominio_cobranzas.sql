@@ -33,12 +33,20 @@ CREATE TABLE `auth_otp_tokens` (
 DROP TABLE IF EXISTS `backups_log`;
 CREATE TABLE `backups_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `archivo` varchar(255) NOT NULL,
-  `tamano` int(11) DEFAULT 0,
-  `checksum` varchar(64) DEFAULT NULL,
+  `nombre_archivo` varchar(255) NOT NULL,
+  `tamano_bytes` bigint(20) unsigned NOT NULL,
+  `hash_sha256` varchar(64) NOT NULL COMMENT 'SHA-256 del archivo .sql.gz',
+  `checksum_sha256` varchar(64) DEFAULT NULL COMMENT 'Alias de hash_sha256 para compatibilidad Fase 6',
+  `tablas_respaldadas` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `motor` enum('mysqldump','pdo_fallback') NOT NULL DEFAULT 'mysqldump' COMMENT 'Motor utilizado para generar el respaldo',
+  `estado` enum('exitoso','fallido','parcial') NOT NULL DEFAULT 'exitoso',
+  `notas` text DEFAULT NULL,
   `admin_id` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
+  `fecha_respaldo` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_backups_fecha` (`fecha_respaldo`),
+  KEY `idx_backups_estado` (`estado`,`fecha_respaldo`),
+  CONSTRAINT `backups_log_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

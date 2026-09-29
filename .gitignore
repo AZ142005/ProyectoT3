@@ -14,6 +14,9 @@ composer.lock
 /uploads/
 /public/uploads/
 
+# Respaldos de base de datos generados por la aplicación
+/storage/backups/
+
 # Sistema operativo
 Thumbs.db
 .DS_Store
