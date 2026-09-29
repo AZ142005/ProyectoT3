@@ -1,12 +1,13 @@
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-green-50/30 to-slate-100 px-4 py-12">
     <div class="w-full max-w-md">
         <!-- Logo / Encabezado -->
-        <div class="text-center mb-10">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary-hover shadow-lg shadow-primary/20 mb-5">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary-hover shadow-lg shadow-primary/20 mb-4">
                 <span class="material-symbols-outlined text-white" style="font-size:40px;">apartment</span>
             </div>
+            <p class="text-[11px] sm:text-xs leading-tight font-bold uppercase tracking-[0.18em] text-primary mb-1">Conjunto Las Mesetas de Morón</p>
             <h1 class="text-3xl font-black text-on-surface tracking-tight">Condominio Digital</h1>
-            <p class="text-on-surface-variant mt-2 text-lg">Ingresa a tu cuenta</p>
+            <p class="text-on-surface-variant mt-1 text-lg">Ingresa a tu cuenta</p>
         </div>
 
         <!-- Tarjeta del formulario -->
