@@ -115,7 +115,7 @@
             <!-- Acceso a Pago Directo sin Sesión -->
             <div class="flex flex-col gap-3">
                 <a href="/pago-directo"
-                   class="w-full flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-lg py-4 rounded-2xl border-2 border-amber-300 hover:border-amber-400 transition-all duration-300 active:scale-[0.98]">
+                   class="w-full flex items-center justify-center gap-2 bg-background hover:bg-slate-100 text-primary font-bold text-lg py-4 rounded-2xl border-2 border-outline-variant hover:border-primary/30 transition-all duration-300 active:scale-[0.98]">
                     <span class="material-symbols-outlined">payments</span>
                     Pagar sin iniciar sesión
                 </a>

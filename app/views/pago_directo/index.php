@@ -10,16 +10,28 @@ $oldEdificio = (string)($old['edificio'] ?? '');
 $oldBanco = (string)($old['banco_pagador'] ?? '');
 $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 ?>
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-slate-100 px-4 py-10">
-    <div class="w-full max-w-3xl mx-auto">
-        <!-- Encabezado -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-hover shadow-lg shadow-primary/20 mb-4">
-                <span class="material-symbols-outlined text-white" style="font-size:32px;">apartment</span>
-            </div>
-            <h1 class="text-2xl md:text-3xl font-black text-on-surface tracking-tight">Condominio Digital</h1>
-            <p class="text-on-surface-variant mt-2">Pago de condominio sin iniciar sesión</p>
+<div class="max-w-3xl mx-auto px-4 py-8 flex-1 w-full">
+    <!-- Encabezado de la página -->
+    <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4 border-b-4 border-institutional-brown">
+        <div>
+            <h2 class="text-2xl font-bold">Pago de Condominio</h2>
+            <p class="text-sm opacity-90 mt-1">Reporta tu pago sin iniciar sesión</p>
         </div>
+        <div class="flex items-center gap-2">
+            <a href="/auth/login" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">login</span>
+                Iniciar sesión
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes de Alerta -->
+    <?php
+    // El componente flash reutiliza la variable $error: se conserva el mensaje de validación del controlador.
+    $errorValidacion = $error;
+    include VIEWS_PATH . '/components/flash_messages.php';
+    $error = $errorValidacion;
+    ?>
 
         <form method="POST" action="/pago-directo/reportar" enctype="multipart/form-data" class="flex flex-col gap-6" id="formPagoDirecto">
             <?= csrf_field() ?>
@@ -33,18 +45,20 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             <?php endif; ?>
 
             <!-- Card 1: Identificación de la unidad -->
-            <div class="bg-white rounded-3xl border border-outline-variant shadow-lg shadow-slate-200/40 p-6 md:p-8">
-                <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">location_on</span>
-                    Identifica tu unidad
-                </h2>
-                <p class="text-sm text-on-surface-variant mt-1 mb-5">Selecciona el edificio y el apartamento para consultar su deuda.</p>
+            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+                <div class="pb-4 border-b border-background mb-6">
+                    <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">location_on</span>
+                        Identifica tu unidad
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mt-1">Selecciona el edificio y el apartamento para consultar su deuda.</p>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="flex flex-col gap-2">
-                        <label for="edificio" class="text-sm font-bold text-on-surface">Edificio</label>
+                        <label for="edificio" class="text-sm font-semibold text-on-surface-variant">Edificio</label>
                         <select id="edificio" name="edificio"
-                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium">
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
                             <option value="">Todos los edificios</option>
                             <?php foreach ($edificios as $edif): ?>
                                 <option value="<?= e($edif['id']) ?>" <?= ($oldEdificio === (string)$edif['id']) ? 'selected' : '' ?>>
@@ -55,9 +69,9 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label for="unidad_select" class="text-sm font-bold text-on-surface">Unidad / Apartamento <span class="text-red-500">*</span></label>
+                        <label for="unidad_select" class="text-sm font-semibold text-on-surface-variant">Unidad / Apartamento <span class="text-red-500">*</span></label>
                         <select id="unidad_select" name="unidad_id" required
-                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium">
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
                             <option value="">Seleccione su unidad...</option>
                             <?php foreach ($unidades as $u): ?>
                                 <option value="<?= e($u['id']) ?>"
@@ -72,7 +86,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             </div>
 
             <!-- Panel de deuda de la unidad -->
-            <div id="panelDeuda" class="hidden bg-white rounded-3xl border border-outline-variant shadow-lg shadow-slate-200/40 p-6 md:p-8">
+            <div id="panelDeuda" class="hidden bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
                 <div id="deudaLoading" class="flex items-center gap-3 text-on-surface-variant">
                     <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                     Consultando deuda...
@@ -84,7 +98,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 </div>
 
                 <div id="deudaContenido" class="hidden">
-                    <div class="flex items-center justify-between flex-wrap gap-3 border-b border-outline-variant pb-4 mb-4">
+                    <div class="flex items-center justify-between flex-wrap gap-3 border-b border-background pb-4 mb-4">
                         <div>
                             <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
                                 <span class="material-symbols-outlined text-primary">receipt_long</span>
@@ -125,35 +139,37 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             </div>
 
             <!-- Card 2: Datos del pago -->
-            <div class="bg-white rounded-3xl border border-outline-variant shadow-lg shadow-slate-200/40 p-6 md:p-8">
-                <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">payments</span>
-                    Datos del pago
-                </h2>
-                <p class="text-sm text-on-surface-variant mt-1 mb-5">Complete la información de la operación realizada.</p>
+            <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+                <div class="pb-4 border-b border-background mb-6">
+                    <h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">payments</span>
+                        Datos del pago
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mt-1">Complete la información de la operación realizada.</p>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <!-- Monto -->
                     <div class="flex flex-col gap-2">
-                        <label for="monto" class="text-sm font-bold text-on-surface">Monto (Bs.) <span class="text-red-500">*</span></label>
+                        <label for="monto" class="text-sm font-semibold text-on-surface-variant">Monto (Bs.) <span class="text-red-500">*</span></label>
                         <input type="number" id="monto" name="monto" step="0.01" min="0.01" max="999999.99" required placeholder="0.00"
                                value="<?= e($old['monto'] ?? '') ?>"
-                               class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-lg">
+                               class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-bold text-lg">
                     </div>
 
                     <!-- Fecha de pago -->
                     <div class="flex flex-col gap-2">
-                        <label for="fecha_pago" class="text-sm font-bold text-on-surface">Fecha de realización <span class="text-red-500">*</span></label>
+                        <label for="fecha_pago" class="text-sm font-semibold text-on-surface-variant">Fecha de realización <span class="text-red-500">*</span></label>
                         <input type="date" id="fecha_pago" name="fecha_pago" required
                                value="<?= e($old['fecha_pago'] ?? date('Y-m-d')) ?>"
-                               class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium">
+                               class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium">
                     </div>
 
                     <!-- Método de pago -->
                     <div class="flex flex-col gap-2">
-                        <label for="metodo_pago" class="text-sm font-bold text-on-surface">Método de pago <span class="text-red-500">*</span></label>
+                        <label for="metodo_pago" class="text-sm font-semibold text-on-surface-variant">Método de pago <span class="text-red-500">*</span></label>
                         <select id="metodo_pago" name="metodo_pago" required
-                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium">
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
                             <option value="">Seleccione un método...</option>
                             <option value="transferencia" <?= (($old['metodo_pago'] ?? '') === 'transferencia') ? 'selected' : '' ?>>Transferencia Bancaria</option>
                             <option value="pago_movil" <?= (($old['metodo_pago'] ?? '') === 'pago_movil') ? 'selected' : '' ?>>Pago Móvil</option>
@@ -162,19 +178,19 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
                     <!-- Referencia -->
                     <div class="flex flex-col gap-2">
-                        <label for="referencia" class="text-sm font-bold text-on-surface">Número de referencia <span class="text-red-500">*</span></label>
+                        <label for="referencia" class="text-sm font-semibold text-on-surface-variant">Número de referencia <span class="text-red-500">*</span></label>
                         <input type="text" id="referencia" name="referencia" required maxlength="100" placeholder="Ej. 12345678"
                                value="<?= e($old['referencia'] ?? '') ?>"
-                               class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-mono font-medium">
+                               class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono font-medium">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
                     <!-- Banco emisor -->
                     <div class="flex flex-col gap-2">
-                        <label for="banco_pagador" class="text-sm font-bold text-on-surface">Banco emisor / pagador</label>
+                        <label for="banco_pagador" class="text-sm font-semibold text-on-surface-variant">Banco emisor / pagador</label>
                         <select id="banco_pagador" name="banco_pagador"
-                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium">
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
                             <option value="">-- Seleccione el banco desde el cual realizó el pago --</option>
                             <option value="Banco de Venezuela" <?= ($oldBanco === 'Banco de Venezuela') ? 'selected' : '' ?>>Banco de Venezuela (BDV)</option>
                             <option value="Banesco" <?= ($oldBanco === 'Banesco') ? 'selected' : '' ?>>Banesco</option>
@@ -202,15 +218,15 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         <div id="contenedor_banco_otro" class="hidden">
                             <input type="text" id="banco_pagador_otro" name="banco_pagador_otro" maxlength="100" placeholder="Especifique el nombre del banco emisor..."
                                    value="<?= e($old['banco_pagador_otro'] ?? '') ?>"
-                                   class="w-full px-4 py-2.5 bg-white border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 text-sm font-medium">
+                                   class="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-medium">
                         </div>
                     </div>
 
                     <!-- Cuenta bancaria receptora -->
                     <div class="flex flex-col gap-2">
-                        <label for="cuenta_bancaria_id" class="text-sm font-bold text-on-surface">Cuenta bancaria destino <span class="text-red-500">*</span></label>
+                        <label for="cuenta_bancaria_id" class="text-sm font-semibold text-on-surface-variant">Cuenta bancaria destino <span class="text-red-500">*</span></label>
                         <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
-                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium">
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
                             <option value="">-- Seleccione la cuenta autorizada receptora --</option>
                             <?php foreach ($cuentasBancarias as $cb): ?>
                                 <option value="<?= e($cb['id']) ?>"
@@ -278,17 +294,39 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
                 <!-- Comprobante -->
                 <div class="mt-5 flex flex-col gap-2">
-                    <label for="comprobante" class="text-sm font-bold text-on-surface">Comprobante de pago <span class="text-red-500">*</span></label>
-                    <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
-                           class="w-full px-4 py-3 bg-background border-2 border-dashed border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary transition-all file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary/10 file:text-primary file:font-bold file:cursor-pointer cursor-pointer">
-                    <span class="text-xs text-on-surface-variant/70">Formatos permitidos: JPG, PNG y PDF (Máx. 5MB).</span>
+                    <label for="comprobante" class="text-sm font-semibold text-on-surface-variant">Comprobante de pago <span class="text-red-500">*</span></label>
+                    <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-white rounded-2xl p-6 transition-all text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[170px]">
+                        <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
+                               class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
+
+                        <!-- Estado inicial -->
+                        <div id="dropzoneInitial" class="flex flex-col items-center pointer-events-none">
+                            <div class="w-14 h-14 bg-background rounded-full border border-outline-variant flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-primary">
+                                <span class="material-symbols-outlined text-3xl">upload_file</span>
+                            </div>
+                            <p class="font-bold text-on-surface text-base">Haz clic o arrastra tu comprobante aquí</p>
+                            <p class="text-xs text-slate-500 mt-1">Soporta JPG, PNG y PDF (Máx. 5MB)</p>
+                        </div>
+
+                        <!-- Estado con archivo (previsualización) -->
+                        <div id="dropzonePreview" class="hidden flex-col items-center pointer-events-none w-full">
+                            <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-44 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
+
+                            <div id="pdfPreview" class="hidden flex flex-col items-center">
+                                <span class="material-symbols-outlined text-5xl text-rose-500 mb-1">picture_as_pdf</span>
+                                <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs"></span>
+                            </div>
+
+                            <p class="text-[11px] text-primary font-bold mt-3 bg-primary/10 px-3 py-1 rounded-md">Haz clic para cambiar el archivo</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Observaciones -->
                 <div class="mt-5 flex flex-col gap-2">
-                    <label for="observaciones" class="text-sm font-bold text-on-surface">Observaciones (opcional)</label>
+                    <label for="observaciones" class="text-sm font-semibold text-on-surface-variant">Observaciones (opcional)</label>
                     <textarea id="observaciones" name="observaciones" rows="2" placeholder="Información adicional sobre el pago..."
-                              class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none text-sm"><?= e($old['observaciones'] ?? '') ?></textarea>
+                              class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none text-sm"><?= e($old['observaciones'] ?? '') ?></textarea>
                 </div>
 
                 <!-- Nota informativa -->
@@ -296,12 +334,17 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     <strong>Nota:</strong> Su pago quedará asociado a la unidad seleccionada y será verificado por la administración.
                 </p>
 
-                <!-- Botón de envío -->
-                <button type="submit"
-                        class="mt-6 w-full bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined">send</span>
-                    Reportar pago
-                </button>
+                <!-- Botones de envío -->
+                <div class="flex flex-wrap gap-4 pt-4 border-t border-background">
+                    <button type="submit"
+                            class="bg-primary hover:bg-primary-hover text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all duration-200 active:scale-95 flex items-center gap-1">
+                        <span class="material-symbols-outlined">send</span>
+                        Enviar Comprobante
+                    </button>
+                    <a href="/" class="bg-[#95a5a6] hover:bg-[#7f8c8d] text-white font-semibold px-6 py-3 rounded-xl text-center transition-all duration-200 active:scale-95">
+                        Cancelar
+                    </a>
+                </div>
             </div>
         </form>
 
@@ -311,7 +354,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             <span class="text-on-surface-variant/40">|</span>
             <a href="/" class="text-on-surface-variant hover:text-primary font-semibold">Volver al inicio</a>
         </div>
-    </div>
 </div>
 
 <script>
@@ -507,6 +549,77 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     actualizarInfoCuenta();
     if (unidadSelect.value) {
         consultarDeuda(unidadSelect.value);
+    }
+
+    // Previsualización del comprobante (solo presentación)
+    var comprobanteInput = document.getElementById('comprobante');
+    var dropzone = document.getElementById('dropzone');
+    var dropzoneInitial = document.getElementById('dropzoneInitial');
+    var dropzonePreview = document.getElementById('dropzonePreview');
+    var imagePreview = document.getElementById('imagePreview');
+    var pdfPreview = document.getElementById('pdfPreview');
+    var pdfName = document.getElementById('pdfName');
+    var comprobanteObjectURL = null;
+
+    function mostrarPrevisualizacionComprobante() {
+        var archivo = comprobanteInput && comprobanteInput.files ? comprobanteInput.files[0] : null;
+        if (!archivo) { return; }
+
+        if (comprobanteObjectURL) {
+            URL.revokeObjectURL(comprobanteObjectURL);
+            comprobanteObjectURL = null;
+        }
+
+        dropzoneInitial.classList.add('hidden');
+        dropzonePreview.classList.remove('hidden');
+        dropzonePreview.classList.add('flex');
+
+        if (archivo.type === 'application/pdf') {
+            imagePreview.classList.add('hidden');
+            pdfPreview.classList.remove('hidden');
+            pdfPreview.classList.add('flex');
+            pdfName.textContent = archivo.name;
+        } else {
+            pdfPreview.classList.add('hidden');
+            pdfPreview.classList.remove('flex');
+            imagePreview.classList.remove('hidden');
+            comprobanteObjectURL = URL.createObjectURL(archivo);
+            imagePreview.src = comprobanteObjectURL;
+        }
+    }
+
+    if (comprobanteInput) {
+        comprobanteInput.addEventListener('change', mostrarPrevisualizacionComprobante);
+    }
+
+    // Permite arrastrar y soltar el comprobante sobre el área
+    if (dropzone && comprobanteInput) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (evento) {
+            dropzone.addEventListener(evento, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        ['dragenter', 'dragover'].forEach(function (evento) {
+            dropzone.addEventListener(evento, function () {
+                dropzone.classList.add('border-primary', 'bg-blue-50/50');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (evento) {
+            dropzone.addEventListener(evento, function () {
+                dropzone.classList.remove('border-primary', 'bg-blue-50/50');
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            var archivos = e.dataTransfer ? e.dataTransfer.files : null;
+            if (archivos && archivos.length > 0) {
+                comprobanteInput.files = archivos;
+                mostrarPrevisualizacionComprobante();
+            }
+        });
     }
 })();
 </script>
