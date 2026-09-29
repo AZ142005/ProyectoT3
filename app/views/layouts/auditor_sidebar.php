@@ -4,7 +4,7 @@ $navItems = [
     ['route' => 'logs',         'url' => '/auditor/log-transacciones', 'icon' => 'history',        'label' => 'Log Auditoría'],
     ['route' => 'conciliacion', 'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliaciones'],
     ['route' => 'gastos',       'url' => '/admin/gastos',              'icon' => 'inventory_2',    'label' => 'Gastos Comunes'],
-    ['route' => 'morosidad',    'url' => '/admin/reportes/morosidad',  'icon' => 'warning',        'label' => 'Reporte Morosidad'],
+    ['route' => 'morosidad',    'url' => '/admin/reportes/morosidad',  'icon' => 'warning',        'label' => 'Carta de Deuda'],
 ];
 ?>
 <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0 shrink-0">

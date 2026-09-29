@@ -20,7 +20,7 @@
         <!-- Barra de Acciones (No Imprimible) -->
         <div class="no-print d-flex justify-content-between align-items-center mb-4 max-w-800 mx-auto bg-white p-3 border rounded-3 shadow-sm" style="max-width: 800px;">
             <a href="/admin/reportes/morosidad" class="btn btn-outline-secondary btn-sm fw-bold">
-                &larr; Volver al Reporte
+                &larr; Volver a la lista
             </a>
             <div class="d-flex gap-2">
                 <form method="POST" action="/admin/reportes/enviar-aviso-cobro" class="d-inline">

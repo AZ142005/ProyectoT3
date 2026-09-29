@@ -42,7 +42,7 @@ class ReporteController extends Controller {
             'filtros'    => $filtros,
             'paginacion' => $paginacion,
             'layout'     => 'admin',
-            'title'      => 'Reporte de Morosidad en Tiempo Real'
+            'title'      => 'Carta de Deuda'
         ]);
     }
 

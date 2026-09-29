@@ -16,7 +16,7 @@
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h1 class="text-xl font-bold text-on-surface">Reporte de Morosidad</h1>
+                <h1 class="text-xl font-bold text-on-surface">Carta de Deuda</h1>
             </div>
             <a href="<?= \App\Core\Auth::role() === 'auditor' ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
@@ -183,8 +183,8 @@
                                         <?= e(formatearMoneda($m['total_deuda'])) ?>
                                     </td>
                                     <td class="text-center pe-3">
-                                        <a href="/admin/reportes/carta-deuda/<?= e($m['unidad_id']) ?>" class="btn btn-outline-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1" title="Ver Carta Oficial de Deuda">
-                                            <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
+                                        <a href="/admin/reportes/carta-deuda/<?= e($m['unidad_id']) ?>" class="btn btn-outline-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1" title="Generar y enviar carta de deuda">
+                                            <span class="material-symbols-outlined fs-6">description</span> Enviar carta
                                         </a>
                                     </td>
                                 </tr>

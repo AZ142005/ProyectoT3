@@ -14,7 +14,7 @@ $navItems = [
     ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
     ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
     ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
-    ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
+    ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Carta de Deuda'],
     ['route' => 'respaldos',        'url' => '/admin/respaldos',          'icon' => 'backup',          'label' => 'Respaldos BD'],
 ];
 
@@ -32,7 +32,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
         ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
         ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
         ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
-        ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
+        ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Carta de Deuda'],
         ['route' => 'respaldos',        'url' => '/admin/respaldos',          'icon' => 'backup',          'label' => 'Respaldos BD'],
     ];
 }
