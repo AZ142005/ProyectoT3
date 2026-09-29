@@ -206,18 +206,22 @@ class ConciliacionController extends Controller {
         }
 
         try {
+            $mensajeError = 'No se pudo rechazar el pago.';
+
             if ($origenTipo === 'comprobante') {
                 $compModel = new \App\Models\ComprobantesModel();
                 $ok = $compModel->rechazar($pagoId, $motivo);
             } else {
                 $pagoModel = new \App\Models\PagoModel();
-                $ok = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
+                $resultado = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
+                $ok = !empty($resultado['ok']);
+                $mensajeError = $resultado['message'] ?? $mensajeError;
             }
 
             if ($ok) {
                 Flash::set('success', 'Pago rechazado exitosamente.');
             } else {
-                Flash::set('danger', 'No se pudo rechazar el pago.');
+                Flash::set('danger', $mensajeError);
             }
         } catch (\Exception $e) {
             error_log("[CONCILIACION] Error al rechazar pago: " . $e->getMessage());

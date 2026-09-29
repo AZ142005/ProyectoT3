@@ -81,7 +81,7 @@
                         <p class="text-xs text-on-surface-variant mt-1">Pruebe cambiando los filtros aplicados arriba.</p>
                     </div>
                 <?php else: ?>
-                    <form id="formAprobacionMasiva" action="/admin/pagos/aprobar-masivo" method="POST">
+                    <form id="formAprobacionMasiva" action="/admin/pagos/aprobar-masivo" method="POST" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                         <?= csrf_field() ?>
 
                         <!-- Barra Flotante de Acciones Masivas -->
@@ -150,7 +150,7 @@
                                             
                                             <!-- Formulario Inline para En Revisión (Rápido) -->
                                             <?php if (in_array($p['estado'], ['PENDIENTE'])): ?>
-                                            <form method="POST" action="/pagos/cambiar-estado" class="inline">
+                                            <form method="POST" action="/pagos/cambiar-estado" class="inline" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="pago_id" value="<?= e($p['id']) ?>">
                                                 <input type="hidden" name="nuevo_estado" value="EN REVISIÓN">
@@ -162,7 +162,7 @@
 
                                             <!-- Formulario Inline para Aprobar (Rápido) -->
                                             <?php if (in_array($p['estado'], ['PENDIENTE', 'EN REVISIÓN'])): ?>
-                                            <form method="POST" action="/pagos/cambiar-estado" class="inline">
+                                            <form method="POST" action="/pagos/cambiar-estado" class="inline" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="pago_id" value="<?= e($p['id']) ?>">
                                                 <input type="hidden" name="nuevo_estado" value="APROBADO">
@@ -198,7 +198,7 @@
 <!-- Modal Simple para Motivo de Rechazo -->
 <div id="modalRechazo" class="hidden fixed inset-0 bg-black/60 items-center justify-center p-4 z-50 transition-opacity">
     <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-outline-variant">
-        <form method="POST" action="/pagos/cambiar-estado" id="formRechazo">
+        <form method="POST" action="/pagos/cambiar-estado" id="formRechazo" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
             <!-- CSRF Token Obligatorio -->
             <?= csrf_field() ?>
             <input type="hidden" name="pago_id" id="rechazoPagoId" value="">

@@ -306,7 +306,7 @@ $origenForm = match($fromParam) {
                         <div class="flex flex-col gap-3">
                             <?php if ($tipoOrigen === 'comprobante'): ?>
                                 <!-- Acciones para Comprobantes de Factura -->
-                                <form method="POST" action="<?= e($actionUrl) ?>" class="flex flex-col gap-3">
+                                <form method="POST" action="<?= e($actionUrl) ?>" class="flex flex-col gap-3" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="origen" value="<?= e($origenForm) ?>">
                                     <div class="flex flex-col gap-1.5">
@@ -329,7 +329,7 @@ $origenForm = match($fromParam) {
                                 </form>
                             <?php else: ?>
                                 <!-- Acciones para Pagos Generales -->
-                                <form method="POST" action="/pagos/cambiar-estado" class="w-full">
+                                <form method="POST" action="/pagos/cambiar-estado" class="w-full" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="pago_id" value="<?= e($pagoId) ?>">
                                     <input type="hidden" name="nuevo_estado" value="APROBADO">
@@ -342,7 +342,7 @@ $origenForm = match($fromParam) {
                                 </form>
 
                                 <?php if ($estado === 'PENDIENTE'): ?>
-                                    <form method="POST" action="/pagos/cambiar-estado" class="w-full">
+                                    <form method="POST" action="/pagos/cambiar-estado" class="w-full" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="pago_id" value="<?= e($pagoId) ?>">
                                         <input type="hidden" name="nuevo_estado" value="EN REVISIÓN">
@@ -457,7 +457,7 @@ $origenForm = match($fromParam) {
 <?php if ($isAdmin && $tipoOrigen === 'pago'): ?>
 <div id="modalRechazo" class="hidden fixed inset-0 bg-black/60 items-center justify-center p-4 z-50 transition-opacity">
     <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-outline-variant">
-        <form method="POST" action="/pagos/cambiar-estado" id="formRechazo">
+        <form method="POST" action="/pagos/cambiar-estado" id="formRechazo" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
             <?= csrf_field() ?>
             <input type="hidden" name="pago_id" id="rechazoPagoId" value="<?= e($pagoId) ?>">
             <input type="hidden" name="nuevo_estado" value="RECHAZADO">

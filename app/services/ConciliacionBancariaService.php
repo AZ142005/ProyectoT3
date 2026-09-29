@@ -809,7 +809,8 @@ class ConciliacionBancariaService {
                 'abono_pago',
                 floatval($comprobante['monto']),
                 "Abono por pago conciliado Ref. " . $comprobante['referencia'],
-                $comprobanteId
+                $comprobanteId,
+                'comprobante'
             );
         }
 
@@ -866,7 +867,8 @@ class ConciliacionBancariaService {
                 intval($pago['unidad_id']),
                 floatval($pago['monto']),
                 $refTexto,
-                $pagoId
+                $pagoId,
+                'pago'
             );
         }
 

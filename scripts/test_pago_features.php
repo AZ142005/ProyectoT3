@@ -85,9 +85,9 @@ try {
     // 6. Probar cambiarEstado (EN REVISIÓN)
     echo "6. Probando cambiarEstado() a EN REVISIÓN..." . PHP_EOL;
     $motivoRev = "Comprobante en cola bancaria";
-    $cambiado = $pagoModel->cambiarEstado($pagoId, 'EN REVISIÓN', $motivoRev, $adminId);
-    if (!$cambiado) {
-        throw new Exception("Error al cambiar estado a EN REVISIÓN.");
+    $resultadoRev = $pagoModel->cambiarEstado($pagoId, 'EN REVISIÓN', $motivoRev, $adminId);
+    if (empty($resultadoRev['ok'])) {
+        throw new Exception("Error al cambiar estado a EN REVISIÓN: " . ($resultadoRev['message'] ?? ''));
     }
     
     $pagoAudito1 = $pagoModel->obtenerPagoPorId($pagoId);
@@ -98,9 +98,9 @@ try {
     // 7. Probar cambiarEstado (APROBADO)
     echo "7. Probando cambiarEstado() a APROBADO..." . PHP_EOL;
     $motivoApr = "Comprobante verificado con éxito";
-    $cambiado = $pagoModel->cambiarEstado($pagoId, 'APROBADO', $motivoApr, $adminId);
-    if (!$cambiado) {
-        throw new Exception("Error al cambiar estado a APROBADO.");
+    $resultadoApr = $pagoModel->cambiarEstado($pagoId, 'APROBADO', $motivoApr, $adminId);
+    if (empty($resultadoApr['ok'])) {
+        throw new Exception("Error al cambiar estado a APROBADO: " . ($resultadoApr['message'] ?? ''));
     }
     
     // Validar cambio y log de auditoría
@@ -118,25 +118,40 @@ try {
     }
     echo "  ✔ Cambio de estado y auditoría validados con éxito." . PHP_EOL;
 
-    // 8. Probar transaccionalidad (Simular un error para comprobar rollback)
+    // 8. Probar transaccionalidad (Simular un error de BD para comprobar rollback)
     echo "8. Probando transaccionalidad y Rollback..." . PHP_EOL;
-    // Intentaremos cambiar a un estado inválido o pasar un admin_id inexistente
-    // que forzará una excepción de base de datos debido a la llave foránea fk_log_auditoria_admin.
-    $fallaTransaccion = $pagoModel->cambiarEstado($pagoId, 'RECHAZADO', "Intento de fallo", -999);
-    
-    if ($fallaTransaccion) {
+    // El pago APROBADO es estado terminal, por lo que para forzar un error real de
+    // base de datos creamos un pago PENDIENTE y usamos un admin_id inexistente (-999)
+    // que viola la llave foránea de log_auditoria.
+    $datosFallo = [
+        'monto' => 10.00,
+        'fecha_pago' => date('Y-m-d'),
+        'metodo_pago' => 'Transferencia',
+        'referencia' => 'TEST-FAIL-' . time(),
+        'observaciones' => 'Prueba automatizada de integración',
+    ];
+    $creadoFallo = $pagoModel->crearPago($residenteId, $unidadId, $datosFallo, 'comprobante_fallo.png');
+    if (!$creadoFallo) {
+        throw new Exception("No se pudo crear el pago para la prueba de rollback.");
+    }
+    $pagoFalloId = intval($db->lastInsertId());
+
+    $resultadoFallo = $pagoModel->cambiarEstado($pagoFalloId, 'RECHAZADO', "Intento de fallo controlado", -999);
+
+    if (!empty($resultadoFallo['ok'])) {
         throw new Exception("La transacción no falló con una clave de administrador inválida.");
     }
-    
-    // Comprobar que el estado siga siendo APROBADO (no cambió a RECHAZADO)
-    $pagoPostFallo = $pagoModel->obtenerPagoPorId($pagoId);
-    if ($pagoPostFallo['estado'] !== 'APROBADO') {
+
+    // Comprobar que el estado siga siendo PENDIENTE (rollback del UPDATE)
+    $pagoPostFallo = $pagoModel->obtenerPagoPorId($pagoFalloId);
+    if ($pagoPostFallo['estado'] !== 'PENDIENTE') {
         throw new Exception("El rollback falló. El estado cambió a: {$pagoPostFallo['estado']}");
     }
     echo "  ✔ Rollback exitoso. El estado del pago se mantiene intacto tras el error de inserción." . PHP_EOL;
 
     // Limpieza
     $db->exec("DELETE FROM pagos WHERE id = {$pagoId}");
+    $db->exec("DELETE FROM pagos WHERE id = {$pagoFalloId}");
     echo "=== TODAS LAS PRUEBAS BACKEND PASARON EXITOSAMENTE ===" . PHP_EOL;
 
 } catch (\Exception $e) {

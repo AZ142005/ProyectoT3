@@ -168,13 +168,13 @@ class ModelTest extends TestCase {
     }
 
     /**
-     * Verifica que cambiarEstado valide el estado anterior antes de actualizar.
+     * Verifica que cambiarEstado lea el estado anterior bajo bloqueo de fila antes de actualizar.
      */
     public function testCambiarEstadoChecksPreviousState(): void {
         $content = file_get_contents($this->modelsPath . 'PagoModel.php');
 
-        $this->assertStringContains('SELECT estado FROM pagos', $content,
-            "cambiarEstado() debe obtener el estado anterior");
+        $this->assertStringContains('SELECT id, estado, unidad_id, monto, referencia, referencia_norm FROM pagos', $content,
+            "cambiarEstado() debe obtener el estado anterior de la fila bloqueada");
     }
 
     // =====================================================================

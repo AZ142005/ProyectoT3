@@ -11,15 +11,21 @@ class MovimientosModel extends BaseModel {
     /**
      * Registra un movimiento inmutable en el libro mayor de una unidad habitacional con bloqueo pesimista.
      *
+     * Idempotencia: cuando se provee $referenciaId, se calcula una huella
+     * SHA-256 sobre (unidad, tipo, referencia_tipo, referencia_id, monto). Si
+     * ya existe un movimiento con esa huella (uk_mov_huella), se retorna su ID
+     * sin insertar de nuevo. Los movimientos sin referencia_id no se deduplican.
+     *
      * @param int $unidadId
      * @param string $tipo 'cargo_factura' | 'abono_pago' | 'ajuste'
      * @param float $monto
      * @param string $descripcion
      * @param int|null $referenciaId
-     * @return int ID del movimiento insertado
+     * @param string|null $referenciaTipo 'pago' | 'comprobante' | null
+     * @return int ID del movimiento insertado (o existente si la huella ya estaba registrada)
      * @throws Exception
      */
-    public function registrarMovimiento(int $unidadId, string $tipo, float $monto, string $descripcion, ?int $referenciaId = null): int {
+    public function registrarMovimiento(int $unidadId, string $tipo, float $monto, string $descripcion, ?int $referenciaId = null, ?string $referenciaTipo = null): int {
         $tiposValidos = ['cargo_factura', 'abono_pago', 'ajuste'];
         if (!in_array($tipo, $tiposValidos)) {
             throw new Exception("Tipo de movimiento inválido.");
@@ -43,6 +49,18 @@ class MovimientosModel extends BaseModel {
             if ($cnt >= 10) {
                 throw new Exception("Se ha alcanzado el límite de 10 ajustes por día para esta unidad.");
             }
+        }
+
+        // Huella de idempotencia: solo para movimientos con referencia explícita.
+        $huella = null;
+        if ($referenciaId !== null) {
+            $huella = hash('sha256', implode('|', [
+                $unidadId,
+                $tipo,
+                $referenciaTipo ?? '',
+                $referenciaId,
+                number_format($monto, 2, '.', '')
+            ]));
         }
 
         $db = $this->db();
@@ -78,8 +96,8 @@ class MovimientosModel extends BaseModel {
 
             $sqlInsert = "
                 INSERT INTO movimientos_cuenta 
-                (unidad_id, tipo, monto, saldo_anterior, saldo_posterior, referencia_id, descripcion)
-                VALUES (:unidad_id, :tipo, :monto, :saldo_ant, :saldo_post, :ref_id, :desc)
+                (unidad_id, tipo, monto, saldo_anterior, saldo_posterior, referencia_id, referencia_tipo, huella, descripcion)
+                VALUES (:unidad_id, :tipo, :monto, :saldo_ant, :saldo_post, :ref_id, :ref_tipo, :huella, :desc)
             ";
 
             $stmtInsert = $db->prepare($sqlInsert);
@@ -90,6 +108,8 @@ class MovimientosModel extends BaseModel {
                 'saldo_ant'  => $saldoAnterior,
                 'saldo_post' => $saldoPosterior,
                 'ref_id'     => $referenciaId,
+                'ref_tipo'   => $referenciaTipo,
+                'huella'     => $huella,
                 'desc'       => trim($descripcion)
             ]);
 
@@ -100,6 +120,34 @@ class MovimientosModel extends BaseModel {
             }
 
             return $movimientoId;
+        } catch (\PDOException $e) {
+            // Duplicado de huella: movimiento ya registrado → no-op idempotente.
+            // Detección estructurada, sin depender del texto del mensaje:
+            // SQLSTATE 23000 (integridad) + ER_DUP_ENTRY = 1062 (MySQL/MariaDB).
+            // La confirmación real es la fila existente por huella: si no
+            // existe, la violación es de otra restricción y la excepción se re-lanza.
+            $esDuplicadoHuella = ($e->getCode() == 23000)
+                && $huella !== null
+                && (int)($e->errorInfo[1] ?? 0) === 1062;
+
+            if ($esDuplicadoHuella) {
+                $stmtExistente = $db->prepare("SELECT id FROM movimientos_cuenta WHERE huella = :huella LIMIT 1");
+                $stmtExistente->execute(['huella' => $huella]);
+                $existente = $stmtExistente->fetch(PDO::FETCH_ASSOC);
+
+                if ($existente) {
+                    if ($iniciaTransaccionInterna && $db->inTransaction()) {
+                        $db->commit();
+                    }
+                    return intval($existente['id']);
+                }
+            }
+
+            if ($iniciaTransaccionInterna && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error al registrar movimiento en libro mayor: " . $e->getMessage());
+            throw $e;
         } catch (\Exception $e) {
             if ($iniciaTransaccionInterna && $db->inTransaction()) {
                 $db->rollBack();

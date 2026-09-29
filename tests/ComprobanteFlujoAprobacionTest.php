@@ -38,27 +38,31 @@ class ComprobanteFlujoAprobacionTest extends TestCase {
     }
 
     /**
-     * Verifica que la máquina de estados en PagoController permita aprobar directamente desde PENDIENTE.
+     * Verifica que la máquina de estados centralizada (App\Core\EstadoPago, D1)
+     * permita aprobar directamente desde PENDIENTE y que PagoController la consuma.
      */
     public function testPagoControllerPermiteAprobarDesdePendiente(): void {
-        $controllerPath = APP_PATH . '/controllers/PagoController.php';
-        $this->assertTrue(file_exists($controllerPath), "PagoController.php debe existir");
+        $estadoPagoPath = APP_PATH . '/core/EstadoPago.php';
+        $this->assertTrue(file_exists($estadoPagoPath), "EstadoPago.php debe existir");
 
-        $content = file_get_contents($controllerPath);
+        $controllerContent = file_get_contents(APP_PATH . '/controllers/PagoController.php');
+        $this->assertStringContains('EstadoPago::transicionesValidas()', $controllerContent,
+            "PagoController debe consumir la máquina de estados centralizada");
 
-        // Validar transiciones de PENDIENTE
+        // Validar transiciones de PENDIENTE por comportamiento (no por literales
+        // de source): la máquina de estados debe permitir las tres transiciones.
         $this->assertTrue(
-            preg_match("/'PENDIENTE'\s*=>\s*\[[^\]]*'APROBADO'[^\]]*\]/", $content) === 1,
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::PENDIENTE, \App\Core\EstadoPago::APROBADO),
             "La máquina de estados debe permitir la transición directa de PENDIENTE a APROBADO"
         );
 
         $this->assertTrue(
-            preg_match("/'PENDIENTE'\s*=>\s*\[[^\]]*'EN REVISIÓN'[^\]]*\]/", $content) === 1,
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::PENDIENTE, \App\Core\EstadoPago::EN_REVISION),
             "La máquina de estados debe permitir la transición de PENDIENTE a EN REVISIÓN"
         );
 
         $this->assertTrue(
-            preg_match("/'PENDIENTE'\s*=>\s*\[[^\]]*'RECHAZADO'[^\]]*\]/", $content) === 1,
+            \App\Core\EstadoPago::puedeTransicionar(\App\Core\EstadoPago::PENDIENTE, \App\Core\EstadoPago::RECHAZADO),
             "La máquina de estados debe permitir la transición de PENDIENTE a RECHAZADO"
         );
     }
