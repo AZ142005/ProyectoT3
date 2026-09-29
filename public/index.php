@@ -8,6 +8,7 @@ use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\EstructuraController;
 use App\Controllers\PagoController;
+use App\Controllers\PagoDirectoController;
 use App\Controllers\ResidenteController;
 use App\Controllers\UsuarioAdminController;
 use App\Core\Auth;
@@ -120,6 +121,12 @@ $router->any('/pagos/extraer', [PagoController::class, 'extraer'], ['auth']);
 $router->post('/pagos/cambiar-estado', [PagoController::class, 'cambiarEstado'], [UserRole::ADMIN]);
 $router->post('/admin/pagos/aprobar-masivo', [PagoController::class, 'aprobarMasivo'], [UserRole::ADMIN]);
 $router->get('/pagos/detalle/{id}', [PagoController::class, 'detalle'], ['auth']);
+
+// --- Módulo de Pago Directo sin Sesión (portal público) ---
+$router->get('/pago-directo', [PagoDirectoController::class, 'index']);
+$router->get('/pago-directo/deuda', [PagoDirectoController::class, 'deuda']);
+$router->post('/pago-directo/reportar', [PagoDirectoController::class, 'reportar']);
+$router->get('/pago-directo/exito', [PagoDirectoController::class, 'exito']);
 
 // --- Módulo de Residente ---
 $router->get('/residente/dashboard', [ResidenteController::class, 'dashboard'], [UserRole::RESIDENTE]);
