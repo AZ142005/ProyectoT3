@@ -94,26 +94,6 @@ CREATE TABLE `comprobantes_pago` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Estructura de tabla para `comunicados`
--- --------------------------------------------------------
-
-DROP TABLE IF EXISTS `comunicados`;
-CREATE TABLE `comunicados` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `titulo` varchar(255) NOT NULL,
-  `contenido` text NOT NULL,
-  `nivel_urgencia` enum('normal','importante','urgente') DEFAULT 'normal',
-  `admin_id` int(11) DEFAULT NULL,
-  `edificio_id` int(11) DEFAULT NULL,
-  `unidad_id` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_comunicados_unidad` (`unidad_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 -- Estructura de tabla para `conciliacion_lotes`
 -- --------------------------------------------------------
 

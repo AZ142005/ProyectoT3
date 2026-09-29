@@ -5,6 +5,7 @@
  *  - otp_codes (reemplazada por auth_otp_tokens)
  *  - movimientos (reemplazada por movimientos_cuenta)
  *  - solicitudes_cambio (reemplazada por solicitudes_cambio_datos)
+ *  - comunicados (módulo de Comunicados eliminado por decisión del usuario, 29-09)
  * 
  * Ejecutar: php scripts/migrate_purgar_tablas_huerfanas.php
  */
@@ -23,6 +24,7 @@ try {
         'otp_codes' => 'Reemplazada por auth_otp_tokens',
         'movimientos' => 'Reemplazada por movimientos_cuenta',
         'solicitudes_cambio' => 'Reemplazada por solicitudes_cambio_datos',
+        'comunicados' => 'Módulo de Comunicados eliminado por decisión del usuario (29-09)',
     ];
 
     foreach ($tablasHuerfanas as $tabla => $motivo) {
