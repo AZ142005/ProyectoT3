@@ -83,9 +83,21 @@ class PagoController extends Controller {
         $cuentasModel = new \App\Models\CuentasBancariasModel();
         $cuentasBancarias = $cuentasModel->getActivas();
         
+        $unidadId = intval($residente['unidad_id'] ?? 0);
+        $totalDeuda = 0.00;
+        $saldoFavor = 0.00;
+        if ($unidadId > 0) {
+            $facturasModel = new \App\Models\FacturasModel();
+            $resumen = $facturasModel->getResumenFinancieroUnidad($unidadId);
+            $totalDeuda = $resumen['total_deuda'];
+            $saldoFavor = $resumen['saldo_favor'];
+        }
+
         $this->render('pagos/residente/subir', [
             'residente'        => $residente,
             'cuentasBancarias' => $cuentasBancarias,
+            'totalDeuda'       => $totalDeuda,
+            'saldoFavor'       => $saldoFavor,
             'showNav'          => true,
             'title'            => 'Registrar Pago'
         ]);
@@ -108,6 +120,9 @@ class PagoController extends Controller {
         // Validación de datos básicos con cuentas autorizadas
         $cuenta_bancaria_id = intval($_POST['cuenta_bancaria_id'] ?? 0);
         $banco_pagador = trim($_POST['banco_pagador'] ?? '');
+        if (strtoupper($banco_pagador) === 'OTRO' && !empty($_POST['banco_pagador_otro'])) {
+            $banco_pagador = trim($_POST['banco_pagador_otro']);
+        }
         $monto = floatval($_POST['monto'] ?? 0);
         $fecha_pago = $_POST['fecha_pago'] ?? '';
         $referencia = trim($_POST['referencia'] ?? '');
@@ -150,13 +165,8 @@ class PagoController extends Controller {
         }
         
         $pagoModel = new PagoModel();
-
-        // Validar que el monto no exceda la deuda pendiente de la unidad
         $totalDeuda = $pagoModel->obtenerTotalDeuda($unidadId);
-        if ($monto > $totalDeuda) {
-            Flash::error("El monto del pago ({$monto}) excede la deuda pendiente de la unidad ({$totalDeuda}).");
-            $this->redirect('/pagos/nuevo');
-        }
+        $esExcedente = ($monto > $totalDeuda);
 
         $datos = [
             'monto'              => $monto,
@@ -171,7 +181,11 @@ class PagoController extends Controller {
         $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);
         
         if ($result) {
-            Flash::success("Comprobante de pago subido correctamente. Está pendiente de verificación.");
+            if ($esExcedente) {
+                Flash::success("Comprobante de pago subido correctamente. El excedente o pago anticipado se acreditará automáticamente como Saldo a Favor al ser aprobado.");
+            } else {
+                Flash::success("Comprobante de pago subido correctamente. Está pendiente de verificación.");
+            }
             $this->redirect('/pagos');
         } else {
             Flash::error("No se pudo registrar la información de pago en la base de datos.");
@@ -348,9 +362,9 @@ class PagoController extends Controller {
             $this->redirect('/pagos');
         }
         
-        // Máquina de estados: solo transiciones válidas permitidas
+        // Máquina de estados: transiciones válidas permitidas
         $transicionesValidas = [
-            'PENDIENTE'   => ['EN REVISIÓN', 'RECHAZADO'],
+            'PENDIENTE'   => ['EN REVISIÓN', 'APROBADO', 'RECHAZADO'],
             'EN REVISIÓN' => ['APROBADO', 'RECHAZADO'],
             'RECHAZADO'   => [],  // Terminal
             'APROBADO'    => [],  // Terminal
@@ -388,7 +402,15 @@ class PagoController extends Controller {
             Flash::error("Hubo un error de base de datos al registrar el cambio de estado.");
         }
         
-        $this->redirect('/pagos');
+        $origen = $_POST['origen'] ?? '';
+        if ($origen === 'conciliacion') {
+            $destino = '/admin/conciliacion';
+        } else {
+            $destino = (!empty($_POST['redirect_to_detalle']) || $origen === 'detalle')
+                ? '/pagos/detalle/' . $pagoId
+                : '/pagos';
+        }
+        $this->redirect($destino);
     }
 
     /**
@@ -457,7 +479,10 @@ class PagoController extends Controller {
             if (function_exists('finfo_open')) {
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mimeType = finfo_file($finfo, $file['tmp_name']);
-                finfo_close($finfo);
+                if (\PHP_VERSION_ID < 80500 && \is_resource($finfo)) {
+                    @finfo_close($finfo);
+                }
+                unset($finfo);
             } else {
                 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 $extToMime = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','gif'=>'image/gif','webp'=>'image/webp','pdf'=>'application/pdf'];

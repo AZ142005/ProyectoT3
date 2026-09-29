@@ -108,7 +108,7 @@ class ReporteController extends Controller {
         $cedula = $detalle['unidad']['propietario_cedula'] ?: 'N/A';
         $codigoAviso = 'COB-' . date('Ym') . '-' . $numUnidad;
         $fechaEmision = date('d/m/Y');
-        $totalBs = number_format(floatval($detalle['total_deuda']), 2);
+        $totalBs = formatearMonto(floatval($detalle['total_deuda']));
 
         $lineasFacturas = "";
         if (!empty($detalle['facturas'])) {
@@ -116,7 +116,7 @@ class ReporteController extends Controller {
                 $concepto = $f['descripcion'] ?? 'Cuota de Condominio';
                 $venc = $f['fecha_vencimiento'] ?? '';
                 $dias = isset($f['dias_vencido']) ? intval($f['dias_vencido']) : 0;
-                $monto = number_format(floatval($f['saldo'] ?? 0), 2);
+                $monto = formatearMonto(floatval($f['saldo'] ?? 0));
                 $lineasFacturas .= "• " . $concepto . " (Venc: " . $venc . " | " . $dias . " d): Bs. " . $monto . "\n";
             }
         }
@@ -202,7 +202,7 @@ class ReporteController extends Controller {
             $notifService->registrarNotificacionResidente(
                 $detalle['unidad']['propietario_id'],
                 "Carta de Cobro Oficial Emitida",
-                "Se ha emitido formalmente su Carta de Cobro por Bs. " . number_format($detalle['total_deuda'], 2) . " para su unidad.",
+                "Se ha emitido formalmente su Carta de Cobro por " . formatearMoneda($detalle['total_deuda']) . " para su unidad.",
                 "warning",
                 "/residente/notificaciones"
             );

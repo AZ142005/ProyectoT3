@@ -49,7 +49,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Eventos en Log</span>
-                        <span class="h3 fw-bold text-dark mb-0"><?= number_format($totalLogs) ?></span>
+                        <span class="h3 fw-bold text-dark mb-0"><?= e(formatearCantidad($totalLogs)) ?></span>
                     </div>
                     <span class="material-symbols-outlined fs-1 text-primary opacity-50">receipt_long</span>
                 </div>
@@ -62,7 +62,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Libro Mayor</span>
-                        <span class="h3 fw-bold text-success mb-0"><?= number_format($totalMovimientos) ?></span>
+                        <span class="h3 fw-bold text-success mb-0"><?= e(formatearCantidad($totalMovimientos)) ?></span>
                     </div>
                     <span class="material-symbols-outlined fs-1 text-success opacity-50">account_balance_wallet</span>
                 </div>
@@ -75,7 +75,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Conciliaciones</span>
-                        <span class="h3 fw-bold text-info mb-0"><?= number_format($totalConciliados) ?></span>
+                        <span class="h3 fw-bold text-info mb-0"><?= e(formatearCantidad($totalConciliados)) ?></span>
                     </div>
                     <span class="material-symbols-outlined fs-1 text-info opacity-50">sync_alt</span>
                 </div>
@@ -88,7 +88,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Total Gastos Auditados</span>
-                        <span class="h4 fw-bold text-dark mb-0">Bs. <?= number_format($totalGastosMonto, 2) ?></span>
+                        <span class="h4 fw-bold text-dark mb-0"><?= e(formatearMoneda($totalGastosMonto)) ?></span>
                     </div>
                     <span class="material-symbols-outlined fs-1 text-warning opacity-50">payments</span>
                 </div>

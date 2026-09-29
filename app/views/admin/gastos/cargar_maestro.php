@@ -148,7 +148,7 @@
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge bg-success-subtle text-success fs-6 fw-bold px-3 py-2 border border-success-subtle">
-                                    Total: Bs. <?= number_format(array_sum(array_column($renglones, 'monto_total')), 2) ?>
+                                    Total: <?= e(formatearMoneda(array_sum(array_column($renglones, 'monto_total')))) ?>
                                 </span>
                             </div>
                         </div>

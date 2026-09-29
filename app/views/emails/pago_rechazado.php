@@ -23,7 +23,7 @@
         <div class="content">
             <span class="badge-danger">✖ Comprobante de Pago Rechazado</span>
             <p>Estimado(a) residente <strong><?= e($nombreResidente ?? 'Residente') ?></strong>,</p>
-            <p>Lamentamos informarle que su comprobante de pago por el monto de <strong>Bs. <?= e(number_format(floatval($monto ?? 0), 2)) ?></strong> (Ref: <?= e($referencia ?? 'N/A') ?>) no ha sido validado por la administración.</p>
+            <p>Lamentamos informarle que su comprobante de pago por el monto de <strong><?= e(formatearMoneda($monto ?? 0)) ?></strong> (Ref: <?= e($referencia ?? 'N/A') ?>) no ha sido validado por la administración.</p>
             
             <div class="motivo-box">
                 <p style="margin:0 0 6px 0; font-weight:bold; color:#d35400;">Motivo del Rechazo:</p>

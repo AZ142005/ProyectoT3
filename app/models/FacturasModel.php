@@ -1,6 +1,8 @@
 <?php
 namespace App\Models;
 
+use App\Models\MovimientosModel;
+
 class FacturasModel extends BaseModel {
     protected string $table = 'facturas';
 
@@ -85,15 +87,20 @@ class FacturasModel extends BaseModel {
             'total_saldo_favor_usado' => 0
         ];
 
+        $iniciaTransaccion = !$db->inTransaction();
         try {
-            $db->beginTransaction();
+            if ($iniciaTransaccion) {
+                $db->beginTransaction();
+            }
 
             // Prevenir ejecución duplicada: si ya existen facturas para este período, abortar
             $stmtCheck = $db->prepare("SELECT COUNT(*) as total FROM facturas WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL FOR UPDATE");
             $stmtCheck->execute(['mes' => $mes, 'anio' => $anio]);
             $existentes = intval($stmtCheck->fetch()['total'] ?? 0);
             if ($existentes > 0) {
-                $db->rollBack();
+                if ($iniciaTransaccion) {
+                    $db->rollBack();
+                }
                 return false;
             }
 
@@ -133,6 +140,7 @@ class FacturasModel extends BaseModel {
                 $monto_a_pagar = $monto_factura;
                 $saldo_restante = 0.0;
                 $estado = 'pendiente';
+                $remanenteSaldoFavor = 0.0;
 
                 if ($saldo_favor < 0) {
                     $saldo_favor_abs = abs($saldo_favor);
@@ -143,6 +151,7 @@ class FacturasModel extends BaseModel {
                         $monto_a_pagar = 0.0;
                         $saldo_restante = 0.0;
                         $estado = 'pagada';
+                        $remanenteSaldoFavor = round($saldo_favor_abs - $monto_factura, 2);
                         $stmtUpdateSaldoFavor->execute(['unidad_id' => $unidad_id]);
                     } else {
                         $monto_a_pagar = round($monto_factura - $saldo_favor_abs, 2);
@@ -171,13 +180,41 @@ class FacturasModel extends BaseModel {
                     'estado'            => $estado
                 ]);
 
+                // Si quedó remanente de saldo a favor tras cubrir la cuota, persistirlo para no perder el crédito
+                if ($remanenteSaldoFavor > 0.009) {
+                    $numAbonoRem = 'ABONO-REM-' . $anio . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . '-' . str_pad((string)$unidad_id, 4, '0', STR_PAD_LEFT) . '-' . time() . '-' . mt_rand(100, 999);
+                    $stmtInsert->execute([
+                        'numero_factura'    => $numAbonoRem,
+                        'unidad_id'         => $unidad_id,
+                        'mes'               => $mes,
+                        'anio'              => $anio,
+                        'fecha_emision'     => $fecha_emision,
+                        'fecha_vencimiento' => $fecha_vencimiento,
+                        'monto_total'       => 0.00,
+                        'monto_pagado'      => $remanenteSaldoFavor,
+                        'saldo'             => -$remanenteSaldoFavor,
+                        'estado'            => 'pagada'
+                    ]);
+                }
+
+                // Registrar cargo de la cuota en el libro mayor de la unidad
+                $movModel = new MovimientosModel();
+                $movModel->registrarMovimiento(
+                    $unidad_id,
+                    'cargo_factura',
+                    $monto_factura,
+                    "Emisión cuota de mantenimiento " . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numero_factura}"
+                );
+
                 $stats['generadas']++;
             }
 
-            $db->commit();
+            if ($iniciaTransaccion) {
+                $db->commit();
+            }
             return $stats;
         } catch (\Exception $e) {
-            if ($db->inTransaction()) {
+            if ($iniciaTransaccion && $db->inTransaction()) {
                 $db->rollBack();
             }
             error_log("Error al crear facturas masivas: " . $e->getMessage());

@@ -80,6 +80,10 @@ class ResidenteController extends Controller {
             // CSRF ya validado por el middleware global
             $factura_id = $_POST['factura_id'] ?? 0;
             $cuenta_bancaria_id = intval($_POST['cuenta_bancaria_id'] ?? 0);
+            $banco_pagador = trim($_POST['banco_pagador'] ?? '');
+            if (strtoupper($banco_pagador) === 'OTRO' && !empty($_POST['banco_pagador_otro'])) {
+                $banco_pagador = trim($_POST['banco_pagador_otro']);
+            }
             $monto = floatval($_POST['monto'] ?? 0);
             $metodo_pago = $_POST['metodo_pago'] ?? '';
             $referencia = trim($_POST['referencia'] ?? '');
@@ -87,6 +91,7 @@ class ResidenteController extends Controller {
             $observaciones = trim($_POST['observaciones'] ?? '');
 
             $cuentaReceptora = ($cuenta_bancaria_id > 0) ? $cuentasModel->getActivaById($cuenta_bancaria_id) : null;
+            $banco_receptor = $cuentaReceptora ? $cuentaReceptora['banco'] : null;
 
             if ($factura_id <= 0) {
                 $error = "Seleccione una factura válida";
@@ -120,14 +125,17 @@ class ResidenteController extends Controller {
                         // Guardar comprobante
                         $obsCompleta = trim("Cuenta Destino: {$cuentaReceptora['banco']} ({$cuentaReceptora['numero_cuenta']}) | " . $observaciones);
                         $result = $comprobantesModel->create([
-                            'residente_id'  => $residente_id,
-                            'factura_id'    => $factura_id,
-                            'monto'         => $monto,
-                            'metodo_pago'   => $metodo_pago,
-                            'referencia'    => $referencia,
-                            'fecha_pago'    => $fecha_pago,
-                            'archivo'       => $archivo,
-                            'observaciones' => $obsCompleta
+                            'residente_id'       => $residente_id,
+                            'factura_id'         => $factura_id,
+                            'monto'              => $monto,
+                            'metodo_pago'        => $metodo_pago,
+                            'banco_pagador'      => $banco_pagador,
+                            'banco_receptor'     => $banco_receptor,
+                            'cuenta_bancaria_id' => $cuenta_bancaria_id,
+                            'referencia'         => $referencia,
+                            'fecha_pago'         => $fecha_pago,
+                            'archivo'            => $archivo,
+                            'observaciones'      => $obsCompleta
                         ]);
 
                         if ($result) {

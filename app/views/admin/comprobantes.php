@@ -94,10 +94,16 @@
                                     <td class="py-4 px-4 font-bold text-on-surface"><?= e(formatearMoneda($c['monto'])) ?></td>
                                     <td class="py-4 px-4">
                                         <?php if ($c['archivo']): ?>
-                                            <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs">
-                                                <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                                Ver Archivo
-                                            </a>
+                                            <div class="flex items-center gap-2">
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs" title="Ver comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                    Ver
+                                                </a>
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>&download=1" download="<?= e($c['archivo']) ?>" class="text-slate-600 hover:text-primary font-bold inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors" title="Descargar comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">download</span>
+                                                    Descargar
+                                                </a>
+                                            </div>
                                         <?php else: ?>
                                             <span class="text-xs text-on-surface-variant">Sin archivo</span>
                                         <?php endif; ?>

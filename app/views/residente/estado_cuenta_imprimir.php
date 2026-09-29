@@ -50,7 +50,7 @@
             <div class="col-6 text-end">
                 <p class="mb-1"><strong>Edificio / Torre:</strong> <?= e($unidad['edificio_nombre'] ?: 'Sin Torre') ?></p>
                 <p class="mb-1"><strong>Apto / Unidad:</strong> <?= e($unidad['numero']) ?></p>
-                <p class="mb-0"><strong>Saldo Consolidado:</strong> <span class="font-monospace fw-bold <?= $saldoActual > 0 ? 'text-danger' : 'text-success' ?>">Bs. <?= number_format($saldoActual, 2) ?></span></p>
+                <p class="mb-0"><strong>Saldo Consolidado:</strong> <span class="font-monospace fw-bold <?= $saldoActual > 0 ? 'text-danger' : 'text-success' ?>"><?= e(formatearMoneda($saldoActual)) ?></span></p>
             </div>
         </div>
 
@@ -78,9 +78,9 @@
                             <td><?= e(date('d/m/Y', strtotime($m['fecha_movimiento']))) ?></td>
                             <td><?= e(strtoupper($m['tipo'])) ?></td>
                             <td class="font-sans"><?= e($m['descripcion']) ?></td>
-                            <td class="text-end fw-bold"><?= $m['tipo'] === 'abono_pago' ? '-' : '+' ?>Bs. <?= number_format($m['monto'], 2) ?></td>
-                            <td class="text-end text-muted">Bs. <?= number_format($m['saldo_anterior'], 2) ?></td>
-                            <td class="text-end fw-bold">Bs. <?= number_format($m['saldo_posterior'], 2) ?></td>
+                            <td class="text-end fw-bold"><?= e(($m['tipo'] === 'abono_pago' ? '-' : '+') . formatearMoneda($m['monto'])) ?></td>
+                            <td class="text-end text-muted"><?= e(formatearMoneda($m['saldo_anterior'])) ?></td>
+                            <td class="text-end fw-bold"><?= e(formatearMoneda($m['saldo_posterior'])) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -88,7 +88,7 @@
             <tfoot>
                 <tr class="table-light">
                     <td colspan="5" class="text-end fw-bold">SALDO FINAL CONSOLIDADO:</td>
-                    <td class="text-end font-monospace fw-bold <?= $saldoActual > 0 ? 'text-danger' : 'text-success' ?>">Bs. <?= number_format($saldoActual, 2) ?></td>
+                    <td class="text-end font-monospace fw-bold <?= $saldoActual > 0 ? 'text-danger' : 'text-success' ?>"><?= e(formatearMoneda($saldoActual)) ?></td>
                 </tr>
             </tfoot>
         </table>

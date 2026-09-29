@@ -142,6 +142,12 @@
                                                 <span class="material-symbols-outlined text-[18px] block">visibility</span>
                                             </a>
                                             
+                                            <?php if (!empty($p['archivo'])): ?>
+                                            <a href="/comprobante-proxy.php?file=<?= e($p['archivo']) ?>&download=1" download="<?= e($p['archivo']) ?>" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white text-slate-600 rounded-lg transition-colors border border-slate-200" title="Descargar Comprobante">
+                                                <span class="material-symbols-outlined text-[18px] block">download</span>
+                                            </a>
+                                            <?php endif; ?>
+                                            
                                             <!-- Formulario Inline para En Revisión (Rápido) -->
                                             <?php if (in_array($p['estado'], ['PENDIENTE'])): ?>
                                             <form method="POST" action="/pagos/cambiar-estado" class="inline">

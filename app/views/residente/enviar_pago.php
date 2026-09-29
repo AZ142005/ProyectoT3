@@ -33,15 +33,49 @@
                 <!-- Selección de Factura -->
                 <div class="flex flex-col gap-1.5">
                     <label for="factura_id" class="text-sm font-semibold text-on-surface-variant">Factura a Pagar <span class="text-red-500">*</span></label>
-                    <select id="factura_id" name="factura_id" class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium" required>
+                    <select id="factura_id" name="factura_id" onchange="actualizarInfoFactura(this)" class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium" required>
                         <option value="">Seleccione una factura...</option>
                         <?php foreach ($facturas_pendientes as $f): ?>
-                            <option value="<?= e($f['id']) ?>" <?= ($factura_id == $f['id']) ? 'selected' : '' ?>>
+                            <option value="<?= e($f['id']) ?>" 
+                                    data-numero="<?= e($f['numero_factura']) ?>"
+                                    data-periodo="<?= e(nombreMes($f['mes'])) ?> <?= e($f['anio']) ?>"
+                                    data-saldo="<?= e(formatearMoneda($f['saldo'])) ?>"
+                                    data-saldo-val="<?= e($f['saldo']) ?>"
+                                    data-total="<?= e(formatearMoneda($f['monto_total'])) ?>"
+                                    <?= ($factura_id == $f['id']) ? 'selected' : '' ?>>
                                 Factura #<?= e($f['numero_factura']) ?> - <?= e(nombreMes($f['mes'])) ?> <?= e($f['anio']) ?> (Saldo: <?= e(formatearMoneda($f['saldo'])) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                     <span class="text-xs text-on-surface-variant/70">Seleccione la factura que desea reportar.</span>
+
+                    <!-- Tarjeta de Resumen Visual de Factura (Mejora de Visibilidad) -->
+                    <div id="cardInfoFactura" class="hidden mt-2 p-4 bg-gradient-to-r from-blue-50/90 to-indigo-50/80 border border-blue-200 rounded-2xl text-xs shadow-xs">
+                        <div class="flex items-center justify-between flex-wrap gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-[24px]">receipt_long</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span id="facturaCardNum" class="font-bold text-slate-900 text-sm font-mono">Factura #...</span>
+                                        <span id="facturaCardPeriodo" class="text-[11px] font-semibold text-slate-700 bg-white/80 px-2.5 py-0.5 rounded-full border border-slate-200">...</span>
+                                    </div>
+                                    <span class="text-slate-500 text-[11px] block mt-0.5">Total emisión: <strong id="facturaCardTotal" class="text-slate-700 font-bold">Bs. 0,00</strong></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Saldo Pendiente</span>
+                                    <span id="facturaCardSaldo" class="text-lg font-black text-rose-600 font-mono">Bs. 0,00</span>
+                                </div>
+                                <button type="button" id="btnCopiarSaldo" onclick="copiarSaldoAMonto()" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer" title="Cargar este saldo exacto en el campo Monto">
+                                    <span class="material-symbols-outlined text-[15px]">input</span>
+                                    Pagar Saldo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Paso 1: Subida de Comprobante con Extracción Automática -->
@@ -100,123 +134,223 @@
                     </div>
                 </div>
 
-                <!-- Paso 2: Datos del Pago -->
-                <div class="flex flex-col gap-5">
-                    <div class="pb-2 border-b border-background">
+                <!-- Paso 2: Datos del Pago (Visibilidad Mejorada) -->
+                <div class="flex flex-col gap-6">
+                    <div class="pb-2 border-b border-background flex items-center justify-between">
                         <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-primary text-[20px]">edit_document</span>
                             Paso 2: Datos del Pago (Verifique o complete)
                         </h4>
+                        <span class="text-xs text-slate-400 font-medium">* Campos obligatorios</span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Monto Pagado -->
+                    <!-- Tarjeta A: Detalles de la Transacción -->
+                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 flex flex-col gap-5">
+                        <div class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                            <span class="material-symbols-outlined text-[17px] text-primary">payments</span>
+                            Detalles de la Transacción
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <!-- Monto Pagado -->
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="monto" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Monto Pagado (Bs.) <span class="text-red-500">*</span></label>
+                                    <span id="badge-monto" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                        <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                                    </span>
+                                </div>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-base select-none">Bs.</span>
+                                    <input type="number" id="monto" name="monto" step="0.01" min="0.01" required placeholder="0.00"
+                                           class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-black text-lg">
+                                </div>
+                                <div id="inconsistencia-monto"></div>
+                                <span class="text-[11px] text-slate-400">Monto exacto registrado en la operación.</span>
+                            </div>
+
+                            <!-- Fecha de Pago -->
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="fecha_pago" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Fecha de Realización <span class="text-red-500">*</span></label>
+                                    <span id="badge-fecha_pago" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                        <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                                    </span>
+                                </div>
+                                <input type="date" id="fecha_pago" name="fecha_pago" value="" required
+                                       class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm">
+                                <div id="inconsistencia-fecha_pago"></div>
+                                <span class="text-[11px] text-slate-400">Fecha en que se ejecutó la transferencia o pago.</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <!-- Método de Pago -->
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="metodo_pago" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Método de Pago <span class="text-red-500">*</span></label>
+                                    <span id="badge-metodo_pago" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                        <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                                    </span>
+                                </div>
+                                <select id="metodo_pago" name="metodo_pago" class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium text-sm" required>
+                                    <option value="">Seleccione un método...</option>
+                                    <option value="transferencia">Transferencia Bancaria</option>
+                                    <option value="pago_movil">Pago Móvil</option>
+                                </select>
+                                <div id="inconsistencia-metodo_pago"></div>
+                            </div>
+
+                            <!-- Número de Referencia -->
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia <span class="text-red-500">*</span></label>
+                                    <span id="badge-referencia" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                        <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                                    </span>
+                                </div>
+                                <input type="text" id="referencia" name="referencia" placeholder="Ej. 12345678" required
+                                       class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium text-sm">
+                                <div id="inconsistencia-referencia"></div>
+                                <span class="text-[11px] text-slate-400">Número de operación bancaria o confirmación.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta B: Canales Bancarios (Origen y Destino) -->
+                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 flex flex-col gap-5">
+                        <div class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
+                            <span class="material-symbols-outlined text-[17px] text-primary">account_balance</span>
+                            Entidades Bancarias y Cuentas
+                        </div>
+
+                        <!-- Banco Pagador (Origen) con Selector -->
                         <div class="flex flex-col gap-1.5">
                             <div class="flex items-center justify-between">
-                                <label for="monto" class="text-sm font-semibold text-on-surface-variant">Monto Pagado <span class="text-red-500">*</span></label>
-                                <span id="badge-monto" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-[13px]">magic_button</span> Auto-completado
+                                <label for="banco_pagador" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Banco Emisor / Pagador (Origen)</label>
+                                <span id="badge-banco_pagador" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                    <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                                 </span>
                             </div>
                             <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">Bs.</span>
-                                <input type="number" id="monto" name="monto" step="0.01" min="0.01" required placeholder="0.00"
-                                       class="w-full pl-12 pr-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-semibold">
+                                <select id="banco_pagador" name="banco_pagador" onchange="toggleBancoOtro(this)"
+                                        class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
+                                    <option value="">-- Seleccione el banco desde el cual realizó el pago --</option>
+                                    <option value="Banco de Venezuela">Banco de Venezuela (BDV)</option>
+                                    <option value="Banesco">Banesco</option>
+                                    <option value="Banco Mercantil">Banco Mercantil</option>
+                                    <option value="BBVA Provincial">BBVA Provincial</option>
+                                    <option value="Bancamiga">Bancamiga</option>
+                                    <option value="Banco Nacional de Crédito">Banco Nacional de Crédito (BNC)</option>
+                                    <option value="Bancaribe">Bancaribe</option>
+                                    <option value="Banco del Tesoro">Banco del Tesoro</option>
+                                    <option value="Banco Exterior">Banco Exterior</option>
+                                    <option value="Banco Plaza">Banco Plaza</option>
+                                    <option value="Banco Activo">Banco Activo</option>
+                                    <option value="Banco Fondo Común">Banco Fondo Común (BFC)</option>
+                                    <option value="100% Banco">100% Banco</option>
+                                    <option value="Banco Sofitasa">Banco Sofitasa</option>
+                                    <option value="Banplus">Banplus</option>
+                                    <option value="Banco Caroní">Banco Caroní</option>
+                                    <option value="Bancrecer">Bancrecer</option>
+                                    <option value="Mi Banco">Mi Banco</option>
+                                    <option value="Banco Digital de los Trabajadores">Banco Digital de los Trabajadores (Bicentenario)</option>
+                                    <option value="Banco Agrícola de Venezuela">Banco Agrícola de Venezuela</option>
+                                    <option value="BANFANB">BANFANB</option>
+                                    <option value="OTRO">Otro banco...</option>
+                                </select>
                             </div>
-                            <div id="inconsistencia-monto"></div>
-                            <span class="text-xs text-on-surface-variant/70">Monto exacto de la transferencia o pago móvil.</span>
+                            <div id="contenedor_banco_otro" class="hidden mt-2">
+                                <input type="text" id="banco_pagador_otro" name="banco_pagador_otro" placeholder="Especifique el nombre del banco emisor..."
+                                       class="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm font-medium">
+                            </div>
+                            <div id="inconsistencia-banco_pagador"></div>
+                            <span class="text-[11px] text-slate-400">Banco del cual salieron los fondos de su cuenta.</span>
                         </div>
 
-                        <!-- Fecha de Pago -->
+                        <!-- Cuenta Bancaria Destino -->
                         <div class="flex flex-col gap-1.5">
                             <div class="flex items-center justify-between">
-                                <label for="fecha_pago" class="text-sm font-semibold text-on-surface-variant">Fecha de Pago <span class="text-red-500">*</span></label>
-                                <span id="badge-fecha_pago" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-[13px]">magic_button</span> Auto-completado
+                                <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta Bancaria Destino Autorizada <span class="text-red-500">*</span></label>
+                                <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                    <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                                 </span>
                             </div>
-                            <input type="date" id="fecha_pago" name="fecha_pago" value="" required
-                                   class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium">
-                            <div id="inconsistencia-fecha_pago"></div>
-                            <span class="text-xs text-on-surface-variant/70">Fecha en que se ejecutó la operación.</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Método de Pago -->
-                        <div class="flex flex-col gap-1.5">
-                            <div class="flex items-center justify-between">
-                                <label for="metodo_pago" class="text-sm font-semibold text-on-surface-variant">Método de Pago <span class="text-red-500">*</span></label>
-                                <span id="badge-metodo_pago" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-[13px]">magic_button</span> Auto-completado
-                                </span>
-                            </div>
-                            <select id="metodo_pago" name="metodo_pago" class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium" required>
-                                <option value="">Seleccione un método...</option>
-                                <option value="transferencia">Transferencia Bancaria</option>
-                                <option value="pago_movil">Pago Móvil</option>
+                            <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
+                                    class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
+                                <option value="">-- Seleccione la cuenta bancaria autorizada receptora --</option>
+                                <?php foreach ($cuentasBancarias as $cb): ?>
+                                    <option value="<?= e($cb['id']) ?>" 
+                                            data-banco="<?= e($cb['banco']) ?>"
+                                            data-cuenta="<?= e($cb['numero_cuenta']) ?>"
+                                            data-titular="<?= e($cb['titular']) ?>"
+                                            data-doc="<?= e($cb['tipo_identificacion'] . '-' . $cb['identificacion']) ?>"
+                                            data-telefono="<?= e($cb['telefono_pago_movil'] ?? '') ?>">
+                                        <?= e($cb['banco']) ?> - <?= e(chunk_split($cb['numero_cuenta'], 4, ' ')) ?> (<?= e($cb['titular']) ?>)
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
-                            <div id="inconsistencia-metodo_pago"></div>
-                        </div>
+                            <div id="inconsistencia-cuenta_bancaria_id"></div>
 
-                        <!-- Número de Referencia -->
-                        <div class="flex flex-col gap-1.5">
-                            <div class="flex items-center justify-between">
-                                <label for="referencia" class="text-sm font-semibold text-on-surface-variant">Número de Referencia <span class="text-red-500">*</span></label>
-                                <span id="badge-referencia" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-[13px]">magic_button</span> Auto-completado
-                                </span>
-                            </div>
-                            <input type="text" id="referencia" name="referencia" placeholder="Ej. 12345678" required
-                                   class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono font-medium">
-                            <div id="inconsistencia-referencia"></div>
-                            <span class="text-xs text-on-surface-variant/70">Número de operación del banco.</span>
-                        </div>
-                    </div>
+                            <!-- Tarjeta con datos oficiales de la cuenta y botones de copiado rápido (Visibilidad Mejorada) -->
+                            <div id="cardInfoCuenta" class="hidden mt-3 p-4 bg-gradient-to-br from-blue-50/95 to-slate-100/80 border border-blue-200 rounded-2xl text-xs text-blue-950 shadow-xs">
+                                <div class="flex items-center justify-between border-b border-blue-200/70 pb-2 mb-3">
+                                    <div class="font-bold text-sm text-primary flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[19px]">verified</span>
+                                        <span id="infoBanco"></span>
+                                    </div>
+                                    <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase">Cuenta Oficial</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de Cuenta (20 dígitos)</span>
+                                            <span id="infoNumero" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        </div>
+                                        <button type="button" onclick="copiarDatoCuenta('infoNumero', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
+                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                            Copiar
+                                        </button>
+                                    </div>
 
-                    <!-- Cuenta Bancaria Destino -->
-                    <div class="flex flex-col gap-1.5">
-                        <div class="flex items-center justify-between">
-                            <label for="cuenta_bancaria_id" class="text-sm font-semibold text-on-surface-variant">Cuenta Bancaria Destino (Autorizada) <span class="text-red-500">*</span></label>
-                            <span id="badge-cuenta_bancaria_id" class="hidden text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                <span class="material-symbols-outlined text-[13px]">magic_button</span> Auto-completado
-                            </span>
-                        </div>
-                        <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
-                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-semibold">
-                            <option value="">-- Seleccione la cuenta bancaria autorizada --</option>
-                            <?php foreach ($cuentasBancarias as $cb): ?>
-                                <option value="<?= e($cb['id']) ?>" 
-                                        data-banco="<?= e($cb['banco']) ?>"
-                                        data-cuenta="<?= e($cb['numero_cuenta']) ?>"
-                                        data-titular="<?= e($cb['titular']) ?>"
-                                        data-doc="<?= e($cb['tipo_identificacion'] . '-' . $cb['identificacion']) ?>"
-                                        data-telefono="<?= e($cb['telefono_pago_movil'] ?? '') ?>">
-                                    <?= e($cb['banco']) ?> - <?= e(chunk_split($cb['numero_cuenta'], 4, ' ')) ?> (<?= e($cb['titular']) ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div id="inconsistencia-cuenta_bancaria_id"></div>
+                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular Autorizado</span>
+                                            <span id="infoTitular" class="font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        </div>
+                                    </div>
 
-                        <div id="cardInfoCuenta" class="hidden mt-2 p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-950 shadow-sm">
-                            <div class="font-bold text-sm text-primary mb-1.5 flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[18px]">verified</span>
-                                <span id="infoBanco"></span>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <div><span class="text-slate-500 block">Número de Cuenta (20 dígitos):</span> <span id="infoNumero" class="font-mono font-bold text-dark text-xs select-all"></span></div>
-                                <div><span class="text-slate-500 block">Titular:</span> <span id="infoTitular" class="font-bold text-dark"></span></div>
-                                <div><span class="text-slate-500 block">RIF / Cédula:</span> <span id="infoDoc" class="font-bold text-dark select-all"></span></div>
-                                <div id="wrapperInfoTelefono"><span class="text-slate-500 block">Teléfono Pago Móvil:</span> <span id="infoTelefono" class="font-bold text-success select-all"></span></div>
+                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
+                                            <span id="infoDoc" class="font-mono font-bold text-slate-800 text-xs truncate block select-all"></span>
+                                        </div>
+                                        <button type="button" onclick="copiarDatoCuenta('infoDoc', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
+                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                            Copiar
+                                        </button>
+                                    </div>
+
+                                    <div id="wrapperInfoTelefono" class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
+                                            <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-xs truncate block select-all"></span>
+                                        </div>
+                                        <button type="button" onclick="copiarDatoCuenta('infoTelefono', this)" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
+                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                            Copiar
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Observaciones -->
                     <div class="flex flex-col gap-1.5">
-                        <label for="observaciones" class="text-sm font-semibold text-on-surface-variant">Observaciones</label>
+                        <label for="observaciones" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Observaciones Complementarias</label>
                         <textarea id="observaciones" name="observaciones" rows="2" placeholder="Información adicional sobre el pago..."
-                                  class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+                                  class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"></textarea>
                     </div>
                 </div>
 
@@ -235,11 +369,17 @@
         <div class="bg-white rounded-2xl border border-outline-variant p-10 shadow-sm text-center">
             <span class="material-symbols-outlined text-5xl text-primary/30 mb-2">check_circle</span>
             <h3 class="text-xl font-bold text-on-surface mb-2">No tienes facturas pendientes</h3>
-            <p class="text-on-surface-variant text-sm mb-6 max-w-sm mx-auto">Tu estado de cuenta está completamente al día, no necesitas reportar pagos por ahora.</p>
-            <a href="/residente/dashboard" class="bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-lg shadow-sm transition-transform active:scale-95 flex items-center gap-1 inline-flex">
-                <span class="material-symbols-outlined">dashboard</span>
-                Ir al Dashboard
-            </a>
+            <p class="text-on-surface-variant text-sm mb-6 max-w-sm mx-auto">Tu estado de cuenta está al día. Si deseas abonar por adelantado para tus próximas cuotas, puedes reportar un pago anticipado.</p>
+            <div class="flex items-center justify-center gap-3 flex-wrap">
+                <a href="/pagos/nuevo" class="bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-lg shadow-sm transition-transform active:scale-95 flex items-center gap-1 inline-flex">
+                    <span class="material-symbols-outlined">add_card</span>
+                    Registrar Pago Anticipado
+                </a>
+                <a href="/residente/dashboard" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-lg transition-transform active:scale-95 flex items-center gap-1 inline-flex">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Ir al Dashboard
+                </a>
+            </div>
         </div>
     <?php endif; ?>
 </div>
@@ -548,7 +688,51 @@ function aplicarExtraccionInteligente(data) {
         }
     }
 
-    // 4. Número de Referencia
+    // 4. Banco Pagador (Origen)
+    if (data.banco_pagador) {
+        const el = document.getElementById('banco_pagador');
+        if (el) {
+            const matchedBanco = seleccionarBancoPagador(data.banco_pagador);
+            const valActual = el.value.trim();
+            if (valActual === '') {
+                if (matchedBanco === 'OTRO') {
+                    el.value = 'OTRO';
+                    toggleBancoOtro(el);
+                    const inputOtro = document.getElementById('banco_pagador_otro');
+                    if (inputOtro) inputOtro.value = data.banco_pagador;
+                } else if (matchedBanco) {
+                    el.value = matchedBanco;
+                    toggleBancoOtro(el);
+                }
+                marcarCampoAutollenado('banco_pagador');
+                camposLlenados++;
+            } else {
+                const currentValNormalized = (valActual === 'OTRO') 
+                    ? (document.getElementById('banco_pagador_otro')?.value || 'OTRO') 
+                    : valActual;
+                if (matchedBanco && currentValNormalized.toLowerCase() !== data.banco_pagador.toLowerCase() && valActual !== matchedBanco) {
+                    const descDetectado = (matchedBanco === 'OTRO') ? data.banco_pagador : matchedBanco;
+                    const descActual = (valActual === 'OTRO') ? (document.getElementById('banco_pagador_otro')?.value || 'Otro') : el.options[el.selectedIndex]?.text;
+                    mostrarAlertaInconsistencia('banco_pagador', data.banco_pagador, descDetectado, descActual, (val) => {
+                        const targetBanco = seleccionarBancoPagador(val);
+                        if (targetBanco === 'OTRO') {
+                            el.value = 'OTRO';
+                            toggleBancoOtro(el);
+                            const inputOtro = document.getElementById('banco_pagador_otro');
+                            if (inputOtro) inputOtro.value = val;
+                        } else {
+                            el.value = targetBanco;
+                            toggleBancoOtro(el);
+                        }
+                        marcarCampoAutollenado('banco_pagador');
+                    });
+                    inconsistencias++;
+                }
+            }
+        }
+    }
+
+    // 5. Número de Referencia
     if (data.referencia) {
         const el = document.getElementById('referencia');
         if (el) {
@@ -692,7 +876,7 @@ function marcarCampoAutollenado(campoId) {
 }
 
 function limpiarInconsistencias() {
-    ['monto', 'fecha_pago', 'metodo_pago', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
+    ['monto', 'fecha_pago', 'metodo_pago', 'banco_pagador', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
         const c = document.getElementById(`inconsistencia-${id}`);
         if (c) c.innerHTML = '';
         const b = document.getElementById(`badge-${id}`);
@@ -734,4 +918,127 @@ function actualizarInfoCuenta(selectEl) {
 
     card.classList.remove('hidden');
 }
+
+function toggleBancoOtro(selectEl) {
+    const cont = document.getElementById('contenedor_banco_otro');
+    const inputOtro = document.getElementById('banco_pagador_otro');
+    if (!cont) return;
+    if (selectEl.value === 'OTRO') {
+        cont.classList.remove('hidden');
+        if (inputOtro) {
+            inputOtro.setAttribute('required', 'required');
+            inputOtro.focus();
+        }
+    } else {
+        cont.classList.add('hidden');
+        if (inputOtro) {
+            inputOtro.removeAttribute('required');
+            inputOtro.value = '';
+        }
+    }
+}
+
+function seleccionarBancoPagador(bancoDetectado) {
+    if (!bancoDetectado) return null;
+    const sel = document.getElementById('banco_pagador');
+    if (!sel) return null;
+    
+    const normalize = (s) => (s || '').toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/banco\s+de\s+|banco\s+|bbva\s+/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+        
+    const detectNorm = normalize(bancoDetectado);
+    
+    for (let i = 1; i < sel.options.length; i++) {
+        const opt = sel.options[i];
+        if (opt.value === 'OTRO') continue;
+        const valNorm = normalize(opt.value);
+        const txtNorm = normalize(opt.text);
+        if (valNorm === detectNorm || txtNorm === detectNorm ||
+            (detectNorm.length >= 4 && (valNorm.includes(detectNorm) || txtNorm.includes(detectNorm) || detectNorm.includes(valNorm)))) {
+            return opt.value;
+        }
+    }
+    return 'OTRO';
+}
+
+function actualizarInfoFactura(selectEl) {
+    const card = document.getElementById('cardInfoFactura');
+    if (!card) return;
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt || !opt.value) {
+        card.classList.add('hidden');
+        return;
+    }
+    
+    const num = opt.getAttribute('data-numero') || '';
+    const per = opt.getAttribute('data-periodo') || '';
+    const sal = opt.getAttribute('data-saldo') || '';
+    const tot = opt.getAttribute('data-total') || '';
+    
+    const elNum = document.getElementById('facturaCardNum');
+    const elPer = document.getElementById('facturaCardPeriodo');
+    const elSal = document.getElementById('facturaCardSaldo');
+    const elTot = document.getElementById('facturaCardTotal');
+    
+    if (elNum) elNum.textContent = `Factura #${num}`;
+    if (elPer) elPer.textContent = per;
+    if (elSal) elSal.textContent = sal;
+    if (elTot) elTot.textContent = tot;
+    
+    card.classList.remove('hidden');
+}
+
+function copiarSaldoAMonto() {
+    const sel = document.getElementById('factura_id');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return;
+    
+    const rawSaldo = opt.getAttribute('data-saldo-val');
+    if (rawSaldo) {
+        const montoInput = document.getElementById('monto');
+        if (montoInput) {
+            montoInput.value = parseFloat(rawSaldo).toFixed(2);
+            marcarCampoAutollenado('monto');
+            montoInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+}
+
+function copiarDatoCuenta(elementId, btnElement) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const texto = el.textContent.trim().replace(/\s+/g, '');
+    if (!texto) return;
+    
+    navigator.clipboard.writeText(texto).then(() => {
+        const originalHTML = btnElement.innerHTML;
+        btnElement.innerHTML = `<span class="material-symbols-outlined text-[14px]">check</span> ¡Copiado!`;
+        btnElement.classList.add('bg-emerald-100', 'text-emerald-800');
+        setTimeout(() => {
+            btnElement.innerHTML = originalHTML;
+            btnElement.classList.remove('bg-emerald-100', 'text-emerald-800');
+        }, 1800);
+    }).catch(err => {
+        console.error('Error al copiar al portapapeles:', err);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const selFactura = document.getElementById('factura_id');
+    if (selFactura && selFactura.value) {
+        actualizarInfoFactura(selFactura);
+    }
+    const selCuenta = document.getElementById('cuenta_bancaria_id');
+    if (selCuenta && selCuenta.value) {
+        actualizarInfoCuenta(selCuenta);
+    }
+    const selBanco = document.getElementById('banco_pagador');
+    if (selBanco && selBanco.value === 'OTRO') {
+        toggleBancoOtro(selBanco);
+    }
+});
 </script>

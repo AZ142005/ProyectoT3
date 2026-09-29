@@ -75,7 +75,10 @@ CREATE TABLE `comprobantes_pago` (
   `residente_id` int(11) NOT NULL,
   `factura_id` int(11) NOT NULL,
   `monto` decimal(10,2) NOT NULL,
-  `metodo_pago` enum('transferencia','efectivo','punto_venta','cheque') NOT NULL,
+  `metodo_pago` varchar(50) NOT NULL DEFAULT 'transferencia',
+  `banco_pagador` varchar(100) DEFAULT NULL,
+  `banco_receptor` varchar(100) DEFAULT NULL,
+  `cuenta_bancaria_id` int(11) DEFAULT NULL,
   `referencia` varchar(100) DEFAULT NULL,
   `fecha_pago` date NOT NULL,
   `archivo` varchar(255) DEFAULT NULL,
@@ -316,24 +319,6 @@ CREATE TABLE `log_auditoria` (
   CONSTRAINT `log_auditoria_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
--- Estructura de tabla para `movimientos`
--- --------------------------------------------------------
-
-DROP TABLE IF EXISTS `movimientos`;
-CREATE TABLE `movimientos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `unidad_id` int(11) NOT NULL,
-  `tipo` enum('cargo','abono','ajuste') NOT NULL,
-  `monto` decimal(10,2) NOT NULL,
-  `descripcion` text DEFAULT NULL,
-  `referencia` varchar(100) DEFAULT NULL,
-  `admin_id` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_movimientos_unidad` (`unidad_id`),
-  KEY `idx_movimientos_tipo` (`tipo`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `movimientos_cuenta`
@@ -362,14 +347,21 @@ CREATE TABLE `movimientos_cuenta` (
 DROP TABLE IF EXISTS `notificaciones`;
 CREATE TABLE `notificaciones` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `persona_id` int(11) NOT NULL,
+  `residente_id` int(11) NOT NULL,
+  `persona_id` int(11) DEFAULT NULL,
   `comunicado_id` int(11) DEFAULT NULL,
-  `titulo` varchar(255) DEFAULT NULL,
-  `mensaje` text DEFAULT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensaje` text NOT NULL,
+  `tipo` varchar(50) DEFAULT 'info',
+  `leido` tinyint(1) DEFAULT 0,
   `leida` tinyint(1) DEFAULT 0,
+  `enlace` varchar(255) DEFAULT NULL,
+  `fecha_registro` timestamp DEFAULT current_timestamp(),
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_notificaciones_persona` (`persona_id`)
+  KEY `idx_notif_residente` (`residente_id`,`leido`),
+  KEY `idx_notificaciones_persona` (`persona_id`),
+  CONSTRAINT `fk_notif_residente` FOREIGN KEY (`residente_id`) REFERENCES `personas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -394,21 +386,6 @@ CREATE TABLE `notificaciones_cola` (
   KEY `idx_cola_procesamiento` (`estado`,`proximo_intento`,`prioridad`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
--- Estructura de tabla para `otp_codes`
--- --------------------------------------------------------
-
-DROP TABLE IF EXISTS `otp_codes`;
-CREATE TABLE `otp_codes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `persona_id` int(11) NOT NULL,
-  `codigo` varchar(10) NOT NULL,
-  `expira_en` datetime NOT NULL,
-  `usado` tinyint(1) DEFAULT 0,
-  `creado_en` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_otp_persona` (`persona_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `pagos`
@@ -458,6 +435,7 @@ CREATE TABLE `personas` (
   `intentos_fallidos` int(11) DEFAULT 0,
   `bloqueado_hasta` datetime DEFAULT NULL,
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `ultimo_acceso` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `cedula` (`cedula`),
   KEY `unidad_id` (`unidad_id`),
@@ -536,23 +514,6 @@ CREATE TABLE `refresh_tokens` (
   KEY `idx_refresh_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
--- Estructura de tabla para `solicitudes_cambio`
--- --------------------------------------------------------
-
-DROP TABLE IF EXISTS `solicitudes_cambio`;
-CREATE TABLE `solicitudes_cambio` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `persona_id` int(11) NOT NULL,
-  `campo` varchar(50) NOT NULL,
-  `valor_anterior` varchar(255) DEFAULT NULL,
-  `valor_nuevo` varchar(255) DEFAULT NULL,
-  `estado` enum('pendiente','aprobada','rechazada') DEFAULT 'pendiente',
-  `admin_id` int(11) DEFAULT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_solicitudes_persona` (`persona_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `solicitudes_cambio_datos`

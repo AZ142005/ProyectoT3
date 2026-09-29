@@ -205,4 +205,23 @@ class PersonasModel extends BaseModel {
         }
         return strtotime($row['bloqueado_hasta']) > time();
     }
+
+    /**
+     * Reinicia la contraseña de un residente y restablece bloqueos.
+     *
+     * @param int $personaId
+     * @param string $nuevoHash
+     * @return bool
+     */
+    public function reiniciarPassword(int $personaId, string $nuevoHash): bool {
+        $stmt = $this->db()->prepare(
+            "UPDATE personas 
+             SET password = :password, intentos_fallidos = 0, bloqueado_hasta = NULL 
+             WHERE id = :id"
+        );
+        return $stmt->execute([
+            'password' => $nuevoHash,
+            'id'       => $personaId
+        ]);
+    }
 }

@@ -4,6 +4,8 @@ namespace Tests;
 use App\Core\Encryption;
 use App\Services\NotificationService;
 use App\Services\EmailService;
+use App\Models\NotificacionesModel;
+use App\Core\Database;
 use InvalidArgumentException;
 
 class NotificationTest extends TestCase {
@@ -60,7 +62,64 @@ class NotificationTest extends TestCase {
         ]);
 
         $this->assertStringContains("Juan Pérez", $html);
-        $this->assertStringContains("150.50", $html);
+        $this->assertStringContains("150,50", $html);
         $this->assertStringContains("REF-998877", $html);
+    }
+
+    public function testRegistrarNotificacionResidenteYNotificacionesModel() {
+        $db = Database::getConnection();
+        $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        if (!$persona) {
+            $this->markTestSkipped("No hay personas en la base de datos para probar notificaciones.");
+            return;
+        }
+
+        $residenteId = intval($persona['id']);
+        $notifService = new NotificationService();
+        $notifModel = new NotificacionesModel();
+
+        $inicialNoLeidas = $notifModel->contarNoLeidas($residenteId);
+
+        // 1. Registrar notificación
+        $titulo = "Test Notificación " . uniqid();
+        $mensaje = "Mensaje de prueba para validar inserción con residente_id.";
+        $notifId = $notifService->registrarNotificacionResidente(
+            $residenteId,
+            $titulo,
+            $mensaje,
+            'success',
+            '/residente/historial'
+        );
+
+        $this->assertTrue($notifId > 0, "El ID de la notificación debe ser mayor que 0");
+
+        // 2. Comprobar conteo no leídas
+        $nuevoNoLeidas = $notifModel->contarNoLeidas($residenteId);
+        $this->assertEquals($inicialNoLeidas + 1, $nuevoNoLeidas);
+
+        // 3. Comprobar obtención
+        $noLeidas = $notifModel->obtenerNoLeidas($residenteId);
+        $encontrada = false;
+        foreach ($noLeidas as $item) {
+            if (intval($item['id']) === $notifId) {
+                $encontrada = true;
+                $this->assertEquals($titulo, $item['titulo']);
+                $this->assertEquals('success', $item['tipo']);
+                $this->assertEquals('/residente/historial', $item['enlace']);
+                $this->assertEquals(0, intval($item['leido']));
+                break;
+            }
+        }
+        $this->assertTrue($encontrada, "La notificación recién creada debe encontrarse entre las no leídas");
+
+        // 4. Marcar como leída
+        $marcada = $notifModel->marcarComoLeida($notifId, $residenteId);
+        $this->assertTrue($marcada, "Debe retornar true al marcar como leída");
+
+        $conteoPostLeida = $notifModel->contarNoLeidas($residenteId);
+        $this->assertEquals($inicialNoLeidas, $conteoPostLeida);
+
+        // Limpieza de prueba
+        $db->prepare("DELETE FROM notificaciones WHERE id = :id")->execute(['id' => $notifId]);
     }
 }

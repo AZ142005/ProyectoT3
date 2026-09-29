@@ -51,6 +51,55 @@ class HelperTest extends TestCase {
     }
 
     // =====================================================================
+    // formatearMonto()
+    // =====================================================================
+
+    public function testFormatearMontoFormatsCorrectly(): void {
+        $this->assertEquals('15.583,96', formatearMonto(15583.96),
+            "Debe formatear monto con formato venezolano sin símbolo de moneda");
+    }
+
+    public function testFormatearMontoWithZero(): void {
+        $this->assertEquals('0,00', formatearMonto(0),
+            "0 debe formatearse como 0,00");
+    }
+
+    public function testFormatearMontoWithNullOrEmpty(): void {
+        $this->assertEquals('0,00', formatearMonto(null),
+            "null debe formatearse como 0,00");
+        $this->assertEquals('0,00', formatearMonto(''),
+            "String vacío debe formatearse como 0,00");
+    }
+
+    public function testFormatearMontoWithCustomDecimals(): void {
+        $this->assertEquals('1.234,5678', formatearMonto(1234.5678, 4),
+            "Debe respetar la cantidad de decimales especificada");
+    }
+
+    // =====================================================================
+    // formatearCantidad()
+    // =====================================================================
+
+    public function testFormatearCantidadFormatsCorrectly(): void {
+        $this->assertEquals('1.042', formatearCantidad(1042),
+            "Debe formatear cantidad entera con punto como separador de miles");
+        $this->assertEquals('1.500.000', formatearCantidad(1500000),
+            "Grandes cantidades deben separarse con puntos");
+    }
+
+    public function testFormatearCantidadWithZero(): void {
+        $this->assertEquals('0', formatearCantidad(0),
+            "0 debe formatearse como 0");
+    }
+
+    public function testFormatearCantidadWithNullOrEmpty(): void {
+        $this->assertEquals('0', formatearCantidad(null),
+            "null debe formatearse como 0");
+        $this->assertEquals('0', formatearCantidad(''),
+            "String vacío debe formatearse como 0");
+    }
+
+    // =====================================================================
     // normalizarCedula() & validarCedula()
     // =====================================================================
 

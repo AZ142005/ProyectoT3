@@ -36,7 +36,7 @@ if (!function_exists('csrf_field')) {
 
 if (!function_exists('formatearMoneda')) {
     /**
-     * Formatea un número a moneda local (Bolívares - Bs.).
+     * Formatea un número a moneda local (Bolívares - Bs.) en formato nacional venezolano (Ej: Bs. 15.583,96).
      *
      * @param float|string|null $valor
      * @return string
@@ -46,6 +46,37 @@ if (!function_exists('formatearMoneda')) {
             return 'Bs. 0,00';
         }
         return 'Bs. ' . number_format(floatval($valor), 2, ',', '.');
+    }
+}
+
+if (!function_exists('formatearMonto')) {
+    /**
+     * Formatea un valor numérico al formato nacional venezolano (Ej: 15.583,96) sin prefijo de moneda.
+     *
+     * @param float|string|null $valor
+     * @param int $decimales
+     * @return string
+     */
+    function formatearMonto($valor, int $decimales = 2) {
+        if (is_null($valor) || $valor === '') {
+            return $decimales > 0 ? ('0,' . str_repeat('0', $decimales)) : '0';
+        }
+        return number_format(floatval($valor), $decimales, ',', '.');
+    }
+}
+
+if (!function_exists('formatearCantidad')) {
+    /**
+     * Formatea cantidades enteras con separador de miles nacional venezolano (punto).
+     *
+     * @param int|float|string|null $valor
+     * @return string
+     */
+    function formatearCantidad($valor) {
+        if (is_null($valor) || $valor === '') {
+            return '0';
+        }
+        return number_format(intval($valor), 0, ',', '.');
     }
 }
 

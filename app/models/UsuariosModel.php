@@ -133,4 +133,93 @@ class UsuariosModel extends BaseModel {
         }
         return strtotime($row['bloqueado_hasta']) > time();
     }
+
+    /**
+     * Obtiene el listado unificado de cuentas (residentes y personal) con filtros y paginación.
+     *
+     * @param string $buscar
+     * @param string $rol
+     * @param int $pagina
+     * @param int $porPagina
+     * @return array
+     */
+    public function obtenerListadoUnificado(string $buscar = '', string $rol = '', int $pagina = 1, int $porPagina = 15): array {
+        $baseSql = "
+            SELECT 
+                'persona' AS tipo_entidad,
+                p.id AS id,
+                p.cedula AS cedula,
+                CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
+                p.email AS email,
+                p.telefono AS telefono,
+                CONCAT('Residente (', p.tipo, ')') AS rol_texto,
+                'residente' AS rol_clave,
+                CONCAT(COALESCE(e.nombre, 'Torre -'), ' / Apt. ', COALESCE(u.numero, 'S/A')) AS detalle_ubicacion,
+                p.estado AS estado,
+                p.intentos_fallidos AS intentos_fallidos,
+                p.bloqueado_hasta AS bloqueado_hasta,
+                (CASE WHEN p.bloqueado_hasta IS NOT NULL AND p.bloqueado_hasta > NOW() THEN 1 ELSE 0 END) AS esta_bloqueado,
+                (CASE WHEN p.password IS NOT NULL AND p.password != '' THEN 1 ELSE 0 END) AS tiene_password
+            FROM personas p
+            LEFT JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+
+            UNION ALL
+
+            SELECT 
+                'usuario' AS tipo_entidad,
+                u.id AS id,
+                COALESCE(u.cedula, 'N/A') AS cedula,
+                u.nombre_completo AS nombre_completo,
+                u.email AS email,
+                NULL AS telefono,
+                (CASE WHEN u.rol = 'admin' THEN 'Administrador' WHEN u.rol = 'auditor' THEN 'Auditor' ELSE u.rol END) AS rol_texto,
+                u.rol AS rol_clave,
+                'Sistema / Oficina' AS detalle_ubicacion,
+                u.estado AS estado,
+                u.intentos_fallidos AS intentos_fallidos,
+                u.bloqueado_hasta AS bloqueado_hasta,
+                (CASE WHEN u.bloqueado_hasta IS NOT NULL AND u.bloqueado_hasta > NOW() THEN 1 ELSE 0 END) AS esta_bloqueado,
+                (CASE WHEN u.password IS NOT NULL AND u.password != '' THEN 1 ELSE 0 END) AS tiene_password
+            FROM usuarios u
+        ";
+
+        $wrappedSql = "SELECT * FROM ({$baseSql}) AS t WHERE 1=1";
+        $countSql   = "SELECT COUNT(*) as total FROM ({$baseSql}) AS t WHERE 1=1";
+        $params = [];
+
+        if (!empty($rol) && in_array($rol, ['residente', 'admin', 'auditor'], true)) {
+            $wrappedSql .= " AND t.rol_clave = :rol";
+            $countSql   .= " AND t.rol_clave = :rol";
+            $params['rol'] = $rol;
+        }
+
+        if (!empty($buscar)) {
+            $likeClause = " AND (t.nombre_completo LIKE :buscar OR t.cedula LIKE :buscar OR t.email LIKE :buscar)";
+            $wrappedSql .= $likeClause;
+            $countSql   .= $likeClause;
+            $params['buscar'] = '%' . $buscar . '%';
+        }
+
+        return $this->paginate($wrappedSql, $countSql, $params, $pagina, $porPagina, 't.tipo_entidad ASC, t.nombre_completo ASC');
+    }
+
+    /**
+     * Reinicia la contraseña de un usuario del sistema y restablece bloqueos.
+     *
+     * @param int $userId
+     * @param string $nuevoHash
+     * @return bool
+     */
+    public function reiniciarPassword(int $userId, string $nuevoHash): bool {
+        $stmt = $this->db()->prepare(
+            "UPDATE usuarios 
+             SET password = :password, intentos_fallidos = 0, bloqueado_hasta = NULL 
+             WHERE id = :id"
+        );
+        return $stmt->execute([
+            'password' => $nuevoHash,
+            'id'       => $userId
+        ]);
+    }
 }

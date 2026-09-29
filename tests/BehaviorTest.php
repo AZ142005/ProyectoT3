@@ -1340,4 +1340,31 @@ class BehaviorTest extends TestCase {
         $this->assertStringContains('10 ajustes', $content,
             'Error message must mention 10 adjustments');
     }
+
+    // =====================================================================
+    // 4.7: COMPROBANTES Y PHP 8.5 COMPATIBILIDAD
+    // =====================================================================
+
+    public function testComprobantesModelPersistsBankFields(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/models/ComprobantesModel.php');
+        $this->assertStringContains('banco_pagador', $content, 'ComprobantesModel must insert banco_pagador');
+        $this->assertStringContains('banco_receptor', $content, 'ComprobantesModel must insert banco_receptor');
+        $this->assertStringContains('cuenta_bancaria_id', $content, 'ComprobantesModel must insert cuenta_bancaria_id');
+    }
+
+    public function testFileUploaderGuardsFinfoCloseForPhp85(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/services/FileUploader.php');
+        $this->assertStringContains('PHP_VERSION_ID < 80500', $content, 'FileUploader must guard finfo_close for PHP 8.5+');
+    }
+
+    public function testComprobanteProxyGuardsFinfoCloseForPhp85(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/public/comprobante-proxy.php');
+        $this->assertStringContains('PHP_VERSION_ID < 80500', $content, 'comprobante-proxy must guard finfo_close for PHP 8.5+');
+    }
+
+    public function testEnviarPagoFormHasBancoPagadorField(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/views/residente/enviar_pago.php');
+        $this->assertStringContains('name="banco_pagador"', $content, 'enviar_pago.php must include banco_pagador input');
+        $this->assertStringContains('data.banco_pagador', $content, 'enviar_pago.php must handle data.banco_pagador from OCR');
+    }
 }

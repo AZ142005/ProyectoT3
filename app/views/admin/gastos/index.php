@@ -56,7 +56,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="text-muted small fw-bold text-uppercase d-block">Total Gastos del Mes</span>
-                        <span class="h3 fw-bold text-dark mb-0">Bs. <?= number_format($totalMes, 2) ?></span>
+                        <span class="h3 fw-bold text-dark mb-0"><?= e(formatearMoneda($totalMes)) ?></span>
                     </div>
                     <span class="material-symbols-outlined fs-1 text-primary opacity-50">payments</span>
                 </div>
@@ -72,7 +72,7 @@
                             <span class="text-muted small fw-bold text-uppercase d-block text-truncate" style="max-width: 170px;">
                                 <?= e($tc['categoria_nombre']) ?>
                             </span>
-                            <span class="h4 fw-bold text-dark mb-0">Bs. <?= number_format($tc['total_monto'], 2) ?></span>
+                            <span class="h4 fw-bold text-dark mb-0"><?= e(formatearMoneda($tc['total_monto'])) ?></span>
                         </div>
                         <span class="material-symbols-outlined fs-1 opacity-50" style="color: <?= e($tc['color']) ?>;">
                             <?= e($tc['icono']) ?>
@@ -130,7 +130,7 @@
                                     </td>
                                     <td class="text-center small"><?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?></td>
                                     <td class="text-end font-monospace fw-bold text-dark fs-6">
-                                        Bs. <?= number_format($g['monto_total'], 2) ?>
+                                        <?= e(formatearMoneda($g['monto_total'])) ?>
                                     </td>
                                     <td class="text-center">
                                         <?php if (!empty($g['soporte_digital'])): ?>

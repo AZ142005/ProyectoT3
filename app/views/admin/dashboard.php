@@ -57,21 +57,30 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
                                 <tr class="hover:bg-background/40 transition-colors">
                                     <td class="py-4 px-4 font-semibold text-on-surface"><?= e($c['residente']) ?></td>
                                     <td class="py-4 px-4"><?= e($c['unidad']) ?></td>
-                                    <td class="py-4 px-4 font-mono text-xs">#<?= e($c['numero_factura']) ?></td>
+                                    <td class="py-4 px-4 font-mono text-xs">
+                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=dashboard" class="text-primary hover:underline font-bold inline-flex items-center gap-0.5" title="Ver detalle del pago">
+                                            #<?= e($c['numero_factura']) ?>
+                                        </a>
+                                    </td>
                                     <td class="py-4 px-4 font-bold text-on-surface"><?= e(formatearMoneda($c['monto'])) ?></td>
                                     <td class="py-4 px-4">
                                         <?php if ($c['archivo']): ?>
-                                            <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs">
-                                                <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                                Ver
-                                            </a>
+                                            <div class="flex items-center gap-2">
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs" title="Ver comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                    Ver
+                                                </a>
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>&download=1" download="<?= e($c['archivo']) ?>" class="text-slate-600 hover:text-primary font-bold inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors" title="Descargar comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">download</span>
+                                                </a>
+                                            </div>
                                         <?php else: ?>
                                             <span class="text-xs text-on-surface-variant">Sin archivo</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="py-4 px-4 text-xs"><?= e(date('d/m/Y', strtotime($c['fecha_envio']))) ?></td>
                                     <td class="py-4 px-4">
-                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-transform active:scale-95 inline-flex items-center gap-1">
+                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=dashboard" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-transform active:scale-95 inline-flex items-center gap-1" title="Verificar pago">
                                             <span class="material-symbols-outlined text-[14px]">verified</span>
                                             Verificar
                                         </a>
@@ -84,13 +93,14 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
                 <?php endif; ?>
             </div>
 
-            <!-- Sección: Comprobantes Recientes Procesados -->
+            <!-- Sección: Comprobantes Recientes Procesados (Últimos Movimientos) -->
             <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
                 <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
                     <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">history</span>
                         Últimos Comprobantes Procesados
                     </h3>
+                    <span class="text-xs text-on-surface-variant font-medium">Últimos movimientos verificados</span>
                 </div>
 
                 <?php if (empty($ultimos_comprobantes)): ?>
@@ -104,22 +114,56 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
                             <thead>
                                 <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
                                     <th class="py-3 px-4">Residente</th>
+                                    <th class="py-3 px-4">Unidad</th>
                                     <th class="py-3 px-4">Factura</th>
                                     <th class="py-3 px-4">Monto</th>
+                                    <th class="py-3 px-4">Comprobante</th>
                                     <th class="py-3 px-4">Estado</th>
                                     <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4 text-right">Acción</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-background">
                                 <?php foreach ($ultimos_comprobantes as $c): ?>
                                 <tr class="hover:bg-background/40 transition-colors">
-                                    <td class="py-4 px-4 font-semibold text-on-surface"><?= e($c['residente']) ?></td>
-                                    <td class="py-4 px-4 font-mono text-xs">#<?= e($c['numero_factura']) ?></td>
+                                    <td class="py-4 px-4 font-semibold text-on-surface">
+                                        <?= e($c['residente']) ?>
+                                        <?php if (!empty($c['cedula'])): ?>
+                                            <div class="text-xs text-on-surface-variant font-normal"><?= e($c['cedula']) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-4 px-4"><?= e($c['unidad'] ?? '-') ?></td>
+                                    <td class="py-4 px-4 font-mono text-xs">
+                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=dashboard" class="text-primary hover:underline font-bold inline-flex items-center gap-0.5" title="Ver detalle del pago">
+                                            #<?= e($c['numero_factura']) ?>
+                                        </a>
+                                    </td>
                                     <td class="py-4 px-4 font-bold text-on-surface"><?= e(formatearMoneda($c['monto'])) ?></td>
+                                    <td class="py-4 px-4">
+                                        <?php if (!empty($c['archivo'])): ?>
+                                            <div class="flex items-center gap-2">
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" target="_blank" class="text-primary font-bold hover:underline inline-flex items-center gap-1 text-xs" title="Ver comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                    Ver
+                                                </a>
+                                                <a href="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>&download=1" download="<?= e($c['archivo']) ?>" class="text-slate-600 hover:text-primary font-bold inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors" title="Descargar comprobante">
+                                                    <span class="material-symbols-outlined text-[16px]">download</span>
+                                                </a>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-xs text-on-surface-variant">Sin archivo</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="py-4 px-4">
                                         <?= badgeEstado($c['estado']) ?>
                                     </td>
                                     <td class="py-4 px-4 text-xs"><?= e(date('d/m/Y', strtotime($c['fecha_envio']))) ?></td>
+                                    <td class="py-4 px-4 text-right">
+                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=dashboard" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1 transition-all active:scale-95 shadow-xs" title="Ver detalle completo del pago">
+                                            <span class="material-symbols-outlined text-[14px]">search</span>
+                                            Detalles
+                                        </a>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

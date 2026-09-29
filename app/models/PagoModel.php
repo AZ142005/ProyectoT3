@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use PDO;
+use App\Services\LiquidacionPagoService;
 
 class PagoModel extends BaseModel {
     /**
@@ -216,26 +217,22 @@ class PagoModel extends BaseModel {
                 'id'     => $pagoId
             ]);
 
-            // Si se aprueba, descontar saldo de la factura asociada
+            // Si se aprueba, liquidar facturas en cascada y acreditar saldo a favor si hay excedente
             if ($nuevoEstado === 'APROBADO') {
-                $stmtPagoInfo = $db->prepare("SELECT unidad_id, monto FROM pagos WHERE id = :id");
+                $stmtPagoInfo = $db->prepare("SELECT unidad_id, monto, referencia FROM pagos WHERE id = :id");
                 $stmtPagoInfo->execute(['id' => $pagoId]);
                 $pagoInfo = $stmtPagoInfo->fetch(PDO::FETCH_ASSOC);
 
                 if ($pagoInfo && !empty($pagoInfo['unidad_id'])) {
-                    $stmtFactura = $db->prepare("
-                        SELECT id, saldo FROM facturas 
-                        WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
-                        ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
-                    ");
-                    $stmtFactura->execute(['uid' => $pagoInfo['unidad_id']]);
-                    $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
-
-                    if ($factura) {
-                        $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($pagoInfo['monto'])), 2);
-                        $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
-                        $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
-                    }
+                    $liquidacionService = new LiquidacionPagoService();
+                    $refTexto = !empty($pagoInfo['referencia']) ? "Ref. " . $pagoInfo['referencia'] : "Pago #{$pagoId}";
+                    $liquidacionService->aplicarPagoAUnidad(
+                        $db,
+                        intval($pagoInfo['unidad_id']),
+                        floatval($pagoInfo['monto']),
+                        $refTexto,
+                        $pagoId
+                    );
                 }
             }
             
@@ -287,7 +284,7 @@ class PagoModel extends BaseModel {
         $notifService = new \App\Services\NotificationService();
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
             $info['telefono'] ?? '',
-            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de Bs. " . number_format(floatval($info['monto']), 2) . " ha sido " . strtolower($nuevoEstado) . "."
+            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de " . formatearMoneda(floatval($info['monto'])) . " ha sido " . strtolower($nuevoEstado) . "."
         );
 
         if ($nuevoEstado === 'APROBADO') {
@@ -301,7 +298,7 @@ class PagoModel extends BaseModel {
             ]);
 
             $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
-            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Aprobado", "Su pago Ref. " . $info['referencia'] . " por Bs. " . number_format(floatval($info['monto']), 2) . " ha sido aprobado.", "success", "/pagos");
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Aprobado", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " ha sido aprobado.", "success", "/pagos");
 
         } elseif ($nuevoEstado === 'RECHAZADO') {
             $asunto = "✖ Pago Rechazado - Referencia " . $info['referencia'];
@@ -315,7 +312,7 @@ class PagoModel extends BaseModel {
             $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Rechazado", "Su pago Ref. " . $info['referencia'] . " ha sido rechazado. Motivo: " . $motivo, "danger", "/pagos/subir");
         } elseif ($nuevoEstado === 'EN REVISIÓN') {
-            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago en Revisión", "Su pago Ref. " . $info['referencia'] . " por Bs. " . number_format(floatval($info['monto']), 2) . " está siendo revisado por la administración.", "info", "/pagos");
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago en Revisión", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " está siendo revisado por la administración.", "info", "/pagos");
         }
     }
 
@@ -371,12 +368,6 @@ class PagoModel extends BaseModel {
                 $sqlPayInfo = "SELECT unidad_id, monto FROM pagos WHERE id = :id";
                 $stmtPayInfo = $db->prepare($sqlPayInfo);
 
-                $sqlFactura = "SELECT id, saldo FROM facturas WHERE unidad_id = :uid AND saldo > 0 AND estado != 'pagada' AND deleted_at IS NULL ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE";
-                $stmtFactura = $db->prepare($sqlFactura);
-
-                $sqlSaldo = "UPDATE facturas SET saldo = :saldo, estado = :estado WHERE id = :fid";
-                $stmtSaldo = $db->prepare($sqlSaldo);
-
                 foreach ($pagosElegibles as $sqlPago) {
                     $stmtUpdExec->execute(['id' => $sqlPago['id']]);
                     $stmtLog->execute([
@@ -386,53 +377,23 @@ class PagoModel extends BaseModel {
                         'ip_address'      => $ipAddress
                     ]);
 
-                    // Descontar saldo de factura asociada
+                    // Liquidar facturas asociadas en cascada y generar saldo a favor si hay remanente ($montoRestante)
+                    // Delegado a LiquidacionPagoService que actualiza facturas y MovimientosModel (movimientos_cuenta)
                     $stmtPayInfo->execute(['id' => $sqlPago['id']]);
                     $payInfo = $stmtPayInfo->fetch(PDO::FETCH_ASSOC);
                     if ($payInfo && !empty($payInfo['unidad_id'])) {
-                        $montoRestante = round(floatval($payInfo['monto']), 2);
-                        // Cascade: apply payment across invoices until fully absorbed
-                        while ($montoRestante > 0.01) {
-                            $stmtFactura->execute(['uid' => $payInfo['unidad_id']]);
-                            $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
-                            if (!$factura) break;
-
-                            $saldoFactura = round(floatval($factura['saldo']), 2);
-                            $aplicar = round(min($montoRestante, $saldoFactura), 2);
-                            $nuevoSaldo = round($saldoFactura - $aplicar, 2);
-                            $nuevoEstadoFactura = ($nuevoSaldo <= 0.00) ? 'pagada' : 'pendiente';
-
-                            $stmtSaldo->execute([
-                                'saldo'  => $nuevoSaldo,
-                                'estado' => $nuevoEstadoFactura,
-                                'fid'    => $factura['id']
-                            ]);
-
-                            $montoRestante = round($montoRestante - $aplicar, 2);
-                        }
-                        // Remainder becomes saldo a favor (negative saldo)
-                        if ($montoRestante > 0.01) {
-                            $stmtFavor = $db->prepare("
-                                INSERT INTO facturas (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado)
-                                VALUES (:num, :uid, :mes, :anio, CURDATE(), CURDATE(), 0, :pagado, :saldo, 'pagada')
-                            ");
-                            $stmtFavor->execute([
-                                'num' => 'ABONO-' . date('Y-m') . '-' . str_pad($payInfo['unidad_id'], 4, '0', STR_PAD_LEFT),
-                                'uid' => $payInfo['unidad_id'],
-                                'mes' => intval(date('n')),
-                                'anio' => intval(date('Y')),
-                                'pagado' => $montoRestante,
-                                'saldo' => -$montoRestante
-                            ]);
-                            // Register in movimientos_cuenta for traceability
-                            $movModel = new MovimientosModel();
-                            $movModel->registrarMovimiento(
+                        $montoRestante = floatval($payInfo['monto']);
+                        $liquidacionService = new LiquidacionPagoService();
+                        $refTexto = !empty($payInfo['referencia']) ? "Ref. " . $payInfo['referencia'] : "Aprobación lote Pago #{$sqlPago['id']}";
+                        while ($montoRestante > 0.009) {
+                            $liquidacionService->aplicarPagoAUnidad(
+                                $db,
                                 intval($payInfo['unidad_id']),
-                                'abono_pago',
                                 $montoRestante,
-                                "Saldo a favor por exceso de pago en lote",
+                                $refTexto,
                                 $sqlPago['id']
                             );
+                            break;
                         }
                     }
 

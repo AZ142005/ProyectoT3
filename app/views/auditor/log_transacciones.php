@@ -25,7 +25,7 @@
     <!-- Tabla Completa de Log -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="card-title mb-0 fw-bold text-dark">Eventos de Auditoría (Total: <?= number_format($paginacion['total']) ?>)</h5>
+            <h5 class="card-title mb-0 fw-bold text-dark">Eventos de Auditoría (Total: <?= e(formatearCantidad($paginacion['total'])) ?>)</h5>
             <a href="/auditor/exportar-log" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
                 <span class="material-symbols-outlined fs-6">download</span>
                 <span>Exportar CSV</span>

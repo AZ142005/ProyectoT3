@@ -23,7 +23,7 @@
         <div class="content">
             <span class="badge-success">✔ ¡Comprobante de Pago Aprobado!</span>
             <p>Estimado(a) residente <strong><?= e($nombreResidente ?? 'Residente') ?></strong>,</p>
-            <p>Le notificamos que su comprobante de pago por el monto de <strong>Bs. <?= e(number_format(floatval($monto ?? 0), 2)) ?></strong> ha sido verificado y aprobado satisfactoriamente por la administración.</p>
+            <p>Le notificamos que su comprobante de pago por el monto de <strong><?= e(formatearMoneda($monto ?? 0)) ?></strong> ha sido verificado y aprobado satisfactoriamente por la administración.</p>
             
             <div class="details">
                 <p style="margin:4px 0;"><strong>Referencia:</strong> <?= e($referencia ?? 'N/A') ?></p>

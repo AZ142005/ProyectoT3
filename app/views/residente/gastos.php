@@ -26,7 +26,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Gasto Total del Condominio</span>
-            <div class="text-2xl font-bold text-on-surface">Bs. <?= number_format($totalMes, 2) ?></div>
+            <div class="text-2xl font-bold text-on-surface"><?= e(formatearMoneda($totalMes)) ?></div>
             <p class="text-xs text-slate-500 mt-2">Suma de todos los gastos comunes aprobados.</p>
         </div>
 
@@ -38,7 +38,7 @@
 
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm border-l-4 border-l-primary">
             <span class="text-xs font-bold text-primary uppercase tracking-wide d-block mb-1">Cuota Alícuota por Unidad</span>
-            <div class="text-2xl font-bold text-primary">Bs. <?= number_format($alicuotaEstimada, 2) ?></div>
+            <div class="text-2xl font-bold text-primary"><?= e(formatearMoneda($alicuotaEstimada)) ?></div>
             <p class="text-xs text-slate-500 mt-2">Monto estimado correspondiente a su residencia.</p>
         </div>
     </div>
@@ -84,7 +84,7 @@
                                     <?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?>
                                 </td>
                                 <td class="py-3 px-3 text-end font-monospace font-bold text-on-surface">
-                                    Bs. <?= number_format($g['monto_total'], 2) ?>
+                                    <?= e(formatearMoneda($g['monto_total'])) ?>
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <?php if (!empty($g['soporte_digital'])): 
@@ -93,8 +93,8 @@
                                             'proveedor'        => $g['proveedor'],
                                             'descripcion'      => $g['descripcion'],
                                             'nro_factura'      => $g['nro_factura_proveedor'],
-                                            'monto_total'      => number_format($g['monto_total'], 2),
-                                            'cuota_estimada'   => number_format($cuotaUnidadGasto, 2),
+                                            'monto_total'      => formatearMonto($g['monto_total']),
+                                            'cuota_estimada'   => formatearMonto($cuotaUnidadGasto),
                                             'pagina_soporte'   => intval($g['pagina_soporte'] ?? 1),
                                             'extracto_texto'   => $g['extracto_texto'] ?? '',
                                             'archivo_url'      => '/uploads/soportes/' . $g['soporte_digital']

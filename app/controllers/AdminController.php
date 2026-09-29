@@ -17,7 +17,7 @@ class AdminController extends Controller {
         $comprobantesModel = new ComprobantesModel();
 
         $pendientes = $comprobantesModel->getPendientesVerificar(10) ?: [];
-        $procesados = $comprobantesModel->getProcesados(5) ?: [];
+        $procesados = $comprobantesModel->getProcesados(10) ?: [];
 
         $this->render('admin/dashboard', [
             'comprobantes_pendientes' => $pendientes,
@@ -73,6 +73,13 @@ class AdminController extends Controller {
         }
 
         $error = '';
+        $origen = $_POST['origen'] ?? ($_GET['from'] ?? '');
+        $urlRetorno = match($origen) {
+            'conciliacion' => '/admin/conciliacion',
+            'dashboard'    => '/admin/dashboard',
+            default        => '/admin/comprobantes',
+        };
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $accion = $_POST['accion'] ?? '';
             $observaciones = trim($_POST['observaciones'] ?? '');
@@ -80,14 +87,19 @@ class AdminController extends Controller {
             if ($accion === 'aprobar') {
                 if ($comprobantesModel->aprobar($id, $observaciones)) {
                     Flash::success("Comprobante aprobado exitosamente.");
-                    $this->redirect('/admin/comprobantes');
+                    $this->redirect($urlRetorno);
                 } else {
                     $error = "Error al intentar aprobar el comprobante.";
                 }
             } elseif ($accion === 'rechazar') {
+                if (empty($observaciones) || mb_strlen($observaciones) < 5) {
+                    Flash::error("Debe proporcionar un motivo de rechazo claro (mínimo 5 caracteres).");
+                    $redirectUrl = '/admin/comprobante/verificar?id=' . $id . (!empty($origen) ? '&from=' . urlencode($origen) : '');
+                    $this->redirect($redirectUrl);
+                }
                 if ($comprobantesModel->rechazar($id, $observaciones)) {
                     Flash::success("Comprobante rechazado exitosamente.");
-                    $this->redirect('/admin/comprobantes');
+                    $this->redirect($urlRetorno);
                 } else {
                     $error = "Error al intentar rechazar el comprobante.";
                 }

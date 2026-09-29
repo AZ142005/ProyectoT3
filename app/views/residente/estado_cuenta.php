@@ -36,7 +36,7 @@
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Saldo Actual Consolidado</span>
                     <div class="text-3xl font-bold font-monospace <?= $saldoActual > 0 ? 'text-red-600' : 'text-emerald-600' ?>">
-                        Bs. <?= number_format($saldoActual, 2) ?>
+                        <?= e(formatearMoneda($saldoActual)) ?>
                     </div>
                 </div>
                 <span class="text-xs font-bold px-3 py-1.5 rounded-full <?= $saldoActual > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700' ?>">
@@ -90,13 +90,13 @@
                                     <?= e($m['descripcion']) ?>
                                 </td>
                                 <td class="py-3 px-3 text-end font-mono font-bold <?= $m['tipo'] === 'abono_pago' ? 'text-emerald-600' : 'text-red-600' ?>">
-                                    <?= $m['tipo'] === 'abono_pago' ? '-' : '+' ?>Bs. <?= number_format($m['monto'], 2) ?>
+                                    <?= e(($m['tipo'] === 'abono_pago' ? '-' : '+') . formatearMoneda($m['monto'])) ?>
                                 </td>
                                 <td class="py-3 px-3 text-end font-mono text-slate-400">
-                                    Bs. <?= number_format($m['saldo_anterior'], 2) ?>
+                                    <?= e(formatearMoneda($m['saldo_anterior'])) ?>
                                 </td>
                                 <td class="py-3 px-3 text-end font-mono font-bold text-on-surface">
-                                    Bs. <?= number_format($m['saldo_posterior'], 2) ?>
+                                    <?= e(formatearMoneda($m['saldo_posterior'])) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -355,5 +355,99 @@ class ConciliacionTest extends TestCase {
         $this->assertTrue($service->sonBancosCoincidentes('mercantil', $pagoMercantil));
         $this->assertFalse($service->sonBancosCoincidentes('banesco', $pagoMercantil));
     }
+
+    public function testCruceInteligenteIncluyeArchivoYMetodoPago() {
+        $db = \App\Core\Database::getConnection();
+        $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        $unidad = $db->query("SELECT id FROM unidades LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        if (!$persona || !$unidad) {
+            $this->markTestSkipped("Datos insuficientes para prueba.");
+            return;
+        }
+
+        $resId = intval($persona['id']);
+        $uniId = intval($unidad['id']);
+        $ref = 'TESTCRUCE' . rand(1000, 9999);
+        $monto = 85.50;
+        $archivo = 'test_comprobante_' . uniqid() . '.jpg';
+
+        $fecha = date('Y-m-d');
+        $ins = $db->prepare("
+            INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, banco_receptor, archivo, estado)
+            VALUES (:residente_id, :unidad_id, :monto, :fecha, 'transferencia', :referencia, 'Banco de Venezuela', :archivo, 'PENDIENTE')
+        ");
+        $ins->execute([
+            'residente_id' => $resId,
+            'unidad_id'    => $uniId,
+            'monto'        => $monto,
+            'fecha'        => $fecha,
+            'referencia'   => $ref,
+            'archivo'      => $archivo
+        ]);
+        $pagoId = intval($db->lastInsertId());
+
+        try {
+            $service = new ConciliacionBancariaService();
+            $movimientos = [[
+                'id' => 999999,
+                'fecha_movimiento' => $fecha,
+                'descripcion_banco' => 'TRANSFERENCIA BDV ' . $ref,
+                'referencia_bancaria' => $ref,
+                'monto' => $monto,
+                'banco' => 'Banco de Venezuela',
+                'lote_importacion' => 'LOTE-TEST'
+            ]];
+
+            $resultado = $service->ejecutarCruceInteligente($movimientos);
+            $this->assertTrue(!empty($resultado['coincidencias_exactas']), "Debe existir coincidencia exacta");
+            $match = $resultado['coincidencias_exactas'][0];
+            $this->assertEquals($archivo, $match['pago']['archivo']);
+            $this->assertEquals('transferencia', $match['pago']['metodo_pago']);
+        } finally {
+            $db->prepare("DELETE FROM pagos WHERE id = :id")->execute(['id' => $pagoId]);
+        }
+    }
+
+    public function testRechazoPagoFlujoModel() {
+        $db = \App\Core\Database::getConnection();
+        $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        $unidad = $db->query("SELECT id FROM unidades LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+        if (!$persona || !$unidad) {
+            $this->markTestSkipped("Datos insuficientes para prueba.");
+            return;
+        }
+
+        $resId = intval($persona['id']);
+        $uniId = intval($unidad['id']);
+        $ref = 'RECHTEST' . rand(1000, 9999);
+        $monto = 50.00;
+        $archivo = 'recibo_rechazar.png';
+
+        $ins = $db->prepare("
+            INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, archivo, estado)
+            VALUES (:residente_id, :unidad_id, :monto, '2026-09-28', 'transferencia', :referencia, :archivo, 'PENDIENTE')
+        ");
+        $ins->execute([
+            'residente_id' => $resId,
+            'unidad_id'    => $uniId,
+            'monto'        => $monto,
+            'referencia'   => $ref,
+            'archivo'      => $archivo
+        ]);
+        $pagoId = intval($db->lastInsertId());
+
+        try {
+            $pagoModel = new \App\Models\PagoModel();
+            $motivo = "El comprobante no corresponde al titular ni a la referencia bancaria declarada.";
+            $ok = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, 1);
+            $this->assertTrue($ok);
+
+            $pagoActual = $pagoModel->obtenerPagoPorId($pagoId);
+            $this->assertEquals('RECHAZADO', $pagoActual['estado']);
+        } finally {
+            $db->prepare("DELETE FROM log_auditoria WHERE pago_id = :id")->execute(['id' => $pagoId]);
+            $db->prepare("DELETE FROM pagos WHERE id = :id")->execute(['id' => $pagoId]);
+        }
+    }
 }
 

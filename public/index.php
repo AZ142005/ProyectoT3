@@ -9,6 +9,7 @@ use App\Controllers\AuthController;
 use App\Controllers\EstructuraController;
 use App\Controllers\PagoController;
 use App\Controllers\ResidenteController;
+use App\Controllers\UsuarioAdminController;
 use App\Core\Auth;
 use App\Core\Router;
 use App\Core\Security;
@@ -177,11 +178,16 @@ $router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistr
 $router->post('/admin/solicitudes-registro/aprobar', [\App\Controllers\SolicitudesRegistroController::class, 'aprobar'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-registro/rechazar', [\App\Controllers\SolicitudesRegistroController::class, 'rechazar'], [UserRole::ADMIN]);
 
+// --- Módulo de Gestión de Usuarios y Reinicio de Contraseña (change-008) ---
+$router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/reiniciar-password', [UsuarioAdminController::class, 'reiniciarPassword'], [UserRole::ADMIN]);
+
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\ConciliacionController::class, 'conciliarLote'], [UserRole::ADMIN]);
+$router->post('/admin/conciliacion/rechazar', [\App\Controllers\ConciliacionController::class, 'rechazarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Cuentas Bancarias Autorizadas ---
 $router->get('/admin/cuentas-bancarias', [\App\Controllers\CuentaBancariaController::class, 'index'], [UserRole::ADMIN]);

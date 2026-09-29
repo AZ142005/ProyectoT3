@@ -66,13 +66,13 @@
                                 <td><?= e($f['descripcion'] ?? 'Cuota de Condominio') ?></td>
                                 <td><?= e($f['fecha_vencimiento'] ?? '') ?></td>
                                 <td style="text-align:center;"><?= e($f['dias_vencido'] ?? 0) ?> días</td>
-                                <td style="text-align:right; font-weight:bold; color:#dc2626;">Bs. <?= number_format(floatval($f['saldo'] ?? 0), 2) ?></td>
+                                <td style="text-align:right; font-weight:bold; color:#dc2626;"><?= e(formatearMoneda($f['saldo'] ?? 0)) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                     <tr class="total-row">
                         <td colspan="3" style="text-align:right; font-weight:bold;">TOTAL GENERAL ADEUDADO:</td>
-                        <td style="text-align:right; font-weight:bold; color:#dc2626; font-size:14px;">Bs. <?= number_format(floatval($totalDeuda ?? 0), 2) ?></td>
+                        <td style="text-align:right; font-weight:bold; color:#dc2626; font-size:14px;"><?= e(formatearMoneda($totalDeuda ?? 0)) ?></td>
                     </tr>
                 </tbody>
             </table>

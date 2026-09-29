@@ -67,7 +67,10 @@ class ConciliacionController extends Controller {
         if (function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
+            if (\PHP_VERSION_ID < 80500 && \is_resource($finfo)) {
+                @finfo_close($finfo);
+            }
+            unset($finfo);
             if (!in_array($mime, ['text/csv', 'text/plain', 'text/comma-separated-values', 'application/octet-stream', 'text/x-csv', 'application/pdf', 'application/x-pdf'], true)) {
                 Flash::set('danger', 'El contenido del archivo no corresponde a un extracto bancario válido.');
                 $this->redirect('/admin/conciliacion');
@@ -174,6 +177,51 @@ class ConciliacionController extends Controller {
         } catch (\Exception $e) {
             error_log("[CONCILIACION] Error conciliacion masiva: " . $e->getMessage());
             Flash::set('danger', 'Error durante la conciliación masiva de extractos.');
+        }
+
+        $this->redirect('/admin/conciliacion');
+    }
+
+    /**
+     * Rechaza un pago reportado desde la pantalla de conciliación con motivo obligatorio.
+     */
+    public function rechazarPago() {
+        Auth::requireRole('admin');
+
+        $pagoId = intval($_POST['pago_id'] ?? 0);
+        $origenTipo = trim($_POST['origen_tipo'] ?? 'pago');
+        $motivo = trim($_POST['motivo'] ?? '');
+        $adminId = Auth::id() ?? 1;
+
+        if ($pagoId <= 0) {
+            Flash::set('danger', 'Identificador de pago inválido.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        if (empty($motivo) || mb_strlen($motivo) < 5) {
+            Flash::set('danger', 'Debe proporcionar un motivo de rechazo claro (mínimo 5 caracteres).');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        try {
+            if ($origenTipo === 'comprobante') {
+                $compModel = new \App\Models\ComprobantesModel();
+                $ok = $compModel->rechazar($pagoId, $motivo);
+            } else {
+                $pagoModel = new \App\Models\PagoModel();
+                $ok = $pagoModel->cambiarEstado($pagoId, \App\Core\EstadoPago::RECHAZADO, $motivo, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
+            }
+
+            if ($ok) {
+                Flash::set('success', 'Pago rechazado exitosamente.');
+            } else {
+                Flash::set('danger', 'No se pudo rechazar el pago.');
+            }
+        } catch (\Exception $e) {
+            error_log("[CONCILIACION] Error al rechazar pago: " . $e->getMessage());
+            Flash::set('danger', 'Error al procesar el rechazo del pago: ' . $e->getMessage());
         }
 
         $this->redirect('/admin/conciliacion');

@@ -183,21 +183,45 @@
                                                 <?= e($match['extracto']['referencia_bancaria']) ?>
                                             </td>
                                             <td class="text-end font-monospace fw-bold text-dark">
-                                                Bs. <?= number_format($match['extracto']['monto'], 2) ?>
+                                                <?= e(formatearMoneda($match['extracto']['monto'])) ?>
                                             </td>
                                             <td class="text-center">
                                                 <span class="badge bg-success rounded-pill px-3 py-1">100% Exacto</span>
                                             </td>
-                                            <td class="text-end pe-4">
-                                                <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
-                                                    <?= csrf_field() ?>
-                                                    <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
-                                                    <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
-                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                    <button type="submit" class="btn btn-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1">
-                                                        <span class="material-symbols-outlined fs-6">check</span> Conciliar
+                                            <td class="text-end pe-4 text-nowrap">
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                                                            onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                            title="Ver Detalle y Comprobante">
+                                                        <span class="material-symbols-outlined fs-6">visibility</span>
+                                                        <span class="d-none d-xl-inline">Detalles</span>
                                                     </button>
-                                                </form>
+                                                    <?php if (!empty($match['pago']['archivo'])): ?>
+                                                        <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
+                                                           download="<?= e($match['pago']['archivo']) ?>"
+                                                           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center"
+                                                           title="Descargar Comprobante">
+                                                            <span class="material-symbols-outlined fs-6">download</span>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
+                                                        <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
+                                                        <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
+                                                        <button type="submit" class="btn btn-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1"
+                                                                onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');"
+                                                                title="Aprobar y Conciliar">
+                                                            <span class="material-symbols-outlined fs-6">check</span>
+                                                            <span class="d-none d-md-inline">Conciliar</span>
+                                                        </button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
+                                                            onclick="abrirModalRechazo(<?= (int)$match['pago']['id'] ?>, '<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($match['pago']['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($match['pago']['referencia'] ?? 'S/R')) ?>')"
+                                                            title="Rechazar Pago">
+                                                        <span class="material-symbols-outlined fs-6">cancel</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -248,23 +272,47 @@
                                                 <span class="text-muted">Res:</span> <strong><?= e($match['pago']['referencia']) ?></strong>
                                             </td>
                                             <td class="text-end font-monospace fw-bold">
-                                                Bs. <?= number_format($match['extracto']['monto'], 2) ?>
+                                                <?= e(formatearMoneda($match['extracto']['monto'])) ?>
                                             </td>
                                             <td class="text-center">
                                                 <span class="badge bg-warning text-dark rounded-pill px-3 py-1">
                                                     <?= e($match['similitud']) ?>% Similitud
                                                 </span>
                                             </td>
-                                            <td class="text-end pe-4">
-                                                <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
-                                                    <?= csrf_field() ?>
-                                                    <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
-                                                    <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
-                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold" onclick="return confirm('¿Confirmar conciliación sugerida por similitud difusa?');">
-                                                        Aprobar Cruce
+                                            <td class="text-end pe-4 text-nowrap">
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                                                            onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                            title="Ver Detalle y Comprobante">
+                                                        <span class="material-symbols-outlined fs-6">visibility</span>
+                                                        <span class="d-none d-xl-inline">Detalles</span>
                                                     </button>
-                                                </form>
+                                                    <?php if (!empty($match['pago']['archivo'])): ?>
+                                                        <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
+                                                           download="<?= e($match['pago']['archivo']) ?>"
+                                                           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center"
+                                                           title="Descargar Comprobante">
+                                                            <span class="material-symbols-outlined fs-6">download</span>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
+                                                        <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
+                                                        <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
+                                                        <button type="submit" class="btn btn-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1"
+                                                                onclick="return confirm('¿Confirmar conciliación sugerida por similitud difusa?');"
+                                                                title="Aprobar Cruce Sugerido">
+                                                            <span class="material-symbols-outlined fs-6">check</span>
+                                                            <span class="d-none d-md-inline">Aprobar Cruce</span>
+                                                        </button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
+                                                            onclick="abrirModalRechazo(<?= (int)$match['pago']['id'] ?>, '<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($match['pago']['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($match['pago']['referencia'] ?? 'S/R')) ?>')"
+                                                            title="Rechazar Pago">
+                                                        <span class="material-symbols-outlined fs-6">cancel</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -301,7 +349,7 @@
                                             <td class="ps-4 small text-muted"><?= date('d/m/Y', strtotime($inc['extracto']['fecha_movimiento'])) ?></td>
                                             <td><?= e($inc['extracto']['banco']) ?> - <?= e(substr($inc['extracto']['descripcion_banco'], 0, 40)) ?></td>
                                             <td class="font-monospace fw-bold text-danger"><?= e($inc['extracto']['referencia_bancaria'] ?: 'N/A') ?></td>
-                                            <td class="text-end font-monospace">Bs. <?= number_format($inc['extracto']['monto'], 2) ?></td>
+                                            <td class="text-end font-monospace"><?= e(formatearMoneda($inc['extracto']['monto'])) ?></td>
                                             <td>
                                                 <span class="badge bg-danger rounded-pill px-3 py-1"><?= e($inc['motivo']) ?></span>
                                             </td>
@@ -349,7 +397,7 @@
                                                 <?= e($sc['extracto']['referencia_bancaria'] ?: ($sc['extracto']['referencia'] ?? 'N/A')) ?>
                                             </td>
                                             <td class="text-end font-monospace fw-bold text-dark">
-                                                Bs. <?= number_format($sc['extracto']['monto'], 2) ?>
+                                                <?= e(formatearMoneda($sc['extracto']['monto'])) ?>
                                             </td>
                                             <td class="text-center">
                                                 <span class="badge bg-secondary rounded-pill px-3 py-1">Sin Pago Pendiente</span>
@@ -413,6 +461,214 @@
         </div>
     </div>
 
+<!-- Modal Ventana de Detalles de Pago en Conciliación -->
+<div class="modal fade" id="modalDetallePago" tabindex="-1" aria-labelledby="modalDetallePagoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-dark text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined fs-4 text-primary">receipt_long</span>
+                    <h5 class="modal-title fw-bold mb-0" id="modalDetallePagoLabel">Detalle del Pago #<span id="mdlPagoId"></span></h5>
+                    <span id="mdlEstadoBadge" class="badge bg-warning text-dark ms-2">PENDIENTE</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="row g-4">
+                    <!-- Columna Izquierda: Información Financiera y Cruce -->
+                    <div class="col-lg-6">
+                        <!-- Comparativa Banco vs Residente -->
+                        <div class="card border-0 shadow-sm rounded-3 mb-3">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted border-bottom d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6 text-primary">compare_arrows</span>
+                                Comparativa: Extracto Bancario vs Pago
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead class="table-light small">
+                                            <tr>
+                                                <th>Campo</th>
+                                                <th class="text-primary">Extracto Bancario</th>
+                                                <th class="text-success">Pago Reportado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="small">
+                                            <tr>
+                                                <td class="fw-bold text-muted">Monto</td>
+                                                <td class="fw-bold text-dark font-monospace" id="mdlExtMonto">-</td>
+                                                <td class="fw-bold text-success font-monospace" id="mdlPagoMonto">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold text-muted">Referencia</td>
+                                                <td class="fw-bold text-dark font-monospace" id="mdlExtRef">-</td>
+                                                <td class="fw-bold text-primary font-monospace" id="mdlPagoRef">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold text-muted">Fecha</td>
+                                                <td id="mdlExtFecha">-</td>
+                                                <td id="mdlPagoFecha">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold text-muted">Banco / Canal</td>
+                                                <td id="mdlExtBanco">-</td>
+                                                <td id="mdlPagoBanco">-</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ficha de Datos del Residente e Inmueble -->
+                        <div class="card border-0 shadow-sm rounded-3 mb-3">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted border-bottom d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6 text-primary">person</span>
+                                Información del Residente e Inmueble
+                            </div>
+                            <div class="card-body p-3 small">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <span class="text-muted d-block">Residente:</span>
+                                        <strong class="text-dark" id="mdlResidente">-</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="text-muted d-block">Cédula:</span>
+                                        <strong class="text-dark" id="mdlCedula">-</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="text-muted d-block">Inmueble / Unidad:</span>
+                                        <strong class="text-dark" id="mdlUnidad">-</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="text-muted d-block">Método de Pago:</span>
+                                        <strong class="text-dark text-uppercase" id="mdlMetodo">-</strong>
+                                    </div>
+                                    <div class="col-12" id="mdlFacturaWrapper" style="display: none;">
+                                        <div class="bg-blue-50 border border-blue-200 rounded p-2 text-primary small">
+                                            <strong>Factura Relacionada:</strong> #<span id="mdlFacturaNumero">-</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12" id="mdlObsWrapper" style="display: none;">
+                                        <span class="text-muted d-block">Observaciones del Residente:</span>
+                                        <div class="p-2 bg-light rounded text-muted fst-italic" id="mdlObservaciones"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Vista Previa y Descarga de Comprobante -->
+                    <div class="col-lg-6">
+                        <div class="card border-0 shadow-sm rounded-3 h-100 d-flex flex-column">
+                            <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small text-uppercase text-muted d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6 text-primary">attach_file</span>
+                                    Comprobante Adjunto
+                                </span>
+                                <a id="mdlBtnDescargar" href="#" download="" class="btn btn-sm btn-primary fw-bold d-inline-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6">download</span>
+                                    Descargar Comprobante
+                                </a>
+                            </div>
+                            <div class="card-body p-3 flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white" style="min-height: 350px;">
+                                <!-- Contenedor Imagen -->
+                                <div id="mdlPreviewImgContainer" class="w-100 text-center" style="display: none;">
+                                    <img id="mdlImgPreview" src="" alt="Comprobante de pago" class="img-fluid rounded border shadow-sm" style="max-height: 400px; object-fit: contain;">
+                                </div>
+                                <!-- Contenedor PDF -->
+                                <div id="mdlPreviewPdfContainer" class="w-100 h-100" style="display: none; min-height: 400px;">
+                                    <iframe id="mdlPdfPreview" src="" class="w-100 h-100 rounded border" style="min-height: 400px;"></iframe>
+                                </div>
+                                <!-- Sin Archivo -->
+                                <div id="mdlSinArchivoContainer" class="text-center text-muted p-4" style="display: none;">
+                                    <span class="material-symbols-outlined display-4 text-muted mb-2">attachment</span>
+                                    <p class="mb-0 fw-semibold">No se adjuntó archivo de comprobante para este pago.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top py-3 d-flex justify-content-between flex-wrap gap-2">
+                <a id="mdlLinkPantallaCompleta" href="#" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">open_in_new</span>
+                    Ver Pantalla Completa de Detalle
+                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-light btn-sm fw-bold border" data-bs-dismiss="modal">Cerrar</button>
+                    <!-- Formulario Conciliar / Aprobar dentro del modal -->
+                    <form id="mdlFormConciliar" method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="extracto_id" id="mdlInputExtractoId" value="">
+                        <input type="hidden" name="pago_id" id="mdlInputPagoId" value="">
+                        <input type="hidden" name="origen_tipo" id="mdlInputOrigenTipo" value="pago">
+                        <button type="submit" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1"
+                                onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
+                            <span class="material-symbols-outlined fs-6">check</span>
+                            Conciliar y Aprobar
+                        </button>
+                    </form>
+                    <!-- Botón Rechazar dentro del Modal -->
+                    <button type="button" id="mdlBtnRechazarModal" class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">cancel</span>
+                        Rechazar Pago
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Rechazar Pago con Motivo Obligatorio -->
+<div class="modal fade" id="modalRechazarConciliacion" tabindex="-1" aria-labelledby="modalRechazarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <form method="POST" action="/admin/conciliacion/rechazar" id="formRechazarConciliacion">
+                <?= csrf_field() ?>
+                <input type="hidden" name="pago_id" id="rechazoModalPagoId" value="">
+                <input type="hidden" name="origen_tipo" id="rechazoModalOrigenTipo" value="pago">
+
+                <div class="modal-header bg-danger text-white py-3">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalRechazarLabel">
+                        <span class="material-symbols-outlined">cancel</span>
+                        Rechazar Pago
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger-subtle border border-danger-subtle text-danger mb-3 py-2 px-3 small rounded-3">
+                        El pago será marcado como <strong>RECHAZADO</strong> y se notificará de inmediato al residente con el motivo especificado.
+                    </div>
+                    
+                    <div class="mb-3 small">
+                        <span class="text-muted d-block">Residente:</span>
+                        <strong id="rechazoModalResidente" class="text-dark">-</strong>
+                        <span class="text-muted d-block mt-1">Referencia:</span>
+                        <strong id="rechazoModalReferencia" class="text-dark font-monospace">-</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rechazoMotivo" class="form-label fw-bold small text-muted text-uppercase">
+                            Motivo de Rechazo <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="rechazoMotivo" name="motivo" rows="3" required minlength="5"
+                                  placeholder="Indique el motivo claro del rechazo (mínimo 5 caracteres)..."></textarea>
+                        <div class="form-text small text-muted">Mínimo 5 caracteres. Este texto será visible para el residente.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">gavel</span>
+                        Confirmar Rechazo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <form id="formLoteExactas" method="POST" action="/admin/conciliacion/conciliar-lote" class="d-none">
     <?= csrf_field() ?>
     <input type="hidden" name="items_json" id="itemsJsonInput" value="">
@@ -431,5 +687,110 @@
 
         document.getElementById('itemsJsonInput').value = JSON.stringify(items);
         document.getElementById('formLoteExactas').submit();
+    }
+
+    function verDetalleConciliacion(match) {
+        const ext = match.extracto || {};
+        const pago = match.pago || {};
+        const isComp = (pago.origen_tabla === 'comprobante');
+
+        document.getElementById('mdlPagoId').textContent = String(pago.id || 0).padStart(6, '0');
+        document.getElementById('mdlEstadoBadge').textContent = (pago.estado || 'PENDIENTE').toUpperCase();
+
+        // Comparativa
+        document.getElementById('mdlExtMonto').textContent = 'Bs. ' + Number(ext.monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2});
+        document.getElementById('mdlPagoMonto').textContent = 'Bs. ' + Number(pago.monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2});
+        document.getElementById('mdlExtRef').textContent = ext.referencia_bancaria || ext.referencia || 'N/A';
+        document.getElementById('mdlPagoRef').textContent = pago.referencia || 'S/R';
+        document.getElementById('mdlExtFecha').textContent = ext.fecha_movimiento || '-';
+        document.getElementById('mdlPagoFecha').textContent = pago.fecha_pago || '-';
+        document.getElementById('mdlExtBanco').textContent = ext.banco || '-';
+        document.getElementById('mdlPagoBanco').textContent = (pago.banco_pagador || pago.banco_origen || 'No especificado');
+
+        // Residente
+        document.getElementById('mdlResidente').textContent = pago.residente_nombre || 'Residente';
+        document.getElementById('mdlCedula').textContent = pago.residente_cedula || 'N/A';
+        document.getElementById('mdlUnidad').textContent = (pago.edificio_nombre ? pago.edificio_nombre + ' - ' : '') + 'Unidad ' + (pago.unidad_numero || 'S/N');
+        document.getElementById('mdlMetodo').textContent = (pago.metodo_pago || 'Transferencia').replace('_', ' ');
+
+        // Factura
+        const factWrap = document.getElementById('mdlFacturaWrapper');
+        if (pago.numero_factura || pago.factura_id) {
+            factWrap.style.display = 'block';
+            document.getElementById('mdlFacturaNumero').textContent = pago.numero_factura || pago.factura_id;
+        } else {
+            factWrap.style.display = 'none';
+        }
+
+        // Observaciones
+        const obsWrap = document.getElementById('mdlObsWrapper');
+        if (pago.observaciones && pago.observaciones.trim() !== '') {
+            obsWrap.style.display = 'block';
+            document.getElementById('mdlObservaciones').textContent = pago.observaciones;
+        } else {
+            obsWrap.style.display = 'none';
+        }
+
+        // Archivo / Comprobante
+        const archivo = pago.archivo || '';
+        const imgContainer = document.getElementById('mdlPreviewImgContainer');
+        const pdfContainer = document.getElementById('mdlPreviewPdfContainer');
+        const sinContainer = document.getElementById('mdlSinArchivoContainer');
+        const btnDescargar = document.getElementById('mdlBtnDescargar');
+
+        imgContainer.style.display = 'none';
+        pdfContainer.style.display = 'none';
+        sinContainer.style.display = 'none';
+
+        if (archivo) {
+            btnDescargar.style.display = 'inline-flex';
+            btnDescargar.href = '/comprobante-proxy.php?file=' + encodeURIComponent(archivo) + '&download=1';
+            btnDescargar.download = archivo;
+
+            const extension = archivo.split('.').pop().toLowerCase();
+            if (extension === 'pdf') {
+                pdfContainer.style.display = 'block';
+                document.getElementById('mdlPdfPreview').src = '/comprobante-proxy.php?file=' + encodeURIComponent(archivo);
+            } else {
+                imgContainer.style.display = 'block';
+                document.getElementById('mdlImgPreview').src = '/comprobante-proxy.php?file=' + encodeURIComponent(archivo);
+            }
+        } else {
+            btnDescargar.style.display = 'none';
+            sinContainer.style.display = 'block';
+        }
+
+        // Formulario de Conciliación dentro del modal
+        document.getElementById('mdlInputExtractoId').value = ext.id || 0;
+        document.getElementById('mdlInputPagoId').value = pago.id || 0;
+        document.getElementById('mdlInputOrigenTipo').value = pago.origen_tabla || 'pago';
+
+        // Link a pantalla completa
+        const detailUrl = isComp 
+            ? '/admin/comprobante/verificar?id=' + pago.id + '&from=conciliacion'
+            : '/pagos/detalle/' + pago.id + '?from=conciliacion';
+        document.getElementById('mdlLinkPantallaCompleta').href = detailUrl;
+
+        // Configurar botón Rechazar dentro del modal de detalle
+        document.getElementById('mdlBtnRechazarModal').onclick = function() {
+            const modalDetalle = bootstrap.Modal.getInstance(document.getElementById('modalDetallePago'));
+            if (modalDetalle) modalDetalle.hide();
+            abrirModalRechazo(pago.id, pago.origen_tabla || 'pago', pago.residente_nombre, pago.referencia);
+        };
+
+        // Abrir modal
+        const modal = new bootstrap.Modal(document.getElementById('modalDetallePago'));
+        modal.show();
+    }
+
+    function abrirModalRechazo(pagoId, origenTipo, residenteNombre, referencia) {
+        document.getElementById('rechazoModalPagoId').value = pagoId;
+        document.getElementById('rechazoModalOrigenTipo').value = origenTipo;
+        document.getElementById('rechazoModalResidente').textContent = residenteNombre || 'Residente';
+        document.getElementById('rechazoModalReferencia').textContent = referencia || 'S/R';
+        document.getElementById('rechazoMotivo').value = '';
+
+        const modal = new bootstrap.Modal(document.getElementById('modalRechazarConciliacion'));
+        modal.show();
     }
 </script>

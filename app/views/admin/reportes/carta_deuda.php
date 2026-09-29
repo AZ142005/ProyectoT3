@@ -105,7 +105,7 @@
                                     <td><?= e($f['mes']) ?>/<?= e($f['anio']) ?></td>
                                     <td><?= e(date('d/m/Y', strtotime($f['fecha_vencimiento']))) ?></td>
                                     <td class="text-center text-danger fw-bold"><?= e($f['dias_mora']) ?> días</td>
-                                    <td class="text-end font-monospace fw-bold text-danger">Bs. <?= number_format(floatval($f['saldo']), 2) ?></td>
+                                    <td class="text-end font-monospace fw-bold text-danger"><?= e(formatearMoneda($f['saldo'])) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -113,7 +113,7 @@
                     <tfoot>
                         <tr class="table-light">
                             <td colspan="4" class="text-end fw-bold fs-6">TOTAL GENERAL ADEUDADO:</td>
-                            <td class="text-end font-monospace fw-bold fs-5 text-danger">Bs. <?= number_format(floatval($totalDeuda), 2) ?></td>
+                            <td class="text-end font-monospace fw-bold fs-5 text-danger"><?= e(formatearMoneda($totalDeuda)) ?></td>
                         </tr>
                     </tfoot>
                 </table>

@@ -117,7 +117,7 @@ class RbacAuthorizationTest extends TestCase {
         $adminControllers = [
             'AdminController.php'              => ['dashboard', 'listarComprobantes', 'verificarComprobante', 'generarFacturas'],
             'SolicitudesRegistroController.php' => ['index', 'aprobar', 'rechazar'],
-            'ConciliacionController.php'       => ['index', 'importarExtracto', 'conciliarPago', 'conciliarLote'],
+            'ConciliacionController.php'       => ['index', 'importarExtracto', 'conciliarPago', 'conciliarLote', 'rechazarPago'],
             'EstructuraController.php'         => ['index', 'guardarEdificio', 'toggleEdificio', 'guardarUnidad', 'toggleUnidad', 'guardarResidente', 'desvincularResidente'],
             'EstacionamientoController.php'    => ['index', 'guardar', 'asignar', 'eliminar', 'guardarVehiculo', 'eliminarVehiculo'],
             'ReporteController.php'            => ['morosidad', 'imprimirMorosidad', 'exportarCsv', 'generarCartaDeuda', 'enviarAvisoCobro'],

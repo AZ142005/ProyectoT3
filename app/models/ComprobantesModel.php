@@ -51,20 +51,23 @@ class ComprobantesModel extends BaseModel {
         
         $sql = "
             INSERT INTO comprobantes_pago 
-            (residente_id, factura_id, monto, metodo_pago, referencia, fecha_pago, archivo, observaciones) 
-            VALUES (:residente_id, :factura_id, :monto, :metodo_pago, :referencia, :fecha_pago, :archivo, :observaciones)
+            (residente_id, factura_id, monto, metodo_pago, banco_pagador, banco_receptor, cuenta_bancaria_id, referencia, fecha_pago, archivo, observaciones) 
+            VALUES (:residente_id, :factura_id, :monto, :metodo_pago, :banco_pagador, :banco_receptor, :cuenta_bancaria_id, :referencia, :fecha_pago, :archivo, :observaciones)
         ";
         
         $stmt = $db->prepare($sql);
         $ok = $stmt->execute([
-            'residente_id'  => $data['residente_id'],
-            'factura_id'    => $data['factura_id'],
-            'monto'         => $data['monto'],
-            'metodo_pago'   => $data['metodo_pago'],
-            'referencia'    => $data['referencia'],
-            'fecha_pago'    => $data['fecha_pago'],
-            'archivo'       => $data['archivo'],
-            'observaciones' => $data['observaciones']
+            'residente_id'       => $data['residente_id'],
+            'factura_id'         => $data['factura_id'],
+            'monto'              => $data['monto'],
+            'metodo_pago'        => $data['metodo_pago'],
+            'banco_pagador'      => !empty($data['banco_pagador']) ? trim($data['banco_pagador']) : null,
+            'banco_receptor'     => !empty($data['banco_receptor']) ? trim($data['banco_receptor']) : null,
+            'cuenta_bancaria_id' => !empty($data['cuenta_bancaria_id']) ? (int)$data['cuenta_bancaria_id'] : null,
+            'referencia'         => $data['referencia'],
+            'fecha_pago'         => $data['fecha_pago'],
+            'archivo'            => $data['archivo'],
+            'observaciones'      => $data['observaciones']
         ]);
         return $ok ? (string) $db->lastInsertId() : false;
     }
@@ -124,16 +127,19 @@ class ComprobantesModel extends BaseModel {
      * @param int $limit
      * @return array
      */
-    public function getProcesados($limit = 5) {
+    public function getProcesados($limit = 10) {
         $db = $this->db();
         
         $sql = "
             SELECT 
                 c.*,
                 f.numero_factura,
-                CONCAT(p.nombre, ' ', p.apellido) as residente
+                u.numero as unidad,
+                CONCAT(p.nombre, ' ', p.apellido) as residente,
+                p.cedula
             FROM comprobantes_pago c
             INNER JOIN facturas f ON c.factura_id = f.id
+            LEFT JOIN unidades u ON f.unidad_id = u.id
             INNER JOIN personas p ON c.residente_id = p.id
             WHERE c.estado IN ('aprobado', 'rechazado')
             ORDER BY c.fecha_envio DESC
@@ -250,8 +256,8 @@ class ComprobantesModel extends BaseModel {
                 return false;
             }
 
-            // Bloquear la factura asociada para evitar deducción concurrente del saldo
-            $stmtFacturaLock = $db->prepare("SELECT id, saldo, monto_pagado FROM facturas WHERE id = :factura_id FOR UPDATE");
+            // Bloquear la factura asociada para obtener la unidad
+            $stmtFacturaLock = $db->prepare("SELECT id, unidad_id, saldo, monto_pagado FROM facturas WHERE id = :factura_id FOR UPDATE");
             $stmtFacturaLock->execute(['factura_id' => $comprobante['factura_id']]);
             $factura = $stmtFacturaLock->fetch(PDO::FETCH_ASSOC);
 
@@ -259,47 +265,24 @@ class ComprobantesModel extends BaseModel {
                 $db->rollBack();
                 return false;
             }
-            
-            $nuevo_saldo = max($factura['saldo'] - $comprobante['monto'], 0);
-            $nuevo_pagado = $factura['monto_pagado'] + $comprobante['monto'];
-            $saldoAFavor = $comprobante['monto'] - $factura['saldo'];
-            
-            // Actualizar saldo de factura
-            $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = :monto_pagado, estado = :estado WHERE id = :factura_id");
-            $stmtFactura->execute([
-                'saldo'       => $nuevo_saldo,
-                'monto_pagado'=> $nuevo_pagado,
-                'estado'      => $nuevo_saldo <= 0 ? 'pagada' : 'pendiente',
-                'factura_id'  => $comprobante['factura_id']
-            ]);
 
-            // 6B.5: Si hay saldo a favor, aplicar automáticamente a la siguiente factura pendiente
-            if ($saldoAFavor > 0.01 && !empty($comprobante['residente_id'])) {
-                $stmtSigiente = $db->prepare(
-                    "SELECT f.id, f.saldo FROM facturas f
-                     INNER JOIN unidades u ON f.unidad_id = u.id
-                     WHERE u.propietario_id = :pid AND f.saldo > 0 AND f.id != :factura_id
-                     AND f.deleted_at IS NULL
-                     ORDER BY f.fecha_vencimiento ASC LIMIT 1"
-                );
-                $stmtSigiente->execute(['pid' => $comprobante['residente_id'], 'factura_id' => $comprobante['factura_id']]);
-                $siguienteFactura = $stmtSigiente->fetch(PDO::FETCH_ASSOC);
+            $unidadId = intval($factura['unidad_id']);
+            $montoComprobante = floatval($comprobante['monto']);
 
-                if ($siguienteFactura && $saldoAFavor > 0.01) {
-                    $abono = min($saldoAFavor, $siguienteFactura['saldo']);
-                    $nuevoSaldoSig = $siguienteFactura['saldo'] - $abono;
-                    $stmtAbono = $db->prepare(
-                        "UPDATE facturas SET saldo = :saldo, monto_pagado = monto_pagado + :abono,
-                         estado = :estado WHERE id = :fid"
-                    );
-                    $stmtAbono->execute([
-                        'saldo'   => $nuevoSaldoSig,
-                        'abono'   => $abono,
-                        'estado'  => $nuevoSaldoSig <= 0 ? 'pagada' : 'pendiente',
-                        'fid'     => $siguienteFactura['id']
-                    ]);
-                }
-            }
+            // Liquidación en cascada y generación de saldo a favor
+            $liquidacionService = new \App\Services\LiquidacionPagoService();
+            $refTexto = !empty($comprobante['referencia']) ? "Ref. " . $comprobante['referencia'] : "Comprobante #{$id}";
+            $resumenLiq = $liquidacionService->aplicarPagoAUnidad(
+                $db,
+                $unidadId,
+                $montoComprobante,
+                $refTexto,
+                $id
+            );
+
+            // Contexto contable para trazabilidad y compatibilidad de auditoría
+            $saldoAFavor = $resumenLiq['saldo_a_favor_generado'];
+            $siguienteFactura = count($resumenLiq['facturas_afectadas']) > 1 ? $resumenLiq['facturas_afectadas'][1] : null;
             
             // Actualizar comprobante
             $stmtComprobante = $db->prepare("UPDATE comprobantes_pago SET estado = 'aprobado', observaciones = :observaciones WHERE id = :id");

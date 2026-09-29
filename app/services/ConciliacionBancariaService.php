@@ -402,11 +402,11 @@ class ConciliacionBancariaService {
                    p.id, p.unidad_id, p.monto, p.fecha_pago, p.referencia,
                    p.banco_pagador AS banco_origen, COALESCE(p.banco_receptor, cb.banco) AS banco_destino,
                    p.banco_pagador, COALESCE(p.banco_receptor, cb.banco) AS banco_receptor, p.estado,
-                   p.observaciones,
+                   p.observaciones, p.archivo, p.metodo_pago,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
                    per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
-                   NULL AS factura_id
+                   NULL AS factura_id, NULL AS numero_factura
             FROM pagos p
             LEFT JOIN unidades u ON p.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
@@ -420,11 +420,11 @@ class ConciliacionBancariaService {
                    c.id, f.unidad_id, c.monto, c.fecha_pago, c.referencia,
                    NULL AS banco_origen, NULL AS banco_destino,
                    NULL AS banco_pagador, NULL AS banco_receptor, c.estado,
-                   c.observaciones,
+                   c.observaciones, c.archivo, c.metodo_pago,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
                    per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
-                   c.factura_id
+                   c.factura_id, f.numero_factura
             FROM comprobantes_pago c
             LEFT JOIN facturas f ON c.factura_id = f.id
             LEFT JOIN unidades u ON f.unidad_id = u.id
@@ -857,20 +857,17 @@ class ConciliacionBancariaService {
         $stmtUpdatePago = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
         $stmtUpdatePago->execute(['id' => $pagoId]);
 
-        // Descontar saldo de la factura asociada
+        // Liquidar facturas en cascada, registrar en libro mayor y generar saldo a favor si hay remanente
         if (!empty($pago['unidad_id'])) {
-            $stmtFactura = $db->prepare("
-                SELECT id, saldo FROM facturas 
-                WHERE unidad_id = :uid AND estado = 'PENDIENTE' AND deleted_at IS NULL
-                ORDER BY anio ASC, mes ASC LIMIT 1 FOR UPDATE
-            ");
-            $stmtFactura->execute(['uid' => $pago['unidad_id']]);
-            $factura = $stmtFactura->fetch(PDO::FETCH_ASSOC);
-            if ($factura) {
-                $nuevoSaldo = round(max(0, floatval($factura['saldo']) - floatval($pago['monto'])), 2);
-                $stmtSaldo = $db->prepare("UPDATE facturas SET saldo = :saldo WHERE id = :fid");
-                $stmtSaldo->execute(['saldo' => $nuevoSaldo, 'fid' => $factura['id']]);
-            }
+            $liquidacionService = new LiquidacionPagoService();
+            $refTexto = "Conciliación bancaria Ref. " . ($pago['referencia'] ?? $pagoId);
+            $liquidacionService->aplicarPagoAUnidad(
+                $db,
+                intval($pago['unidad_id']),
+                floatval($pago['monto']),
+                $refTexto,
+                $pagoId
+            );
         }
 
         // Registrar en log de auditoría
@@ -888,18 +885,6 @@ class ConciliacionBancariaService {
         // Vincular en extractos_bancarios
         $conciliacionModel = new ConciliacionModel();
         $conciliacionModel->marcarConciliado($extracto['id'], $pagoId, $adminId);
-
-        // Registrar abono en el libro mayor de la unidad
-        if (!empty($pago['unidad_id'])) {
-            $movimientosModel = new MovimientosModel();
-            $movimientosModel->registrarMovimiento(
-                intval($pago['unidad_id']),
-                'abono_pago',
-                floatval($pago['monto']),
-                "Abono por pago conciliado Ref. " . $pago['referencia'],
-                $pagoId
-            );
-        }
 
         $this->enviarNotificacionConciliacion($pago, $extracto);
 
@@ -919,35 +904,39 @@ class ConciliacionBancariaService {
             return;
         }
 
-        $emailService = new EmailService();
-        $notifService = new NotificationService();
+        try {
+            $emailService = new EmailService();
+            $notifService = new NotificationService();
 
-        $cuerpoHtml = $emailService->renderTemplate('pago_aprobado', [
-            'nombreResidente' => $pago['residente_nombre'] ?: 'Estimado Residente',
-            'referencia'      => $pago['referencia'],
-            'monto'           => $pago['monto'],
-            'fechaPago'       => date('d/m/Y', strtotime($pago['fecha_pago'])),
-            'bancoOrigen'     => $pago['banco_origen'] ?? $extracto['banco'] ?? 'Transferencia Bancaria'
-        ]);
+            $cuerpoHtml = $emailService->renderTemplate('pago_aprobado', [
+                'nombreResidente' => $pago['residente_nombre'] ?: 'Estimado Residente',
+                'referencia'      => $pago['referencia'],
+                'monto'           => $pago['monto'],
+                'fechaPago'       => date('d/m/Y', strtotime($pago['fecha_pago'])),
+                'bancoOrigen'     => $pago['banco_origen'] ?? $extracto['banco'] ?? 'Transferencia Bancaria'
+            ]);
 
-        $notifService->encolarNotificacion(
-            $pago['email'],
-            "✅ Pago Conciliado y Aprobado - Ref. " . $pago['referencia'],
-            $cuerpoHtml,
-            $pago['telefono'] ?? null,
-            'ambos',
-            'alta'
-        );
-
-        $residenteId = $pago['residente_id'] ?? ($pago['propietario_id'] ?? null);
-        if (!empty($residenteId)) {
-            $notifService->registrarNotificacionResidente(
-                $residenteId,
-                "Pago Conciliado y Aprobado",
-                "Su pago Ref. " . $pago['referencia'] . " por Bs. " . number_format($pago['monto'], 2) . " ha sido verificado con el extracto bancario y aprobado.",
-                "success",
-                "/residente/historial"
+            $notifService->encolarNotificacion(
+                $pago['email'],
+                "✅ Pago Conciliado y Aprobado - Ref. " . $pago['referencia'],
+                $cuerpoHtml,
+                $pago['telefono'] ?? null,
+                'ambos',
+                'alta'
             );
+
+            $residenteId = $pago['residente_id'] ?? ($pago['propietario_id'] ?? null);
+            if (!empty($residenteId)) {
+                $notifService->registrarNotificacionResidente(
+                    intval($residenteId),
+                    "Pago Conciliado y Aprobado",
+                    "Su pago Ref. " . $pago['referencia'] . " por " . formatearMoneda($pago['monto']) . " ha sido verificado con el extracto bancario y aprobado.",
+                    "success",
+                    "/residente/historial"
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log("[CONCILIACION] Advertencia al despachar notificación de conciliación: " . $e->getMessage());
         }
     }
 
