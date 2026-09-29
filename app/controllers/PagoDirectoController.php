@@ -100,8 +100,9 @@ class PagoDirectoController extends Controller {
         // Rate limiting por IP: máximo 20 análisis por hora
         if (!RateLimiter::attempt('pago_directo_extraer', 20, 3600)) {
             $this->json([
-                'success' => false,
-                'error'   => 'Demasiadas solicitudes de análisis. Intente de nuevo más tarde.'
+                'success'    => false,
+                'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                'error'      => 'Demasiadas solicitudes de análisis. Intente de nuevo más tarde.'
             ], 429);
         }
 
@@ -132,15 +133,17 @@ class PagoDirectoController extends Controller {
                 $resultado = $parser->procesarArchivo($tmpPath, 'pdf');
             } else {
                 $this->json([
-                    'success'   => false,
-                    'detectado' => false,
-                    'error'     => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
+                    'success'    => false,
+                    'detectado'  => false,
+                    'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                    'error'      => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
                 ], 400);
             }
         } else {
             $this->json([
-                'success' => false,
-                'error'   => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
+                'success'    => false,
+                'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                'error'      => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
             ], 400);
         }
 
@@ -200,6 +203,7 @@ class PagoDirectoController extends Controller {
 
         $this->json([
             'success'            => true,
+            'csrf_token'         => $_SESSION['csrf_token'] ?? '',
             'detectado'          => (bool)$resultado['detectado'],
             'banco_pagador'      => $bancoPagador,
             'banco_receptor'     => $bancoReceptor,

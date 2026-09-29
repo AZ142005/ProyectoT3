@@ -888,6 +888,15 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
             const data = await response.json();
 
+            // La validación CSRF rota el token tras cada POST: se actualiza el del formulario
+            // para permitir análisis repetidos (reanalizar / cambiar archivo) sin recargar la página.
+            if (data.csrf_token) {
+                const csrfHidden = document.querySelector('input[name="csrf_token"]');
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                if (csrfHidden) { csrfHidden.value = data.csrf_token; }
+                if (csrfMeta) { csrfMeta.setAttribute('content', data.csrf_token); }
+            }
+
             if (data.success) {
                 ultimosDatosExtraidos = data;
                 aplicarExtraccionInteligente(data);
