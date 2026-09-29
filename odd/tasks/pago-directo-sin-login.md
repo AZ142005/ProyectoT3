@@ -35,6 +35,7 @@ Hoy solo un residente autenticado puede reportar/registrar pagos. Los copropieta
 - [x] **T2 — Backend**: `app/controllers/PagoDirectoController.php` (`index()`, `deuda()`, `reportar()`, `exito()`) + rutas `GET /pago-directo`, `GET /pago-directo/deuda`, `POST /pago-directo/reportar`, `GET /pago-directo/exito` en `public/index.php`.
 - [x] **T3 — UI**: `app/views/pago_directo/index.php` (selección dependiente edificio→unidad + panel de deuda con fetch + formulario de pago + cuentas bancarias oficiales), `app/views/pago_directo/exito.php`, y bloque de acceso en `auth/login.php`.
 - [x] **T4 — Pruebas y verificación**: `tests/PagoDirectoTest.php` + corrida por clase de la suite + `scripts/check_purity.php` + `scripts/audit_security.php` + smoke test.
+- [x] **T5 — Pulido visual (pedido del usuario, 29-09)**: botón del login integrado (mismo estilo del enlace de registro, sin ámbar); `/pago-directo` y su pantalla de éxito alineadas a la UI de residentes (banner verde con acento institucional, cards `rounded-2xl shadow-sm`, formularios, dropzone visual con preview). Solo vistas; lógica intacta. Commit `35b9870`.
 
 ## Criterios de aceptación
 1. El index muestra una opción visible "Pagar sin iniciar sesión" que lleva a `/pago-directo`.
@@ -78,7 +79,7 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
   - H1 en `84b59ec` (`RateLimiter` con ventanas en hora de MySQL + docblock actualizado) y tests `rateLimiterBloqueaTrasMaxIntentos` / `rateLimiterComparaVentanasEnHoraSql` (RED→GREEN demostrado: el test conductual fallaba antes del fix).
   - L1/L2/L3/S4 en `4a945fe` (monto redondeado ≥ 0,01; guards `postString/postInt/postFloat`; OTRO vacío → error; `maxlength="100"`; mensaje de duplicado corregido).
   - Re-verificación: `--filter=PagoDirectoTest` 7 tests / 33 asserts ✅ (spot check del padre); BehaviorTest idéntico a línea base; AuthTest y ModelTest ✅; purity/security 0; smoke manual: 6.º intento bloqueado y `secondsUntilAvailable` = 60; residuos `pago_directo*` eliminados de `rate_limits`.
-  - Pendientes documentados (sin urgencia): S1 (fecha futura), S2 (monto vs saldo a favor), S3 (cuenta vs método), S5 (cobertura de `reportar()`/`deuda()`/upload en tests).
+  - Pendientes documentados (sin urgencia): S1 (fecha futura), S2 (monto vs saldo a favor), S3 (cuenta vs método), S5 (cobertura de `reportar()`/`deuda()`/upload en tests), S8 (hallado en T5: la vista del flujo residente `residente/enviar_pago.php` no renderiza los errores de validación del controlador `$error` — preexistente).
 
 ## Ruta de implementación por tarea
 - T1–T4: **delegada** a un único writer (disparador: 2+ archivos no triviales y preparación de escritura). Verificación: writer con comandos en primer plano + revisión del padre.
@@ -95,3 +96,4 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
 - Verificación padre: spot check `--filter=PagoDirectoTest` ✅; diff estructural revisado (controlador null-safe, validaciones completas, rate limit).
 - RDD: revisión nativa no ejecutable en OpenCode (`immutable_review_transport_unsupported`); resultado preservado. Verificación independiente completada y correcciones aplicadas (`84b59ec`, `4a945fe`).
 - Estado: feature cerrado y verificado; push/PR quedan a decisión del usuario (rama `feat/pago-directo-sin-login`). Nota: el switch RDD global sigue activo; este clone puede apagarse con `gentle-ai review mode disable --scope clone` si se desea.
+- 29-09 (post-cierre): T5 completado (`35b9870`): botón del login natural + portal alineado a la UI de residentes. Verificado: PagoDirectoTest 7/33 ✅, purity/security 0, render HTTP 200 en `/pago-directo`, `/auth/login` y `/pago-directo/exito` con marcadores esperados (captura de navegador no disponible: sin navegador de escritorio conectado a la sesión).
