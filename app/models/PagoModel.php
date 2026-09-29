@@ -9,13 +9,14 @@ class PagoModel extends BaseModel {
      * Inserta en la tabla pagos con estado PENDIENTE.
      * Previene pago duplicado y maneja errores de integridad.
      *
-     * @param int $residenteId
+     * @param int|null $residenteId Null = pago reportado desde el portal público sin usuario
      * @param int $unidadId
      * @param array $datos ['monto', 'fecha_pago', 'metodo_pago', 'referencia', ...]
      * @param string $filename Nombre de archivo ya guardado por FileUploader
      * @return bool
      */
     public function crearPago($residenteId, $unidadId, $datos, $filename) {
+        // $residenteId puede ser NULL: pago directo reportado sin iniciar sesión, asociado solo a la unidad.
         $monto = round(floatval($datos['monto']), 2);
         $referencia = !empty($datos['referencia']) ? trim($datos['referencia']) : null;
         $fechaPago = $datos['fecha_pago'];
@@ -112,17 +113,17 @@ class PagoModel extends BaseModel {
      */
     public function obtenerTodosPagos($filtros = [], int $pagina = 1, int $porPagina = 20): array {
         $baseSql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
-                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre
+                       COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo (sin usuario)') AS residente_nombre
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
-                INNER JOIN personas per ON p.residente_id = per.id
+                LEFT JOIN personas per ON p.residente_id = per.id
                 WHERE 1=1";
         
         $countSql = "SELECT COUNT(*) as total FROM pagos p 
                      INNER JOIN unidades u ON p.unidad_id = u.id
                      LEFT JOIN edificios e ON u.edificio_id = e.id
-                     INNER JOIN personas per ON p.residente_id = per.id
+                     LEFT JOIN personas per ON p.residente_id = per.id
                      WHERE 1=1";
         
         $params = [];
@@ -155,11 +156,12 @@ class PagoModel extends BaseModel {
     public function obtenerPagoPorId($id) {
         $db = $this->db();
         $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
-                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
+                       COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo (sin usuario)') AS residente_nombre,
+                       per.cedula AS residente_cedula
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
-                INNER JOIN personas per ON p.residente_id = per.id
+                LEFT JOIN personas per ON p.residente_id = per.id
                 WHERE p.id = :id";
         
         $stmt = $db->prepare($sql);
