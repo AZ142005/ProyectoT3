@@ -588,21 +588,6 @@ class BehaviorTest extends TestCase {
     }
 
     // =====================================================================
-    // 33. NOTIFICATION GROUPING — Verify persona_id grouping
-    // =====================================================================
-
-    public function testComunicadoControllerGroupsNotificationsByPerson(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
-        $content = file_get_contents($file);
-        preg_match('/function encolarComunicadoCorreo\(.*?\}(?=\s*\}|$)/s', $content, $matches);
-        $this->assertTrue(count($matches) > 0, 'encolarComunicadoCorreo method must exist');
-        $this->assertStringContains('persona_id', $matches[0],
-            'Must group notifications by persona_id');
-        $this->assertStringContains('LIMIT 500', $matches[0],
-            'Must limit to 500 recipients');
-    }
-
-    // =====================================================================
     // 34. INDEXED CRUCE — Verify indexByRef exists in service
     // =====================================================================
 
@@ -686,30 +671,6 @@ class BehaviorTest extends TestCase {
             'Must limit to 10 adjustments per day');
         $this->assertStringContains('CURDATE()', $content,
             'Daily limit must check against CURDATE()');
-    }
-
-    // =====================================================================
-    // 41. XSS TITLE SANITIZATION — Verify strip_tags on titulo
-    // =====================================================================
-
-    public function testComunicadoControllerSanitizesTituloXss(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
-        $content = file_get_contents($file);
-        preg_match('/function guardar\(\)(.*?)(?=public function|private function)/s', $content, $matches);
-        $this->assertTrue(count($matches) > 0, 'guardar() method must exist');
-        $this->assertStringContains('strip_tags', $matches[1],
-            'guardar() must sanitize titulo with strip_tags');
-    }
-
-    // =====================================================================
-    // 42. RECIPIENT LIMIT 500 — Verify SQL LIMIT 500 in encolar
-    // =====================================================================
-
-    public function testComunicadoEncolarHasRecipientLimit(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
-        $content = file_get_contents($file);
-        $this->assertStringContains('LIMIT 500', $content,
-            'encolarComunicadoCorreo must limit to 500 recipients');
     }
 
     // =====================================================================

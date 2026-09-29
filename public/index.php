@@ -165,15 +165,10 @@ $router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\Reporte
 $router->get('/admin/reportes/carta-deuda/{unidadId}', [\App\Controllers\ReporteController::class, 'generarCartaDeuda'], [UserRole::ADMIN]);
 $router->post('/admin/reportes/enviar-aviso-cobro', [\App\Controllers\ReporteController::class, 'enviarAvisoCobro'], [UserRole::ADMIN]);
 
-// --- Módulo de Notificaciones y Comunicados (RF 35, RF 36, RF 37) ---
-$router->get('/admin/comunicados', [\App\Controllers\ComunicadoController::class, 'index'], [UserRole::ADMIN]);
-$router->post('/admin/comunicados/guardar', [\App\Controllers\ComunicadoController::class, 'guardar'], [UserRole::ADMIN]);
-$router->post('/admin/comunicados/eliminar', [\App\Controllers\ComunicadoController::class, 'eliminar'], [UserRole::ADMIN]);
-
+// --- Módulo de Notificaciones (RF 35, RF 36) ---
 $router->get('/residente/notificaciones', [\App\Controllers\NotificacionController::class, 'index'], [UserRole::RESIDENTE]);
 $router->get('/residente/notificaciones/cantidad-no-leidas', [\App\Controllers\NotificacionController::class, 'cantidadNoLeidas'], [UserRole::RESIDENTE]);
 $router->post('/residente/notificaciones/marcar-leida', [\App\Controllers\NotificacionController::class, 'marcarLeida'], [UserRole::RESIDENTE]);
-$router->get('/residente/cartelera', [\App\Controllers\ComunicadoController::class, 'carteleraResidente'], [UserRole::RESIDENTE]);
 
 // --- Perfil y Solicitudes de Cambio de Datos (RF 9) ---
 $router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'], ['auth']);

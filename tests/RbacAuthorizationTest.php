@@ -121,7 +121,6 @@ class RbacAuthorizationTest extends TestCase {
             'EstructuraController.php'         => ['index', 'guardarEdificio', 'toggleEdificio', 'guardarUnidad', 'toggleUnidad', 'guardarResidente', 'desvincularResidente'],
             'EstacionamientoController.php'    => ['index', 'guardar', 'asignar', 'eliminar', 'guardarVehiculo', 'eliminarVehiculo'],
             'ReporteController.php'            => ['morosidad', 'imprimirMorosidad', 'exportarCsv', 'generarCartaDeuda', 'enviarAvisoCobro'],
-            'ComunicadoController.php'         => ['index', 'guardar', 'eliminar'],
             'RespaldoController.php'           => ['index', 'generarManual', 'descargar'],
         ];
 
