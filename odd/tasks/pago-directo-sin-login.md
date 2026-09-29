@@ -64,9 +64,21 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
 - **Regresión (clases clave)**: ModelTest 130✅; RouterTest 45✅; ComprobanteFlujoAprobacionTest 27✅; ConciliacionTest 71✅/2❌ (fallos de línea base, no tocados).
 - **Gates del proyecto**: `check_purity.php` 0 violaciones; `audit_security.php` 0 vulnerabilidades.
 - **Smoke E2E (servidor embebido + curl)**: `GET /pago-directo` → 200 (contiene "Pagar"); `GET /pago-directo/deuda?unidad_id=1` → JSON `success:true` (total 450, 3 facturas); unidad inválida → 404; `POST /pago-directo/reportar` multipart (cookie+CSRF+PNG) → 302 a `/pago-directo/exito`; fila creada con `residente_id NULL`/`PENDIENTE`, verficada y eliminada (BD restaurada, `pagos` = 0).
-- **Diff**: 9 archivos, +1018/−6 (incluye doc ODD y tests; excluye artefactos de runtime `.atl/` y `storage/`).
+- **Diff**: 10 archivos, +1120/−29 con las correcciones incluidas (excluye artefactos de runtime `.atl/` y `storage/`).
 - **RDD / revisión nativa**: assess → `review_due: true`, `high / unassessable`; STATUS → `immutable_review_transport_unsupported` (`next_action: stop`, `retry_safe: false`, `mutation_outcome: not_started`). El runtime activo (OpenCode) no es elegible para revisión inmutable (soportados: claude-code, codex). Resultado tipado preservado; **no** se ejecutó revisión nativa. Decisión de cierre presentada al usuario.
 - **Nota**: artefactos de runtime sucios (`.atl/*`, `storage/cache/estructura/data_0.json`) quedaron fuera de todos los commits.
+
+### Hallazgos de la verificación independiente (29-09)
+- **[HIGH] Rate limiter inefectivo por desfase de zona horaria PHP↔MySQL** (`app/core/RateLimiter.php`): PHP usa `Europe/Berlin` (php.ini de XAMPP) y MySQL `America/Caracas`; el corte calculado por PHP (`date(...time()-ventana)`) nunca encuentra la fila escrita con `NOW()` de MySQL, así que cada intento inserta una fila nueva y `attempts` nunca incrementa. Evidencia propia: `rate_limits` = 117 filas, `MAX(attempts)=1` histórico; SELECT de `attempt()` con corte PHP → NULL; con corte MySQL-side → encuentra fila. Afecta a **todo el sistema** (login/OTP/registro) y a los endpoints nuevos. **Criterio 4 (rate limit) queda NO cumplido en este entorno hasta corregirlo.**
+- **[LOW] L1**: `monto` 0,001–0,004 supera la validación y se guarda `0,00`. **[LOW] L2**: POST con campos array (`trim(array)`) → `TypeError`/HTTP 500 en endpoint público (en dev, handler global con traza). **[LOW] L3**: banco "OTRO" vacío se guarda literal `"OTRO"`; sin `maxlength` en `referencia` (varchar(100), truncado silencioso por `sql_mode` sin `STRICT_TRANS_TABLES`). **[LOW] L4**: la conciliación muestra al propietario de la unidad (o vacío) en vez de "Pago directo (sin usuario)" — visible/aprobable, pero inconsistente con las demás pantallas admin.
+- **Sugerencias documentadas**: S1 fecha futura aceptada (`9999-12-31`; formatos inválidos sí rechazados); S2 "Usar este monto" usa deuda bruta sin descontar saldo a favor; S3 no se valida cuenta receptora contra método (preexistente); S4 mensaje de duplicado engañoso (dedup real por unidad+fecha+monto; `referencia_norm` NULL, sin triggers); S5 cobertura del test (no cubre `reportar()`/`deuda()`/upload/duplicados); S7 residuo de 6 filas en `rate_limits` del smoke.
+- **Refutaciones confirmadas (núcleo sano)**: pago invitado visible/aprobable por caminos admin reales; residente no puede ver pagos ajenos; CSRF/upload correctos; privacidad del JSON de deuda; migración idempotente con FK intacta; no-regresión del residente.
+- **Límites del chequeo**: sin HTTP real/navegador/escrituras de BD; no es autoridad nativa ni emite recibo.
+- **Correcciones aplicadas (decisión del usuario: HIGH + menores)**:
+  - H1 en `84b59ec` (`RateLimiter` con ventanas en hora de MySQL + docblock actualizado) y tests `rateLimiterBloqueaTrasMaxIntentos` / `rateLimiterComparaVentanasEnHoraSql` (RED→GREEN demostrado: el test conductual fallaba antes del fix).
+  - L1/L2/L3/S4 en `4a945fe` (monto redondeado ≥ 0,01; guards `postString/postInt/postFloat`; OTRO vacío → error; `maxlength="100"`; mensaje de duplicado corregido).
+  - Re-verificación: `--filter=PagoDirectoTest` 7 tests / 33 asserts ✅ (spot check del padre); BehaviorTest idéntico a línea base; AuthTest y ModelTest ✅; purity/security 0; smoke manual: 6.º intento bloqueado y `secondsUntilAvailable` = 60; residuos `pago_directo*` eliminados de `rate_limits`.
+  - Pendientes documentados (sin urgencia): S1 (fecha futura), S2 (monto vs saldo a favor), S3 (cuenta vs método), S5 (cobertura de `reportar()`/`deuda()`/upload en tests).
 
 ## Ruta de implementación por tarea
 - T1–T4: **delegada** a un único writer (disparador: 2+ archivos no triviales y preparación de escritura). Verificación: writer con comandos en primer plano + revisión del padre.
@@ -81,5 +93,5 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
 - Exploración completa; decisión de entrega: rama única + deuda visible al pagador.
 - T1–T4 implementadas y verificadas. Commits: `7a0b47f` (datos+migración), `ea9f9b7` (controlador+rutas), `ddc863c` (vistas+login), `bf2d84f` (tests) + commit de docs con este registro.
 - Verificación padre: spot check `--filter=PagoDirectoTest` ✅; diff estructural revisado (controlador null-safe, validaciones completas, rate limit).
-- RDD: revisión nativa no ejecutable en OpenCode (`immutable_review_transport_unsupported`); resultado preservado y decisión ofrecida al usuario.
-- Siguiente paso: decisión del usuario sobre el cierre de la revisión (disable clone / mantener / verificación independiente).
+- RDD: revisión nativa no ejecutable en OpenCode (`immutable_review_transport_unsupported`); resultado preservado. Verificación independiente completada y correcciones aplicadas (`84b59ec`, `4a945fe`).
+- Estado: feature cerrado y verificado; push/PR quedan a decisión del usuario (rama `feat/pago-directo-sin-login`). Nota: el switch RDD global sigue activo; este clone puede apagarse con `gentle-ai review mode disable --scope clone` si se desea.
