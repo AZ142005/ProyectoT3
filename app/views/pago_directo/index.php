@@ -163,7 +163,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     <!-- Referencia -->
                     <div class="flex flex-col gap-2">
                         <label for="referencia" class="text-sm font-bold text-on-surface">Número de referencia <span class="text-red-500">*</span></label>
-                        <input type="text" id="referencia" name="referencia" required placeholder="Ej. 12345678"
+                        <input type="text" id="referencia" name="referencia" required maxlength="100" placeholder="Ej. 12345678"
                                value="<?= e($old['referencia'] ?? '') ?>"
                                class="w-full px-4 py-3 bg-background border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-mono font-medium">
                     </div>
@@ -200,7 +200,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                             <option value="OTRO" <?= ($oldBanco === 'OTRO') ? 'selected' : '' ?>>Otro banco...</option>
                         </select>
                         <div id="contenedor_banco_otro" class="hidden">
-                            <input type="text" id="banco_pagador_otro" name="banco_pagador_otro" placeholder="Especifique el nombre del banco emisor..."
+                            <input type="text" id="banco_pagador_otro" name="banco_pagador_otro" maxlength="100" placeholder="Especifique el nombre del banco emisor..."
                                    value="<?= e($old['banco_pagador_otro'] ?? '') ?>"
                                    class="w-full px-4 py-2.5 bg-white border-2 border-outline-variant rounded-2xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 text-sm font-medium">
                         </div>

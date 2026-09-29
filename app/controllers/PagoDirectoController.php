@@ -41,7 +41,8 @@ class PagoDirectoController extends Controller {
             ], 429);
         }
 
-        $unidadId = intval($_GET['unidad_id'] ?? 0);
+        // Sanea el parámetro: un array en el query string no debe romper la respuesta JSON.
+        $unidadId = is_scalar($_GET['unidad_id'] ?? null) ? intval($_GET['unidad_id']) : 0;
         if ($unidadId <= 0) {
             $this->json([
                 'success' => false,
@@ -96,17 +97,17 @@ class PagoDirectoController extends Controller {
             return;
         }
 
-        $unidadId          = intval($_POST['unidad_id'] ?? 0);
-        $cuentaBancariaId  = intval($_POST['cuenta_bancaria_id'] ?? 0);
-        $bancoPagador      = trim($_POST['banco_pagador'] ?? '');
-        if (strtoupper($bancoPagador) === 'OTRO' && !empty($_POST['banco_pagador_otro'])) {
-            $bancoPagador = trim($_POST['banco_pagador_otro']);
-        }
-        $monto         = floatval($_POST['monto'] ?? 0);
-        $metodoPago    = $_POST['metodo_pago'] ?? '';
-        $referencia    = trim($_POST['referencia'] ?? '');
-        $fechaPago     = $_POST['fecha_pago'] ?? '';
-        $observaciones = trim($_POST['observaciones'] ?? '');
+        $unidadId         = $this->postInt('unidad_id');
+        $cuentaBancariaId = $this->postInt('cuenta_bancaria_id');
+        $bancoPagador     = $this->postString('banco_pagador');
+        $bancoPagadorOtro = $this->postString('banco_pagador_otro');
+        $monto            = round($this->postFloat('monto'), 2);
+        $metodoPago       = $this->postString('metodo_pago');
+        $referencia       = $this->postString('referencia');
+        $fechaPago        = $this->postString('fecha_pago');
+        $observaciones    = $this->postString('observaciones');
+
+        $esBancoOtro = (strtoupper($bancoPagador) === 'OTRO');
 
         $unidad           = ($unidadId > 0) ? (new UnidadesModel())->getById($unidadId) : false;
         $cuentaReceptora  = ($cuentaBancariaId > 0) ? (new CuentasBancariasModel())->getActivaById($cuentaBancariaId) : false;
@@ -117,14 +118,16 @@ class PagoDirectoController extends Controller {
             $error = 'Debe seleccionar una unidad activa válida.';
         } elseif (!$cuentaReceptora) {
             $error = 'Debe seleccionar una cuenta bancaria receptora autorizada y activa.';
-        } elseif ($monto <= 0) {
-            $error = 'Ingrese un monto válido mayor a cero.';
+        } elseif ($monto < 0.01) {
+            $error = 'Ingrese un monto válido (mínimo Bs. 0,01).';
         } elseif ($monto > 999999.99) {
             $error = 'El monto no puede exceder Bs. 999.999,99.';
         } elseif (!in_array($metodoPago, ['transferencia', 'pago_movil'], true)) {
             $error = 'Seleccione un método de pago válido.';
         } elseif ($referencia === '') {
             $error = 'Ingrese el número de referencia del pago.';
+        } elseif ($esBancoOtro && $bancoPagadorOtro === '') {
+            $error = 'Especifique el nombre del banco emisor.';
         } elseif (!\DateTime::createFromFormat('Y-m-d', $fechaPago) || date('Y-m-d', strtotime($fechaPago)) !== $fechaPago) {
             $error = 'El formato de fecha no es válido. Use AAAA-MM-DD.';
         } elseif (!isset($_FILES['comprobante']) || $_FILES['comprobante']['error'] !== UPLOAD_ERR_OK) {
@@ -142,6 +145,11 @@ class PagoDirectoController extends Controller {
         if ($error !== '') {
             $this->renderFormulario($error, $_POST);
             return;
+        }
+
+        // Si el usuario eligió "OTRO", se registra el nombre de banco especificado.
+        if ($esBancoOtro) {
+            $bancoPagador = $bancoPagadorOtro;
         }
 
         $observacionesCompletas = trim('Pago directo sin sesión (portal público). ' . $observaciones);
@@ -165,7 +173,7 @@ class PagoDirectoController extends Controller {
             return;
         }
 
-        $this->renderFormulario('Ya existe un pago registrado con la misma referencia, fecha y monto para esta unidad.', $_POST);
+        $this->renderFormulario('Ya existe un pago registrado con el mismo monto y fecha para esta unidad. Si ya lo reportó, espere la verificación de la administración.', $_POST);
     }
 
     /**
@@ -176,6 +184,33 @@ class PagoDirectoController extends Controller {
             'showNav' => false,
             'title'   => 'Pago Registrado - Condominio Digital'
         ]);
+    }
+
+    /**
+     * Retorna un valor string de $_POST ya saneado (trim).
+     * Devuelve '' si el valor no existe o no es escalar.
+     */
+    private function postString(string $key): string {
+        $v = $_POST[$key] ?? '';
+        return is_string($v) ? trim($v) : '';
+    }
+
+    /**
+     * Retorna un valor entero de $_POST.
+     * Devuelve 0 si el valor no existe o no es escalar.
+     */
+    private function postInt(string $key): int {
+        $v = $_POST[$key] ?? 0;
+        return is_scalar($v) ? intval($v) : 0;
+    }
+
+    /**
+     * Retorna un valor decimal de $_POST.
+     * Devuelve 0.0 si el valor no existe o no es escalar.
+     */
+    private function postFloat(string $key): float {
+        $v = $_POST[$key] ?? 0;
+        return is_scalar($v) ? floatval($v) : 0.0;
     }
 
     /**
