@@ -48,7 +48,7 @@
         </div>
 
         <?php if (!empty($enlaceWhatsapp) && ($resolucionTelefono['fuente'] ?? '') === 'persona'): ?>
-            <p class="small text-muted mb-3" style="max-width: 800px; margin: 0 auto;">
+            <p class="small text-muted mb-3 no-print" style="max-width: 800px; margin: 0 auto;">
                 El propietario no tiene un número móvil registrado; el chat se abrirá con el número de
                 <strong><?= e($resolucionTelefono['nombre'] ?: 'una persona asociada a la unidad') ?></strong>.
             </p>
