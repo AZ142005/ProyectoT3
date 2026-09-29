@@ -125,6 +125,7 @@ $router->get('/pagos/detalle/{id}', [PagoController::class, 'detalle'], ['auth']
 // --- Módulo de Pago Directo sin Sesión (portal público) ---
 $router->get('/pago-directo', [PagoDirectoController::class, 'index']);
 $router->get('/pago-directo/deuda', [PagoDirectoController::class, 'deuda']);
+$router->post('/pago-directo/extraer', [PagoDirectoController::class, 'extraer']);
 $router->post('/pago-directo/reportar', [PagoDirectoController::class, 'reportar']);
 $router->get('/pago-directo/exito', [PagoDirectoController::class, 'exito']);
 

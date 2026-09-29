@@ -9,6 +9,8 @@ use App\Models\EdificiosModel;
 use App\Models\FacturasModel;
 use App\Models\PagoModel;
 use App\Models\UnidadesModel;
+use App\Services\ComprobanteParserService;
+use App\Services\ConciliacionBancariaService;
 use App\Services\FileUploader;
 
 /**
@@ -83,6 +85,132 @@ class PagoDirectoController extends Controller {
             'total_deuda' => $resumen['total_deuda'],
             'saldo_favor' => $resumen['saldo_favor'],
             'facturas'    => $facturas
+        ]);
+    }
+
+    /**
+     * Endpoint público de extracción y análisis de datos del comprobante (POST).
+     *
+     * Soporta texto pre-extraído vía OCR en cliente (Tesseract.js) o extracción
+     * nativa desde PDF en el backend. No expone datos personales: solo sugiere
+     * campos del formulario a partir del comprobante analizado.
+     * CSRF ya validado globalmente en public/index.php.
+     */
+    public function extraer(): void {
+        // Rate limiting por IP: máximo 20 análisis por hora
+        if (!RateLimiter::attempt('pago_directo_extraer', 20, 3600)) {
+            $this->json([
+                'success' => false,
+                'error'   => 'Demasiadas solicitudes de análisis. Intente de nuevo más tarde.'
+            ], 429);
+        }
+
+        $parser = new ComprobanteParserService();
+        $resultado = [
+            'banco'      => null,
+            'referencia' => null,
+            'monto'      => null,
+            'fecha'      => null,
+            'detectado'  => false
+        ];
+
+        // 1. Caso A: Texto extraído vía OCR en cliente (Tesseract.js para imágenes)
+        $textoExtraido = trim($_POST['texto_extraido'] ?? '');
+        if (!empty($textoExtraido)) {
+            if (mb_strlen($textoExtraido) > 50000) {
+                $textoExtraido = mb_substr($textoExtraido, 0, 50000);
+            }
+            $resultado = $parser->analizarTexto($textoExtraido);
+        }
+        // 2. Caso B: Archivo PDF subido directamente para extracción nativa en backend
+        elseif (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
+            $tmpPath = $_FILES['comprobante']['tmp_name'];
+            $nombreOriginal = $_FILES['comprobante']['name'] ?? '';
+            $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
+
+            if ($extension === 'pdf') {
+                $resultado = $parser->procesarArchivo($tmpPath, 'pdf');
+            } else {
+                $this->json([
+                    'success'   => false,
+                    'detectado' => false,
+                    'error'     => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
+                ], 400);
+            }
+        } else {
+            $this->json([
+                'success' => false,
+                'error'   => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
+            ], 400);
+        }
+
+        $nombresBancos = [
+            'mercantil'  => 'Banco Mercantil',
+            'banesco'    => 'Banesco',
+            'venezuela'  => 'Banco de Venezuela',
+            'provincial' => 'BBVA Provincial',
+            'bancamiga'  => 'Bancamiga',
+            'bnc'        => 'Banco Nacional de Crédito',
+            'bancaribe'  => 'Bancaribe',
+            'tesoro'     => 'Banco del Tesoro',
+            'exterior'   => 'Banco Exterior',
+            'plaza'      => 'Banco Plaza',
+            'activo'     => 'Banco Activo',
+            'sofitasa'   => 'Banco Sofitasa',
+            '100banco'   => '100% Banco',
+            'bfc'        => 'Banco Fondo Común'
+        ];
+
+        $bancoPagador = $resultado['banco'] ? ($nombresBancos[$resultado['banco']] ?? ucfirst($resultado['banco'])) : '';
+
+        // Resolver dinámicamente la cuenta bancaria autorizada receptora
+        $cuentasActivas = (new CuentasBancariasModel())->getActivas();
+        $cuentaSugeridaId = null;
+        $bancoReceptor = '';
+
+        // 1. Por prefijo de 4 dígitos de cuenta destino (ej. '0102', '0105', etc.)
+        if (!empty($resultado['cuenta_destino_prefijo'])) {
+            foreach ($cuentasActivas as $ca) {
+                if (str_starts_with($ca['numero_cuenta'], $resultado['cuenta_destino_prefijo'])) {
+                    $cuentaSugeridaId = (int)$ca['id'];
+                    $bancoReceptor = $ca['banco'];
+                    break;
+                }
+            }
+        }
+
+        // 2. Por coincidencia de nombre de banco receptor detectado en comprobante
+        if (!$cuentaSugeridaId && !empty($resultado['banco_receptor'])) {
+            $conciliacionService = new ConciliacionBancariaService();
+            $normBcoRec = $conciliacionService->normalizarNombreBanco($resultado['banco_receptor']);
+            foreach ($cuentasActivas as $ca) {
+                if ($conciliacionService->normalizarNombreBanco($ca['banco']) === $normBcoRec) {
+                    $cuentaSugeridaId = (int)$ca['id'];
+                    $bancoReceptor = $ca['banco'];
+                    break;
+                }
+            }
+        }
+
+        // 3. Fallback: si existe una sola cuenta autorizada activa, asociarla por defecto
+        if (!$cuentaSugeridaId && count($cuentasActivas) === 1) {
+            $cuentaSugeridaId = (int)$cuentasActivas[0]['id'];
+            $bancoReceptor = $cuentasActivas[0]['banco'];
+        }
+
+        $this->json([
+            'success'            => true,
+            'detectado'          => (bool)$resultado['detectado'],
+            'banco_pagador'      => $bancoPagador,
+            'banco_receptor'     => $bancoReceptor,
+            'cuenta_bancaria_id' => $cuentaSugeridaId,
+            'metodo_pago'        => $resultado['metodo_pago'] ?? '',
+            'referencia'         => $resultado['referencia'] ?? '',
+            'monto'              => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
+            'fecha_pago'         => $resultado['fecha'] ?? '',
+            'mensaje'            => $resultado['detectado']
+                ? 'Datos del comprobante detectados exitosamente.'
+                : 'No se pudieron detectar todos los datos con certeza. Por favor verifique los campos.'
         ]);
     }
 

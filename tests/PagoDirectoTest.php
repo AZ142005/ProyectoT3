@@ -45,6 +45,19 @@ class PagoDirectoTest extends TestCase {
         $this->assertStringContains('PagoDirectoController', $content, 'index.php debe referenciar PagoDirectoController');
     }
 
+    public function testExtraccionPublicaRegistradaYOcrEnVista(): void {
+        $base = dirname(__DIR__);
+        $index = (string)file_get_contents($base . '/public/index.php');
+
+        $this->assertStringContains("'/pago-directo/extraer'", $index,
+            'Debe registrarse la ruta POST /pago-directo/extraer');
+        $this->assertStringContains('PagoDirectoController::class, \'extraer\'', $index,
+            'La ruta pública de extracción debe apuntar a PagoDirectoController::extraer');
+
+        $this->assertTrue(method_exists(PagoDirectoController::class, 'extraer'),
+            'PagoDirectoController debe exponer el método público extraer()');
+    }
+
     public function testLoginEnlazaAlPagoDirecto(): void {
         $content = file_get_contents(dirname(__DIR__) . '/app/views/auth/login.php');
 
