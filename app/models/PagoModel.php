@@ -74,13 +74,14 @@ class PagoModel extends BaseModel {
      * Inserta en la tabla pagos con estado PENDIENTE.
      * Previene pago duplicado y maneja errores de integridad.
      *
-     * @param int $residenteId
+     * @param int|null $residenteId Null = pago reportado desde el portal público sin usuario
      * @param int $unidadId
      * @param array $datos ['monto', 'fecha_pago', 'metodo_pago', 'referencia', ...]
      * @param string $filename Nombre de archivo ya guardado por FileUploader
      * @return bool
      */
     public function crearPago($residenteId, $unidadId, $datos, $filename) {
+        // $residenteId puede ser NULL: pago directo reportado sin iniciar sesión, asociado solo a la unidad.
         $monto = round(floatval($datos['monto']), 2);
         $referencia = !empty($datos['referencia']) ? trim($datos['referencia']) : null;
         $referenciaNorm = self::normalizarReferenciaPago($referencia);
@@ -186,12 +187,12 @@ class PagoModel extends BaseModel {
                    p.fecha_registro,
                    u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                    u.edificio_id,
-                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre,
+                   COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo (sin usuario)') AS residente_nombre,
                    per.cedula AS residente_cedula
             FROM pagos p
             INNER JOIN unidades u ON p.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
-            INNER JOIN personas per ON p.residente_id = per.id
+            LEFT JOIN personas per ON p.residente_id = per.id
             WHERE p.deleted_at IS NULL
 
             UNION ALL
@@ -247,11 +248,12 @@ class PagoModel extends BaseModel {
         $id = intval($id);
         $db = $this->db();
         $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
-                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
+                       COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo (sin usuario)') AS residente_nombre,
+                       per.cedula AS residente_cedula
                 FROM pagos p
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
-                INNER JOIN personas per ON p.residente_id = per.id
+                LEFT JOIN personas per ON p.residente_id = per.id
                 WHERE p.id = :id AND p.deleted_at IS NULL";
         
         $stmt = $db->prepare($sql);
@@ -546,7 +548,7 @@ class PagoModel extends BaseModel {
         $stmtInfo = $db->prepare("
             SELECT p.id, p.residente_id, p.monto, p.referencia, p.fecha_pago, per.email, per.telefono, CONCAT(per.nombre, ' ', per.apellido) AS nombre_completo 
             FROM pagos p 
-            INNER JOIN personas per ON p.residente_id = per.id 
+            LEFT JOIN personas per ON p.residente_id = per.id 
             WHERE p.id = :id
         ");
         $stmtInfo->execute(['id' => $pagoId]);
