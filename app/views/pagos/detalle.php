@@ -401,10 +401,21 @@ $origenForm = match($fromParam) {
                 </h3>
                 
                 <div class="relative pl-6 border-l-2 border-slate-200 flex flex-col gap-6 ml-2">
+                    <?php
+                    // Estado con el que nació el pago: el anterior al primer cambio de auditoría,
+                    // o el estado actual si nunca cambió (p.ej. pago directo nacido en EN REVISIÓN).
+                    $estadoInicial = $estado;
+                    if (!empty($pago['log_auditoria'])) {
+                        $primerLog = $pago['log_auditoria'][count($pago['log_auditoria']) - 1];
+                        if (!empty($primerLog['estado_anterior'])) {
+                            $estadoInicial = $primerLog['estado_anterior'];
+                        }
+                    }
+                    ?>
                     <!-- Evento Inicial -->
                     <div class="relative">
-                        <div class="absolute -left-[35px] top-1 bg-yellow-500 h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4 ring-yellow-500/20"></div>
-                        <p class="text-sm font-bold text-on-surface">Pago Registrado (PENDIENTE)</p>
+                        <div class="absolute -left-[35px] top-1 <?= $estadoInicial === 'EN REVISIÓN' ? 'bg-blue-500 ring-blue-500/20' : 'bg-yellow-500 ring-yellow-500/20' ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
+                        <p class="text-sm font-bold text-on-surface">Pago Registrado (<?= e($estadoInicial) ?>)</p>
                         <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por <?= e($residenteNombre) ?></p>
                         <p class="text-[10px] text-slate-400 mt-0.5">
                             <?= !empty($pago['fecha_registro']) ? e(date('d/m/Y h:i A', strtotime($pago['fecha_registro']))) : e(date('d/m/Y', strtotime($pago['fecha_pago']))) ?>
@@ -434,7 +445,7 @@ $origenForm = match($fromParam) {
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
-                    <?php elseif ($estado !== 'PENDIENTE'): ?>
+                    <?php elseif (in_array($estado, ['APROBADO', 'RECHAZADO'], true)): ?>
                         <div class="relative">
                             <div class="absolute -left-[35px] top-1 <?= $estado === 'APROBADO' ? 'bg-green-500 ring-green-500/20' : 'bg-red-500 ring-red-500/20' ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
                             <p class="text-sm font-bold text-on-surface">Procesado como <?= e($estado) ?></p>

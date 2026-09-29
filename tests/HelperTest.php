@@ -419,6 +419,21 @@ class HelperTest extends TestCase {
     }
 
     // =====================================================================
+    // badgeEstado() — Mapeo de estados del pago
+    // =====================================================================
+
+    public function testBadgeEstadoMapeaEstadoEnRevisionConAcento(): void {
+        $badge = badgeEstado('EN REVISIÓN');
+        $this->assertTrue(strpos($badge, 'bg-info') !== false,
+            "badgeEstado('EN REVISIÓN') debe renderizar el badge azul (bg-info), no el fallback gris");
+        $this->assertTrue(strpos($badge, 'En Revisión') !== false,
+            "badgeEstado('EN REVISIÓN') debe mostrar la etiqueta 'En Revisión'");
+
+        $this->assertTrue(strpos(badgeEstado('PENDIENTE'), 'bg-warning') !== false,
+            "badgeEstado('PENDIENTE') debe seguir renderizando el badge amarillo (bg-warning)");
+    }
+
+    // =====================================================================
     // ARCHIVOS DE HELPERS
     // =====================================================================
 

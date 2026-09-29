@@ -189,7 +189,7 @@ if (!function_exists('badgeEstado')) {
             'anulada'     => ['bg-secondary text-white', 'block', 'Anulada'],
         ];
         $raw = trim($estado ?? '');
-        $key = strtolower($raw);
+        $key = mb_strtolower($raw, 'UTF-8');
         [$cls, $icon, $label] = $map[$key] ?? ['bg-secondary text-white', 'help', $raw ?: 'N/A'];
         
         return '<span class="badge rounded-pill ' . e($cls) . ' d-inline-flex align-items-center gap-1 px-3 py-1 text-xs font-semibold">'
