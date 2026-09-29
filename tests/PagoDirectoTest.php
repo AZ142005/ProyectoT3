@@ -56,6 +56,14 @@ class PagoDirectoTest extends TestCase {
 
         $this->assertTrue(method_exists(PagoDirectoController::class, 'extraer'),
             'PagoDirectoController debe exponer el método público extraer()');
+
+        $vista = (string)file_get_contents($base . '/app/views/pago_directo/index.php');
+        $this->assertStringContains('Tesseract', $vista,
+            'La vista pública debe cargar el motor OCR Tesseract.js');
+        $this->assertStringContains('pago-directo/extraer', $vista,
+            'La vista pública debe invocar el endpoint /pago-directo/extraer');
+        $this->assertStringContains('Extracción Inteligente', $vista,
+            'La vista pública debe rotular el Paso 1 como extracción inteligente');
     }
 
     public function testLoginEnlazaAlPagoDirecto(): void {
