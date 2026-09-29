@@ -86,6 +86,13 @@ Desactivado (sin configuración explícita en el proyecto/sesión). Runner del p
   - Re-verificación: `--filter=PagoDirectoTest` 7 tests / 33 asserts ✅ (spot check del padre); BehaviorTest idéntico a línea base; AuthTest y ModelTest ✅; purity/security 0; smoke manual: 6.º intento bloqueado y `secondsUntilAvailable` = 60; residuos `pago_directo*` eliminados de `rate_limits`.
   - Pendientes documentados (sin urgencia): S1 (fecha futura), S2 (monto vs saldo a favor), S3 (cuenta vs método), S5 (cobertura de `reportar()`/`deuda()`/upload en tests), S8 (hallado en T5: la vista del flujo residente `residente/enviar_pago.php` no renderiza los errores de validación del controlador `$error` — preexistente), S9 (la rotación CSRF rompe el segundo análisis/reanalizar también en el flujo residente `/pagos/extraer` — en el portal público ya se corrigió en `35bd31c` devolviendo el token rotado; falta aplicar el mismo fix a residentes).
 
+## Nota de rendimiento del autocompletado (29-09)
+- Descarga real de la primera vez (navegador moderno, brotli medido en CDN): loader 10 KB + worker 33 KB + core SIMD-LSTM 1.31 MB + modelo español `4.0.0_best_int` 2.0 MB ≈ **3.4 MB** (sin brotli ≈ 6 MB). El modelo de idioma se cachea en IndexedDB y el core en caché HTTP.
+- Tiempos estimados primera vez: ~3 s (10 Mbps), ~7 s (4 Mbps), ~18 s (1.5 Mbps), ~67 s (400 kbps), ~3 min (150 kbps) + cómputo local del OCR (2–5 s escritorio / 5–12 s móvil medio / 15–30 s gama baja).
+- Después de la primera vez: sin descargas; solo cómputo local + POST pequeño (KB) → la mala conexión deja de pesar.
+- PDF: sube hasta 5 MB al servidor (≈100 s a 50 KB/s; ≈4.4 min a 19 KB/s).
+- Feedback actual: spinner + textos por fase + % real durante el reconocimiento; la fase de descarga del modelo de idioma (la más larga en mala conexión) NO actualiza mensaje ni % (`loading language traineddata` sin manejar en el logger) → parece colgado. Recomendación: mostrar esa fase/progreso y aviso de "solo la primera vez" (~15–20 líneas, en ambos flujos). Pendiente de decisión del usuario.
+
 ## Ruta de implementación por tarea
 - T1–T4: **delegada** a un único writer (disparador: 2+ archivos no triviales y preparación de escritura). Verificación: writer con comandos en primer plano + revisión del padre.
 
