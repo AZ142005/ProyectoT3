@@ -141,4 +141,50 @@ class ConciliacionModel extends BaseModel {
         ";
         return $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Obtiene todos los pagos y comprobantes pendientes de verificación que han ingresado al sistema.
+     *
+     * @return array
+     */
+    public function obtenerTodosPagosPendientes(): array {
+        $db = $this->db();
+        $sql = "
+            SELECT 'pago' AS origen_tabla,
+                   p.id, p.unidad_id, p.monto, p.fecha_pago, p.referencia,
+                   p.banco_pagador AS banco_origen, COALESCE(p.banco_receptor, cb.banco) AS banco_destino,
+                   p.banco_pagador, COALESCE(p.banco_receptor, cb.banco) AS banco_receptor, p.estado,
+                   p.observaciones, p.archivo, p.metodo_pago,
+                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
+                   per.email AS residente_email, per.telefono AS residente_telefono,
+                   u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                   NULL AS factura_id, NULL AS numero_factura, p.fecha_registro AS fecha_creacion
+            FROM pagos p
+            LEFT JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas per ON p.residente_id = per.id OR u.propietario_id = per.id
+            LEFT JOIN cuentas_bancarias cb ON p.cuenta_bancaria_id = cb.id
+            WHERE p.estado IN ('PENDIENTE', 'EN REVISIÓN')
+
+            UNION ALL
+
+            SELECT 'comprobante' AS origen_tabla,
+                   c.id, f.unidad_id, c.monto, c.fecha_pago, c.referencia,
+                   c.banco_pagador AS banco_origen, c.banco_receptor AS banco_destino,
+                   c.banco_pagador, c.banco_receptor, c.estado,
+                   c.observaciones, c.archivo, c.metodo_pago,
+                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
+                   per.email AS residente_email, per.telefono AS residente_telefono,
+                   u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                   c.factura_id, f.numero_factura, c.fecha_envio AS fecha_creacion
+            FROM comprobantes_pago c
+            LEFT JOIN facturas f ON c.factura_id = f.id
+            LEFT JOIN unidades u ON f.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas per ON c.residente_id = per.id OR u.propietario_id = per.id
+            WHERE c.estado IN ('pendiente', 'PENDIENTE')
+            ORDER BY fecha_creacion DESC, id DESC
+        ";
+        return $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

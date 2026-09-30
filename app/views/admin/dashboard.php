@@ -80,9 +80,9 @@ $ultimos_comprobantes = $ultimos_comprobantes ?? $procesados ?? [];
                                     </td>
                                     <td class="py-4 px-4 text-xs"><?= e(date('d/m/Y', strtotime($c['fecha_envio']))) ?></td>
                                     <td class="py-4 px-4">
-                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=dashboard" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-transform active:scale-95 inline-flex items-center gap-1" title="Verificar pago">
-                                            <span class="material-symbols-outlined text-[14px]">verified</span>
-                                            Verificar
+                                        <a href="/admin/conciliacion" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-transform active:scale-95 inline-flex items-center gap-1" title="Verificar en Conciliación">
+                                            <span class="material-symbols-outlined text-[14px]">sync_alt</span>
+                                            Conciliar
                                         </a>
                                     </td>
                                 </tr>

@@ -23,13 +23,15 @@ class ConciliacionController extends Controller {
 
         $extractosPendientes = $conciliacionModel->obtenerExtractosPendientes($loteSeleccionado);
         $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractosPendientes);
+        $pagosPendientes = $conciliacionModel->obtenerTodosPagosPendientes();
 
         $this->render('admin/conciliacion/index', [
             'lotes'             => $lotes,
             'loteActual'        => $loteSeleccionado,
             'resultadoCruce'    => $resultadoCruce,
+            'pagosPendientes'   => $pagosPendientes,
             'layout'            => 'admin',
-            'title'             => 'Motor de Conciliación Bancaria Inteligente'
+            'title'             => 'Conciliación Bancaria y Verificación de Pagos'
         ]);
     }
 
@@ -226,6 +228,52 @@ class ConciliacionController extends Controller {
         } catch (\Exception $e) {
             error_log("[CONCILIACION] Error al rechazar pago: " . $e->getMessage());
             Flash::set('danger', 'Error al procesar el rechazo del pago: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/conciliacion');
+    }
+
+    /**
+     * Verifica y aprueba directamente un pago o comprobante desde el módulo de conciliación.
+     */
+    public function verificarPagoDirecto() {
+        Auth::requireRole('admin');
+
+        $pagoId = intval($_POST['pago_id'] ?? 0);
+        $origenTipo = trim($_POST['origen_tipo'] ?? 'pago');
+        $observaciones = trim($_POST['observaciones'] ?? 'Verificado y aprobado desde Conciliación');
+        $adminId = Auth::id() ?? 1;
+
+        if ($pagoId <= 0) {
+            Flash::set('danger', 'Identificador de pago inválido.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        try {
+            if ($origenTipo === 'comprobante') {
+                $compModel = new \App\Models\ComprobantesModel();
+                $ok = $compModel->aprobar($pagoId, $observaciones);
+            } else {
+                $pagoModel = new \App\Models\PagoModel();
+                $resultado = $pagoModel->cambiarEstado(
+                    $pagoId,
+                    \App\Core\EstadoPago::APROBADO,
+                    $observaciones,
+                    $adminId,
+                    $_SERVER['REMOTE_ADDR'] ?? null
+                );
+                $ok = !empty($resultado['ok']);
+            }
+
+            if ($ok) {
+                Flash::set('success', 'Pago verificado y aprobado exitosamente desde Conciliación.');
+            } else {
+                Flash::set('danger', 'No se pudo verificar el pago.');
+            }
+        } catch (\Exception $e) {
+            error_log("[CONCILIACION] Error al verificar pago directo: " . $e->getMessage());
+            Flash::set('danger', 'Error al verificar el pago: ' . $e->getMessage());
         }
 
         $this->redirect('/admin/conciliacion');

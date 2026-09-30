@@ -190,6 +190,7 @@ $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::cl
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\ConciliacionController::class, 'conciliarLote'], [UserRole::ADMIN]);
+$router->post('/admin/conciliacion/verificar', [\App\Controllers\ConciliacionController::class, 'verificarPagoDirecto'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/rechazar', [\App\Controllers\ConciliacionController::class, 'rechazarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Cuentas Bancarias Autorizadas ---
