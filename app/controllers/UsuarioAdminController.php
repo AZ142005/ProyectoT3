@@ -88,6 +88,25 @@ class UsuarioAdminController extends Controller {
                 $this->redirect('/admin/usuarios');
                 return;
             }
+
+            $currentAdminId = intval(Auth::id());
+            $targetUserId   = intval($usuario['id']);
+            $rolUsuario     = strtolower(trim($usuario['rol'] ?? ''));
+
+            // Prevención de auto-reinicio
+            if ($targetUserId === $currentAdminId) {
+                Flash::error('No tienes permisos para reiniciar tu propia contraseña desde este módulo.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
+            // Protección entre administradores
+            if ($rolUsuario === 'admin') {
+                Flash::error('No tienes permisos para reiniciar la contraseña de una cuenta con rol de Administrador.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
             $nombreUsuario = $usuario['nombre_completo'] ?? $usuario['usuario'] ?? 'Usuario';
             $cedulaUsuario = $usuario['cedula'] ?? $usuario['usuario'] ?? '';
         }

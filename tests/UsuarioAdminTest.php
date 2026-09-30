@@ -113,4 +113,80 @@ class UsuarioAdminTest extends TestCase {
         $this->assertStringContains('pagination', $viewContent, "La vista debe contener soporte de paginación");
         $this->assertStringContains('reiniciar-password', $viewContent, "La vista debe apuntar al endpoint de reseteo");
     }
+
+    public function testVistaDeshabilitaBotonReinicioParaCuentasAdmin(): void {
+        $viewPath = dirname(__DIR__) . '/app/views/admin/usuarios/index.php';
+        $viewContent = file_get_contents($viewPath);
+
+        $this->assertStringContains('$esAdminCuenta', $viewContent, "La vista debe calcular si la fila es cuenta de admin");
+        $this->assertStringContains('$esMismoAdmin', $viewContent, "La vista debe calcular si es el propio admin");
+        $this->assertStringContains('disabled', $viewContent, "La vista debe incluir el atributo disabled para administradores");
+        $this->assertStringContains('No se permite reiniciar contraseñas de cuentas de administrador', $viewContent,
+            "La vista debe incluir tooltip explicativo de la restricción");
+    }
+
+    public function testAdminNoPuedeReiniciarSuPropiaContrasena(): void {
+        $ctrl = new class extends UsuarioAdminController {
+            public string $redirectUrl = '';
+            protected function redirect($url): void {
+                $this->redirectUrl = $url;
+            }
+        };
+
+        $_SESSION['auth_user'] = [
+            'id'    => 1,
+            'role'  => 'admin',
+            'name'  => 'Administrador Principal'
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST['tipo_entidad']     = 'usuario';
+        $_POST['id']               = 1;
+        $_POST['modo_generacion']  = 'auto';
+
+        $ctrl->reiniciarPassword();
+
+        $errorMsg = \App\Core\Flash::get('error');
+        $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, "Debe redirigir a /admin/usuarios");
+        $this->assertStringContains('No tienes permisos para reiniciar tu propia contraseña', $errorMsg,
+            "Debe generar mensaje de error de auto-reinicio");
+    }
+
+    public function testAdminNoPuedeReiniciarContrasenaDeOtroAdministrador(): void {
+        $db = $this->getDb();
+
+        // Crear admin secundario temporal
+        $db->exec("DELETE FROM usuarios WHERE usuario = 'admin_test_secundario'");
+        $db->exec("INSERT INTO usuarios (usuario, email, cedula, password, nombre_completo, rol, estado) 
+                   VALUES ('admin_test_secundario', 'secundario@test.com', 'V-77766655', 'dummy_hash', 'Admin Secundario', 'admin', 1)");
+        $admin2Id = (int)$db->lastInsertId();
+
+        $this->assertTrue($admin2Id > 0, "El admin secundario debe crearse");
+
+        $ctrl = new class extends UsuarioAdminController {
+            public string $redirectUrl = '';
+            protected function redirect($url): void {
+                $this->redirectUrl = $url;
+            }
+        };
+
+        $_SESSION['auth_user'] = [
+            'id'    => 1,
+            'role'  => 'admin',
+            'name'  => 'Administrador Principal'
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST['tipo_entidad']     = 'usuario';
+        $_POST['id']               = $admin2Id;
+        $_POST['modo_generacion']  = 'auto';
+
+        $ctrl->reiniciarPassword();
+
+        $errorMsg = \App\Core\Flash::get('error');
+        $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, "Debe redirigir a /admin/usuarios");
+        $this->assertStringContains('No tienes permisos para reiniciar la contraseña de una cuenta con rol de Administrador', $errorMsg,
+            "Debe generar mensaje de error al intentar reiniciar clave de otro administrador");
+
+        // Limpiar registro temporal
+        $db->exec("DELETE FROM usuarios WHERE id = {$admin2Id}");
+    }
 }

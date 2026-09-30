@@ -189,19 +189,33 @@
                                                 <?php endif; ?>
                                             </td>
                                             <td class="text-end pe-4">
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-outline-warning text-dark fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#modalReiniciarPassword"
-                                                        data-id="<?= e($u['id']) ?>"
-                                                        data-tipo="<?= e($u['tipo_entidad']) ?>"
-                                                        data-nombre="<?= e($u['nombre_completo']) ?>"
-                                                        data-cedula="<?= e($u['cedula']) ?>"
-                                                        data-rol="<?= e($u['rol_texto']) ?>"
-                                                        onclick="configurarModalReinicio(this)">
-                                                    <span class="material-symbols-outlined fs-6">lock_reset</span>
-                                                    <span>Reiniciar</span>
-                                                </button>
+                                                <?php 
+                                                $esAdminCuenta = ($u['rol_clave'] === 'admin');
+                                                $esMismoAdmin  = ($u['tipo_entidad'] === 'usuario' && intval($u['id']) === intval(\App\Core\Auth::id()));
+                                                ?>
+                                                <?php if ($esAdminCuenta || $esMismoAdmin): ?>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-light text-muted border d-inline-flex align-items-center gap-1 opacity-75 shadow-none"
+                                                            disabled
+                                                            title="<?= e($esMismoAdmin ? 'No puede reiniciar su propia contraseña desde este panel' : 'No se permite reiniciar contraseñas de cuentas de administrador') ?>">
+                                                        <span class="material-symbols-outlined fs-6 text-muted">lock</span>
+                                                        <span>Reiniciar</span>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-warning text-dark fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modalReiniciarPassword"
+                                                            data-id="<?= e($u['id']) ?>"
+                                                            data-tipo="<?= e($u['tipo_entidad']) ?>"
+                                                            data-nombre="<?= e($u['nombre_completo']) ?>"
+                                                            data-cedula="<?= e($u['cedula']) ?>"
+                                                            data-rol="<?= e($u['rol_texto']) ?>"
+                                                            onclick="configurarModalReinicio(this)">
+                                                        <span class="material-symbols-outlined fs-6">lock_reset</span>
+                                                        <span>Reiniciar</span>
+                                                    </button>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -336,6 +350,9 @@
 
 <script>
 function configurarModalReinicio(btn) {
+    if (!btn || btn.hasAttribute('disabled') || btn.disabled) {
+        return;
+    }
     const id = btn.getAttribute('data-id');
     const tipo = btn.getAttribute('data-tipo');
     const nombre = btn.getAttribute('data-nombre');
