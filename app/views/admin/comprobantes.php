@@ -166,9 +166,8 @@
                                         <?= badgeEstado($c['estado']) ?>
                                     </td>
                                     <td class="py-4 px-4 text-end">
-                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1 transition-colors" title="Ver detalle del pago">
-                                            <span class="material-symbols-outlined text-[14px]">visibility</span>
-                                            Ver Detalle
+                                        <a href="/admin/comprobante/verificar?id=<?= e($c['id']) ?>&from=comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold p-1.5 rounded-lg inline-flex items-center justify-center transition-colors" title="Ver Detalle">
+                                            <span class="material-symbols-outlined text-[16px]">visibility</span>
                                         </a>
                                     </td>
                                 </tr>
