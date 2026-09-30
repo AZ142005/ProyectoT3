@@ -1379,4 +1379,12 @@ class BehaviorTest extends TestCase {
         $this->assertStringContains('name="banco_pagador"', $content, 'enviar_pago.php must include banco_pagador input');
         $this->assertStringContains('data.banco_pagador', $content, 'enviar_pago.php must handle data.banco_pagador from OCR');
     }
+
+    public function testPagoControllerResolvesGlobalDateTime(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $this->assertTrue(
+            str_contains($content, 'use DateTime;') || str_contains($content, '\DateTime::createFromFormat'),
+            'PagoController must import DateTime or use fully qualified \DateTime'
+        );
+    }
 }

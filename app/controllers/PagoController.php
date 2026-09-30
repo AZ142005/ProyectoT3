@@ -9,6 +9,7 @@ use App\Core\UserRole;
 use App\Models\PagoModel;
 use App\Models\EdificiosModel;
 use App\Services\ComprobanteParserService;
+use DateTime;
 
 class PagoController extends Controller {
     
@@ -147,7 +148,7 @@ class PagoController extends Controller {
             Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');
         }
-        if (!DateTime::createFromFormat('Y-m-d', $fecha_pago) || date('Y-m-d', strtotime($fecha_pago)) !== $fecha_pago) {
+        if (!\DateTime::createFromFormat('Y-m-d', $fecha_pago) || date('Y-m-d', strtotime($fecha_pago)) !== $fecha_pago) {
             Flash::error("El formato de fecha no es válido. Use AAAA-MM-DD.");
             $this->redirect('/pagos/nuevo');
         }
