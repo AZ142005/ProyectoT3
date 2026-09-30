@@ -302,7 +302,7 @@ $anio = intval($anio ?? date('Y'));
             <!-- Fila 3: Cuentas Bancarias & Últimos Movimientos Procesados (Solo Lectura) -->
             <div class="row g-4">
                 <!-- Columna Izquierda: Cuentas Bancarias Autorizadas -->
-                <div class="col-12 col-lg-5">
+                <div class="col-12 col-lg-6">
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-header bg-white py-3.5 px-4 d-flex justify-content-between align-items-center border-bottom">
                             <div class="d-flex align-items-center gap-2">
@@ -351,7 +351,7 @@ $anio = intval($anio ?? date('Y'));
                 </div>
 
                 <!-- Columna Derecha: Últimos Movimientos Procesados (Solo Lectura) -->
-                <div class="col-12 col-lg-7">
+                <div class="col-12 col-lg-6">
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-header bg-white py-3.5 px-4 d-flex justify-content-between align-items-center border-bottom">
                             <div>
@@ -378,10 +378,8 @@ $anio = intval($anio ?? date('Y'));
                                         <thead class="table-light text-xs uppercase text-muted">
                                             <tr>
                                                 <th class="py-3 px-3">Residente</th>
-                                                <th class="py-3 px-3">Unidad</th>
                                                 <th class="py-3 px-3">Monto</th>
-                                                <th class="py-3 px-3">Estado</th>
-                                                <th class="py-3 px-3 text-end">Fecha</th>
+                                                <th class="py-3 px-3 text-end">Estado</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
@@ -393,13 +391,9 @@ $anio = intval($anio ?? date('Y'));
                                                             <div class="text-[11px] text-muted"><?= e($c['cedula']) ?></div>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="px-3 py-2.5 font-semibold text-xs"><?= e($c['unidad'] ?? '-') ?></td>
                                                     <td class="px-3 py-2.5 font-bold text-dark text-xs"><?= e(formatearMoneda($c['monto'])) ?></td>
-                                                    <td class="px-3 py-2.5">
+                                                    <td class="px-3 py-2.5 text-end">
                                                         <?= badgeEstado($c['estado']) ?>
-                                                    </td>
-                                                    <td class="px-3 py-2.5 text-end text-xs text-muted">
-                                                        <?= e(date('d/m/Y', strtotime($c['fecha_envio'] ?? ($c['fecha_pago'] ?? 'now')))) ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
