@@ -46,6 +46,7 @@ CREATE TABLE `backups_log` (
   PRIMARY KEY (`id`),
   KEY `idx_backups_fecha` (`fecha_respaldo`),
   KEY `idx_backups_estado` (`estado`,`fecha_respaldo`),
+  KEY `admin_id` (`admin_id`),
   CONSTRAINT `backups_log_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -140,6 +141,33 @@ CREATE TABLE `conciliacion_lotes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Estructura de tabla para `cuentas_bancarias`
+-- --------------------------------------------------------
+
+DROP TABLE IF EXISTS `cuentas_bancarias`;
+CREATE TABLE `cuentas_bancarias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `banco` varchar(100) NOT NULL,
+  `tipo_cuenta` enum('corriente','ahorro') NOT NULL DEFAULT 'corriente',
+  `numero_cuenta` varchar(20) NOT NULL,
+  `titular` varchar(150) NOT NULL,
+  `tipo_identificacion` enum('V','J','E','G') NOT NULL DEFAULT 'J',
+  `identificacion` varchar(20) NOT NULL,
+  `telefono_pago_movil` varchar(20) DEFAULT NULL,
+  `permite_transferencia` tinyint(1) NOT NULL DEFAULT 1,
+  `permite_pago_movil` tinyint(1) NOT NULL DEFAULT 1,
+  `activa` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_cuenta` (`numero_cuenta`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Volcado de datos para la tabla `cuentas_bancarias`
+INSERT INTO `cuentas_bancarias` (`id`, `banco`, `tipo_cuenta`, `numero_cuenta`, `titular`, `tipo_identificacion`, `identificacion`, `telefono_pago_movil`, `permite_transferencia`, `permite_pago_movil`, `activa`) VALUES
+('1', 'Banco de Venezuela', 'corriente', '01020000000000007558', 'Condominio Digital', 'J', 'J-12345678-0', '04121234567', '1', '1', '1');
+
+-- --------------------------------------------------------
 -- Estructura de tabla para `edificios`
 -- --------------------------------------------------------
 
@@ -192,6 +220,8 @@ CREATE TABLE `extractos_bancarios` (
   `lote_importacion` varchar(50) NOT NULL,
   `banco` varchar(50) NOT NULL,
   `fecha_movimiento` date NOT NULL,
+  `referencia_bancaria` varchar(100) NOT NULL DEFAULT '',
+  `descripcion_banco` text DEFAULT NULL,
   `descripcion` varchar(500) DEFAULT NULL,
   `monto` decimal(12,2) NOT NULL,
   `tipo_movimiento` enum('credito','debito') NOT NULL,
@@ -199,6 +229,7 @@ CREATE TABLE `extractos_bancarios` (
   `saldo` decimal(12,2) DEFAULT NULL,
   `conciliado` tinyint(1) DEFAULT 0,
   `pago_id` int(11) DEFAULT NULL,
+  `admin_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `fecha_carga` datetime DEFAULT current_timestamp(),
   `usuario_carga` int(11) DEFAULT NULL,
@@ -209,7 +240,8 @@ CREATE TABLE `extractos_bancarios` (
   PRIMARY KEY (`id`),
   KEY `idx_extractos_lote` (`lote_importacion`),
   KEY `idx_extractos_fecha` (`fecha_movimiento`),
-  KEY `idx_extractos_conciliado` (`conciliado`)
+  KEY `idx_extractos_conciliado` (`conciliado`),
+  KEY `idx_extracto_busqueda` (`referencia_bancaria`,`monto`,`fecha_movimiento`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -265,6 +297,8 @@ CREATE TABLE `gastos_comunes` (
   `proveedor` varchar(150) DEFAULT NULL,
   `nro_factura_proveedor` varchar(50) DEFAULT NULL,
   `soporte_digital` varchar(255) DEFAULT NULL,
+  `pagina_soporte` int(11) DEFAULT 1,
+  `extracto_texto` text DEFAULT NULL,
   `periodo` varchar(20) DEFAULT NULL,
   `admin_id` int(11) DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
@@ -361,13 +395,13 @@ CREATE TABLE `notificaciones` (
   `residente_id` int(11) NOT NULL,
   `persona_id` int(11) DEFAULT NULL,
   `comunicado_id` int(11) DEFAULT NULL,
-  `titulo` varchar(255) NOT NULL,
-  `mensaje` text NOT NULL,
+  `titulo` varchar(255) DEFAULT NULL,
+  `mensaje` text DEFAULT NULL,
   `tipo` varchar(50) DEFAULT 'info',
   `leido` tinyint(1) DEFAULT 0,
-  `leida` tinyint(1) DEFAULT 0,
   `enlace` varchar(255) DEFAULT NULL,
-  `fecha_registro` timestamp DEFAULT current_timestamp(),
+  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
+  `leida` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_notif_residente` (`residente_id`,`leido`),
@@ -412,14 +446,15 @@ CREATE TABLE `pagos` (
   `metodo_pago` varchar(50) NOT NULL,
   `banco_pagador` varchar(100) DEFAULT NULL,
   `banco_receptor` varchar(100) DEFAULT NULL,
+  `cuenta_bancaria_id` int(11) DEFAULT NULL,
   `referencia` varchar(100) DEFAULT NULL,
   `referencia_norm` varchar(100) DEFAULT NULL,
-  `dup_guard` varchar(191) GENERATED ALWAYS AS (if(`estado` = 'RECHAZADO' or (`deleted_at` is not null and `estado` <> 'APROBADO'), NULL, if(`referencia_norm` is null or `referencia_norm` = '', concat('S|', `unidad_id`, '|', `fecha_pago`, '|', `monto`), concat('R|', `unidad_id`, '|', `referencia_norm`)))) STORED,
   `archivo` varchar(255) NOT NULL,
   `observaciones` text DEFAULT NULL,
   `estado` varchar(20) DEFAULT 'PENDIENTE',
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `dup_guard` varchar(191) GENERATED ALWAYS AS (if(`estado` = 'RECHAZADO' or `deleted_at` is not null and `estado` <> 'APROBADO',NULL,if(`referencia_norm` is null or `referencia_norm` = '',concat('S|',`unidad_id`,'|',`fecha_pago`,'|',`monto`),concat('R|',`unidad_id`,'|',`referencia_norm`)))) STORED,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_pago_dup_guard` (`dup_guard`),
   KEY `residente_id` (`residente_id`),
@@ -443,13 +478,14 @@ CREATE TABLE `personas` (
   `email` varchar(100) DEFAULT NULL,
   `unidad_id` int(11) DEFAULT NULL,
   `tipo` enum('propietario','inquilino','ambos') NOT NULL DEFAULT 'propietario',
+  `numero_residentes` int(11) NOT NULL DEFAULT 1,
   `password` varchar(255) DEFAULT NULL,
   `estado` tinyint(4) DEFAULT 1,
+  `ultimo_acceso` datetime DEFAULT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `intentos_fallidos` int(11) DEFAULT 0,
   `bloqueado_hasta` datetime DEFAULT NULL,
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT 0,
-  `ultimo_acceso` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `cedula` (`cedula`),
   KEY `unidad_id` (`unidad_id`),
@@ -551,6 +587,33 @@ CREATE TABLE `solicitudes_cambio_datos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Estructura de tabla para `solicitudes_registro`
+-- --------------------------------------------------------
+
+DROP TABLE IF EXISTS `solicitudes_registro`;
+CREATE TABLE `solicitudes_registro` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cedula` varchar(20) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `apellido` varchar(100) NOT NULL,
+  `telefono` varchar(20) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `unidad_id` int(11) NOT NULL,
+  `numero_residentes` int(11) NOT NULL DEFAULT 1,
+  `password_hash` varchar(255) NOT NULL,
+  `estado` enum('pendiente','aprobada','rechazada') DEFAULT 'pendiente',
+  `admin_id` int(11) DEFAULT NULL,
+  `motivo_rechazo` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_solicitud_estado` (`estado`),
+  KEY `idx_solicitud_unidad` (`unidad_id`),
+  KEY `idx_solicitud_cedula` (`cedula`),
+  KEY `idx_solicitud_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Estructura de tabla para `unidades`
 -- --------------------------------------------------------
 
@@ -586,6 +649,7 @@ CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `usuario` varchar(50) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
+  `cedula` varchar(20) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `nombre_completo` varchar(150) DEFAULT NULL,
   `rol` enum('admin') DEFAULT 'admin',
@@ -597,7 +661,8 @@ CREATE TABLE `usuarios` (
   `two_factor_enabled` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `usuario` (`usuario`),
-  UNIQUE KEY `uk_email` (`email`)
+  UNIQUE KEY `uk_email` (`email`),
+  UNIQUE KEY `cedula` (`cedula`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Volcado de datos para la tabla `usuarios`
