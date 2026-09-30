@@ -271,8 +271,8 @@
                                                     <table class="table table-sm table-hover align-middle mb-0">
                                                         <thead class="table-light">
                                                             <tr class="text-muted small fw-bold text-uppercase">
-                                                                <th class="ps-3 py-2">Unidad / Apto</th>
-                                                                <th class="py-2">Propietario / Contacto</th>
+                                                                <th class="ps-3 py-2">Unidad</th>
+                                                                <th class="py-2">Propietario</th>
                                                                 <th class="py-2 text-center">Estado</th>
                                                                 <th class="py-2 text-center">Facturas Vencidas</th>
                                                                 <th class="py-2 text-center">Días de Mora</th>
