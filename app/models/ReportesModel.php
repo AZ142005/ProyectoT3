@@ -217,6 +217,112 @@ class ReportesModel extends BaseModel {
     }
 
     /**
+     * Obtiene el resumen financiero consolidado para el Dashboard de Administración (solo lectura).
+     * Incluye KPIs de balance, recaudación, egresos y estado de cartera.
+     *
+     * @param int $mes
+     * @param int $anio
+     * @return array
+     */
+    public function obtenerResumenFinancieroDashboard(int $mes, int $anio): array {
+        $db = $this->db();
+
+        // 1. KPIs de Morosidad y Solvencia (utiliza caché de 5 min)
+        $kpisMorosidad = $this->obtenerKpisMorosidad();
+
+        // Total adeudado global (saldo acumulado por cobrar en facturas pendientes)
+        $stmtCobrar = $db->query("
+            SELECT COALESCE(ROUND(SUM(saldo), 2), 0) AS total_por_cobrar
+            FROM facturas
+            WHERE saldo > 0 AND deleted_at IS NULL
+        ");
+        $totalPorCobrar = floatval($stmtCobrar->fetch(PDO::FETCH_ASSOC)['total_por_cobrar'] ?? 0);
+
+        // 2. Ingresos del mes (pagos aprobados)
+        $stmtIngresosPagos = $db->prepare("
+            SELECT COALESCE(ROUND(SUM(monto), 2), 0) AS total
+            FROM pagos
+            WHERE estado = 'aprobado'
+              AND MONTH(fecha_pago) = :mes AND YEAR(fecha_pago) = :anio
+              AND deleted_at IS NULL
+        ");
+        $stmtIngresosPagos->execute(['mes' => $mes, 'anio' => $anio]);
+        $ingresosPagos = floatval($stmtIngresosPagos->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $stmtIngresosComp = $db->prepare("
+            SELECT COALESCE(ROUND(SUM(monto), 2), 0) AS total
+            FROM comprobantes_pago
+            WHERE estado = 'aprobado'
+              AND (
+                (fecha_pago IS NOT NULL AND MONTH(fecha_pago) = :mes1 AND YEAR(fecha_pago) = :anio1)
+                OR (fecha_pago IS NULL AND MONTH(fecha_envio) = :mes2 AND YEAR(fecha_envio) = :anio2)
+              )
+        ");
+        $stmtIngresosComp->execute([
+            'mes1'  => $mes,
+            'anio1' => $anio,
+            'mes2'  => $mes,
+            'anio2' => $anio
+        ]);
+        $ingresosComp = floatval($stmtIngresosComp->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $totalIngresosMes = round($ingresosPagos + $ingresosComp, 2);
+
+        // Ingresos históricos globales acumulados
+        $stmtIngresosGlobal = $db->query("
+            SELECT (
+                (SELECT COALESCE(ROUND(SUM(monto), 2), 0) FROM pagos WHERE estado = 'aprobado' AND deleted_at IS NULL)
+                +
+                (SELECT COALESCE(ROUND(SUM(monto), 2), 0) FROM comprobantes_pago WHERE estado = 'aprobado')
+            ) AS total_recaudado
+        ");
+        $totalRecaudadoHistorico = floatval($stmtIngresosGlobal->fetch(PDO::FETCH_ASSOC)['total_recaudado'] ?? 0);
+
+        // 3. Egresos / Gastos del mes
+        $stmtGastos = $db->prepare("
+            SELECT COALESCE(ROUND(SUM(monto_total), 2), 0) AS total
+            FROM gastos_comunes
+            WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL
+        ");
+        $stmtGastos->execute(['mes' => $mes, 'anio' => $anio]);
+        $totalGastosMes = floatval($stmtGastos->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        // Egresos históricos globales
+        $stmtGastosGlobal = $db->query("
+            SELECT COALESCE(ROUND(SUM(monto_total), 2), 0) AS total_gastos
+            FROM gastos_comunes
+            WHERE deleted_at IS NULL
+        ");
+        $totalGastosHistorico = floatval($stmtGastosGlobal->fetch(PDO::FETCH_ASSOC)['total_gastos'] ?? 0);
+
+        // 4. Balance operativo neto
+        $balanceNetoMes = round($totalIngresosMes - $totalGastosMes, 2);
+        $balanceHistorico = round($totalRecaudadoHistorico - $totalGastosHistorico, 2);
+
+        // 5. Pagos pendientes de conciliar (indicador de alerta para módulo Conciliación)
+        $stmtPendientes = $db->query("
+            SELECT (
+                (SELECT COUNT(*) FROM comprobantes_pago WHERE estado = 'pendiente')
+                +
+                (SELECT COUNT(*) FROM pagos WHERE estado = 'pendiente' AND deleted_at IS NULL)
+            ) AS total_pendientes
+        ");
+        $totalPendientes = intval($stmtPendientes->fetch(PDO::FETCH_ASSOC)['total_pendientes'] ?? 0);
+
+        return [
+            'kpis_morosidad'            => $kpisMorosidad,
+            'total_por_cobrar'          => $totalPorCobrar,
+            'total_ingresos_mes'        => $totalIngresosMes,
+            'total_recaudado_historico' => $totalRecaudadoHistorico,
+            'total_gastos_mes'          => $totalGastosMes,
+            'total_gastos_historico'    => $totalGastosHistorico,
+            'balance_neto_mes'          => $balanceNetoMes,
+            'balance_historico'         => $balanceHistorico,
+            'total_pendientes'          => $totalPendientes
+        ];
+    }
+
+    /**
      * Realiza exportación streaming directa en CSV con BOM UTF-8 para compatibilidad con Excel.
      */
     public function exportarCsvStreaming(array $filtros = []): void {

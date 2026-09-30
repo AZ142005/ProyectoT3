@@ -9,24 +9,50 @@ use App\Models\ComprobantesModel;
 use App\Models\EdificiosModel;
 use App\Models\FacturasModel;
 use App\Models\UnidadesModel;
+use App\Models\ReportesModel;
+use App\Models\GastosModel;
+use App\Models\CuentasBancariasModel;
 
 class AdminController extends Controller {
 
     public function dashboard() {
         Auth::requireRole(UserRole::ADMIN);
 
-        $comprobantesModel = new ComprobantesModel();
+        $mesActual = intval($_GET['mes'] ?? date('n'));
+        $anioActual = intval($_GET['anio'] ?? date('Y'));
+        if ($mesActual < 1 || $mesActual > 12) {
+            $mesActual = intval(date('n'));
+        }
+        if ($anioActual < 2000 || $anioActual > 2100) {
+            $anioActual = intval(date('Y'));
+        }
 
-        $pendientes = $comprobantesModel->getPendientesVerificar(10) ?: [];
+        $reportesModel = new ReportesModel();
+        $resumenFinanciero = $reportesModel->obtenerResumenFinancieroDashboard($mesActual, $anioActual);
+
+        $gastosModel = new GastosModel();
+        $gastosPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mesActual, $anioActual);
+
+        $cuentasModel = new CuentasBancariasModel();
+        $cuentasBancarias = $cuentasModel->getActivas();
+
+        $comprobantesModel = new ComprobantesModel();
+        // Solo lectura de últimos movimientos procesados (verificados o rechazados)
         $procesados = $comprobantesModel->getProcesados(10) ?: [];
 
         $this->render('admin/dashboard', [
-            'comprobantes_pendientes' => $pendientes,
+            'resumen'                 => $resumenFinanciero,
+            'kpis'                    => $resumenFinanciero['kpis_morosidad'],
+            'gastos_por_categoria'    => $gastosPorCategoria,
+            'cuentas_bancarias'       => $cuentasBancarias,
             'ultimos_comprobantes'    => $procesados,
-            'pendientes'              => $pendientes,
+            'comprobantes_pendientes' => [],
+            'pendientes'              => [],
             'procesados'              => $procesados,
+            'mes'                     => $mesActual,
+            'anio'                    => $anioActual,
             'showNav'                 => false,
-            'title'                   => 'Panel de Control - Administrador'
+            'title'                   => 'Panel de Control Financiero - Administrador'
         ]);
     }
 
