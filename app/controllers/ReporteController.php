@@ -20,31 +20,38 @@ class ReporteController extends Controller {
             'estado'      => $_GET['estado'] ?? ''
         ];
 
-        $pagina = max(1, intval($_GET['page'] ?? 1));
-
         $reportesModel = new ReportesModel();
         $edificiosModel = new EdificiosModel();
 
-        $resultado = $reportesModel->obtenerReporteMorosidad($filtros, $pagina, 50);
+        $edificiosConsolidados = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio($filtros);
         $kpis = $reportesModel->obtenerKpisMorosidad();
         $edificios = $edificiosModel->getActivos();
 
+        // Retrocompatibilidad con componentes
+        $todasUnidades = [];
+        foreach ($edificiosConsolidados as $ed) {
+            foreach ($ed['unidades'] as $u) {
+                $todasUnidades[] = $u;
+            }
+        }
+
         $paginacion = [
-            'total'        => $resultado['total'],
-            'pagina'       => $resultado['pagina'],
-            'porPagina'    => $resultado['porPagina'],
-            'totalPaginas' => $resultado['totalPaginas'],
+            'total'        => count($todasUnidades),
+            'pagina'       => 1,
+            'porPagina'    => max(1, count($todasUnidades)),
+            'totalPaginas' => 1,
         ];
 
         $this->render('admin/reportes/morosidad', [
-            'morosos'    => $resultado['datos'],
-            'unidades'   => $resultado['datos'],
-            'kpis'       => $kpis,
-            'edificios'  => $edificios,
-            'filtros'    => $filtros,
-            'paginacion' => $paginacion,
-            'layout'     => 'admin',
-            'title'      => 'Balance General de Unidades'
+            'edificiosConsolidados' => $edificiosConsolidados,
+            'morosos'               => $todasUnidades,
+            'unidades'              => $todasUnidades,
+            'kpis'                  => $kpis,
+            'edificios'             => $edificios,
+            'filtros'               => $filtros,
+            'paginacion'            => $paginacion,
+            'layout'                => 'admin',
+            'title'                 => 'Balance General'
         ]);
     }
 

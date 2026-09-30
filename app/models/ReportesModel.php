@@ -84,6 +84,139 @@ class ReportesModel extends BaseModel {
     }
 
     /**
+     * Obtiene el reporte de balance general consolidado agrupado por edificio,
+     * totalizando los montos financieros y agrupando las unidades de cada torre.
+     *
+     * @param array $filtros Filtros opcionales: 'edificio_id', 'estado' ('solvente'|'deudor'), 'dias_mora'
+     * @return array Lista consolidada de edificios con sus unidades y balance
+     */
+    public function obtenerReporteBalanceAgrupadoPorEdificio(array $filtros = []): array {
+        $where = "WHERE u.estado = 1";
+        $params = [];
+
+        if (!empty($filtros['edificio_id'])) {
+            $where .= " AND u.edificio_id = :edificio_id";
+            $params['edificio_id'] = intval($filtros['edificio_id']);
+        }
+
+        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
+        if ($estadoFiltro === 'solvente') {
+            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
+            $where .= " AND m.total_deuda > 0";
+        }
+
+        if (!empty($filtros['dias_mora'])) {
+            $dias = intval($filtros['dias_mora']);
+            $where .= " AND m.dias_mora_max >= :dias";
+            $params['dias'] = $dias;
+        }
+
+        $sql = "
+            SELECT 
+                u.id AS unidad_id,
+                u.numero AS unidad_numero,
+                COALESCE(e.id, 0) AS edificio_id,
+                COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                e.descripcion AS edificio_descripcion,
+                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
+                COALESCE(p.cedula, 'N/A') AS propietario_cedula,
+                COALESCE(p.telefono, 'N/A') AS propietario_telefono,
+                COALESCE(p.email, 'N/A') AS propietario_email,
+                COALESCE(m.facturas_vencidas, 0) AS facturas_vencidas,
+                COALESCE(m.total_deuda, 0.00) AS total_deuda,
+                COALESCE(m.dias_mora_max, 0) AS dias_mora_max,
+                CASE 
+                    WHEN COALESCE(m.total_deuda, 0.00) > 0 THEN 'deudor'
+                    ELSE 'solvente'
+                END AS estado_financiero
+            FROM unidades u
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas p ON u.propietario_id = p.id
+            LEFT JOIN (
+                SELECT 
+                    f.unidad_id,
+                    COUNT(f.id) AS facturas_vencidas,
+                    ROUND(SUM(f.saldo), 2) AS total_deuda,
+                    MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
+                    DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
+                FROM facturas f
+                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) m ON m.unidad_id = u.id
+            {$where}
+            ORDER BY e.nombre ASC, total_deuda DESC, u.numero ASC
+        ";
+
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
+        $unidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $edificiosModel = new EdificiosModel();
+        $catalogoEdificios = $edificiosModel->getActivos();
+
+        $edificiosMap = [];
+        foreach ($catalogoEdificios as $ed) {
+            $eid = (int)$ed['id'];
+            if (!empty($filtros['edificio_id']) && $eid !== intval($filtros['edificio_id'])) {
+                continue;
+            }
+            $edificiosMap[$eid] = [
+                'edificio_id'          => $eid,
+                'edificio_nombre'      => $ed['nombre'],
+                'edificio_descripcion' => $ed['descripcion'] ?? '',
+                'total_unidades'       => 0,
+                'unidades_solventes'   => 0,
+                'unidades_deudoras'    => 0,
+                'balance_total'        => 0.00,
+                'dias_mora_max'        => 0,
+                'unidades'             => []
+            ];
+        }
+
+        foreach ($unidades as $u) {
+            $eid = (int)$u['edificio_id'];
+            if (!isset($edificiosMap[$eid])) {
+                $edificiosMap[$eid] = [
+                    'edificio_id'          => $eid,
+                    'edificio_nombre'      => $u['edificio_nombre'],
+                    'edificio_descripcion' => $u['edificio_descripcion'] ?? '',
+                    'total_unidades'       => 0,
+                    'unidades_solventes'   => 0,
+                    'unidades_deudoras'    => 0,
+                    'balance_total'        => 0.00,
+                    'dias_mora_max'        => 0,
+                    'unidades'             => []
+                ];
+            }
+
+            $edificiosMap[$eid]['total_unidades']++;
+            $esSolvente = ($u['estado_financiero'] === 'solvente');
+            if ($esSolvente) {
+                $edificiosMap[$eid]['unidades_solventes']++;
+            } else {
+                $edificiosMap[$eid]['unidades_deudoras']++;
+            }
+            $edificiosMap[$eid]['balance_total'] += (float)$u['total_deuda'];
+            if ((int)$u['dias_mora_max'] > $edificiosMap[$eid]['dias_mora_max']) {
+                $edificiosMap[$eid]['dias_mora_max'] = (int)$u['dias_mora_max'];
+            }
+            $edificiosMap[$eid]['unidades'][] = $u;
+        }
+
+        $filtroEspecifico = !empty($filtros['estado']) || !empty($filtros['dias_mora']);
+        $resultado = [];
+        foreach ($edificiosMap as $eid => $ed) {
+            if ($filtroEspecifico && $ed['total_unidades'] === 0) {
+                continue;
+            }
+            $resultado[] = $ed;
+        }
+
+        return $resultado;
+    }
+
+    /**
      * Obtiene todos los registros sin paginación para exportación e impresión.
      * 6B.4: LIMIT configurable con truncado para evitar Memory Overflow.
      */
