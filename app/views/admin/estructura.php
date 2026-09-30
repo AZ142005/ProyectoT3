@@ -99,9 +99,9 @@
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-outlined text-primary text-2xl">apartment</span>
                                         <h3 class="text-base font-bold text-on-surface">Directorio y Visualización de Unidades</h3>
-                                        <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($unidades) ?> registradas</span>
+                                        <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($edificios) ?> edificios</span>
                                     </div>
-                                    <p class="text-xs text-on-surface-variant mt-1">Consulta del inventario habitacional, alícuotas y administración diaria de propietarios e inquilinos.</p>
+                                    <p class="text-xs text-on-surface-variant mt-1">Directorio organizado por edificios. Haz clic sobre cualquier edificio para consultar sus unidades y residentes.</p>
                                 </div>
 
                                 <!-- Filtro por Edificio y Buscador en Vivo -->
@@ -120,100 +120,173 @@
                                     </form>
                                     <div class="relative w-full sm:w-64">
                                         <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/60 text-sm">search</span>
-                                        <input type="text" id="buscadorVisualizacion" oninput="filtrarTablaVisualizacion(this.value)" placeholder="Buscar unidad o habitante..."
+                                        <input type="text" id="buscadorVisualizacion" oninput="filtrarTablaVisualizacion(this.value)" placeholder="Buscar edificio, unidad o residente..."
                                                class="w-full pl-9 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all">
                                     </div>
                                 </div>
                             </div>
 
-                            <?php if (empty($unidades)): ?>
+                            <?php if (empty($edificios)): ?>
                                 <div class="text-center py-12 bg-background/50 rounded-2xl border border-dashed border-outline-variant">
-                                    <span class="material-symbols-outlined text-on-surface-variant/40 text-4xl mb-2">home</span>
-                                    <p class="text-on-surface-variant font-semibold">No se encontraron unidades registradas en esta vista.</p>
+                                    <span class="material-symbols-outlined text-on-surface-variant/40 text-4xl mb-2">location_city</span>
+                                    <p class="text-on-surface-variant font-semibold">No se encontraron edificios registrados en el conjunto.</p>
                                     <p class="text-xs text-on-surface-variant/70 mt-1 max-w-md mx-auto">
-                                        La creación de unidades se realiza durante la parametrización inicial del sistema.
+                                        La creación de edificios y unidades se realiza durante la configuración inicial del sistema.
                                     </p>
                                     <button type="button" onclick="document.getElementById('tab-configuracion-btn').click()" class="mt-3 inline-flex items-center gap-1.5 text-primary text-xs font-bold hover:underline bg-primary/10 px-4 py-2 rounded-xl transition-all">
                                         <span class="material-symbols-outlined text-sm">settings_suggest</span>
-                                        <span>Ir a Configuración del Sistema para dar de alta unidades</span>
+                                        <span>Ir a Configuración del Sistema para registrar edificios</span>
                                     </button>
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
-                                    <table id="tablaVisualizacionUnidades" class="w-full text-left text-sm border-collapse">
+                                    <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse">
                                         <thead>
                                             <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                                                <th class="p-3.5">Código / Unidad</th>
-                                                <th class="p-3.5">Edificio / Torre</th>
-                                                <th class="p-3.5">Cuota Mensual</th>
+                                                <th class="p-3.5">Edificio</th>
+                                                <th class="p-3.5">Unidades</th>
                                                 <th class="p-3.5">Residentes</th>
-                                                <th class="p-3.5">Estado</th>
-                                                <th class="p-3.5 text-right">Acciones</th>
+                                                <th class="p-3.5 text-right pe-4">Detalle</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-background">
-                                            <?php foreach ($unidades as $u): ?>
-                                                <tr class="fila-unidad hover:bg-background/40 transition-colors" data-busqueda="<?= strtolower(e($u['numero'] . ' ' . ($u['edificio_nombre'] ?? '') . ' ' . implode(' ', array_column($u['residentes'] ?? [], 'nombre')) . ' ' . implode(' ', array_column($u['residentes'] ?? [], 'apellido')) . ' ' . implode(' ', array_column($u['residentes'] ?? [], 'cedula')))) ?>">
-                                                    <td class="p-3.5 font-bold text-on-surface"><?= e($u['numero']) ?></td>
-                                                    <td class="p-3.5 font-medium text-on-surface">
-                                                        <span class="inline-flex items-center gap-1">
-                                                            <span class="material-symbols-outlined text-on-surface-variant/70 text-base">domain</span>
-                                                            <?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>
+                                            <?php foreach ($edificios as $ed): ?>
+                                                <?php 
+                                                $unidadesEdificio = $ed['unidades_list'] ?? [];
+                                                $totalUnidades = count($unidadesEdificio);
+                                                $totalRes = $ed['total_residentes'] ?? 0;
+                                                $estaAbierto = ($filtroEdificio === (int)$ed['id']);
+                                                ?>
+                                                <tr class="fila-edificio hover:bg-background/40 transition-colors cursor-pointer" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#collapse-edificio-<?= e($ed['id']) ?>" 
+                                                    aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
+                                                    data-busqueda="<?= strtolower(e($ed['nombre'] . ' ' . ($ed['descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'numero')))) ?>">
+                                                    <td class="p-3.5 font-bold text-on-surface">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                                                <span class="material-symbols-outlined text-lg">domain</span>
+                                                            </div>
+                                                            <div>
+                                                                <span class="text-sm font-bold text-on-surface d-block"><?= e($ed['nombre']) ?></span>
+                                                                <?php if (!empty($ed['descripcion'])): ?>
+                                                                    <span class="text-xs text-on-surface-variant font-normal"><?= e($ed['descripcion']) ?></span>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="p-3.5">
+                                                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full border border-slate-200">
+                                                            <span class="material-symbols-outlined text-[15px]">apartment</span>
+                                                            <span><?= e($totalUnidades) ?> unidades</span>
                                                         </span>
                                                     </td>
-                                                    <td class="p-3.5 font-bold text-primary"><?= e(formatearMoneda($u['cuota_mensual'])) ?></td>
                                                     <td class="p-3.5">
-                                                        <button type="button" 
-                                                                data-unidad-id="<?= e($u['id']) ?>" 
-                                                                data-unidad-numero="<?= e($u['numero']) ?>" 
-                                                                data-edificio-nombre="<?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>" 
-                                                                data-propietario-id="<?= e($u['propietario_id'] ?? 0) ?>" 
-                                                                data-residentes="<?= htmlspecialchars(json_encode($u['residentes'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
-                                                                onclick="openModalGestionResidentes(this)" 
-                                                                class="bg-background hover:bg-slate-200 text-on-surface font-bold text-xs px-2.5 py-1 rounded-full border border-outline-variant inline-flex items-center gap-1.5 transition-all shadow-sm group cursor-pointer"
-                                                                title="Gestionar Residentes de <?= e($u['numero']) ?>">
-                                                            <span class="material-symbols-outlined text-[15px] text-primary group-hover:scale-110 transition-transform">group</span>
-                                                            <span><?= intval($u['total_residentes'] ?? 0) ?> res.</span>
+                                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200">
+                                                            <span class="material-symbols-outlined text-[15px]">groups</span>
+                                                            <span><?= e($totalRes) ?> residentes</span>
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-3.5 text-right pe-4">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl"
+                                                                data-bs-toggle="collapse" 
+                                                                data-bs-target="#collapse-edificio-<?= e($ed['id']) ?>"
+                                                                title="Ver unidades de <?= e($ed['nombre']) ?>">
+                                                            <span>Ver Unidades</span>
+                                                            <span class="material-symbols-outlined text-sm">expand_more</span>
                                                         </button>
                                                     </td>
-                                                    <td class="p-3.5">
-                                                        <?php if ($u['estado'] == 1): ?>
-                                                            <span class="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-md">Activa</span>
-                                                        <?php else: ?>
-                                                            <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-md">Inactiva</span>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                    <td class="p-3.5 text-right">
-                                                        <div class="inline-flex items-center gap-1">
-                                                            <button type="button" 
-                                                                    data-unidad-id="<?= e($u['id']) ?>" 
-                                                                    data-unidad-numero="<?= e($u['numero']) ?>" 
-                                                                    data-edificio-nombre="<?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>" 
-                                                                    data-propietario-id="<?= e($u['propietario_id'] ?? 0) ?>" 
-                                                                    data-residentes="<?= htmlspecialchars(json_encode($u['residentes'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
-                                                                    onclick="openModalGestionResidentes(this)" 
-                                                                    class="p-1.5 text-on-surface-variant hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors" 
-                                                                    title="Gestionar Residentes">
-                                                                <span class="material-symbols-outlined text-lg">person_add</span>
-                                                            </button>
-                                                            <button type="button" 
-                                                                    data-id="<?= e($u['id']) ?>" 
-                                                                    data-numero="<?= e($u['numero']) ?>" 
-                                                                    data-edificio-id="<?= e($u['edificio_id']) ?>" 
-                                                                    data-cuota="<?= e($u['cuota_mensual']) ?>" 
-                                                                    onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, this.dataset.cuota, 'visualizacion')" 
-                                                                    class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
-                                                                    title="Editar Datos de Unidad">
-                                                                <span class="material-symbols-outlined text-lg">edit</span>
-                                                            </button>
-                                                            <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
-                                                                <?= csrf_field() ?>
-                                                                <input type="hidden" name="tab" value="visualizacion">
-                                                                <input type="hidden" name="id" value="<?= e($u['id']) ?>">
-                                                                <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
-                                                                    <span class="material-symbols-outlined text-lg">power_settings_new</span>
-                                                                </button>
-                                                            </form>
+                                                </tr>
+
+                                                <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO -->
+                                                <tr class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse bg-slate-50/70" id="collapse-edificio-<?= e($ed['id']) ?>">
+                                                    <td colspan="4" class="p-4 border-b border-outline-variant/60">
+                                                        <div class="bg-white rounded-xl border border-outline-variant p-4 shadow-xs space-y-3">
+                                                            <div class="flex items-center justify-between border-b border-background pb-2.5 flex-wrap gap-2">
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="material-symbols-outlined text-primary text-base">roofing</span>
+                                                                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-0">
+                                                                        Unidades pertenecientes a <?= e($ed['nombre']) ?>
+                                                                    </h5>
+                                                                    <span class="badge bg-slate-100 text-slate-700 border border-slate-200 text-[11px]"><?= e($totalUnidades) ?> unidades</span>
+                                                                </div>
+                                                                <span class="text-xs text-on-surface-variant font-medium">Directorio habitacional</span>
+                                                            </div>
+
+                                                            <?php if (empty($unidadesEdificio)): ?>
+                                                                <div class="text-center py-6 text-on-surface-variant">
+                                                                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">home</span>
+                                                                    <p class="text-xs font-semibold mb-0">No hay unidades registradas en este edificio.</p>
+                                                                </div>
+                                                            <?php else: ?>
+                                                                <div class="overflow-x-auto">
+                                                                    <table class="w-full text-left text-xs border-collapse">
+                                                                        <thead>
+                                                                            <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-[11px] uppercase tracking-wider">
+                                                                                <th class="py-2.5 px-3">Unidad</th>
+                                                                                <th class="py-2.5 px-3">Propietario / Residente Principal</th>
+                                                                                <th class="py-2.5 px-3">Cédula</th>
+                                                                                <th class="py-2.5 px-3">Contacto</th>
+                                                                                <th class="py-2.5 px-3 text-center">Total Habitantes</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody class="divide-y divide-background">
+                                                                            <?php foreach ($unidadesEdificio as $u): ?>
+                                                                                <?php 
+                                                                                $residentes = $u['residentes'] ?? [];
+                                                                                $titular = null;
+                                                                                foreach ($residentes as $r) {
+                                                                                    if (!empty($r['es_titular'])) {
+                                                                                        $titular = $r;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (!$titular && !empty($residentes)) {
+                                                                                    $titular = $residentes[0];
+                                                                                }
+                                                                                ?>
+                                                                                <tr class="hover:bg-slate-50 transition-colors">
+                                                                                    <td class="py-2.5 px-3 font-bold text-on-surface">
+                                                                                        <span class="inline-flex items-center gap-1 bg-background px-2.5 py-1 rounded-lg border border-outline-variant font-bold text-xs">
+                                                                                            <span class="material-symbols-outlined text-[14px] text-primary">door_front</span>
+                                                                                            <?= e($u['numero']) ?>
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td class="py-2.5 px-3 font-semibold text-on-surface">
+                                                                                        <?php if ($titular): ?>
+                                                                                            <span><?= e($titular['nombre'] . ' ' . $titular['apellido']) ?></span>
+                                                                                            <?php if (!empty($titular['es_titular'])): ?>
+                                                                                                <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold ms-1">Titular</span>
+                                                                                            <?php endif; ?>
+                                                                                        <?php else: ?>
+                                                                                            <span class="text-slate-400 italic">Sin habitante asignado</span>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td class="py-2.5 px-3 font-mono text-on-surface-variant">
+                                                                                        <?= e($titular['cedula'] ?? '—') ?>
+                                                                                    </td>
+                                                                                    <td class="py-2.5 px-3 text-on-surface-variant">
+                                                                                        <?php if (!empty($titular['telefono'])): ?>
+                                                                                            <div><span class="material-symbols-outlined text-[12px] align-middle">phone</span> <?= e($titular['telefono']) ?></div>
+                                                                                        <?php endif; ?>
+                                                                                        <?php if (!empty($titular['email'])): ?>
+                                                                                            <div><span class="material-symbols-outlined text-[12px] align-middle">mail</span> <?= e($titular['email']) ?></div>
+                                                                                        <?php endif; ?>
+                                                                                        <?php if (empty($titular['telefono']) && empty($titular['email'])): ?>
+                                                                                            <span class="text-slate-400">—</span>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td class="py-2.5 px-3 text-center">
+                                                                                        <span class="badge bg-light text-dark border border-secondary-subtle rounded-pill px-2.5 py-1 font-bold">
+                                                                                            <?= count($residentes) ?> res.
+                                                                                        </span>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <?php endforeach; ?>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            <?php endif; ?>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -221,7 +294,7 @@
                                         </tbody>
                                     </table>
                                     <div id="sinResultadosBusqueda" class="hidden text-center py-8 text-on-surface-variant text-xs font-semibold">
-                                        No se encontraron unidades que coincidan con la búsqueda.
+                                        No se encontraron edificios o unidades que coincidan con la búsqueda.
                                     </div>
                                 </div>
                             <?php endif; ?>
@@ -503,143 +576,7 @@
     </div>
 </div>
 
-<!-- MODAL: GESTIÓN DE RESIDENTES (PROPIETARIOS E INQUILINOS) -->
-<div id="modalGestionResidentes" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 md:p-8 space-y-6 transform transition-all border border-outline-variant my-8 max-h-[90vh] flex flex-col">
-        <!-- Cabecera del Modal -->
-        <div class="flex items-start justify-between border-b border-background pb-4 shrink-0">
-            <div>
-                <div class="inline-flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-1">
-                    <span class="material-symbols-outlined text-[18px]">apartment</span>
-                    <span id="modalResidenteEdificioTexto">Torre</span>
-                </div>
-                <h3 class="text-xl font-black text-on-surface flex items-center gap-2">
-                    <span>Residentes de</span>
-                    <span id="modalResidenteUnidadNumero" class="text-primary font-black bg-primary/10 px-2.5 py-0.5 rounded-xl">Apto</span>
-                </h3>
-            </div>
-            <button type="button" onclick="closeModalGestionResidentes()" class="text-on-surface-variant hover:text-on-surface p-1 rounded-xl hover:bg-background transition-colors">
-                <span class="material-symbols-outlined text-2xl">close</span>
-            </button>
-        </div>
-
-        <div class="overflow-y-auto pr-1 space-y-6 flex-1">
-            <!-- Sección 1: Lista de Residentes Actuales -->
-            <div>
-                <h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-primary">groups</span>
-                    <span>Habitantes Registrados en esta Unidad</span>
-                </h4>
-
-                <div id="contenedorListaResidentes" class="space-y-2.5">
-                    <!-- Se llena dinámicamente con JS -->
-                </div>
-            </div>
-
-            <!-- Sección 2: Formulario de Registro / Edición -->
-            <div class="bg-background/60 rounded-2xl p-5 border border-outline-variant">
-                <div class="flex items-center justify-between mb-4 border-b border-outline-variant/50 pb-2.5">
-                    <h4 id="formularioResidenteTitulo" class="text-sm font-bold text-on-surface flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-[18px]">person_add</span>
-                        <span>Registrar Nuevo Residente</span>
-                    </h4>
-                    <button type="button" id="btnCancelarEdicionResidente" onclick="resetFormularioResidente()" class="hidden text-xs text-on-surface-variant hover:text-primary font-bold transition-colors">
-                        + Registrar Nuevo
-                    </button>
-                </div>
-
-                <form method="POST" action="/admin/estructura/residente/guardar" id="formResidente" class="space-y-4">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="residente_tab_input" name="tab" value="visualizacion">
-                    <input type="hidden" id="residente_id_input" name="id" value="0">
-                    <input type="hidden" id="residente_unidad_id_input" name="unidad_id" value="0">
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Cédula de Identidad con Selector de Tipo -->
-                        <div class="flex flex-col gap-1">
-                            <label class="text-xs font-bold text-on-surface-variant uppercase">Cédula de Identidad *</label>
-                            <div class="flex items-center gap-1.5">
-                                <select id="residente_cedula_tipo" name="cedula_tipo"
-                                        class="w-20 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-black text-sm focus:outline-none focus:border-primary cursor-pointer shrink-0 text-center">
-                                    <option value="V" selected>V</option>
-                                    <option value="E">E</option>
-                                    <option value="J">J</option>
-                                    <option value="G">G</option>
-                                </select>
-                                <input type="text" id="residente_cedula_numero" name="cedula_numero" required
-                                       inputmode="numeric" pattern="[0-9]{5,8}" minlength="5" maxlength="8" placeholder="12345678"
-                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8)"
-                                       class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm tracking-wider">
-                            </div>
-                        </div>
-
-                        <!-- Tipo de Residente -->
-                        <div class="flex flex-col gap-1">
-                            <label for="residente_tipo" class="text-xs font-bold text-on-surface-variant uppercase">Tipo de Residente *</label>
-                            <select id="residente_tipo" name="tipo" required
-                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm cursor-pointer">
-                                <option value="propietario">Propietario</option>
-                                <option value="inquilino">Inquilino</option>
-                                <option value="ambos">Ambos (Propietario / Residente)</option>
-                            </select>
-                        </div>
-
-                        <!-- Nombre -->
-                        <div class="flex flex-col gap-1">
-                            <label for="residente_nombre" class="text-xs font-bold text-on-surface-variant uppercase">Nombre *</label>
-                            <input type="text" id="residente_nombre" name="nombre" required placeholder="Ej: Carlos"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
-                        </div>
-
-                        <!-- Apellido -->
-                        <div class="flex flex-col gap-1">
-                            <label for="residente_apellido" class="text-xs font-bold text-on-surface-variant uppercase">Apellido *</label>
-                            <input type="text" id="residente_apellido" name="apellido" required placeholder="Ej: Mendoza"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
-                        </div>
-
-                        <!-- Teléfono Móvil con Selector de Operadora -->
-                        <div class="flex flex-col gap-1">
-                            <label class="text-xs font-bold text-on-surface-variant uppercase">Teléfono Móvil (Opcional)</label>
-                            <div class="flex items-center gap-1.5">
-                                <select id="residente_telefono_codigo" name="telefono_codigo"
-                                        class="w-28 px-2.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-semibold text-xs focus:outline-none focus:border-primary cursor-pointer shrink-0">
-                                    <option value="0412">0412</option>
-                                    <option value="0422">0422</option>
-                                    <option value="0414">0414</option>
-                                    <option value="0424">0424</option>
-                                    <option value="0416">0416</option>
-                                    <option value="0426">0426</option>
-                                </select>
-                                <input type="text" id="residente_telefono_numero" name="telefono_numero" maxlength="7" placeholder="1234567"
-                                       inputmode="numeric" pattern="[0-9]{7}"
-                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 7)"
-                                       class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm tracking-wider">
-                            </div>
-                        </div>
-
-                        <!-- Email -->
-                        <div class="flex flex-col gap-1">
-                            <label for="residente_email" class="text-xs font-bold text-on-surface-variant uppercase">Correo Electrónico (Opcional)</label>
-                            <input type="email" id="residente_email" name="email" placeholder="Ej: habitante@correo.com"
-                                   class="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary text-sm">
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/50">
-                        <button type="submit" id="btnSubmitResidente" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-primary hover:bg-primary-hover text-white shadow-sm transition-all flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
-                            <span id="btnSubmitResidenteTexto">Guardar Residente</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-let currentModalResidentesData = [];
 
 function openModalEdificio(tab = 'configuracion') {
     document.getElementById('edificio_id_input').value = '0';
@@ -699,178 +636,6 @@ function closeModalUnidad() {
     m.classList.remove('flex');
 }
 
-// GESTIÓN DE RESIDENTES
-function openModalGestionResidentes(btn) {
-    const unidadId = btn.dataset.unidadId;
-    const unidadNumero = btn.dataset.unidadNumero;
-    const edificioNombre = btn.dataset.edificioNombre;
-    const propietarioId = parseInt(btn.dataset.propietarioId || '0');
-    
-    let residentes = [];
-    try {
-        residentes = JSON.parse(btn.dataset.residentes || '[]');
-    } catch(e) {
-        residentes = [];
-    }
-    currentModalResidentesData = residentes;
-
-    document.getElementById('modalResidenteEdificioTexto').innerText = edificioNombre || 'Edificio';
-    document.getElementById('modalResidenteUnidadNumero').innerText = unidadNumero || 'Unidad';
-    document.getElementById('residente_unidad_id_input').value = unidadId;
-
-    renderListaResidentes(residentes, unidadId, propietarioId);
-    resetFormularioResidente();
-
-    const m = document.getElementById('modalGestionResidentes');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
-}
-
-function renderListaResidentes(residentes, unidadId, propietarioId) {
-    const container = document.getElementById('contenedorListaResidentes');
-    if (!residentes || residentes.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-6 bg-background rounded-xl border border-dashed border-outline-variant">
-                <span class="material-symbols-outlined text-on-surface-variant/40 text-3xl mb-1">person_off</span>
-                <p class="text-xs font-semibold text-on-surface-variant">Esta unidad no tiene residentes registrados aún.</p>
-                <p class="text-[11px] text-on-surface-variant/70">Completa el formulario inferior para registrar a su propietario o inquilino.</p>
-            </div>
-        `;
-        return;
-    }
-
-    let html = '';
-    residentes.forEach((r, idx) => {
-        const esTitular = r.es_titular || (parseInt(r.id) === propietarioId);
-        let badgeRol = '';
-
-        if (esTitular) {
-            badgeRol = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[12px]">verified_user</span> Propietario Titular
-            </span>`;
-        } else if (r.tipo === 'propietario') {
-            badgeRol = `<span class="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[12px]">group</span> Co-Propietario
-            </span>`;
-        } else if (r.tipo === 'ambos') {
-            badgeRol = `<span class="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[12px]">home</span> Titular Residente
-            </span>`;
-        } else {
-            badgeRol = `<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[12px]">badge</span> Inquilino
-            </span>`;
-        }
-
-        const telefonoHtml = r.telefono ? `<span class="inline-flex items-center gap-0.5 text-xs text-on-surface-variant"><span class="material-symbols-outlined text-[13px]">phone</span>${escapeHtml(r.telefono)}</span>` : '';
-        const emailHtml = r.email ? `<span class="inline-flex items-center gap-0.5 text-xs text-on-surface-variant"><span class="material-symbols-outlined text-[13px]">mail</span>${escapeHtml(r.email)}</span>` : '';
-
-        html += `
-            <div class="bg-white p-3.5 rounded-xl border border-outline-variant shadow-sm flex items-center justify-between gap-3 hover:border-primary/40 transition-all">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-sm text-on-surface">${escapeHtml(r.nombre)} ${escapeHtml(r.apellido)}</span>
-                        <span class="text-xs font-semibold text-on-surface-variant bg-background px-1.5 py-0.5 rounded">${escapeHtml(r.cedula)}</span>
-                        ${badgeRol}
-                    </div>
-                    <div class="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
-                        ${telefonoHtml}
-                        ${emailHtml}
-                    </div>
-                </div>
-                <div class="inline-flex items-center gap-1 shrink-0">
-                    <button type="button" onclick="cargarFormularioEdicionResidente(${idx})" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" title="Editar Residente">
-                        <span class="material-symbols-outlined text-lg">edit</span>
-                    </button>
-                    <form method="POST" action="/admin/estructura/residente/desvincular" style="display:inline" onsubmit="return confirm('¿Está seguro de desvincular a este residente de la unidad?');">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="tab" value="visualizacion">
-                        <input type="hidden" name="persona_id" value="${escapeHtml(r.id)}">
-                        <input type="hidden" name="unidad_id" value="${escapeHtml(unidadId)}">
-                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desvincular Residente">
-                            <span class="material-symbols-outlined text-lg">person_remove</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-function cargarFormularioEdicionResidente(idx) {
-    const r = currentModalResidentesData[idx];
-    if (!r) return;
-
-    document.getElementById('residente_id_input').value = r.id;
-    
-    // Normalizar y separar Cédula (Tipo V/E/J/G y 5-8 dígitos)
-    let rawCed = String(r.cedula || '').toUpperCase().replace(/[^VEJG0-9]/g, '');
-    let tipoDoc = 'V';
-    let numDoc = rawCed;
-    if (rawCed.startsWith('V') || rawCed.startsWith('E') || rawCed.startsWith('J') || rawCed.startsWith('G')) {
-        tipoDoc = rawCed.charAt(0);
-        numDoc = rawCed.substring(1);
-    }
-    document.getElementById('residente_cedula_tipo').value = tipoDoc;
-    document.getElementById('residente_cedula_numero').value = numDoc;
-
-    document.getElementById('residente_nombre').value = r.nombre || '';
-    document.getElementById('residente_apellido').value = r.apellido || '';
-    document.getElementById('residente_tipo').value = r.tipo || 'propietario';
-    
-    // Separar operadora (4 dígitos) y número (7 dígitos)
-    let tel = r.telefono ? String(r.telefono).replace(/[^0-9]/g, '') : '';
-    if (tel.length >= 11) {
-        let code = tel.substring(0, 4);
-        let num = tel.substring(4, 11);
-        const sel = document.getElementById('residente_telefono_codigo');
-        if (Array.from(sel.options).some(o => o.value === code)) {
-            sel.value = code;
-        }
-        document.getElementById('residente_telefono_numero').value = num;
-    } else if (tel.length > 0) {
-        document.getElementById('residente_telefono_numero').value = tel.slice(-7);
-    } else {
-        document.getElementById('residente_telefono_codigo').value = '0412';
-        document.getElementById('residente_telefono_numero').value = '';
-    }
-
-    document.getElementById('residente_email').value = r.email || '';
-
-    document.getElementById('formularioResidenteTitulo').innerHTML = `
-        <span class="material-symbols-outlined text-primary text-[18px]">edit</span>
-        <span>Editar Datos del Residente (${escapeHtml(r.nombre)} ${escapeHtml(r.apellido)})</span>
-    `;
-    document.getElementById('btnSubmitResidenteTexto').innerText = 'Actualizar Residente';
-    document.getElementById('btnCancelarEdicionResidente').classList.remove('hidden');
-}
-
-function resetFormularioResidente() {
-    document.getElementById('residente_id_input').value = '0';
-    document.getElementById('residente_cedula_tipo').value = 'V';
-    document.getElementById('residente_cedula_numero').value = '';
-    document.getElementById('residente_nombre').value = '';
-    document.getElementById('residente_apellido').value = '';
-    document.getElementById('residente_tipo').value = 'propietario';
-    document.getElementById('residente_telefono_codigo').value = '0412';
-    document.getElementById('residente_telefono_numero').value = '';
-    document.getElementById('residente_email').value = '';
-
-    document.getElementById('formularioResidenteTitulo').innerHTML = `
-        <span class="material-symbols-outlined text-primary text-[18px]">person_add</span>
-        <span>Registrar Nuevo Residente</span>
-    `;
-    document.getElementById('btnSubmitResidenteTexto').innerText = 'Guardar Residente';
-    document.getElementById('btnCancelarEdicionResidente').classList.add('hidden');
-}
-
-function closeModalGestionResidentes() {
-    const m = document.getElementById('modalGestionResidentes');
-    m.classList.add('hidden');
-    m.classList.remove('flex');
-}
-
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -881,20 +646,31 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// BÚSQUEDA Y FILTRADO EN VIVO EN VISUALIZACIÓN
+// BÚSQUEDA Y FILTRADO EN VIVO EN DIRECTORIO DE EDIFICIOS Y UNIDADES
 function filtrarTablaVisualizacion(query) {
     const q = (query || '').toLowerCase().trim();
-    const rows = document.querySelectorAll('#tablaVisualizacionUnidades tbody tr.fila-unidad');
+    const rows = document.querySelectorAll('#tablaDirectorioEdificios tbody tr.fila-edificio');
     let visibles = 0;
     rows.forEach(row => {
-        const texto = (row.dataset.busqueda || row.innerText || '').toLowerCase();
-        if (!q || texto.includes(q)) {
+        const targetId = row.getAttribute('data-bs-target');
+        const collapseRow = targetId ? document.querySelector(targetId) : null;
+        const textoEdificio = (row.dataset.busqueda || row.innerText || '').toLowerCase();
+        const textoUnidades = collapseRow ? (collapseRow.innerText || '').toLowerCase() : '';
+
+        if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
             row.style.display = '';
             visibles++;
+            if (q && textoUnidades.includes(q) && collapseRow) {
+                collapseRow.classList.add('show');
+            }
         } else {
             row.style.display = 'none';
+            if (collapseRow) {
+                collapseRow.classList.remove('show');
+            }
         }
     });
+
     const sinResultados = document.getElementById('sinResultadosBusqueda');
     if (sinResultados) {
         if (visibles === 0 && rows.length > 0) {
