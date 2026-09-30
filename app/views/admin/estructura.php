@@ -421,7 +421,12 @@
                                     </div>
                                     <p class="text-xs text-on-surface-variant mt-1">Crea los apartamentos o locales para cada torre del conjunto residencial.</p>
                                 </div>
-                                <div>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <div class="relative w-full sm:w-64">
+                                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant/60 text-sm">search</span>
+                                        <input type="text" id="buscadorConfiguracion" oninput="filtrarTablaConfiguracion(this.value)" placeholder="Buscar edificio o unidad..."
+                                               class="w-full pl-9 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all">
+                                    </div>
                                     <?php if (empty($edificios)): ?>
                                         <button disabled class="inline-flex items-center gap-1.5 bg-slate-300 text-slate-500 font-bold text-xs px-4 py-2.5 rounded-xl cursor-not-allowed shadow-sm" title="Debes registrar al menos un edificio primero">
                                             <span class="material-symbols-outlined text-[16px]">add_home</span>
@@ -436,68 +441,170 @@
                                 </div>
                             </div>
 
-                            <!-- Tabla de Unidades Creadas en Configuración -->
-                            <?php if (empty($unidades)): ?>
+                            <!-- Tabla de Desglose de Unidades por Edificio en Configuración -->
+                            <?php if (empty($edificios)): ?>
                                 <div class="text-center py-10 bg-background/50 rounded-2xl border border-dashed border-outline-variant">
                                     <span class="material-symbols-outlined text-on-surface-variant/40 text-4xl mb-2">roofing</span>
-                                    <p class="text-on-surface-variant font-semibold">Aún no se han creado unidades en el conjunto.</p>
-                                    <?php if (!empty($edificios)): ?>
-                                        <button onclick="openModalUnidad('configuracion')" class="mt-2 text-primary text-xs font-bold hover:underline">Comenzar a crear unidades</button>
-                                    <?php endif; ?>
+                                    <p class="text-on-surface-variant font-semibold">Primero debes registrar al menos un edificio en el Paso 1.</p>
+                                    <button onclick="openModalEdificio('configuracion')" class="mt-2 text-primary text-xs font-bold hover:underline">+ Crear primer edificio</button>
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
-                                    <table class="w-full text-left text-sm border-collapse">
+                                    <table id="tablaConfiguracionEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
                                         <thead>
                                             <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                                                <th class="p-3.5">Código / Unidad</th>
-                                                <th class="p-3.5">Edificio / Torre</th>
-                                                <th class="p-3.5">Estado</th>
-                                                <th class="p-3.5 text-right">Acciones de Configuración</th>
+                                                <th class="p-3.5" style="width: 45%;">Edificio</th>
+                                                <th class="p-3.5" style="width: 25%;">Unidades Registradas</th>
+                                                <th class="p-3.5 text-right pe-4" style="width: 30%;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-background">
-                                            <?php foreach ($unidades as $u): ?>
-                                                <tr class="hover:bg-background/40 transition-colors">
-                                                    <td class="p-3.5 font-bold text-on-surface"><?= e($u['numero']) ?></td>
-                                                    <td class="p-3.5 font-medium text-on-surface">
-                                                        <span class="inline-flex items-center gap-1">
-                                                            <span class="material-symbols-outlined text-on-surface-variant/70 text-base">domain</span>
-                                                            <?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>
-                                                        </span>
+                                            <?php foreach ($edificios as $ed): ?>
+                                                <?php 
+                                                $unidadesEdificio = $ed['unidades_list'] ?? [];
+                                                $totalUnidades = count($unidadesEdificio);
+                                                ?>
+                                                <tr class="fila-edificio hover:bg-background/40 transition-colors cursor-pointer" 
+                                                    data-collapse-target="#collapse-config-edificio-<?= e($ed['id']) ?>" 
+                                                    aria-expanded="false"
+                                                    data-busqueda="<?= strtolower(e($ed['nombre'] . ' ' . ($ed['descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'numero')))) ?>">
+                                                    <td class="p-3.5 font-bold text-on-surface">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                                                <span class="material-symbols-outlined text-lg">domain</span>
+                                                            </div>
+                                                            <div>
+                                                                <span class="text-sm font-bold text-on-surface d-block"><?= e($ed['nombre']) ?></span>
+                                                                <?php if (!empty($ed['descripcion'])): ?>
+                                                                    <span class="text-xs text-on-surface-variant font-normal"><?= e($ed['descripcion']) ?></span>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td class="p-3.5">
-                                                        <?php if ($u['estado'] == 1): ?>
-                                                            <span class="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-md">Activa</span>
-                                                        <?php else: ?>
-                                                            <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-md">Inactiva</span>
-                                                        <?php endif; ?>
+                                                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full border border-slate-200">
+                                                            <span class="material-symbols-outlined text-[15px]">apartment</span>
+                                                            <span><?= e($totalUnidades) ?> unidades</span>
+                                                        </span>
                                                     </td>
-                                                    <td class="p-3.5 text-right">
-                                                        <div class="inline-flex items-center gap-1">
+                                                    <td class="p-3.5 text-right pe-4">
+                                                        <div class="inline-flex items-center gap-2">
                                                             <button type="button" 
-                                                                    data-id="<?= e($u['id']) ?>" 
-                                                                    data-numero="<?= e($u['numero']) ?>" 
-                                                                    data-edificio-id="<?= e($u['edificio_id']) ?>" 
-                                                                    onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, 'configuracion')" 
-                                                                    class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
-                                                                    title="Editar Unidad">
-                                                                <span class="material-symbols-outlined text-lg">edit</span>
+                                                                    onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" 
+                                                                    class="btn btn-sm btn-light border border-outline-variant d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl text-primary hover:bg-primary/5"
+                                                                    title="Agregar unidad a <?= e($ed['nombre']) ?>">
+                                                                <span class="material-symbols-outlined text-sm">add_home</span>
+                                                                <span>+ Unidad</span>
                                                             </button>
-                                                            <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
-                                                                <?= csrf_field() ?>
-                                                                <input type="hidden" name="tab" value="configuracion">
-                                                                <input type="hidden" name="id" value="<?= e($u['id']) ?>">
-                                                                <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
-                                                                    <span class="material-symbols-outlined text-lg">power_settings_new</span>
-                                                                </button>
-                                                            </form>
+                                                            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl btn-toggle-unidades"
+                                                                    data-bs-toggle="collapse" 
+                                                                    data-bs-target="#collapse-config-edificio-<?= e($ed['id']) ?>" 
+                                                                    aria-expanded="false"
+                                                                    title="Ver unidades de <?= e($ed['nombre']) ?>">
+                                                                <span class="btn-text">Ver Unidades</span>
+                                                                <span class="material-symbols-outlined text-sm chevron-icon">expand_more</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE CONFIGURACIÓN DE UNIDADES DEL EDIFICIO -->
+                                                <tr class="fila-unidades-contenedor bg-slate-50/70">
+                                                    <td colspan="3" class="p-0 border-0">
+                                                        <div class="collapse fila-unidades-collapse" id="collapse-config-edificio-<?= e($ed['id']) ?>">
+                                                            <div class="p-4">
+                                                                <div class="bg-white rounded-xl border border-outline-variant p-4 shadow-xs space-y-3">
+                                                                    <div class="flex items-center justify-between border-b border-background pb-2.5 flex-wrap gap-2">
+                                                                        <div class="flex items-center gap-2">
+                                                                            <span class="material-symbols-outlined text-primary text-base">roofing</span>
+                                                                            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-0">
+                                                                                Unidades pertenecientes a <?= e($ed['nombre']) ?>
+                                                                            </h5>
+                                                                            <span class="badge bg-slate-100 text-slate-700 border border-slate-200 text-[11px]"><?= e($totalUnidades) ?> registradas</span>
+                                                                        </div>
+                                                                        <button type="button" onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" class="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1">
+                                                                            <span class="material-symbols-outlined text-sm">add</span>
+                                                                            <span>Crear unidad en este edificio</span>
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <?php if (empty($unidadesEdificio)): ?>
+                                                                        <div class="text-center py-6 text-on-surface-variant">
+                                                                            <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">home</span>
+                                                                            <p class="text-xs font-semibold mb-2">No hay unidades registradas en este edificio.</p>
+                                                                            <button type="button" onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" class="inline-flex items-center gap-1 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary-hover transition-colors shadow-xs">
+                                                                                <span class="material-symbols-outlined text-sm">add_home</span>
+                                                                                <span>+ Crear primera unidad en <?= e($ed['nombre']) ?></span>
+                                                                            </button>
+                                                                        </div>
+                                                                    <?php else: ?>
+                                                                        <div class="overflow-x-auto">
+                                                                            <table class="w-full text-left text-xs border-collapse">
+                                                                                <thead>
+                                                                                    <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-[11px] uppercase tracking-wider">
+                                                                                        <th class="py-2.5 px-3">Código / Unidad</th>
+                                                                                        <th class="py-2.5 px-3">Cuota Mensual</th>
+                                                                                        <th class="py-2.5 px-3">Estado</th>
+                                                                                        <th class="py-2.5 px-3 text-right">Acciones de Configuración</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody class="divide-y divide-background">
+                                                                                    <?php foreach ($unidadesEdificio as $u): ?>
+                                                                                        <tr class="hover:bg-slate-50 transition-colors">
+                                                                                            <td class="py-2.5 px-3 font-bold text-on-surface">
+                                                                                                <span class="inline-flex items-center gap-1 bg-background px-2.5 py-1 rounded-lg border border-outline-variant font-bold text-xs">
+                                                                                                    <span class="material-symbols-outlined text-[14px] text-primary">door_front</span>
+                                                                                                    <?= e($u['numero']) ?>
+                                                                                                </span>
+                                                                                            </td>
+                                                                                            <td class="py-2.5 px-3 font-medium text-on-surface">
+                                                                                                <?= !empty($u['cuota_mensual']) ? e(formatearMoneda($u['cuota_mensual'])) : 'Bs. 0,00' ?>
+                                                                                            </td>
+                                                                                            <td class="py-2.5 px-3">
+                                                                                                <?php if ($u['estado'] == 1): ?>
+                                                                                                    <span class="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-md">Activa</span>
+                                                                                                <?php else: ?>
+                                                                                                    <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-md">Inactiva</span>
+                                                                                                <?php endif; ?>
+                                                                                            </td>
+                                                                                            <td class="py-2.5 px-3 text-right">
+                                                                                                <div class="inline-flex items-center gap-1">
+                                                                                                    <button type="button" 
+                                                                                                            data-id="<?= e($u['id']) ?>" 
+                                                                                                            data-numero="<?= e($u['numero']) ?>" 
+                                                                                                            data-edificio-id="<?= e($u['edificio_id']) ?>" 
+                                                                                                            onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, 'configuracion')" 
+                                                                                                            class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
+                                                                                                            title="Editar Unidad">
+                                                                                                        <span class="material-symbols-outlined text-base">edit</span>
+                                                                                                    </button>
+                                                                                                    <form method="POST" action="/admin/estructura/unidad/toggle" style="display:inline">
+                                                                                                        <?= csrf_field() ?>
+                                                                                                        <input type="hidden" name="tab" value="configuracion">
+                                                                                                        <input type="hidden" name="id" value="<?= e($u['id']) ?>">
+                                                                                                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cambiar Estado">
+                                                                                                            <span class="material-symbols-outlined text-base">power_settings_new</span>
+                                                                                                        </button>
+                                                                                                    </form>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    <?php endforeach; ?>
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
+                                    <div id="sinResultadosConfiguracion" class="hidden text-center py-8 text-on-surface-variant text-xs font-semibold">
+                                        No se encontraron edificios o unidades que coincidan con la búsqueda.
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </section>
@@ -614,11 +721,11 @@ function closeModalEdificio() {
     m.classList.remove('flex');
 }
 
-function openModalUnidad(tab = 'configuracion') {
+function openModalUnidad(tab = 'configuracion', edificioId = '') {
     document.getElementById('unidad_id_input').value = '0';
     document.getElementById('unidad_tab_input').value = tab;
     document.getElementById('unidad_numero').value = '';
-    document.getElementById('unidad_edificio_id').value = '';
+    document.getElementById('unidad_edificio_id').value = edificioId ? String(edificioId) : '';
     document.getElementById('modalUnidadTitle').innerText = 'Agregar Unidad';
     const m = document.getElementById('modalUnidad');
     m.classList.remove('hidden');
@@ -702,10 +809,60 @@ function filtrarTablaVisualizacion(query) {
     }
 }
 
+// BÚSQUEDA Y FILTRADO EN VIVO EN PASO 2 (CONFIGURACIÓN DE UNIDADES)
+function filtrarTablaConfiguracion(query) {
+    const q = (query || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#tablaConfiguracionEdificios tbody tr.fila-edificio');
+    let visibles = 0;
+    rows.forEach(row => {
+        const targetId = row.getAttribute('data-collapse-target') || row.getAttribute('data-bs-target');
+        const collapseEl = targetId ? document.querySelector(targetId) : null;
+        const containerRow = collapseEl ? collapseEl.closest('tr.fila-unidades-contenedor') : null;
+        const textoEdificio = (row.dataset.busqueda || row.innerText || '').toLowerCase();
+        const textoUnidades = collapseEl ? (collapseEl.innerText || '').toLowerCase() : '';
+
+        if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
+            row.style.display = '';
+            visibles++;
+            if (containerRow) {
+                containerRow.style.display = '';
+            }
+            if (q && textoUnidades.includes(q) && collapseEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+                } else {
+                    collapseEl.classList.add('show');
+                }
+            }
+        } else {
+            row.style.display = 'none';
+            if (collapseEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).hide();
+                } else {
+                    collapseEl.classList.remove('show');
+                }
+            }
+            if (containerRow) {
+                containerRow.style.display = 'none';
+            }
+        }
+    });
+
+    const sinResultados = document.getElementById('sinResultadosConfiguracion');
+    if (sinResultados) {
+        if (visibles === 0 && rows.length > 0) {
+            sinResultados.classList.remove('hidden');
+        } else {
+            sinResultados.classList.add('hidden');
+        }
+    }
+}
+
 // CONTROL DEL COLAPSO Y EXPANSIÓN DE UNIDADES POR EDIFICIO
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Manejo del clic en la fila del edificio (sin conflicto con el botón)
-    const filasEdificio = document.querySelectorAll('#tablaDirectorioEdificios tbody tr.fila-edificio');
+    const filasEdificio = document.querySelectorAll('tr.fila-edificio');
     filasEdificio.forEach(row => {
         row.addEventListener('click', (e) => {
             // Si el clic fue directamente en el botón o en un enlace/input, dejar que actúe su propio evento

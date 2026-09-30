@@ -95,4 +95,34 @@ class EstructuraDirectorioEdificiosTest extends TestCase {
         $this->assertFalse(str_contains($indexContent, '/admin/estructura/residente/desvincular'),
             "public/index.php no debe tener la ruta /admin/estructura/residente/desvincular");
     }
+
+    /**
+     * Verifica que en la pestaña de Configuración (Paso 2) las unidades se desglosen
+     * jerárquicamente por edificio mediante colapso y drill-down.
+     */
+    public function testConfiguracionDesgloseUnidadesPorEdificio(): void {
+        $viewPath = VIEWS_PATH . '/admin/estructura.php';
+        $content = file_get_contents($viewPath);
+
+        // 1. Tabla de configuración por edificios
+        $this->assertStringContains('id="tablaConfiguracionEdificios"', $content,
+            "La vista debe contener la tabla de configuración por edificio (id='tablaConfiguracionEdificios')");
+
+        // 2. Colapso por cada edificio en configuración
+        $this->assertStringContains('id="collapse-config-edificio-', $content,
+            "Cada edificio en configuración debe tener su contenedor colapsable (id='collapse-config-edificio-...')");
+
+        // 3. Buscador en vivo para configuración
+        $this->assertStringContains('id="buscadorConfiguracion"', $content,
+            "Debe existir el buscador en vivo id='buscadorConfiguracion' en Paso 2");
+        $this->assertStringContains('filtrarTablaConfiguracion', $content,
+            "Debe existir la función de filtrado filtrarTablaConfiguracion");
+
+        // 4. Acciones de unidad (editar y toggle) dentro de la configuración
+        $this->assertStringContains('editUnidad', $content,
+            "Debe mantenerse la función editUnidad para editar unidades");
+        $this->assertStringContains('action="/admin/estructura/unidad/toggle"', $content,
+            "Debe mantenerse el formulario POST para cambiar estado de unidades");
+    }
 }
+
