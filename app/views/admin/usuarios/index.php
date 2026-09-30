@@ -193,29 +193,101 @@
                                                 $esAdminCuenta = ($u['rol_clave'] === 'admin');
                                                 $esMismoAdmin  = ($u['tipo_entidad'] === 'usuario' && intval($u['id']) === intval(\App\Core\Auth::id()));
                                                 ?>
-                                                <?php if ($esAdminCuenta || $esMismoAdmin): ?>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-light text-muted border d-inline-flex align-items-center gap-1 opacity-75 shadow-none"
-                                                            disabled
-                                                            title="<?= e($esMismoAdmin ? 'No puede reiniciar su propia contraseña desde este panel' : 'No se permite reiniciar contraseñas de cuentas de administrador') ?>">
-                                                        <span class="material-symbols-outlined fs-6 text-muted">lock</span>
-                                                        <span>Reiniciar</span>
+                                                <div class="dropdown d-inline-block">
+                                                    <button class="btn btn-sm btn-light border shadow-sm rounded-circle p-1.5 d-inline-flex align-items-center justify-center text-secondary" 
+                                                            type="button" 
+                                                            id="dropdownMenuUser_<?= e($u['tipo_entidad']) ?>_<?= e($u['id']) ?>" 
+                                                            data-bs-toggle="dropdown" 
+                                                            aria-expanded="false" 
+                                                            title="Opciones de usuario">
+                                                        <span class="material-symbols-outlined fs-5">more_vert</span>
                                                     </button>
-                                                <?php else: ?>
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-warning text-dark fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
-                                                            data-bs-toggle="modal" 
-                                                            data-bs-target="#modalReiniciarPassword"
-                                                            data-id="<?= e($u['id']) ?>"
-                                                            data-tipo="<?= e($u['tipo_entidad']) ?>"
-                                                            data-nombre="<?= e($u['nombre_completo']) ?>"
-                                                            data-cedula="<?= e($u['cedula']) ?>"
-                                                            data-rol="<?= e($u['rol_texto']) ?>"
-                                                            onclick="configurarModalReinicio(this)">
-                                                        <span class="material-symbols-outlined fs-6">lock_reset</span>
-                                                        <span>Reiniciar</span>
-                                                    </button>
-                                                <?php endif; ?>
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-3 py-1 text-start" aria-labelledby="dropdownMenuUser_<?= e($u['tipo_entidad']) ?>_<?= e($u['id']) ?>" style="min-width: 190px;">
+                                                        <!-- Opción 1: Reiniciar clave -->
+                                                        <li>
+                                                            <?php if ($esAdminCuenta || $esMismoAdmin): ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        disabled 
+                                                                        title="<?= e($esMismoAdmin ? 'No puede reiniciar su propia contraseña desde este panel' : 'No se permite reiniciar contraseñas de cuentas de administrador') ?>">
+                                                                    <span class="material-symbols-outlined fs-6 text-muted">lock</span>
+                                                                    <span>Reiniciar clave</span>
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-dark" 
+                                                                        data-bs-toggle="modal" 
+                                                                        data-bs-target="#modalReiniciarPassword"
+                                                                        data-id="<?= e($u['id']) ?>"
+                                                                        data-tipo="<?= e($u['tipo_entidad']) ?>"
+                                                                        data-nombre="<?= e($u['nombre_completo']) ?>"
+                                                                        data-cedula="<?= e($u['cedula']) ?>"
+                                                                        data-rol="<?= e($u['rol_texto']) ?>"
+                                                                        onclick="configurarModalReinicio(this)">
+                                                                    <span class="material-symbols-outlined fs-6 text-warning">lock_reset</span>
+                                                                    <span>Reiniciar clave</span>
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        </li>
+
+                                                        <!-- Opción 2: Actualizar datos -->
+                                                        <li>
+                                                            <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        disabled 
+                                                                        title="No se permite modificar datos de cuentas de administrador desde este panel">
+                                                                    <span class="material-symbols-outlined fs-6 text-muted">edit_off</span>
+                                                                    <span>Actualizar datos</span>
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-dark" 
+                                                                        data-bs-toggle="modal" 
+                                                                        data-bs-target="#modalActualizarDatos"
+                                                                        data-id="<?= e($u['id']) ?>"
+                                                                        data-tipo="<?= e($u['tipo_entidad']) ?>"
+                                                                        data-nombre="<?= e($u['nombre_completo']) ?>"
+                                                                        data-cedula="<?= e($u['cedula']) ?>"
+                                                                        data-telefono="<?= e($u['telefono'] ?? '') ?>"
+                                                                        data-email="<?= e($u['email'] ?? '') ?>"
+                                                                        onclick="configurarModalActualizarDatos(this)">
+                                                                    <span class="material-symbols-outlined fs-6 text-primary">edit</span>
+                                                                    <span>Actualizar datos</span>
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        </li>
+
+                                                        <li><hr class="dropdown-divider my-1"></li>
+
+                                                        <!-- Opción 3: Eliminar -->
+                                                        <li>
+                                                            <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        disabled 
+                                                                        title="No se permite eliminar cuentas administrativas del sistema">
+                                                                    <span class="material-symbols-outlined fs-6 text-muted">block</span>
+                                                                    <span>Eliminar</span>
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <button type="button" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" 
+                                                                        data-bs-toggle="modal" 
+                                                                        data-bs-target="#modalEliminarUsuario"
+                                                                        data-id="<?= e($u['id']) ?>"
+                                                                        data-tipo="<?= e($u['tipo_entidad']) ?>"
+                                                                        data-nombre="<?= e($u['nombre_completo']) ?>"
+                                                                        data-cedula="<?= e($u['cedula']) ?>"
+                                                                        data-ubicacion="<?= e($u['detalle_ubicacion']) ?>"
+                                                                        onclick="configurarModalEliminar(this)">
+                                                                    <span class="material-symbols-outlined fs-6 text-danger">delete</span>
+                                                                    <span>Eliminar</span>
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        </li>
+                                                    </ul>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -348,6 +420,167 @@
     </div>
 </div>
 
+<!-- Modal para Actualizar Datos de Residente -->
+<div class="modal fade" id="modalActualizarDatos" tabindex="-1" aria-labelledby="modalActualizarDatosTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="/admin/usuarios/actualizar-datos">
+                <?= csrf_field() ?>
+                <input type="hidden" name="tipo_entidad" id="modalActTipoEntidad" value="persona">
+                <input type="hidden" name="id" id="modalActId" value="">
+
+                <div class="modal-header bg-primary text-white py-3 px-4 border-bottom">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalActualizarDatosTitle">
+                        <span class="material-symbols-outlined text-white">edit</span>
+                        <span>Actualizar Datos de Contacto</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="small text-muted mb-1">Residente seleccionado:</div>
+                        <div class="fw-bold fs-6 text-dark" id="modalActNombreUsuario">-</div>
+                        <div class="small text-muted">
+                            Cédula: <span class="fw-semibold text-dark" id="modalActCedulaUsuario">-</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="act_telefono" class="form-label fw-bold small text-dark">Número Telefónico *</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">
+                                <span class="material-symbols-outlined fs-6">phone</span>
+                            </span>
+                            <input type="tel" id="act_telefono" name="telefono" 
+                                   class="form-control" 
+                                   placeholder="Ej: 04121234567" 
+                                   maxlength="11" 
+                                   required 
+                                   pattern="^(0412|0414|0424|0416|0426)[0-9]{7}$"
+                                   title="Ingrese un número telefónico venezolano de 11 dígitos (0412, 0414, 0424, 0416, 0426)"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+                        </div>
+                        <small class="text-muted d-block mt-1">Formato de 11 dígitos (operadoras venezolanas: 0412, 0414, 0424, 0416, 0426).</small>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="act_email" class="form-label fw-bold small text-dark">Correo Electrónico (Opcional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">
+                                <span class="material-symbols-outlined fs-6">mail</span>
+                            </span>
+                            <input type="email" id="act_email" name="email" 
+                                   class="form-control" 
+                                   placeholder="residente@ejemplo.com">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-3 px-4 border-top">
+                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                        <span class="material-symbols-outlined fs-6">save</span>
+                        <span>Guardar Cambios</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Eliminación con Doble Confirmación y Temporizador de 10s -->
+<div class="modal fade" id="modalEliminarUsuario" tabindex="-1" aria-labelledby="modalEliminarUsuarioTitle" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="/admin/usuarios/eliminar" id="formEliminarUsuario">
+                <?= csrf_field() ?>
+                <input type="hidden" name="tipo_entidad" id="modalElimTipoEntidad" value="persona">
+                <input type="hidden" name="id" id="modalElimId" value="">
+
+                <!-- Cabecera Paso 1 -->
+                <div id="headerEliminarPaso1" class="modal-header bg-danger-subtle text-danger-emphasis py-3 px-4 border-bottom">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalEliminarUsuarioTitle">
+                        <span class="material-symbols-outlined text-danger">warning</span>
+                        <span>Confirmar Eliminación de Residente (1/2)</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" onclick="cancelarEliminacion()"></button>
+                </div>
+
+                <!-- Cabecera Paso 2 -->
+                <div id="headerEliminarPaso2" class="modal-header bg-danger text-white py-3 px-4 border-bottom d-none">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined text-white">crisis_alert</span>
+                        <span>Advertencia de Seguridad Definitiva (2/2)</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar" onclick="cancelarEliminacion()"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Resumen del Residente a Eliminar -->
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="small text-muted mb-1">Residente a eliminar:</div>
+                        <div class="fw-bold fs-6 text-dark" id="modalElimNombreUsuario">-</div>
+                        <div class="small text-muted">
+                            Cédula: <span class="fw-semibold text-dark" id="modalElimCedulaUsuario">-</span> | 
+                            Ubicación: <span class="fw-semibold text-dark" id="modalElimUbicacionUsuario">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Contenido Paso 1 -->
+                    <div id="cuerpoEliminarPaso1">
+                        <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
+                            <span class="material-symbols-outlined text-warning shrink-0 mt-0.5">info</span>
+                            <div class="small">
+                                <strong>¿Está seguro de que desea eliminar la cuenta de este residente?</strong><br>
+                                Esta opción se utiliza en casos de venta del inmueble o cambio de propietario. La unidad quedará disponible para el registro del nuevo propietario.
+                            </div>
+                        </div>
+                        <p class="text-secondary small mb-0">
+                            Por integridad legal y contable, los registros históricos de pagos y facturas se conservarán intactos en el historial contable, pero el residente quedará totalmente desligado de la unidad y su acceso revocado.
+                        </p>
+                    </div>
+
+                    <!-- Contenido Paso 2 (Segunda confirmación con temporizador de 10s) -->
+                    <div id="cuerpoEliminarPaso2" class="d-none">
+                        <div class="alert alert-danger border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
+                            <span class="material-symbols-outlined text-danger shrink-0 mt-0.5">gpp_bad</span>
+                            <div class="small">
+                                <strong>¡CONFIRMACIÓN FINAL IRREVERSIBLE!</strong><br>
+                                Está a punto de ejecutar la eliminación y desvinculación definitiva de este residente. Para evitar accidentes o eliminaciones involuntarias, debe esperar el tiempo de enfriamiento de 10 segundos.
+                            </div>
+                        </div>
+
+                        <div class="text-center py-3 bg-light rounded-3 border mb-2">
+                            <div class="text-muted small mb-1">Tiempo de enfriamiento de seguridad:</div>
+                            <div class="display-6 fw-bold text-danger font-monospace" id="contadorCooldown">10s</div>
+                            <small class="text-muted" id="cooldownHint">El botón de confirmación se habilitará al agotarse el tiempo...</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Paso 1 -->
+                <div id="footerEliminarPaso1" class="modal-footer bg-light py-3 px-4 border-top">
+                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-danger fw-bold d-inline-flex align-items-center gap-1 shadow-sm" onclick="avanzarEliminarPaso2()">
+                        <span>Continuar a la Confirmación Final</span>
+                        <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                    </button>
+                </div>
+
+                <!-- Footer Paso 2 -->
+                <div id="footerEliminarPaso2" class="modal-footer bg-light py-3 px-4 border-top d-none">
+                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal" onclick="cancelarEliminacion()">Cancelar</button>
+                    <button type="submit" id="btnConfirmarEliminar" class="btn btn-danger fw-bold d-inline-flex align-items-center gap-1 shadow-sm" disabled>
+                        <span class="material-symbols-outlined fs-6">delete_forever</span>
+                        <span id="btnConfirmarEliminarTexto">Confirmar Eliminación (10s)</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function configurarModalReinicio(btn) {
     if (!btn || btn.hasAttribute('disabled') || btn.disabled) {
@@ -408,4 +641,135 @@ function copiarPassword() {
         alert('Contraseña: ' + text);
     });
 }
+
+function configurarModalActualizarDatos(btn) {
+    if (!btn || btn.hasAttribute('disabled') || btn.disabled) return;
+    const id = btn.getAttribute('data-id');
+    const tipo = btn.getAttribute('data-tipo');
+    const nombre = btn.getAttribute('data-nombre');
+    const cedula = btn.getAttribute('data-cedula');
+    const telefono = btn.getAttribute('data-telefono') || '';
+    const email = btn.getAttribute('data-email') || '';
+
+    document.getElementById('modalActId').value = id;
+    document.getElementById('modalActTipoEntidad').value = tipo;
+    document.getElementById('modalActNombreUsuario').textContent = nombre;
+    document.getElementById('modalActCedulaUsuario').textContent = cedula;
+    document.getElementById('act_telefono').value = telefono;
+    document.getElementById('act_email').value = email;
+}
+
+let cooldownTimer = null;
+let cooldownSeconds = 10;
+
+function configurarModalEliminar(btn) {
+    if (!btn || btn.hasAttribute('disabled') || btn.disabled) return;
+    
+    cancelarEliminacion();
+
+    const id = btn.getAttribute('data-id');
+    const tipo = btn.getAttribute('data-tipo');
+    const nombre = btn.getAttribute('data-nombre');
+    const cedula = btn.getAttribute('data-cedula');
+    const ubicacion = btn.getAttribute('data-ubicacion');
+
+    document.getElementById('modalElimId').value = id;
+    document.getElementById('modalElimTipoEntidad').value = tipo;
+    document.getElementById('modalElimNombreUsuario').textContent = nombre;
+    document.getElementById('modalElimCedulaUsuario').textContent = cedula;
+    document.getElementById('modalElimUbicacionUsuario').textContent = ubicacion;
+}
+
+function avanzarEliminarPaso2() {
+    document.getElementById('headerEliminarPaso1').classList.add('d-none');
+    document.getElementById('cuerpoEliminarPaso1').classList.add('d-none');
+    document.getElementById('footerEliminarPaso1').classList.add('d-none');
+
+    document.getElementById('headerEliminarPaso2').classList.remove('d-none');
+    document.getElementById('cuerpoEliminarPaso2').classList.remove('d-none');
+    document.getElementById('footerEliminarPaso2').classList.remove('d-none');
+
+    iniciarCooldownEliminacion();
+}
+
+function iniciarCooldownEliminacion() {
+    if (cooldownTimer) clearInterval(cooldownTimer);
+    
+    cooldownSeconds = 10;
+    const contadorEl = document.getElementById('contadorCooldown');
+    const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+    const btnTexto = document.getElementById('btnConfirmarEliminarTexto');
+    const hintEl = document.getElementById('cooldownHint');
+
+    btnConfirmar.disabled = true;
+    contadorEl.textContent = cooldownSeconds + 's';
+    btnTexto.textContent = `Confirmar Eliminación (${cooldownSeconds}s)`;
+    hintEl.textContent = 'Espere mientras se habilita el botón de confirmación...';
+
+    cooldownTimer = setInterval(() => {
+        cooldownSeconds--;
+        if (cooldownSeconds > 0) {
+            contadorEl.textContent = cooldownSeconds + 's';
+            btnTexto.textContent = `Confirmar Eliminación (${cooldownSeconds}s)`;
+        } else {
+            clearInterval(cooldownTimer);
+            cooldownTimer = null;
+            contadorEl.textContent = 'Listo';
+            contadorEl.classList.remove('text-danger');
+            contadorEl.classList.add('text-success');
+            btnConfirmar.disabled = false;
+            btnTexto.textContent = 'Confirmar Eliminación Definitiva';
+            hintEl.textContent = 'El botón de confirmación está ahora habilitado.';
+            hintEl.classList.remove('text-muted');
+            hintEl.classList.add('text-success', 'fw-bold');
+        }
+    }, 1000);
+}
+
+function cancelarEliminacion() {
+    if (cooldownTimer) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+    }
+
+    const p1Header = document.getElementById('headerEliminarPaso1');
+    const p1Cuerpo = document.getElementById('cuerpoEliminarPaso1');
+    const p1Footer = document.getElementById('footerEliminarPaso1');
+    const p2Header = document.getElementById('headerEliminarPaso2');
+    const p2Cuerpo = document.getElementById('cuerpoEliminarPaso2');
+    const p2Footer = document.getElementById('footerEliminarPaso2');
+
+    if (p1Header) p1Header.classList.remove('d-none');
+    if (p1Cuerpo) p1Cuerpo.classList.remove('d-none');
+    if (p1Footer) p1Footer.classList.remove('d-none');
+    if (p2Header) p2Header.classList.add('d-none');
+    if (p2Cuerpo) p2Cuerpo.classList.add('d-none');
+    if (p2Footer) p2Footer.classList.add('d-none');
+
+    const contadorEl = document.getElementById('contadorCooldown');
+    if (contadorEl) {
+        contadorEl.textContent = '10s';
+        contadorEl.classList.remove('text-success');
+        contadorEl.classList.add('text-danger');
+    }
+    const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+    if (btnConfirmar) btnConfirmar.disabled = true;
+    const btnTexto = document.getElementById('btnConfirmarEliminarTexto');
+    if (btnTexto) btnTexto.textContent = 'Confirmar Eliminación (10s)';
+    const hintEl = document.getElementById('cooldownHint');
+    if (hintEl) {
+        hintEl.textContent = 'El botón de confirmación se habilitará al agotarse el tiempo...';
+        hintEl.classList.remove('text-success', 'fw-bold');
+        hintEl.classList.add('text-muted');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalElim = document.getElementById('modalEliminarUsuario');
+    if (modalElim) {
+        modalElim.addEventListener('hidden.bs.modal', function() {
+            cancelarEliminacion();
+        });
+    }
+});
 </script>

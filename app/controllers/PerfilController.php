@@ -203,59 +203,20 @@ class PerfilController extends Controller {
     }
 
     /**
-     * Muestra el panel de administración para gestionar solicitudes de datos de residentes.
+     * @deprecated Módulo de solicitudes de datos deprecado. La gestión de residentes se realiza ahora en /admin/usuarios.
      */
     public function listarSolicitudes() {
         Auth::requireRole('admin');
-
-        $pagina = max(1, intval($_GET['page'] ?? 1));
-
-        $solicitudesModel = new SolicitudesModel();
-        $resultado = $solicitudesModel->obtenerTodasAdmin($pagina, 15);
-
-        $paginacion = [
-            'total'        => $resultado['total'],
-            'pagina'       => $resultado['pagina'],
-            'porPagina'    => $resultado['porPagina'],
-            'totalPaginas' => $resultado['totalPaginas'],
-        ];
-
-        $this->render('admin/solicitudes_datos/index', [
-            'solicitudes' => $resultado['datos'],
-            'paginacion'  => $paginacion,
-            'layout'      => 'admin',
-            'title'       => 'Solicitudes de Actualización de Datos'
-        ]);
+        Flash::set('info', 'El módulo de Solicitudes de Datos ha sido deprecado. La gestión de residentes se realiza desde Gestión de Usuarios.');
+        $this->redirect('/admin/usuarios');
     }
 
     /**
-     * Procesa (Aprobar o Rechazar) una solicitud de cambio de datos por el administrador.
+     * @deprecated Módulo de solicitudes de datos deprecado.
      */
     public function procesarSolicitud() {
         Auth::requireRole('admin');
-
-        $solicitudId = intval($_POST['id'] ?? 0);
-        $accion = strtolower($_POST['accion'] ?? '');
-        $motivo = trim($_POST['motivo_admin'] ?? '');
-        $adminId = Auth::id() ?? 1;
-
-        if ($solicitudId <= 0 || !in_array($accion, ['aprobado', 'rechazado'])) {
-            Flash::set('danger', 'Datos de solicitud o acción no válidos.');
-            $this->redirect('/admin/solicitudes-datos');
-            return;
-        }
-
-        try {
-            $solicitudesModel = new SolicitudesModel();
-            $solicitudesModel->procesarSolicitud($solicitudId, $accion, $motivo, $adminId);
-
-            Flash::set('success', 'Solicitud ' . ($accion === 'aprobado' ? 'aprobada y datos actualizados' : 'rechazada') . ' exitosamente.');
-        } catch (\Exception $e) {
-            error_log("[PERFIL] Error procesar solicitud cambio datos: " . $e->getMessage());
-            Flash::set('danger', 'Error al procesar la solicitud de cambio de datos.');
-        }
-
-        $this->redirect('/admin/solicitudes-datos');
+        $this->redirect('/admin/usuarios');
     }
 
     /**

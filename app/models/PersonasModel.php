@@ -224,4 +224,80 @@ class PersonasModel extends BaseModel {
             'id'       => $personaId
         ]);
     }
+
+    /**
+     * Actualiza el número de teléfono de una persona/residente.
+     *
+     * @param int $personaId
+     * @param string|null $telefono
+     * @return bool
+     */
+    public function actualizarTelefono(int $personaId, ?string $telefono): bool {
+        $stmt = $this->db()->prepare("UPDATE personas SET telefono = :telefono WHERE id = :id");
+        return $stmt->execute([
+            'telefono' => !empty($telefono) ? $telefono : null,
+            'id'       => $personaId
+        ]);
+    }
+
+    /**
+     * Actualiza datos de contacto de una persona/residente (teléfono y opcionalmente correo).
+     *
+     * @param int $personaId
+     * @param string|null $telefono
+     * @param string|null $email
+     * @return bool
+     */
+    public function actualizarContacto(int $personaId, ?string $telefono, ?string $email = null): bool {
+        $fields = ['telefono = :telefono'];
+        $params = [
+            'telefono' => !empty($telefono) ? $telefono : null,
+            'id'       => $personaId
+        ];
+        if ($email !== null) {
+            $fields[] = 'email = :email';
+            $params['email'] = !empty($email) ? trim($email) : null;
+        }
+        $sql = "UPDATE personas SET " . implode(', ', $fields) . " WHERE id = :id";
+        $stmt = $this->db()->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    /**
+     * Elimina lógicamente a un residente preservando la integridad histórica y contable.
+     * Desvincula la unidad (propietario_id = NULL) y desactiva credenciales (estado = 0, unidad_id = NULL, password = NULL).
+     *
+     * @param int $personaId
+     * @return bool
+     */
+    public function eliminarResidente(int $personaId): bool {
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            // 1. Desvincular de unidades donde figure como propietario
+            $stmtU = $db->prepare("UPDATE unidades SET propietario_id = NULL WHERE propietario_id = :id");
+            $stmtU->execute(['id' => $personaId]);
+
+            // 2. Desvincular como residente y desactivar credenciales
+            $stmtP = $db->prepare("
+                UPDATE personas 
+                SET unidad_id = NULL, 
+                    estado = 0, 
+                    password = NULL, 
+                    bloqueado_hasta = NULL, 
+                    intentos_fallidos = 0 
+                WHERE id = :id
+            ");
+            $stmtP->execute(['id' => $personaId]);
+
+            $db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("[PersonasModel::eliminarResidente] Error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

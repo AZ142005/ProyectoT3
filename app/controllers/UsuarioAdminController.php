@@ -154,4 +154,136 @@ class UsuarioAdminController extends Controller {
 
         $this->redirect('/admin/usuarios');
     }
+
+    /**
+     * Procesa la actualización de datos de contacto (teléfono y correo) de un residente.
+     * Restringe estrictamente la modificación de cuentas de administrador.
+     */
+    public function actualizarDatos(): void {
+        Auth::requireRole(UserRole::ADMIN);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $tipoEntidad = trim($_POST['tipo_entidad'] ?? '');
+        $id          = intval($_POST['id'] ?? 0);
+        $telefono    = trim($_POST['telefono'] ?? '');
+        $email       = trim($_POST['email'] ?? '');
+
+        if ($id <= 0 || empty($tipoEntidad)) {
+            Flash::error('Identificador o tipo de cuenta no válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Restricción estricta de Backend: No se permite modificar datos de cuentas admin
+        if ($tipoEntidad === 'usuario') {
+            $usuariosModel = new UsuariosModel();
+            $usuario = $usuariosModel->getById($id);
+            $rolUsuario = strtolower(trim($usuario['rol'] ?? ''));
+
+            if ($rolUsuario === 'admin' || intval($usuario['id'] ?? 0) === intval(Auth::id())) {
+                Flash::error('No tienes permisos para modificar los datos de un usuario con rol de Administrador.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
+            Flash::error('Solo se permite la actualización directa de datos de contacto para usuarios residentes.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $personasModel = new PersonasModel();
+        $persona = $personasModel->getById($id);
+
+        if (!$persona) {
+            Flash::error('El residente seleccionado no existe.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Validación de Teléfono (obligatorio)
+        if (empty($telefono)) {
+            Flash::error('El número de teléfono es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $telLimpio = preg_replace('/[^0-9]/', '', $telefono);
+        if (!validarTelefono($telLimpio)) {
+            Flash::error('El formato del teléfono no es válido (use una operadora venezolana válida: 0412, 0414, 0424, 0416 o 0426).');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Validación de Correo si fue suministrado
+        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Flash::error('El formato del correo electrónico no es válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
+        $exito = $personasModel->actualizarContacto($id, $telLimpio, !empty($email) ? $email : null);
+
+        if ($exito) {
+            Flash::success("Datos de contacto actualizados correctamente para {$nombre}.");
+        } else {
+            Flash::error('Ocurrió un error al actualizar los datos en la base de datos.');
+        }
+
+        $this->redirect('/admin/usuarios');
+    }
+
+    /**
+     * Procesa la eliminación (soft-delete) de una cuenta de residente.
+     * Desvincula la unidad y conserva el historial contable.
+     * Bloquea terminantemente la eliminación de cuentas administrativas.
+     */
+    public function eliminar(): void {
+        Auth::requireRole(UserRole::ADMIN);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $tipoEntidad = trim($_POST['tipo_entidad'] ?? '');
+        $id          = intval($_POST['id'] ?? 0);
+
+        if ($id <= 0 || empty($tipoEntidad)) {
+            Flash::error('Identificador o tipo de cuenta no válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Restricción estricta de Backend: No se permite eliminar administradores ni usuarios del sistema
+        if ($tipoEntidad !== 'persona') {
+            Flash::error('No está permitido eliminar cuentas administrativas ni usuarios del sistema.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $personasModel = new PersonasModel();
+        $persona = $personasModel->getById($id);
+
+        if (!$persona) {
+            Flash::error('El residente seleccionado no existe.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
+        $exito = $personasModel->eliminarResidente($id);
+
+        if ($exito) {
+            Flash::success("El residente {$nombre} ha sido eliminado y desvinculado de la unidad correctamente.");
+        } else {
+            Flash::error('Ocurrió un error al procesar la eliminación del residente.');
+        }
+
+        $this->redirect('/admin/usuarios');
+    }
 }

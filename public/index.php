@@ -168,20 +168,20 @@ $router->get('/residente/notificaciones/cantidad-no-leidas', [\App\Controllers\N
 $router->post('/residente/notificaciones/marcar-leida', [\App\Controllers\NotificacionController::class, 'marcarLeida'], [UserRole::RESIDENTE]);
 $router->get('/residente/cartelera', [\App\Controllers\ComunicadoController::class, 'carteleraResidente'], [UserRole::RESIDENTE]);
 
-// --- Perfil y Solicitudes de Cambio de Datos (RF 9) ---
+// --- Perfil de Usuario ---
 $router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'], ['auth']);
 $router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], ['auth']);
-$router->get('/admin/solicitudes-datos', [\App\Controllers\PerfilController::class, 'listarSolicitudes'], [UserRole::ADMIN]);
-$router->post('/admin/solicitudes-datos/procesar', [\App\Controllers\PerfilController::class, 'procesarSolicitud'], [UserRole::ADMIN]);
 
 // --- Módulo de Solicitudes de Registro de Residentes ---
 $router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistroController::class, 'index'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-registro/aprobar', [\App\Controllers\SolicitudesRegistroController::class, 'aprobar'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-registro/rechazar', [\App\Controllers\SolicitudesRegistroController::class, 'rechazar'], [UserRole::ADMIN]);
 
-// --- Módulo de Gestión de Usuarios y Reinicio de Contraseña (change-008) ---
+// --- Módulo de Gestión de Usuarios y Credenciales ---
 $router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/reiniciar-password', [UsuarioAdminController::class, 'reiniciarPassword'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class, 'actualizarDatos'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/eliminar', [UsuarioAdminController::class, 'eliminar'], [UserRole::ADMIN]);
 
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);

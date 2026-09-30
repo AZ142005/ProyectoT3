@@ -13,7 +13,6 @@ $navItems = [
     ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
     ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
     ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
-    ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
     ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
     ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Balance'],
 ];
@@ -31,7 +30,6 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
         ['route' => 'estacionamientos', 'url' => '/admin/estacionamientos',   'icon' => 'directions_car',  'label' => 'Estacionamientos'],
         ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
         ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
-        ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
         ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
         ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Balance'],
     ];

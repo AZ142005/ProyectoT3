@@ -154,7 +154,7 @@ class UsuariosModel extends BaseModel {
                 p.telefono AS telefono,
                 CONCAT('Residente (', p.tipo, ')') AS rol_texto,
                 'residente' AS rol_clave,
-                CONCAT(COALESCE(e.nombre, 'Torre -'), ' / Apt. ', COALESCE(u.numero, 'S/A')) AS detalle_ubicacion,
+                (CASE WHEN p.unidad_id IS NULL THEN 'Sin Unidad / Desvinculado' ELSE CONCAT(COALESCE(e.nombre, 'Torre -'), ' / Apt. ', COALESCE(u.numero, 'S/A')) END) AS detalle_ubicacion,
                 p.estado AS estado,
                 p.intentos_fallidos AS intentos_fallidos,
                 p.bloqueado_hasta AS bloqueado_hasta,
@@ -163,6 +163,7 @@ class UsuariosModel extends BaseModel {
             FROM personas p
             LEFT JOIN unidades u ON p.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
+            WHERE p.estado = 1
 
             UNION ALL
 
@@ -182,6 +183,7 @@ class UsuariosModel extends BaseModel {
                 (CASE WHEN u.bloqueado_hasta IS NOT NULL AND u.bloqueado_hasta > NOW() THEN 1 ELSE 0 END) AS esta_bloqueado,
                 (CASE WHEN u.password IS NOT NULL AND u.password != '' THEN 1 ELSE 0 END) AS tiene_password
             FROM usuarios u
+            WHERE u.estado = 1
         ";
 
         $wrappedSql = "SELECT * FROM ({$baseSql}) AS t WHERE 1=1";
