@@ -182,8 +182,7 @@
                                 $searchTerms = strtolower($ed['edificio_nombre'] . ' ' . ($ed['edificio_descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'unidad_numero')) . ' ' . implode(' ', array_column($unidadesEdificio, 'propietario_nombre')));
                                 ?>
                                 <tr class="fila-edificio cursor-pointer transition-colors" 
-                                    data-bs-toggle="collapse" 
-                                    data-bs-target="#collapse-edificio-<?= e($ed['edificio_id']) ?>"
+                                    data-collapse-target="#collapse-edificio-<?= e($ed['edificio_id']) ?>"
                                     aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
                                     data-busqueda="<?= e($searchTerms) ?>">
                                     <td class="ps-4 py-3 font-bold text-on-surface">
@@ -230,6 +229,7 @@
                                         <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs fw-bold rounded-pill btn-toggle-detalle"
                                                 data-bs-toggle="collapse" 
                                                 data-bs-target="#collapse-edificio-<?= e($ed['edificio_id']) ?>"
+                                                aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
                                                 title="Ver unidades de <?= e($ed['edificio_nombre']) ?>">
                                             <span class="btn-text"><?= $estaAbierto ? 'Ocultar' : 'Ver Unidades' ?></span>
                                             <span class="material-symbols-outlined fs-6 chevron-icon"><?= $estaAbierto ? 'expand_less' : 'expand_more' ?></span>
@@ -238,11 +238,13 @@
                                 </tr>
 
                                 <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO (ACORDEÓN EXCLUSIVO) -->
-                                <tr class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse bg-light bg-opacity-75" 
-                                    id="collapse-edificio-<?= e($ed['edificio_id']) ?>" 
-                                    data-bs-parent="#accordionBalanceEdificios">
-                                    <td colspan="5" class="p-3 border-bottom">
-                                        <div class="bg-white rounded-3 border shadow-sm p-3">
+                                <tr class="fila-unidades-contenedor bg-light bg-opacity-75" style="<?= $estaAbierto ? '' : 'display: none;' ?>">
+                                    <td colspan="5" class="p-0 border-bottom">
+                                        <div class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse" 
+                                             id="collapse-edificio-<?= e($ed['edificio_id']) ?>" 
+                                             data-bs-parent="#accordionBalanceEdificios">
+                                            <div class="p-3">
+                                                <div class="bg-white rounded-3 border shadow-sm p-3">
                                             <div class="d-flex align-items-center justify-content-between border-bottom pb-2.5 mb-3 flex-wrap gap-2">
                                                 <div class="d-flex align-items-center gap-2">
                                                     <span class="material-symbols-outlined text-primary fs-5">roofing</span>
@@ -354,9 +356,11 @@
                                                 </div>
                                             <?php endif; ?>
                                         </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -384,17 +388,40 @@
     background-color: rgba(var(--bs-primary-rgb), 0.04);
 }
 .fila-unidades-collapse {
-    transition: all 0.25s ease-in-out;
+    transition: height 0.25s ease-in-out;
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Manejo del clic en la fila del edificio (sin conflicto con el botón)
+    const filasEdificio = document.querySelectorAll('#tablaBalanceEdificios tbody tr.fila-edificio');
+    filasEdificio.forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('button, a, input, select, .btn')) {
+                return;
+            }
+            const targetSelector = row.getAttribute('data-collapse-target');
+            if (targetSelector) {
+                const targetEl = document.querySelector(targetSelector);
+                if (targetEl && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(targetEl).toggle();
+                }
+            }
+        });
+    });
+
     const collapseElements = document.querySelectorAll('.fila-unidades-collapse');
 
     collapseElements.forEach(collapseEl => {
+        const contenedorTr = collapseEl.closest('tr.fila-unidades-contenedor');
+
         // Evento show: Acordeón exclusivo cerrando cualquier otro edificio expandido
         collapseEl.addEventListener('show.bs.collapse', function () {
+            if (contenedorTr) {
+                contenedorTr.style.display = '';
+            }
+
             collapseElements.forEach(otherEl => {
                 if (otherEl !== collapseEl && otherEl.classList.contains('show')) {
                     if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
@@ -408,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Actualizar texto e icono del botón activador a "Ocultar"
             const targetId = '#' + collapseEl.id;
-            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"]`);
+            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
             triggerBtns.forEach(btn => {
                 const icon = btn.querySelector('.chevron-icon');
                 if (icon) icon.textContent = 'expand_less';
@@ -421,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Evento hide: Restaurar texto e icono del botón a "Ver Unidades"
         collapseEl.addEventListener('hide.bs.collapse', function () {
             const targetId = '#' + collapseEl.id;
-            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"]`);
+            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
             triggerBtns.forEach(btn => {
                 const icon = btn.querySelector('.chevron-icon');
                 if (icon) icon.textContent = 'expand_more';
@@ -429,6 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (textSpan) textSpan.textContent = 'Ver Unidades';
                 btn.setAttribute('aria-expanded', 'false');
             });
+        });
+
+        collapseEl.addEventListener('hidden.bs.collapse', function () {
+            if (contenedorTr) {
+                contenedorTr.style.display = 'none';
+            }
         });
     });
 });
@@ -440,30 +473,37 @@ function filtrarBalance(query) {
     let visibles = 0;
 
     rows.forEach(row => {
-        const targetId = row.getAttribute('data-bs-target');
-        const collapseRow = targetId ? document.querySelector(targetId) : null;
+        const targetId = row.getAttribute('data-collapse-target') || row.getAttribute('data-bs-target');
+        const collapseEl = targetId ? document.querySelector(targetId) : null;
+        const containerRow = collapseEl ? collapseEl.closest('tr.fila-unidades-contenedor') : null;
         const textoEdificio = (row.dataset.busqueda || row.innerText || '').toLowerCase();
-        const textoUnidades = collapseRow ? (collapseRow.innerText || '').toLowerCase() : '';
+        const textoUnidades = collapseEl ? (collapseEl.innerText || '').toLowerCase() : '';
 
         if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
             row.style.display = '';
             visibles++;
-            if (q && textoUnidades.includes(q) && collapseRow) {
+            if (q && textoUnidades.includes(q) && collapseEl) {
+                if (containerRow) {
+                    containerRow.style.display = '';
+                }
                 // Autoexpandir si la búsqueda coincide directamente con unidades dentro del edificio
                 if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                    bootstrap.Collapse.getOrCreateInstance(collapseRow, { toggle: false }).show();
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
                 } else {
-                    collapseRow.classList.add('show');
+                    collapseEl.classList.add('show');
                 }
             }
         } else {
             row.style.display = 'none';
-            if (collapseRow) {
+            if (collapseEl) {
                 if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                    bootstrap.Collapse.getOrCreateInstance(collapseRow, { toggle: false }).hide();
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).hide();
                 } else {
-                    collapseRow.classList.remove('show');
+                    collapseEl.classList.remove('show');
                 }
+            }
+            if (containerRow) {
+                containerRow.style.display = 'none';
             }
         }
     });
