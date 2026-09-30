@@ -11,10 +11,10 @@ Integrar en la línea actual de `main` los cambios de la feature **pago directo 
 
 ## Tareas
 - [x] **T1 — Rama + doc**: rama `feat/pago-directo-integracion` desde `main` + este documento.
-- [ ] **T2 — Feature base**: cherry-pick `0227815..e2b8b09` (portal público completo: capa de datos + migración, controlador y rutas, vistas, login, tests, fix de rate limit, validaciones, autocompletado del comprobante).
-- [ ] **T3 — Refinamientos**: cherry-pick `d133131` + `bb6fdc3` (atribución al residente principal + EN REVISIÓN; badge y timeline).
-- [ ] **T4 — Verificación**: tests por clase (línea base vs. final), `check_purity.php`, `audit_security.php`, migración idempotente.
-- [ ] **T5 — Cierre**: actualizar este doc (verificación y progreso) con commit final.
+- [x] **T2 — Feature base**: cherry-pick `0227815..e2b8b09` (portal público completo: capa de datos + migración, controlador y rutas, vistas, login, tests, fix de rate limit, validaciones, autocompletado del comprobante). Commit local del rango: `abae3c2..56fac74`.
+- [x] **T3 — Refinamientos**: cherry-pick `d133131` + `bb6fdc3` (atribución al residente principal + EN REVISIÓN; badge y timeline). Commits locales: `976dffa`, `03c412d`.
+- [x] **T4 — Verificación**: tests por clase (línea base vs. final), `check_purity.php`, `audit_security.php`, migración idempotente. Ver resultados abajo.
+- [x] **T5 — Cierre**: actualizar este doc (verificación y progreso) con commit final.
 
 ## Política de resolución de conflictos
 - `app/models/PagoModel.php` — conservar la estructura actual de `main` (transacción, dedup por identidad económica con `referencia_norm`, `deleted_at`) y aplicar la semántica de la feature:
@@ -40,7 +40,32 @@ Integrar en la línea actual de `main` los cambios de la feature **pago directo 
 - Rama `feat/pago-directo-integracion` desde `main` (`46a3899`); commits por unidad (los cherry-picks preservan los mensajes originales). Push / merge a main: decisión del usuario.
 
 ## Verificación
-_(pendiente — se completa en T4/T5)_
+
+### Tests (línea base → final; mismas clases, runner con filtro)
+| Clase | Línea base (tests/passed/failed/errors) | Final (tests/passed/failed/errors) |
+|---|---|---|
+| `PagoDuplicadosTest` | 10 / 30 / 19 / 1 | 10 / 30 / 19 / 1 (fallos preexistentes: falta `.env` con `APP_KEY`/`NOTIFICATION_ENCRYPT_KEY`; idénticos antes y después) |
+| `ModelTest` | 23 / 130 / 0 / 0 | 23 / 130 / 0 / 0 |
+| `HelperTest` | 58 / 90 / 0 / 0 | 59 / 93 / 0 / 0 (+1 test / +3 aserciones del badge de `bb6fdc3`, sin fallos) |
+| `HistorialPagosTest` | 4 / 20 / 0 / 0 | 4 / 20 / 0 / 0 |
+| `PagoDetalleNavegacionTest` | 4 / 31 / 0 / 0 | 4 / 31 / 0 / 0 |
+| `PagoDirectoTest` | — | 11 / 53 / 0 / 0 |
+
+Sin regresiones: los únicos fallos (19+1 en `PagoDuplicadosTest`) son los mismos de la línea base y responden a la ausencia de `.env`.
+
+### Gates
+- `php scripts/check_purity.php` → `✅ ÉXITO: Todos los Controladores y Modelos cumplen con la pureza arquitectónica MVC.` (exit 0)
+- `php scripts/audit_security.php` → `✅ AUDITORÍA EXITOSA: Cero vulnerabilidades estáticas detectadas.` (exit 0)
+- `php scripts/migrate_pago_directo.php` → `Migración ya aplicada: pagos.residente_id ya permite NULL.` (idempotente; exit 0)
+- `git grep -n "INNER JOIN personas per ON p.residente_id" -- app/models/PagoModel.php` → sin resultados (las consultas de pagos usan `LEFT JOIN`)
+
+### Criterio 5 (pago invitado)
+Cubierto por `PagoDirectoTest`: registro con `residente_id NULL` (`pagoInvitadoConResidenteNuloSeRegistraYSeLimpia`), atribución al residente principal (`pagoDirectoAtribuidoApareceParaElResidenteDeLaUnidad`), estado `EN REVISIÓN` con whitelist (`modeloPagoAceptaEstadoEnRevisionConWhitelist`) y visibilidad en el listado administrativo con la etiqueta `Pago directo (sin usuario)`.
 
 ## Progreso
-- Rama y doc creados; pendiente cherry-picks y verificación.
+- T2: 21 cherry-picks `0227815..e2b8b09` (`abae3c2` → `56fac74`), mensajes originales preservados. Único conflicto real: `app/models/PagoModel.php` en `7a0b47f` (2 hunks) — resuelto conservando la estructura de main (UNION `pagos` + `comprobantes_pago`, `referencia_norm`, `deleted_at`) y aplicando `LEFT JOIN personas` + `COALESCE(..., 'Pago directo (sin usuario)')` solo en la rama `pagos` de `obtenerTodosPagos` y en `obtenerPagoPorId`. `public/index.php` auto-mergeó; verificado: +8 líneas con las 5 rutas públicas y todas las rutas de main intactas.
+- Decisión no cubierta literalmente por la política: en `PagoModel::notificarCambioEstadoPago` el JOIN también pasó de `INNER` a `LEFT` para cumplir el gate T4 (que exige cero coincidencias de `INNER JOIN personas per ON p.residente_id`). Es neutro en conducta: un pago sin persona asociada retorna temprano por `email` vacío, igual que antes por fila ausente.
+- T3: `d133131` (`976dffa`) y `bb6fdc3` (`03c412d`). Conflicto en `PagoModel.php` (hunks de docblock y del INSERT): resultado con una única implementación de `$estado` + whitelist `EstadoPago::all()` y el INSERT conservando `referencia_norm`. `PersonasModel.php`, `app/views/pagos/detalle.php` y `app/core/helpers.php` auto-mergearon; verificados a mano: `getPrincipalByUnidadId()` reutiliza `getByUnidadId()` de main, y el timeline usa `$estadoInicial` con la condición `in_array($estado, ['APROBADO', 'RECHAZADO'], true)`.
+- Nota: el hunk de estado (`:estado`/whitelist) provino de `d133131` (T3), no de `7a0b47f` (T2) como anticipaba el plan; se resolvió en T3 evitando duplicación.
+- T4: resultados de tests y gates arriba. `PagoDirectoTest` en verde.
+- T5: este commit de cierre. Push / merge a main: decisión del usuario.
