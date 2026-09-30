@@ -178,29 +178,53 @@ class PagoModel extends BaseModel {
      * @return array
      */
     public function obtenerTodosPagos($filtros = [], int $pagina = 1, int $porPagina = 20): array {
-        $baseSql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
-                       CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre
-                FROM pagos p
-                INNER JOIN unidades u ON p.unidad_id = u.id
-                LEFT JOIN edificios e ON u.edificio_id = e.id
-                INNER JOIN personas per ON p.residente_id = per.id
-                WHERE 1=1";
-        
-        $countSql = "SELECT COUNT(*) as total FROM pagos p 
-                     INNER JOIN unidades u ON p.unidad_id = u.id
-                     LEFT JOIN edificios e ON u.edificio_id = e.id
-                     INNER JOIN personas per ON p.residente_id = per.id
-                     WHERE 1=1";
+        $unionSubquery = "(
+            SELECT 'pago' AS tipo_origen,
+                   p.id, p.residente_id, p.unidad_id, p.monto, p.fecha_pago,
+                   p.metodo_pago, p.banco_pagador, p.banco_receptor, p.cuenta_bancaria_id,
+                   p.referencia, p.archivo, p.observaciones, UPPER(p.estado) AS estado,
+                   p.fecha_registro,
+                   u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                   u.edificio_id,
+                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre,
+                   per.cedula AS residente_cedula
+            FROM pagos p
+            INNER JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            INNER JOIN personas per ON p.residente_id = per.id
+            WHERE p.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT 'comprobante' AS tipo_origen,
+                   c.id, c.residente_id, f.unidad_id, c.monto, c.fecha_pago,
+                   c.metodo_pago, c.banco_pagador, c.banco_receptor, c.cuenta_bancaria_id,
+                   c.referencia, c.archivo, c.observaciones, UPPER(c.estado) AS estado,
+                   c.fecha_envio AS fecha_registro,
+                   u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                   u.edificio_id,
+                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre,
+                   per.cedula AS residente_cedula
+            FROM comprobantes_pago c
+            INNER JOIN facturas f ON c.factura_id = f.id
+            INNER JOIN unidades u ON f.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            INNER JOIN personas per ON c.residente_id = per.id
+            WHERE c.deleted_at IS NULL
+        ) AS p";
+
+        $baseSql = "SELECT p.* FROM {$unionSubquery} WHERE 1=1";
+        $countSql = "SELECT COUNT(*) as total FROM {$unionSubquery} WHERE 1=1";
         
         $params = [];
         if (!empty($filtros['estado'])) {
             $baseSql .= " AND p.estado = :estado";
             $countSql .= " AND p.estado = :estado";
-            $params['estado'] = $filtros['estado'];
+            $params['estado'] = strtoupper(trim($filtros['estado']));
         }
         if (!empty($filtros['edificio'])) {
-            $baseSql .= " AND u.edificio_id = :edificio";
-            $countSql .= " AND u.edificio_id = :edificio";
+            $baseSql .= " AND p.edificio_id = :edificio";
+            $countSql .= " AND p.edificio_id = :edificio";
             $params['edificio'] = intval($filtros['edificio']);
         }
         if (!empty($filtros['fecha'])) {
@@ -220,6 +244,7 @@ class PagoModel extends BaseModel {
      * @return array|false
      */
     public function obtenerPagoPorId($id) {
+        $id = intval($id);
         $db = $this->db();
         $sql = "SELECT p.*, u.numero AS unidad_numero, e.nombre AS edificio_nombre,
                        CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
@@ -227,13 +252,14 @@ class PagoModel extends BaseModel {
                 INNER JOIN unidades u ON p.unidad_id = u.id
                 LEFT JOIN edificios e ON u.edificio_id = e.id
                 INNER JOIN personas per ON p.residente_id = per.id
-                WHERE p.id = :id";
+                WHERE p.id = :id AND p.deleted_at IS NULL";
         
         $stmt = $db->prepare($sql);
         $stmt->execute(['id' => $id]);
         $pago = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($pago) {
+            $pago['tipo_origen'] = 'pago';
             $sqlLog = "SELECT l.*, u.nombre_completo AS admin_nombre
                        FROM log_auditoria l
                        INNER JOIN usuarios u ON l.admin_id = u.id
@@ -243,11 +269,33 @@ class PagoModel extends BaseModel {
             $stmtLog = $db->prepare($sqlLog);
             $stmtLog->execute(['pago_id' => $id]);
             $pago['log_auditoria'] = $stmtLog->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $pago = false;
+            return $pago;
         }
-        
-        return $pago;
+
+        // Si no se encuentra en pagos, buscar en comprobantes_pago para compatibilidad total
+        $sqlComp = "SELECT c.*, c.fecha_envio AS fecha_registro, UPPER(c.estado) AS estado,
+                           f.numero_factura, f.saldo AS saldo_factura, f.monto_total,
+                           u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                           CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
+                    FROM comprobantes_pago c
+                    LEFT JOIN facturas f ON c.factura_id = f.id
+                    LEFT JOIN unidades u ON f.unidad_id = u.id
+                    LEFT JOIN edificios e ON u.edificio_id = e.id
+                    LEFT JOIN personas per ON c.residente_id = per.id
+                    WHERE c.id = :id AND c.deleted_at IS NULL";
+        $stmtComp = $db->prepare($sqlComp);
+        $stmtComp->execute(['id' => $id]);
+        $comp = $stmtComp->fetch(PDO::FETCH_ASSOC);
+
+        if ($comp) {
+            $comp['tipo_origen'] = 'comprobante';
+            $comp['saldo_restante'] = ($comp['saldo_factura'] ?? 0) - ($comp['monto'] ?? 0);
+            $comp['log_auditoria'] = [];
+            $comp['action_url'] = '/admin/comprobante/verificar?id=' . $comp['id'];
+            return $comp;
+        }
+
+        return false;
     }
 
     /**

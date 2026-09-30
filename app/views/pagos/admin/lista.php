@@ -138,7 +138,12 @@
                                     <td class="py-4 px-4">
                                         <div class="flex items-center justify-end gap-1.5">
                                             
-                                            <a href="/pagos/detalle/<?= e($p['id']) ?>" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors border border-slate-200" title="Ver Detalle / Auditoría">
+                                            <?php 
+                                            $detalleHref = ($p['tipo_origen'] ?? '') === 'comprobante'
+                                                ? '/admin/comprobante/verificar?id=' . e($p['id']) . '&from=comprobantes'
+                                                : '/pagos/detalle/' . e($p['id']) . '?from=comprobantes';
+                                            ?>
+                                            <a href="<?= e($detalleHref) ?>" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors border border-slate-200" title="Ver Detalle / Auditoría">
                                                 <span class="material-symbols-outlined text-[18px] block">visibility</span>
                                             </a>
                                             

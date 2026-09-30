@@ -206,7 +206,9 @@ class PagoController extends Controller {
         
         if (!$pago) {
             Flash::error('Pago no encontrado.');
-            $this->redirect('/pagos');
+            $rol = Auth::role();
+            $redirectUrl = ($rol === 'admin' || $rol === 'auditor') ? '/admin/comprobantes' : '/pagos';
+            $this->redirect($redirectUrl);
         }
         
         // Seguridad: Los residentes solo pueden ver sus propios detalles de pago
@@ -409,6 +411,10 @@ class PagoController extends Controller {
         $origen = $_POST['origen'] ?? '';
         if ($origen === 'conciliacion') {
             $destino = '/admin/conciliacion';
+        } elseif ($origen === 'dashboard') {
+            $destino = '/admin/dashboard';
+        } elseif ($origen === 'historial' || $origen === 'comprobantes') {
+            $destino = '/admin/comprobantes';
         } else {
             $destino = (!empty($_POST['redirect_to_detalle']) || $origen === 'detalle')
                 ? '/pagos/detalle/' . $pagoId

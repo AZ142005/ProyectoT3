@@ -24,16 +24,47 @@ $saldoFactura = floatval($pago['saldo_factura'] ?? $pago['saldo'] ?? 0);
 $montoPago = floatval($pago['monto'] ?? 0);
 $saldoRestante = isset($pago['saldo_restante']) ? floatval($pago['saldo_restante']) : ($saldoFactura - $montoPago);
 $fromParam = $_GET['from'] ?? '';
+if (empty($fromParam) && !empty($_SERVER['HTTP_REFERER'])) {
+    $refererPath = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH);
+    if ($refererPath === '/admin/conciliacion') {
+        $fromParam = 'conciliacion';
+    } elseif ($refererPath === '/admin/dashboard') {
+        $fromParam = 'dashboard';
+    } elseif ($refererPath === '/admin/comprobantes') {
+        $fromParam = 'comprobantes';
+    }
+}
+
+// Configuración dinámica del botón de regreso según el origen
+if ($fromParam === 'conciliacion') {
+    $volverUrl = '/admin/conciliacion';
+    $volverTexto = 'Volver a Conciliación';
+    $volverIcono = 'arrow_back';
+} elseif ($fromParam === 'dashboard') {
+    $volverUrl = '/admin/dashboard';
+    $volverTexto = 'Volver al Dashboard';
+    $volverIcono = 'arrow_back';
+} elseif ($isAdmin || $isAuditor) {
+    $volverUrl = '/admin/comprobantes';
+    $volverTexto = 'Volver a Historial de Pagos';
+    $volverIcono = 'arrow_back';
+} else {
+    $volverUrl = '/pagos';
+    $volverTexto = 'Volver a Mis Pagos';
+    $volverIcono = 'arrow_back';
+}
+
 $origenForm = match($fromParam) {
     'conciliacion' => 'conciliacion',
     'dashboard'    => 'dashboard',
-    default        => 'detalle',
+    'comprobantes', 'historial' => 'historial',
+    default        => ($isAdmin || $isAuditor) ? 'historial' : 'detalle',
 };
 ?>
 <?php if ($isAdmin || $isAuditor): ?>
 <div class="flex flex-1 min-h-screen w-full">
     <?php 
-    $activeRoute = ($tipoOrigen === 'comprobante') ? 'comprobantes' : 'pagos'; 
+    $activeRoute = ($fromParam === 'conciliacion') ? 'conciliacion' : 'comprobantes'; 
     if ($isAuditor) {
         require VIEWS_PATH . '/layouts/auditor_sidebar.php';
     } else {
@@ -61,23 +92,24 @@ $origenForm = match($fromParam) {
                 <!-- Barra de Navegación y Descarga -->
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
-                        <a href="/pagos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                            <span>Volver a Pagos</span>
-                        </a>
-                        <a href="/admin/comprobantes" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px]">history</span>
-                            <span>Historial de Pagos</span>
+                        <a href="<?= e($volverUrl) ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]"><?= e($volverIcono) ?></span>
+                            <span><?= e($volverTexto) ?></span>
                         </a>
                         <?php if ($fromParam === 'conciliacion'): ?>
-                            <a href="/admin/conciliacion" class="bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs px-3.5 py-2 rounded-xl border border-primary/20 transition-colors inline-flex items-center gap-1.5 shadow-sm">
-                                <span class="material-symbols-outlined text-[16px]">sync_alt</span>
-                                <span>Volver a Conciliación</span>
+                            <a href="/admin/comprobantes" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px]">history</span>
+                                <span>Historial de Pagos</span>
                             </a>
                         <?php elseif ($fromParam === 'dashboard'): ?>
-                            <a href="/admin/dashboard" class="bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs px-3.5 py-2 rounded-xl border border-primary/20 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                            <a href="/admin/dashboard" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[16px]">dashboard</span>
-                                <span>Volver al Dashboard</span>
+                                <span>Dashboard</span>
+                            </a>
+                        <?php else: ?>
+                            <a href="/admin/conciliacion" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px]">sync_alt</span>
+                                <span>Conciliación</span>
                             </a>
                         <?php endif; ?>
                     </div>
