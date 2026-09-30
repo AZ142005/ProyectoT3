@@ -405,7 +405,7 @@ CREATE TABLE `notificaciones_cola` (
 DROP TABLE IF EXISTS `pagos`;
 CREATE TABLE `pagos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `residente_id` int(11) NOT NULL,
+  `residente_id` int(11) DEFAULT NULL,
   `unidad_id` int(11) NOT NULL,
   `monto` decimal(10,2) NOT NULL,
   `fecha_pago` date NOT NULL,
