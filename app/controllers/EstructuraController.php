@@ -78,10 +78,16 @@ class EstructuraController extends Controller {
             file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
         }
 
+        $tabActual = trim($_GET['tab'] ?? 'visualizacion');
+        if (!in_array($tabActual, ['visualizacion', 'configuracion'], true)) {
+            $tabActual = 'visualizacion';
+        }
+
         $this->render('admin/estructura', [
             'edificios'      => $edificios,
             'unidades'       => $unidades,
             'filtroEdificio' => $filtroEdificio,
+            'tabActual'      => $tabActual,
             'showNav'        => true,
             'title'          => 'Estructura del Conjunto - Administrador'
         ]);
@@ -92,6 +98,8 @@ class EstructuraController extends Controller {
      */
     public function guardarEdificio() {
         Auth::requireRole('admin');
+
+        $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id          = intval($_POST['id'] ?? 0);
@@ -122,7 +130,7 @@ class EstructuraController extends Controller {
             }
         }
 
-        $this->redirect('/admin/estructura');
+        $this->redirect('/admin/estructura?tab=' . $tab);
     }
 
     /**
@@ -130,6 +138,8 @@ class EstructuraController extends Controller {
      */
     public function guardarUnidad() {
         Auth::requireRole('admin');
+
+        $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id            = intval($_POST['id'] ?? 0);
@@ -172,7 +182,7 @@ class EstructuraController extends Controller {
             }
         }
 
-        $this->redirect('/admin/estructura');
+        $this->redirect('/admin/estructura?tab=' . $tab);
     }
 
     /**
@@ -181,6 +191,7 @@ class EstructuraController extends Controller {
     public function toggleEdificio() {
         Auth::requireRole('admin');
 
+        $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
         $id = intval($_POST['id'] ?? 0);
         if ($id > 0) {
             $edificiosModel = new EdificiosModel();
@@ -192,7 +203,7 @@ class EstructuraController extends Controller {
             }
         }
 
-        $this->redirect('/admin/estructura');
+        $this->redirect('/admin/estructura?tab=' . $tab);
     }
 
     /**
@@ -201,6 +212,7 @@ class EstructuraController extends Controller {
     public function toggleUnidad() {
         Auth::requireRole('admin');
 
+        $tab = ($_POST['tab'] ?? 'visualizacion') === 'configuracion' ? 'configuracion' : 'visualizacion';
         $id = intval($_POST['id'] ?? 0);
         if ($id > 0) {
             $unidadesModel = new UnidadesModel();
@@ -212,7 +224,7 @@ class EstructuraController extends Controller {
             }
         }
 
-        $this->redirect('/admin/estructura');
+        $this->redirect('/admin/estructura?tab=' . $tab);
     }
 
     /**
