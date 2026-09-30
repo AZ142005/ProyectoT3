@@ -100,6 +100,16 @@
             background-color: #27ae60;
             border-radius: 20px;
         }
+
+        /* Corrección de colisión Tailwind CSS vs Bootstrap 5: evitar que .collapse oculte con visibility: collapse */
+        .collapse.show,
+        .collapsing {
+            visibility: visible !important;
+        }
+        .collapse.show *,
+        .collapsing * {
+            visibility: visible !important;
+        }
     </style>
 </head>
 <body class="bg-background text-on-surface font-sans min-h-screen flex flex-col">

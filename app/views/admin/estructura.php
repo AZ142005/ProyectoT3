@@ -57,8 +57,15 @@
                 .fila-edificio {
                     transition: background-color 0.2s ease-in-out;
                 }
-                .fila-unidades-collapse {
-                    transition: height 0.25s ease-in-out;
+                .fila-unidades-collapse,
+                .fila-unidades-collapse.collapse,
+                .fila-unidades-collapse.show,
+                .fila-unidades-collapse * {
+                    visibility: visible !important;
+                }
+                tr.fila-unidades-contenedor > td {
+                    padding: 0 !important;
+                    border: none !important;
                 }
                 </style>
 
@@ -146,13 +153,13 @@
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
-                                    <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse">
+                                    <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
                                         <thead>
                                             <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                                                <th class="p-3.5">Edificio</th>
-                                                <th class="p-3.5">Unidades</th>
-                                                <th class="p-3.5">Residentes</th>
-                                                <th class="p-3.5 text-right pe-4">Detalle</th>
+                                                <th class="p-3.5" style="width: 40%;">Edificio</th>
+                                                <th class="p-3.5" style="width: 20%;">Unidades</th>
+                                                <th class="p-3.5" style="width: 20%;">Residentes</th>
+                                                <th class="p-3.5 text-right pe-4" style="width: 20%;">Detalle</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-background">
@@ -205,8 +212,8 @@
                                                 </tr>
 
                                                 <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO -->
-                                                <tr class="fila-unidades-contenedor bg-slate-50/70" style="<?= $estaAbierto ? '' : 'display: none;' ?>">
-                                                    <td colspan="4" class="p-0 border-b border-outline-variant/60">
+                                                <tr class="fila-unidades-contenedor bg-slate-50/70">
+                                                    <td colspan="4" class="p-0 border-0">
                                                         <div class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse" id="collapse-edificio-<?= e($ed['id']) ?>">
                                                             <div class="p-4">
                                                                 <div class="bg-white rounded-xl border border-outline-variant p-4 shadow-xs space-y-3">
@@ -660,10 +667,10 @@ function filtrarTablaVisualizacion(query) {
         if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
             row.style.display = '';
             visibles++;
+            if (containerRow) {
+                containerRow.style.display = '';
+            }
             if (q && textoUnidades.includes(q) && collapseEl) {
-                if (containerRow) {
-                    containerRow.style.display = '';
-                }
                 if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
                     bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
                 } else {
@@ -715,15 +722,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 2. Eventos show y hide para sincronizar contenedor <tr>, icono y texto del botón
+    // 2. Eventos show y hide para sincronizar icono y texto del botón
     const collapseElements = document.querySelectorAll('.fila-unidades-collapse');
     collapseElements.forEach(collapseEl => {
-        const contenedorTr = collapseEl.closest('tr.fila-unidades-contenedor');
-
         collapseEl.addEventListener('show.bs.collapse', () => {
-            if (contenedorTr) {
-                contenedorTr.style.display = '';
-            }
             const targetId = '#' + collapseEl.id;
             const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
             triggerBtns.forEach(btn => {
@@ -745,12 +747,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (textSpan) textSpan.textContent = 'Ver Unidades';
                 btn.setAttribute('aria-expanded', 'false');
             });
-        });
-
-        collapseEl.addEventListener('hidden.bs.collapse', () => {
-            if (contenedorTr) {
-                contenedorTr.style.display = 'none';
-            }
         });
     });
 });

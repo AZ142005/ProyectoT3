@@ -153,14 +153,14 @@
 
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="tablaBalanceEdificios">
+                <table class="table table-hover align-middle mb-0" id="tablaBalanceEdificios" style="table-layout: fixed; width: 100%;">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4 py-3">Edificio</th>
-                            <th class="py-3">Unidades</th>
-                            <th class="py-3">Estado de Solvencia</th>
-                            <th class="py-3 text-end">Balance Total (Bs)</th>
-                            <th class="py-3 text-center pe-4" style="width: 170px;">Detalle</th>
+                            <th class="ps-4 py-3" style="width: 32%;">Edificio</th>
+                            <th class="py-3" style="width: 16%;">Unidades</th>
+                            <th class="py-3" style="width: 20%;">Estado de Solvencia</th>
+                            <th class="py-3 text-end" style="width: 18%;">Balance Total (Bs)</th>
+                            <th class="py-3 text-center pe-4" style="width: 14%; min-width: 140px;">Detalle</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-background" id="accordionBalanceEdificios">
@@ -238,8 +238,8 @@
                                 </tr>
 
                                 <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO (ACORDEÓN EXCLUSIVO) -->
-                                <tr class="fila-unidades-contenedor bg-light bg-opacity-75" style="<?= $estaAbierto ? '' : 'display: none;' ?>">
-                                    <td colspan="5" class="p-0 border-bottom">
+                                <tr class="fila-unidades-contenedor bg-light bg-opacity-75">
+                                    <td colspan="5" class="p-0 border-0">
                                         <div class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse" 
                                              id="collapse-edificio-<?= e($ed['edificio_id']) ?>" 
                                              data-bs-parent="#accordionBalanceEdificios">
@@ -387,8 +387,15 @@
 .fila-edificio:hover {
     background-color: rgba(var(--bs-primary-rgb), 0.04);
 }
-.fila-unidades-collapse {
-    transition: height 0.25s ease-in-out;
+.fila-unidades-collapse,
+.fila-unidades-collapse.collapse,
+.fila-unidades-collapse.show,
+.fila-unidades-collapse * {
+    visibility: visible !important;
+}
+tr.fila-unidades-contenedor > td {
+    padding: 0 !important;
+    border: none !important;
 }
 </style>
 
@@ -414,26 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const collapseElements = document.querySelectorAll('.fila-unidades-collapse');
 
     collapseElements.forEach(collapseEl => {
-        const contenedorTr = collapseEl.closest('tr.fila-unidades-contenedor');
-
-        // Evento show: Acordeón exclusivo cerrando cualquier otro edificio expandido
+        // Evento show: Sincronizar texto e icono del botón activador a "Ocultar"
         collapseEl.addEventListener('show.bs.collapse', function () {
-            if (contenedorTr) {
-                contenedorTr.style.display = '';
-            }
-
-            collapseElements.forEach(otherEl => {
-                if (otherEl !== collapseEl && otherEl.classList.contains('show')) {
-                    if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                        const bsCollapse = bootstrap.Collapse.getInstance(otherEl) || new bootstrap.Collapse(otherEl, { toggle: false });
-                        bsCollapse.hide();
-                    } else {
-                        otherEl.classList.remove('show');
-                    }
-                }
-            });
-
-            // Actualizar texto e icono del botón activador a "Ocultar"
             const targetId = '#' + collapseEl.id;
             const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
             triggerBtns.forEach(btn => {
@@ -457,12 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.setAttribute('aria-expanded', 'false');
             });
         });
-
-        collapseEl.addEventListener('hidden.bs.collapse', function () {
-            if (contenedorTr) {
-                contenedorTr.style.display = 'none';
-            }
-        });
     });
 });
 
@@ -482,10 +465,10 @@ function filtrarBalance(query) {
         if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
             row.style.display = '';
             visibles++;
+            if (containerRow) {
+                containerRow.style.display = '';
+            }
             if (q && textoUnidades.includes(q) && collapseEl) {
-                if (containerRow) {
-                    containerRow.style.display = '';
-                }
                 // Autoexpandir si la búsqueda coincide directamente con unidades dentro del edificio
                 if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
                     bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();

@@ -90,36 +90,28 @@ class ConciliacionCentralizadaTest extends TestCase {
     }
 
     /**
-     * Verifica que los colores de texto sean estrictamente blanco o negro,
-     * sin clases utilitarias de texto con color (text-primary, text-danger, text-success, etc.).
+     * Verifica que los colores semánticos estén restaurados en badges, botones y componentes,
+     * pero manteniendo los montos y números sin clases de color (text-dark o font-monospace).
      */
-    public function testVistaAplicaEstiloMonocromaticoEstricto(): void {
+    public function testVistaRestauraColoresSemanticosExceptoNumeros(): void {
         $viewPath = VIEWS_PATH . '/admin/conciliacion/index.php';
         $content = file_get_contents($viewPath);
 
-        // Clases de texto con color prohibidas según criterio de aceptación
-        $prohibidas = [
-            'text-primary', 'text-success', 'text-danger', 'text-warning',
-            'text-info', 'text-secondary', 'text-muted',
-            'text-blue', 'text-green', 'text-red', 'text-emerald',
-            'text-amber', 'text-slate'
-        ];
+        // Los montos no deben tener clases de texto de color
+        $this->assertFalse(
+            (bool)preg_match('/<td[^>]*font-monospace[^>]*text-(success|danger|warning|info|primary)/i', $content),
+            "Las celdas de números/montos no deben llevar clases de color de texto"
+        );
 
-        foreach ($prohibidas as $clase) {
-            $this->assertFalse(
-                (bool)preg_match('/\b' . preg_quote($clase, '/') . '[\w-]*\b/i', $content),
-                "La vista no debe contener clases de texto con color como '{$clase}'"
-            );
-        }
+        // La vista debe tener botones semánticos restaurados
+        $this->assertTrue(str_contains($content, 'btn-success'), "La vista debe incluir botones de éxito (btn-success)");
+        $this->assertTrue(str_contains($content, 'btn-primary'), "La vista debe incluir botones primarios (btn-primary)");
+        $this->assertTrue(str_contains($content, 'btn-outline-danger') || str_contains($content, 'btn-danger'), "La vista debe incluir botones de peligro");
 
-        // Debe utilizar text-dark o text-white
+        // Debe utilizar text-dark para la legibilidad de números y textos base
         $this->assertTrue(
             str_contains($content, 'text-dark'),
-            "La vista debe usar text-dark para textos de color oscuro"
-        );
-        $this->assertTrue(
-            str_contains($content, 'text-white'),
-            "La vista debe usar text-white para textos sobre fondos oscuros"
+            "La vista debe usar text-dark para textos y números"
         );
     }
 
