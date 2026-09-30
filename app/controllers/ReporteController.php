@@ -16,7 +16,8 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? ''
         ];
 
         $pagina = max(1, intval($_GET['page'] ?? 1));
@@ -37,12 +38,13 @@ class ReporteController extends Controller {
 
         $this->render('admin/reportes/morosidad', [
             'morosos'    => $resultado['datos'],
+            'unidades'   => $resultado['datos'],
             'kpis'       => $kpis,
             'edificios'  => $edificios,
             'filtros'    => $filtros,
             'paginacion' => $paginacion,
             'layout'     => 'admin',
-            'title'      => 'Reporte de Morosidad en Tiempo Real'
+            'title'      => 'Balance General de Unidades'
         ]);
     }
 
@@ -54,7 +56,8 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? ''
         ];
 
         $reportesModel = new ReportesModel();
@@ -67,7 +70,7 @@ class ReporteController extends Controller {
             'truncado' => $truncado,
             'kpis'    => $kpis,
             'filtros' => $filtros,
-            'title'   => 'Reporte de Morosidad - Impresión Oficial'
+            'title'   => 'Balance de Unidades - Impresión Oficial'
         ]);
     }
 
@@ -79,7 +82,8 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? ''
         ];
 
         $reportesModel = new ReportesModel();

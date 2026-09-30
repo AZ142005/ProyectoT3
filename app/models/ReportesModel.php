@@ -9,7 +9,7 @@ class ReportesModel extends BaseModel {
      * Obtiene el reporte paginado de morosidad agrupado por unidad habitacional.
      */
     public function obtenerReporteMorosidad(array $filtros = [], int $pagina = 1, int $porPagina = 50): array {
-        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
+        $where = "WHERE u.estado = 1";
         $params = [];
 
         if (!empty($filtros['edificio_id'])) {
@@ -17,9 +17,16 @@ class ReportesModel extends BaseModel {
             $params['edificio_id'] = intval($filtros['edificio_id']);
         }
 
+        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
+        if ($estadoFiltro === 'solvente') {
+            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
+            $where .= " AND m.total_deuda > 0";
+        }
+
         if (!empty($filtros['dias_mora'])) {
             $dias = intval($filtros['dias_mora']);
-            $where .= " AND f.fecha_vencimiento <= (CURDATE() - INTERVAL :dias DAY)";
+            $where .= " AND m.dias_mora_max >= :dias";
             $params['dias'] = $dias;
         }
 
@@ -27,42 +34,63 @@ class ReportesModel extends BaseModel {
             SELECT 
                 u.id AS unidad_id,
                 u.numero AS unidad_numero,
-                e.nombre AS edificio_nombre,
-                CONCAT(p.nombre, ' ', p.apellido) AS propietario_nombre,
-                p.cedula AS propietario_cedula,
-                p.telefono AS propietario_telefono,
-                p.email AS propietario_email,
-                COUNT(f.id) AS facturas_vencidas,
-                ROUND(SUM(f.saldo), 2) AS total_deuda,
-                MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
-                DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
-            FROM facturas f
-            INNER JOIN unidades u ON f.unidad_id = u.id
+                COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
+                e.id AS edificio_id,
+                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
+                COALESCE(p.cedula, 'N/A') AS propietario_cedula,
+                COALESCE(p.telefono, 'N/A') AS propietario_telefono,
+                COALESCE(p.email, 'N/A') AS propietario_email,
+                COALESCE(m.facturas_vencidas, 0) AS facturas_vencidas,
+                COALESCE(m.total_deuda, 0.00) AS total_deuda,
+                m.fecha_mas_antigua,
+                COALESCE(m.dias_mora_max, 0) AS dias_mora_max,
+                CASE 
+                    WHEN COALESCE(m.total_deuda, 0.00) > 0 THEN 'deudor'
+                    ELSE 'solvente'
+                END AS estado_financiero
+            FROM unidades u
             LEFT JOIN edificios e ON u.edificio_id = e.id
             LEFT JOIN personas p ON u.propietario_id = p.id
+            LEFT JOIN (
+                SELECT 
+                    f.unidad_id,
+                    COUNT(f.id) AS facturas_vencidas,
+                    ROUND(SUM(f.saldo), 2) AS total_deuda,
+                    MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
+                    DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
+                FROM facturas f
+                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) m ON m.unidad_id = u.id
             {$where}
-            GROUP BY u.id, e.id, p.id
         ";
 
         $countSql = "
-            SELECT COUNT(DISTINCT u.id) AS total
-            FROM facturas f
-            INNER JOIN unidades u ON f.unidad_id = u.id
-            LEFT JOIN edificios e ON u.edificio_id = e.id
+            SELECT COUNT(*) AS total
+            FROM unidades u
+            LEFT JOIN (
+                SELECT 
+                    f.unidad_id,
+                    ROUND(SUM(f.saldo), 2) AS total_deuda,
+                    DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
+                FROM facturas f
+                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) m ON m.unidad_id = u.id
             {$where}
         ";
 
-        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'total_deuda DESC');
+        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'total_deuda DESC, u.numero ASC');
     }
 
     /**
-     * Obtiene todos los registros morosos sin paginación para exportación e impresión.
+     * Obtiene todos los registros sin paginación para exportación e impresión.
      * 6B.4: LIMIT configurable con truncado para evitar Memory Overflow.
      */
     public function obtenerReporteMorosidadCompleto(array $filtros = [], int $limiteMax = 5000): array {
         $limiteMax = max(100, min($limiteMax, 50000));
 
-        $where = "WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL";
+        $where = "WHERE u.estado = 1";
         $params = [];
 
         if (!empty($filtros['edificio_id'])) {
@@ -70,9 +98,16 @@ class ReportesModel extends BaseModel {
             $params['edificio_id'] = intval($filtros['edificio_id']);
         }
 
+        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
+        if ($estadoFiltro === 'solvente') {
+            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
+            $where .= " AND m.total_deuda > 0";
+        }
+
         if (!empty($filtros['dias_mora'])) {
             $dias = intval($filtros['dias_mora']);
-            $where .= " AND f.fecha_vencimiento <= (CURDATE() - INTERVAL :dias DAY)";
+            $where .= " AND m.dias_mora_max >= :dias";
             $params['dias'] = $dias;
         }
 
@@ -80,20 +115,33 @@ class ReportesModel extends BaseModel {
             SELECT 
                 u.numero AS unidad_numero,
                 COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
-                CONCAT(p.nombre, ' ', p.apellido) AS propietario_nombre,
+                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
                 COALESCE(p.cedula, 'N/A') AS propietario_cedula,
                 COALESCE(p.telefono, 'N/A') AS propietario_telefono,
                 COALESCE(p.email, 'N/A') AS propietario_email,
-                COUNT(f.id) AS facturas_vencidas,
-                ROUND(SUM(f.saldo), 2) AS total_deuda,
-                DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
-            FROM facturas f
-            INNER JOIN unidades u ON f.unidad_id = u.id
+                COALESCE(m.facturas_vencidas, 0) AS facturas_vencidas,
+                COALESCE(m.total_deuda, 0.00) AS total_deuda,
+                COALESCE(m.dias_mora_max, 0) AS dias_mora_max,
+                CASE 
+                    WHEN COALESCE(m.total_deuda, 0.00) > 0 THEN 'deudor'
+                    ELSE 'solvente'
+                END AS estado_financiero
+            FROM unidades u
             LEFT JOIN edificios e ON u.edificio_id = e.id
             LEFT JOIN personas p ON u.propietario_id = p.id
+            LEFT JOIN (
+                SELECT 
+                    f.unidad_id,
+                    COUNT(f.id) AS facturas_vencidas,
+                    ROUND(SUM(f.saldo), 2) AS total_deuda,
+                    MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
+                    DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
+                FROM facturas f
+                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) m ON m.unidad_id = u.id
             {$where}
-            GROUP BY u.id, e.id, p.id
-            ORDER BY total_deuda DESC
+            ORDER BY total_deuda DESC, u.numero ASC
             LIMIT {$limiteMax}
         ";
 
@@ -103,7 +151,7 @@ class ReportesModel extends BaseModel {
     }
 
     /**
-     * 6B.6: Caché cross-session de KPIs de morosidad usando archivo temporal.
+     * 6B.6: Caché cross-session de KPIs de balance y morosidad usando archivo temporal.
      * Mejor que $_SESSION: funciona entre usuarios/sesiones y no depende del lifetime PHP.
      */
     public function obtenerKpisMorosidad(bool $forzarRecalculo = false): array {
@@ -129,16 +177,20 @@ class ReportesModel extends BaseModel {
         $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
         $unidadesMorosas = intval($stmtUnidades->fetch(PDO::FETCH_ASSOC)['unidades_morosas'] ?? 0);
 
-        $stmtTotalUnidades = $db->query("SELECT COUNT(*) AS total FROM unidades");
+        $stmtTotalUnidades = $db->query("SELECT COUNT(*) AS total FROM unidades WHERE estado = 1");
         $totalUnidades = intval($stmtTotalUnidades->fetch(PDO::FETCH_ASSOC)['total'] ?? 1);
 
+        $unidadesSolventes = max(0, $totalUnidades - $unidadesMorosas);
         $tasaMorosidad = ($totalUnidades > 0) ? round(($unidadesMorosas / $totalUnidades) * 100, 1) : 0.0;
+        $tasaSolvencia = ($totalUnidades > 0) ? round(($unidadesSolventes / $totalUnidades) * 100, 1) : 0.0;
 
         $kpis = [
-            'total_deuda'      => $totalDeuda,
-            'unidades_morosas' => $unidadesMorosas,
-            'total_unidades'   => $totalUnidades,
-            'tasa_morosidad'   => $tasaMorosidad
+            'total_deuda'        => $totalDeuda,
+            'unidades_morosas'   => $unidadesMorosas,
+            'unidades_solventes' => $unidadesSolventes,
+            'total_unidades'     => $totalUnidades,
+            'tasa_morosidad'     => $tasaMorosidad,
+            'tasa_solvencia'     => $tasaSolvencia
         ];
 
         // Atomic write: temp file → rename prevents race condition
@@ -170,7 +222,7 @@ class ReportesModel extends BaseModel {
     public function exportarCsvStreaming(array $filtros = []): void {
         $datos = $this->obtenerReporteMorosidadCompleto($filtros);
 
-        $filename = 'reporte_morosidad_' . date('Y-m-d_H-i') . '.csv';
+        $filename = 'balance_unidades_' . date('Y-m-d_H-i') . '.csv';
 
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -190,6 +242,7 @@ class ReportesModel extends BaseModel {
             'Cédula',
             'Teléfono',
             'Email',
+            'Estado Financiero',
             'Facturas Vencidas',
             'Días de Mora Máx.',
             'Total Deuda (Bs)'
@@ -203,6 +256,7 @@ class ReportesModel extends BaseModel {
                 self::sanitizeCsvField($row['propietario_cedula']),
                 self::sanitizeCsvField($row['propietario_telefono']),
                 self::sanitizeCsvField($row['propietario_email']),
+                ($row['estado_financiero'] === 'deudor' ? 'Con Deuda' : 'Solvente'),
                 $row['facturas_vencidas'],
                 $row['dias_mora_max'],
                 number_format(floatval($row['total_deuda']), 2, '.', '')

@@ -15,7 +15,7 @@ $navItems = [
     ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
     ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
     ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
-    ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
+    ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Balance'],
 ];
 
 // Para la vista de pagos del admin, mantenemos consistente
@@ -33,7 +33,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
         ['route' => 'solicitudes_registro', 'url' => '/admin/solicitudes-registro', 'icon' => 'how_to_reg', 'label' => 'Solicitudes Registro'],
         ['route' => 'solicitudes',      'url' => '/admin/solicitudes-datos',  'icon' => 'manage_accounts', 'label' => 'Solicitudes Datos'],
         ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
-        ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'warning',         'label' => 'Reporte Morosidad'],
+        ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Balance'],
     ];
 }
 ?>

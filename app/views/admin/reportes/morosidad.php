@@ -16,7 +16,7 @@
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h1 class="text-xl font-bold text-on-surface">Reporte de Morosidad</h1>
+                <h1 class="text-xl font-bold text-on-surface">Balance</h1>
             </div>
             <a href="<?= \App\Core\Auth::role() === 'auditor' ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
@@ -32,8 +32,8 @@
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Estado de Cuentas por Cobrar</h4>
-            <p class="text-muted small mb-0">Monitoreo de cartera vencida, antigüedad de saldos y morosidad</p>
+            <h4 class="fw-bold text-dark mb-1">Balance General de Unidades</h4>
+            <p class="text-muted small mb-0">Monitoreo integral de solvencia de unidades y cuentas por cobrar</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="btn btn-outline-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
@@ -59,24 +59,24 @@
         <div class="col-md-3 col-sm-6">
             <div class="card border-0 shadow-sm rounded-3 bg-white border-start border-4 border-warning">
                 <div class="card-body py-3">
-                    <div class="text-muted small fw-semibold text-uppercase">Unidades Morosas</div>
+                    <div class="text-muted small fw-semibold text-uppercase">Unidades con Deuda</div>
                     <div class="h3 mb-0 fw-bold text-dark"><?= e($kpis['unidades_morosas']) ?> <small class="fs-6 text-muted">/ <?= e($kpis['total_unidades']) ?></small></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card border-0 shadow-sm rounded-3 bg-white border-start border-4 border-info">
-                <div class="card-body py-3">
-                    <div class="text-muted small fw-semibold text-uppercase">Tasa de Morosidad</div>
-                    <div class="h3 mb-0 fw-bold text-info"><?= e($kpis['tasa_morosidad']) ?>%</div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
             <div class="card border-0 shadow-sm rounded-3 bg-white border-start border-4 border-success">
                 <div class="card-body py-3">
-                    <div class="text-muted small fw-semibold text-uppercase">Estado Cartera</div>
-                    <div class="h3 mb-0 fw-bold text-success">Actualizado</div>
+                    <div class="text-muted small fw-semibold text-uppercase">Unidades Solventes</div>
+                    <div class="h3 mb-0 fw-bold text-success"><?= e($kpis['unidades_solventes'] ?? ($kpis['total_unidades'] - $kpis['unidades_morosas'])) ?> <small class="fs-6 text-muted">/ <?= e($kpis['total_unidades']) ?></small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-3 bg-white border-start border-4 border-info">
+                <div class="card-body py-3">
+                    <div class="text-muted small fw-semibold text-uppercase">Tasa de Solvencia</div>
+                    <div class="h3 mb-0 fw-bold text-info"><?= e($kpis['tasa_solvencia'] ?? round((100 - $kpis['tasa_morosidad']), 1)) ?>%</div>
                 </div>
             </div>
         </div>
@@ -86,27 +86,35 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
         <div class="card-body py-3">
             <form method="GET" action="/admin/reportes/morosidad" class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Estado Financiero</label>
+                    <select name="estado" class="form-select">
+                        <option value="">-- Todos los Estados --</option>
+                        <option value="solvente" <?= (($filtros['estado'] ?? '') === 'solvente') ? 'selected' : '' ?>>Solventes (Al Día)</option>
+                        <option value="deudor" <?= (($filtros['estado'] ?? '') === 'deudor') ? 'selected' : '' ?>>Con Deuda (Morosos)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Filtrar por Edificio / Torre</label>
                     <select name="edificio_id" class="form-select">
                         <option value="">-- Todos los Edificios --</option>
                         <?php foreach ($edificios as $ed): ?>
-                            <option value="<?= e($ed['id']) ?>" <?= ($filtros['edificio_id'] == $ed['id']) ? 'selected' : '' ?>>
+                            <option value="<?= e($ed['id']) ?>" <?= (($filtros['edificio_id'] ?? '') == $ed['id']) ? 'selected' : '' ?>>
                                 <?= e($ed['nombre']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Antigüedad de Deuda</label>
                     <select name="dias_mora" class="form-select">
                         <option value="">-- Todos los Rangos --</option>
-                        <option value="30" <?= ($filtros['dias_mora'] == '30') ? 'selected' : '' ?>>Mayor a 30 Días</option>
-                        <option value="60" <?= ($filtros['dias_mora'] == '60') ? 'selected' : '' ?>>Mayor a 60 Días</option>
-                        <option value="90" <?= ($filtros['dias_mora'] == '90') ? 'selected' : '' ?>>Crítico (Mayor a 90 Días)</option>
+                        <option value="30" <?= (($filtros['dias_mora'] ?? '') == '30') ? 'selected' : '' ?>>Mayor a 30 Días</option>
+                        <option value="60" <?= (($filtros['dias_mora'] ?? '') == '60') ? 'selected' : '' ?>>Mayor a 60 Días</option>
+                        <option value="90" <?= (($filtros['dias_mora'] ?? '') == '90') ? 'selected' : '' ?>>Crítico (Mayor a 90 Días)</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex gap-2">
+                <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary fw-bold flex-fill d-inline-flex align-items-center justify-content-center gap-1">
                         <span class="material-symbols-outlined">filter_list</span> Filtrar
                     </button>
@@ -119,10 +127,11 @@
     </div>
 
     <!-- Tabla del Reporte -->
+    <!-- Tabla del Reporte -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0 fw-bold text-dark">Detalle de Unidades Morosas</h5>
-            <span class="badge bg-danger rounded-pill"><?= e($paginacion['total']) ?> Registros Encontrados</span>
+            <h5 class="card-title mb-0 fw-bold text-dark">Detalle de Unidades (Balance General)</h5>
+            <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Unidades Registradas</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -132,23 +141,25 @@
                             <th class="ps-4 py-3">Unidad / Apto</th>
                             <th class="py-3">Edificio / Torre</th>
                             <th class="py-3">Propietario / Contacto</th>
+                            <th class="py-3 text-center">Estado</th>
                             <th class="py-3 text-center">Facturas Vencidas</th>
                             <th class="py-3 text-center">Días de Mora</th>
-                            <th class="py-3 text-end pe-4">Monto Total (Bs)</th>
+                            <th class="py-3 text-end pe-4">Total Deuda (Bs)</th>
                             <th class="py-3 text-center pe-3">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($morosos)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    <span class="material-symbols-outlined display-4 d-block mb-2 text-success">verified</span>
-                                    ¡Excelente! No existen unidades habitacionales morosas para los filtros seleccionados.
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <span class="material-symbols-outlined display-4 d-block mb-2 text-primary">search_off</span>
+                                    No se encontraron unidades habitacionales para los filtros seleccionados.
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($morosos as $m): ?>
-                                <tr>
+                                <?php $esSolvente = ($m['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
+                                <tr class="<?= $esSolvente ? 'bg-white' : 'table-danger bg-opacity-10' ?>">
                                     <td class="ps-4 font-monospace fw-bold text-dark">
                                         Apto/Unidad <?= e($m['unidad_numero']) ?>
                                     </td>
@@ -161,10 +172,32 @@
                                         </small>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-secondary rounded-pill fs-6"><?= e($m['facturas_vencidas']) ?></span>
+                                        <?php if ($esSolvente): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">check_circle</span>
+                                                Solvente
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">warning</span>
+                                                Con Deuda
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php if ($m['dias_mora_max'] >= 90): ?>
+                                        <?php if ($esSolvente): ?>
+                                            <span class="badge bg-light text-muted border rounded-pill fs-6">0</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger rounded-pill fs-6"><?= e($m['facturas_vencidas']) ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if ($esSolvente): ?>
+                                            <span class="text-success small fw-semibold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">done_all</span>
+                                                Al día
+                                            </span>
+                                        <?php elseif ($m['dias_mora_max'] >= 90): ?>
                                             <span class="badge bg-danger rounded-pill px-3 py-1 fw-bold">
                                                 <span class="material-symbols-outlined align-middle fs-6 me-1">warning</span>
                                                 <?= e($m['dias_mora_max']) ?> días (Crítico)
@@ -179,13 +212,19 @@
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end pe-4 font-monospace fw-bold fs-6 text-danger">
+                                    <td class="text-end pe-4 font-monospace fw-bold fs-6 <?= $esSolvente ? 'text-muted' : 'text-danger' ?>">
                                         <?= e(formatearMoneda($m['total_deuda'])) ?>
                                     </td>
                                     <td class="text-center pe-3">
-                                        <a href="/admin/reportes/carta-deuda/<?= e($m['unidad_id']) ?>" class="btn btn-outline-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1" title="Ver Carta Oficial de Deuda">
-                                            <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
-                                        </a>
+                                        <?php if (!$esSolvente): ?>
+                                            <a href="/admin/reportes/carta-deuda/<?= e($m['unidad_id']) ?>" class="btn btn-outline-warning btn-sm font-weight-bold d-inline-flex align-items-center gap-1" title="Ver Carta Oficial de Deuda">
+                                                <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6 text-success">verified</span> Al día
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

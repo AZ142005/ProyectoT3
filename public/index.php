@@ -150,10 +150,13 @@ $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\Estacionamie
 $router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardarVehiculo'], [UserRole::ADMIN]);
 $router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], [UserRole::ADMIN]);
 
-// --- Módulo de Reportes de Morosidad y Cartas de Deuda (RF 23, RF 25) ---
+// --- Módulo de Balance / Morosidad y Cartas de Deuda (RF 23, RF 25) ---
 $router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
 $router->get('/admin/reportes/morosidad/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
 $router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/balance', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/balance/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/balance/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
 $router->get('/admin/reportes/carta-deuda/{unidadId}', [\App\Controllers\ReporteController::class, 'generarCartaDeuda'], [UserRole::ADMIN]);
 $router->post('/admin/reportes/enviar-aviso-cobro', [\App\Controllers\ReporteController::class, 'enviarAvisoCobro'], [UserRole::ADMIN]);
 

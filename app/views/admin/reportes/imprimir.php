@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= e($title ?? 'Reporte Oficial de Morosidad') ?></title>
+    <title><?= e($title ?? 'Reporte Oficial de Balance') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; }
@@ -31,28 +31,34 @@
     <!-- Cabecera Oficial -->
     <div class="text-center mb-4 border-bottom pb-3">
         <h2 class="fw-bold mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h2>
-        <h5 class="text-secondary fw-semibold mb-2">REPORTE OFICIAL DE DEUDA Y MOROSIDAD ACUMULADA</h5>
+        <h5 class="text-secondary fw-semibold mb-2">REPORTE OFICIAL DE BALANCE Y ESTADO FINANCIERO DE UNIDADES</h5>
         <p class="small text-muted mb-0">Fecha de Emisión: <?= date('d/m/Y H:i:s') ?> | Sistema de Cobranzas y Condominio Digital</p>
     </div>
 
     <!-- Métricas Resumidas -->
     <div class="row text-center mb-4 g-2">
-        <div class="col-4">
+        <div class="col-3">
             <div class="border p-2 rounded">
-                <small class="text-muted text-uppercase d-block fw-bold">Monto Total en Arreos</small>
+                <small class="text-muted text-uppercase d-block fw-bold">Cartera Vencida Total</small>
                 <span class="fs-5 fw-bold text-danger"><?= formatearMoneda($kpis['total_deuda']) ?></span>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             <div class="border p-2 rounded">
-                <small class="text-muted text-uppercase d-block fw-bold">Unidades con Cartera Vencida</small>
+                <small class="text-muted text-uppercase d-block fw-bold">Unidades con Deuda</small>
                 <span class="fs-5 fw-bold text-dark"><?= e($kpis['unidades_morosas']) ?> Unidades</span>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             <div class="border p-2 rounded">
-                <small class="text-muted text-uppercase d-block fw-bold">Índice de Morosidad Global</small>
-                <span class="fs-5 fw-bold text-dark"><?= e($kpis['tasa_morosidad']) ?>%</span>
+                <small class="text-muted text-uppercase d-block fw-bold">Unidades Solventes</small>
+                <span class="fs-5 fw-bold text-success"><?= e($kpis['unidades_solventes'] ?? ($kpis['total_unidades'] - $kpis['unidades_morosas'])) ?> Unidades</span>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="border p-2 rounded">
+                <small class="text-muted text-uppercase d-block fw-bold">Solvencia / Morosidad</small>
+                <span class="fs-5 fw-bold text-primary"><?= e($kpis['tasa_solvencia'] ?? round((100 - $kpis['tasa_morosidad']), 1)) ?>% <small class="fs-6 text-muted">(Mora: <?= e($kpis['tasa_morosidad']) ?>%)</small></span>
             </div>
         </div>
     </div>
@@ -67,6 +73,7 @@
                 <th>Propietario / Residente</th>
                 <th>Cédula</th>
                 <th>Contacto</th>
+                <th class="text-center">Estado</th>
                 <th class="text-center">Cuotas Vencidas</th>
                 <th class="text-center">Días Mora</th>
                 <th class="text-end">Deuda Total (Bs)</th>
@@ -75,10 +82,11 @@
         <tbody>
             <?php if (empty($morosos)): ?>
                 <tr>
-                    <td colspan="9" class="text-center py-4">No se registran unidades morosas para este criterio.</td>
+                    <td colspan="10" class="text-center py-4">No se registran unidades para este criterio.</td>
                 </tr>
             <?php else: ?>
                 <?php $i = 1; foreach ($morosos as $m): ?>
+                    <?php $esSolvente = ($m['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
                     <tr>
                         <td class="text-center"><?= $i++ ?></td>
                         <td><?= e($m['edificio_nombre']) ?></td>
@@ -86,9 +94,14 @@
                         <td><?= e($m['propietario_nombre']) ?></td>
                         <td><?= e($m['propietario_cedula']) ?></td>
                         <td><?= e($m['propietario_telefono']) ?></td>
+                        <td class="text-center fw-bold <?= $esSolvente ? 'text-success' : 'text-danger' ?>">
+                            <?= $esSolvente ? 'Solvente' : 'Con Deuda' ?>
+                        </td>
                         <td class="text-center"><?= e($m['facturas_vencidas']) ?></td>
-                        <td class="text-center fw-bold text-danger"><?= e($m['dias_mora_max']) ?> días</td>
-                        <td class="text-end font-monospace fw-bold"><?= formatearMoneda($m['total_deuda']) ?></td>
+                        <td class="text-center fw-bold <?= $esSolvente ? 'text-success' : 'text-danger' ?>">
+                            <?= $esSolvente ? 'Al día' : e($m['dias_mora_max']) . ' días' ?>
+                        </td>
+                        <td class="text-end font-monospace fw-bold <?= $esSolvente ? 'text-muted' : 'text-danger' ?>"><?= formatearMoneda($m['total_deuda']) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
