@@ -182,14 +182,13 @@
                                                     <?php if (!empty($p['archivo'])): ?>
                                                         <div class="d-inline-flex align-items-center gap-1">
                                                             <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>" target="_blank"
-                                                               class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 py-1 px-2"
+                                                               class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
                                                                title="Ver comprobante en pestaña nueva">
                                                                 <span class="material-symbols-outlined fs-6">visibility</span>
-                                                                <span>Ver</span>
                                                             </a>
                                                             <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>&download=1"
                                                                download="<?= e($p['archivo']) ?>"
-                                                               class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center gap-1 py-1 px-2"
+                                                               class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
                                                                title="Descargar comprobante">
                                                                 <span class="material-symbols-outlined fs-6">download</span>
                                                             </a>
@@ -200,29 +199,26 @@
                                                 </td>
                                                 <td class="text-end pe-4 text-nowrap">
                                                     <div class="d-inline-flex align-items-center gap-1">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center gap-1"
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center"
                                                                 onclick='verDetallePagoDirecto(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                 title="Ver Detalles Completos">
                                                             <span class="material-symbols-outlined fs-6">visibility</span>
-                                                            <span class="d-none d-md-inline">Detalles</span>
                                                         </button>
 
                                                         <form method="POST" action="/admin/conciliacion/verificar" class="d-inline" onsubmit="return confirm('¿Confirma la verificación y aprobación de este pago?');">
                                                             <?= csrf_field() ?>
                                                             <input type="hidden" name="pago_id" value="<?= e($p['id']) ?>">
                                                             <input type="hidden" name="origen_tipo" value="<?= e($p['origen_tabla']) ?>">
-                                                            <button type="submit" class="btn btn-success btn-sm text-white fw-bold d-inline-flex align-items-center gap-1"
+                                                            <button type="submit" class="btn btn-success btn-sm text-white fw-bold d-inline-flex align-items-center"
                                                                     title="Verificar y Aprobar Pago">
                                                                 <span class="material-symbols-outlined fs-6">check</span>
-                                                                <span class="d-none d-md-inline">Aprobar</span>
                                                             </button>
                                                         </form>
 
-                                                        <button type="button" class="btn btn-outline-danger btn-sm text-danger fw-bold d-inline-flex align-items-center gap-1"
+                                                        <button type="button" class="btn btn-outline-danger btn-sm text-danger fw-bold d-inline-flex align-items-center"
                                                                 onclick="abrirModalRechazo(<?= (int)$p['id'] ?>, '<?= e($p['origen_tabla']) ?>', '<?= e(addslashes($p['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($p['referencia'] ?? 'S/R')) ?>')"
                                                                 title="Rechazar Pago">
                                                             <span class="material-symbols-outlined fs-6">cancel</span>
-                                                            <span class="d-none d-md-inline">Rechazar</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -325,11 +321,10 @@
                                                         </td>
                                                         <td class="text-end pe-4 text-nowrap">
                                                             <div class="d-inline-flex align-items-center gap-1">
-                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
                                                                         onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                         title="Ver Detalle y Comprobante">
                                                                     <span class="material-symbols-outlined fs-6">visibility</span>
-                                                                    <span class="d-none d-xl-inline">Detalles</span>
                                                                 </button>
                                                                 <?php if (!empty($match['pago']['archivo'])): ?>
                                                                     <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
@@ -344,11 +339,10 @@
                                                                     <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
                                                                     <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
                                                                     <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                                    <button type="submit" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1"
+                                                                    <button type="submit" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center"
                                                                             onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');"
                                                                             title="Aprobar y Conciliar">
                                                                         <span class="material-symbols-outlined fs-6">check</span>
-                                                                        <span class="d-none d-md-inline">Conciliar</span>
                                                                     </button>
                                                                 </form>
                                                                 <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
@@ -416,11 +410,10 @@
                                                         </td>
                                                         <td class="text-end pe-4 text-nowrap">
                                                             <div class="d-inline-flex align-items-center gap-1">
-                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
                                                                         onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                         title="Ver Detalle y Comprobante">
                                                                     <span class="material-symbols-outlined fs-6">visibility</span>
-                                                                    <span class="d-none d-xl-inline">Detalles</span>
                                                                 </button>
                                                                 <?php if (!empty($match['pago']['archivo'])): ?>
                                                                     <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
@@ -435,11 +428,10 @@
                                                                     <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
                                                                     <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
                                                                     <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                                    <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center gap-1"
+                                                                    <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center"
                                                                             onclick="return confirm('¿Confirmar conciliación sugerida?');"
                                                                             title="Aprobar Cruce Sugerido">
                                                                         <span class="material-symbols-outlined fs-6">check</span>
-                                                                        <span class="d-none d-md-inline">Aprobar Cruce</span>
                                                                     </button>
                                                                 </form>
                                                                 <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
