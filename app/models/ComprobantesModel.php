@@ -186,41 +186,74 @@ class ComprobantesModel extends BaseModel {
     }
 
     /**
-     * Obtiene todos los comprobantes aplicando filtros opcionales.
+     * Obtiene los comprobantes de pago procesados (historial) aplicando filtros opcionales.
+     * Excluye expresamente los comprobantes con estado 'pendiente'.
      *
-     * @param string $estado
-     * @param string $buscar
-     * @param int $pagina
-     * @param int $porPagina
+     * @param string|array $estadoOrFiltros Filtro de estado o array asociativo de filtros
+     * @param string $buscar Texto para buscar en nombre, cédula o número de factura
+     * @param int $pagina Número de página actual
+     * @param int $porPagina Cantidad de registros por página
+     * @param int|null $edificioId Filtro por ID de edificio
+     * @param string $unidad Filtro por número de unidad/apartamento
+     * @param string $fechaDesde Fecha inicial de pago (YYYY-MM-DD)
+     * @param string $fechaHasta Fecha final de pago (YYYY-MM-DD)
      * @return array
      */
-    public function getAllFiltered($estado = '', $buscar = '', int $pagina = 1, int $porPagina = 20): array {
+    public function getAllFiltered($estadoOrFiltros = '', $buscar = '', int $pagina = 1, int $porPagina = 20, $edificioId = null, $unidad = '', $fechaDesde = '', $fechaHasta = ''): array {
+        if (is_array($estadoOrFiltros)) {
+            $filtros = $estadoOrFiltros;
+            $estado = trim((string)($filtros['estado'] ?? ''));
+            $buscar = trim((string)($filtros['buscar'] ?? ''));
+            $pagina = max(1, intval($filtros['pagina'] ?? ($filtros['page'] ?? $pagina)));
+            $porPagina = max(1, intval($filtros['porPagina'] ?? $porPagina));
+            $edificioId = !empty($filtros['edificio_id']) ? intval($filtros['edificio_id']) : (!empty($filtros['edificio']) ? intval($filtros['edificio']) : null);
+            $unidad = trim((string)($filtros['unidad'] ?? ''));
+            $fechaDesde = trim((string)($filtros['fecha_desde'] ?? ''));
+            $fechaHasta = trim((string)($filtros['fecha_hasta'] ?? ''));
+        } else {
+            $estado = trim((string)$estadoOrFiltros);
+            $buscar = trim((string)$buscar);
+            $unidad = trim((string)$unidad);
+            $fechaDesde = trim((string)$fechaDesde);
+            $fechaHasta = trim((string)$fechaHasta);
+            $edificioId = !empty($edificioId) ? intval($edificioId) : null;
+        }
+
         $baseSql = "
             SELECT 
                 c.*,
                 f.numero_factura,
                 u.numero as unidad,
+                e.nombre as edificio,
+                e.id as edificio_id,
                 CONCAT(p.nombre, ' ', p.apellido) as residente,
                 p.cedula
             FROM comprobantes_pago c
             INNER JOIN facturas f ON c.factura_id = f.id
             INNER JOIN unidades u ON f.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
             INNER JOIN personas p ON c.residente_id = p.id
-            WHERE 1=1
+            WHERE c.estado != 'pendiente'
         ";
         
         $countSql = "SELECT COUNT(*) as total FROM comprobantes_pago c
                      INNER JOIN facturas f ON c.factura_id = f.id
                      INNER JOIN unidades u ON f.unidad_id = u.id
+                     LEFT JOIN edificios e ON u.edificio_id = e.id
                      INNER JOIN personas p ON c.residente_id = p.id
-                     WHERE 1=1";
+                     WHERE c.estado != 'pendiente'";
         
         $params = [];
         
         if (!empty($estado)) {
-            $baseSql .= " AND c.estado = :estado";
-            $countSql .= " AND c.estado = :estado";
-            $params['estado'] = $estado;
+            if ($estado === 'pendiente') {
+                $baseSql .= " AND 1=0";
+                $countSql .= " AND 1=0";
+            } else {
+                $baseSql .= " AND c.estado = :estado";
+                $countSql .= " AND c.estado = :estado";
+                $params['estado'] = $estado;
+            }
         }
         
         if (!empty($buscar)) {
@@ -228,6 +261,30 @@ class ComprobantesModel extends BaseModel {
             $baseSql .= $likeClause;
             $countSql .= $likeClause;
             $params['buscar'] = '%' . $buscar . '%';
+        }
+
+        if (!empty($edificioId)) {
+            $baseSql .= " AND u.edificio_id = :edificio_id";
+            $countSql .= " AND u.edificio_id = :edificio_id";
+            $params['edificio_id'] = $edificioId;
+        }
+
+        if (!empty($unidad)) {
+            $baseSql .= " AND u.numero LIKE :unidad";
+            $countSql .= " AND u.numero LIKE :unidad";
+            $params['unidad'] = '%' . $unidad . '%';
+        }
+
+        if (!empty($fechaDesde)) {
+            $baseSql .= " AND c.fecha_pago >= :fecha_desde";
+            $countSql .= " AND c.fecha_pago >= :fecha_desde";
+            $params['fecha_desde'] = $fechaDesde;
+        }
+
+        if (!empty($fechaHasta)) {
+            $baseSql .= " AND c.fecha_pago <= :fecha_hasta";
+            $countSql .= " AND c.fecha_pago <= :fecha_hasta";
+            $params['fecha_hasta'] = $fechaHasta;
         }
         
         return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'c.fecha_envio DESC');

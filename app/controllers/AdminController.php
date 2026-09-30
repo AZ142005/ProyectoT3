@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\ComprobantesModel;
+use App\Models\EdificiosModel;
 use App\Models\FacturasModel;
 use App\Models\UnidadesModel;
 
@@ -32,27 +33,52 @@ class AdminController extends Controller {
     public function listarComprobantes() {
         Auth::requireRole(UserRole::ADMIN);
 
-        $estado = $_GET['estado'] ?? '';
+        $estado = trim($_GET['estado'] ?? '');
         $buscar = trim($_GET['buscar'] ?? '');
-
+        $edificioId = intval($_GET['edificio_id'] ?? ($_GET['edificio'] ?? 0));
+        $unidad = trim($_GET['unidad'] ?? '');
+        $fechaDesde = trim($_GET['fecha_desde'] ?? '');
+        $fechaHasta = trim($_GET['fecha_hasta'] ?? '');
         $pagina = max(1, intval($_GET['page'] ?? 1));
+
+        $filtros = [
+            'estado'      => $estado,
+            'buscar'      => $buscar,
+            'edificio_id' => $edificioId ?: null,
+            'edificio'    => $edificioId ?: null,
+            'unidad'      => $unidad,
+            'fecha_desde' => $fechaDesde,
+            'fecha_hasta' => $fechaHasta,
+            'pagina'      => $pagina,
+            'porPagina'   => 20,
+        ];
+
         $comprobantesModel = new ComprobantesModel();
-        $resultado = $comprobantesModel->getAllFiltered($estado, $buscar, $pagina, 20);
+        $resultado = $comprobantesModel->getAllFiltered($filtros);
         $comprobantes = $resultado['datos'];
         $paginacion = [
-            'total'       => $resultado['total'],
-            'pagina'      => $resultado['pagina'],
-            'porPagina'   => $resultado['porPagina'],
+            'total'        => $resultado['total'],
+            'pagina'       => $resultado['pagina'],
+            'porPagina'    => $resultado['porPagina'],
             'totalPaginas' => $resultado['totalPaginas'],
         ];
+
+        $edificiosModel = new EdificiosModel();
+        $edificios = $edificiosModel->getActivos();
 
         $this->render('admin/comprobantes', [
             'comprobantes' => $comprobantes,
             'paginacion'   => $paginacion,
+            'edificios'    => $edificios,
+            'filtros'      => $filtros,
             'estado'       => $estado,
             'buscar'       => $buscar,
+            'edificio_id'  => $edificioId,
+            'unidad'       => $unidad,
+            'fecha_desde'  => $fechaDesde,
+            'fecha_hasta'  => $fechaHasta,
             'showNav'      => false,
-            'title'        => 'Listado de Comprobantes - Administrador'
+            'title'        => 'Historial de Pagos - Administrador'
         ]);
     }
 

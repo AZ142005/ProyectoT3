@@ -66,8 +66,8 @@ $origenForm = match($fromParam) {
                             <span>Volver a Pagos</span>
                         </a>
                         <a href="/admin/comprobantes" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
-                            <span>Verificación de Comprobantes</span>
+                            <span class="material-symbols-outlined text-[16px]">history</span>
+                            <span>Historial de Pagos</span>
                         </a>
                         <?php if ($fromParam === 'conciliacion'): ?>
                             <a href="/admin/conciliacion" class="bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs px-3.5 py-2 rounded-xl border border-primary/20 transition-colors inline-flex items-center gap-1.5 shadow-sm">

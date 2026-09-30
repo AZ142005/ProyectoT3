@@ -4,10 +4,14 @@
 if (!isset($paginacion) || $paginacion['totalPaginas'] <= 1) return;
 
 $baseUrl = e($_SERVER['PHP_SELF'] . '?' . http_build_query(array_filter([
-    'estado'   => $filtros['estado'] ?? '',
-    'edificio' => $filtros['edificio'] ?? '',
-    'buscar'   => $filtros['buscar'] ?? '',
-    'fecha'    => $filtros['fecha'] ?? '',
+    'estado'      => $filtros['estado'] ?? '',
+    'edificio'    => $filtros['edificio'] ?? '',
+    'edificio_id' => $filtros['edificio_id'] ?? '',
+    'unidad'      => $filtros['unidad'] ?? '',
+    'buscar'      => $filtros['buscar'] ?? '',
+    'fecha'       => $filtros['fecha'] ?? '',
+    'fecha_desde' => $filtros['fecha_desde'] ?? '',
+    'fecha_hasta' => $filtros['fecha_hasta'] ?? '',
 ])));
 $separator = str_contains($baseUrl, '?') ? '&' : '?';
 $pagina = (int) $paginacion['pagina'];

@@ -4,7 +4,7 @@
 
 $navItems = [
     ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
-    ['route' => 'comprobantes',     'url' => '/admin/comprobantes',       'icon' => 'payments',        'label' => 'Verificar Pagos'],
+    ['route' => 'comprobantes',     'url' => '/admin/comprobantes',       'icon' => 'history',         'label' => 'Historial de Pagos'],
     ['route' => 'conciliacion',     'url' => '/admin/conciliacion',       'icon' => 'sync_alt',        'label' => 'Conciliación'],
     ['route' => 'cuentas_bancarias', 'url' => '/admin/cuentas-bancarias', 'icon' => 'account_balance', 'label' => 'Cuentas Bancarias'],
     ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
@@ -22,7 +22,7 @@ $navItems = [
 if (isset($activeRoute) && $activeRoute === 'pagos') {
     $navItems = [
         ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
-        ['route' => 'pagos',            'url' => '/pagos',                    'icon' => 'payments',        'label' => 'Verificar Pagos'],
+        ['route' => 'pagos',            'url' => '/pagos',                    'icon' => 'history',         'label' => 'Historial de Pagos'],
         ['route' => 'conciliacion',     'url' => '/admin/conciliacion',       'icon' => 'sync_alt',        'label' => 'Conciliación'],
         ['route' => 'cuentas_bancarias', 'url' => '/admin/cuentas-bancarias', 'icon' => 'account_balance', 'label' => 'Cuentas Bancarias'],
         ['route' => 'facturas',         'url' => '/admin/facturas/generar',   'icon' => 'receipt_long',    'label' => 'Generar Facturas'],
