@@ -176,10 +176,9 @@ class EstructuraController extends Controller {
         $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id            = intval($_POST['id'] ?? 0);
-            $numero        = trim($_POST['numero'] ?? '');
-            $edificio_id   = intval($_POST['edificio_id'] ?? 0);
-            $cuota_mensual = floatval($_POST['cuota_mensual'] ?? 0);
+            $id          = intval($_POST['id'] ?? 0);
+            $numero      = trim($_POST['numero'] ?? '');
+            $edificio_id = intval($_POST['edificio_id'] ?? 0);
 
             if (empty($numero)) {
                 Flash::error('El código/número de la unidad es obligatorio.');
@@ -187,8 +186,6 @@ class EstructuraController extends Controller {
                 Flash::error('El código/número de la unidad no puede exceder 50 caracteres.');
             } elseif ($edificio_id <= 0) {
                 Flash::error('Debe seleccionar un edificio para la unidad.');
-            } elseif ($cuota_mensual < 0) {
-                Flash::error('La cuota mensual debe ser un valor mayor o igual a 0.');
             } else {
                 $edificiosModel = new EdificiosModel();
                 $unidadesModel = new UnidadesModel();
@@ -199,9 +196,8 @@ class EstructuraController extends Controller {
                     Flash::error('Ya existe una unidad con ese código/número registrado.');
                 } else {
                     $data = [
-                        'numero'        => $numero,
-                        'edificio_id'   => $edificio_id,
-                        'cuota_mensual' => $cuota_mensual
+                        'numero'      => $numero,
+                        'edificio_id' => $edificio_id,
                     ];
 
                     if ($id > 0) {

@@ -16,7 +16,7 @@
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h1 class="text-xl font-bold text-on-surface">Gastos Comunes</h1>
+                <h1 class="text-xl font-bold text-on-surface">Gastos</h1>
             </div>
             <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
@@ -32,8 +32,8 @@
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Registro de Gastos Comunes</h4>
-            <p class="text-muted small mb-0">Control de facturas, pagos a proveedores y distribución de cuotas</p>
+            <h4 class="fw-bold text-dark mb-1">Registro de Gastos</h4>
+            <p class="text-muted small mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
         </div>
         <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
             <div class="d-flex align-items-center gap-2">
@@ -47,6 +47,52 @@
                 </button>
             </div>
         <?php endif; ?>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="GET" action="/admin/gastos" class="row g-2 align-items-end">
+                <div class="col-md-2 col-6">
+                    <label class="form-label text-muted small fw-bold mb-1">Mes</label>
+                    <select name="mes" class="form-select form-select-sm">
+                        <?php for ($m = 1; $m <= 12; $m++): ?>
+                            <option value="<?= e($m) ?>" <?= $m === intval($filtros['mes']) ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label text-muted small fw-bold mb-1">Año</label>
+                    <input type="number" name="anio" value="<?= e($filtros['anio']) ?>" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label text-muted small fw-bold mb-1">Categoría</label>
+                    <select name="categoria_id" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        <?php foreach ($categorias as $cat): ?>
+                            <option value="<?= e($cat['id']) ?>" <?= (!empty($filtros['categoria_id']) && intval($filtros['categoria_id']) === intval($cat['id'])) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="form-label text-muted small fw-bold mb-1">Tipo de Gasto</label>
+                    <select name="tipo_gasto" class="form-select form-select-sm">
+                        <option value="">Todos los tipos</option>
+                        <option value="comun" <?= ($filtros['tipo_gasto'] ?? '') === 'comun' ? 'selected' : '' ?>>Común (Global)</option>
+                        <option value="individual" <?= ($filtros['tipo_gasto'] ?? '') === 'individual' ? 'selected' : '' ?>>Individual (Por Edificio)</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold flex-fill d-inline-flex align-items-center justify-content-center gap-1">
+                        <span class="material-symbols-outlined fs-6">filter_alt</span>
+                        <span>Filtrar</span>
+                    </button>
+                    <a href="/admin/gastos" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
+                        <span class="material-symbols-outlined fs-6">restart_alt</span>
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Resumen de Totales por Categoría -->
@@ -84,7 +130,7 @@
         <?php endforeach; ?>
     </div>
 
-    <!-- Tabla de Gastos Comunes -->
+    <!-- Tabla de Gastos -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0 fw-bold text-dark">Historial de Gastos del Período</h5>
@@ -96,6 +142,7 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-4 py-3">Categoría</th>
+                            <th class="py-3">Tipo / Alcance</th>
                             <th class="py-3">Proveedor / Nro. Factura</th>
                             <th class="py-3">Descripción</th>
                             <th class="py-3 text-center">Fecha Gasto</th>
@@ -107,9 +154,9 @@
                     <tbody>
                         <?php if (empty($gastos)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">receipt_long</span>
-                                    No hay gastos comunes registrados para este período.
+                                    No hay gastos registrados para este período.
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -120,6 +167,19 @@
                                             <span class="material-symbols-outlined align-middle fs-6 me-1"><?= e($g['categoria_icono']) ?></span>
                                             <?= e($g['categoria_nombre']) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php if (($g['tipo_gasto'] ?? 'comun') === 'individual'): ?>
+                                            <span class="badge bg-purple-100 text-purple-800 border border-purple-200 rounded-pill px-2.5 py-1 text-xs font-semibold" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
+                                                <span class="material-symbols-outlined align-middle text-sm me-0.5">apartment</span>
+                                                Individual: <?= e($g['edificio_nombre'] ?? 'Torre') ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-blue-50 text-blue-700 border border-blue-200 rounded-pill px-2.5 py-1 text-xs font-semibold">
+                                                <span class="material-symbols-outlined align-middle text-sm me-0.5">public</span>
+                                                Común (Global)
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark"><?= e($g['proveedor']) ?></div>
@@ -179,11 +239,32 @@
                 <div class="modal-header bg-primary text-white py-3">
                     <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
                         <span class="material-symbols-outlined">receipt</span>
-                        Registrar Gasto Común del Condominio
+                        Registrar Gasto del Condominio
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    <!-- Tipología de Gasto -->
+                    <div class="row g-3 mb-3 bg-light p-2.5 rounded-3 border border-slate-200">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-dark">Tipo / Alcance del Gasto <span class="text-danger">*</span></label>
+                            <select name="tipo_gasto" id="modal_tipo_gasto" required class="form-select" onchange="toggleEdificioModal(this.value)">
+                                <option value="comun">Gasto Común (Global - Todo el Condominio)</option>
+                                <option value="individual">Gasto Individual (Afecta a un solo Edificio)</option>
+                            </select>
+                            <div class="form-text small text-muted">Los comunes se dividen entre todas las unidades; los individuales solo entre las del edificio.</div>
+                        </div>
+                        <div class="col-md-6" id="modal_edificio_container" style="display: none;">
+                            <label class="form-label fw-bold small text-dark">Edificio / Torre Afectada <span class="text-danger">*</span></label>
+                            <select name="edificio_id" id="modal_edificio_id" class="form-select">
+                                <option value="">Seleccione un edificio...</option>
+                                <?php foreach ($edificios as $ed): ?>
+                                    <option value="<?= e($ed['id']) ?>"><?= e($ed['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-muted">Categoría de Gasto <span class="text-danger">*</span></label>
@@ -242,12 +323,27 @@
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Guardar Gasto Común</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Guardar Gasto</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+function toggleEdificioModal(tipo) {
+    const container = document.getElementById('modal_edificio_container');
+    const selectEd = document.getElementById('modal_edificio_id');
+    if (tipo === 'individual') {
+        container.style.display = 'block';
+        selectEd.setAttribute('required', 'required');
+    } else {
+        container.style.display = 'none';
+        selectEd.removeAttribute('required');
+        selectEd.value = '';
+    }
+}
+</script>
 
             </div>
         </div>

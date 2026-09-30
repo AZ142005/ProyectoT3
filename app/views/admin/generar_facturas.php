@@ -30,15 +30,20 @@
                     </h3>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-background/50 p-6 rounded-2xl border border-outline-variant mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-background/50 p-6 rounded-2xl border border-outline-variant mb-6">
                     <div class="flex flex-col gap-1 text-center md:text-left">
-                        <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Período de Facturación</span>
+                        <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Período</span>
                         <span class="text-lg font-bold text-on-surface mt-1"><?= nombreMes($mes) ?> <?= e($anio) ?></span>
                     </div>
 
-                    <div class="flex flex-col gap-1 text-center md:text-left border-y md:border-y-0 md:border-x border-outline-variant py-4 md:py-0 md:px-6">
-                        <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Unidades Condominales</span>
-                        <span class="text-lg font-bold text-on-surface mt-1"><?= count($unidades) ?> activas</span>
+                    <div class="flex flex-col gap-1 text-center md:text-left border-y md:border-y-0 md:border-x border-outline-variant py-4 md:py-0 md:px-4">
+                        <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Total Gastos Declarados</span>
+                        <span class="text-lg font-bold text-primary mt-1"><?= formatearMoneda($totalGastosMes ?? 0) ?></span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 text-center md:text-left border-b md:border-b-0 md:border-r border-outline-variant pb-4 md:pb-0 md:pr-4">
+                        <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Cuota Base Común</span>
+                        <span class="text-lg font-bold text-emerald-700 mt-1"><?= formatearMoneda($distribucion['cuota_global_unidad'] ?? 0) ?></span>
                     </div>
 
                     <div class="flex flex-col gap-1 text-center md:text-left">
@@ -46,6 +51,31 @@
                         <span class="text-lg font-bold mt-1 <?= $facturas_existentes > 0 ? 'text-primary' : 'text-on-surface-variant/60' ?>">
                             <?= $facturas_existentes > 0 ? $facturas_existentes . ' creadas' : 'Ninguna creada' ?>
                         </span>
+                    </div>
+                </div>
+
+                <!-- Resumen de Cálculo Dinámico de Deudas -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 text-xs text-slate-700">
+                    <div class="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
+                        <span class="material-symbols-outlined text-primary text-base">calculate</span>
+                        <span>Cálculo Dinámico de Cuotas a Facturar</span>
+                    </div>
+                    <p class="mb-2 leading-relaxed text-slate-600">
+                        La deuda de cada unidad no es fija: se calcula automáticamente como la suma de la <strong>Fracción Global</strong> (gastos comunes divididos entre las <?= e($distribucion['total_unidades'] ?? count($unidades)) ?> unidades activas) más la <strong>Fracción Individual</strong> de su edificio (si la torre tuvo gastos específicos registrados).
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 mt-2">
+                        <span class="badge bg-white text-slate-700 border px-3 py-2 rounded-xl">
+                            Gastos Comunes Globales: <strong><?= formatearMoneda($distribucion['total_global'] ?? 0) ?></strong> (<?= formatearMoneda($distribucion['cuota_global_unidad'] ?? 0) ?> / unidad)
+                        </span>
+                        <?php if (!empty($distribucion['edificios'])): ?>
+                            <?php foreach ($distribucion['edificios'] as $ed): ?>
+                                <?php if (($ed['total_gastos_individual'] ?? 0) > 0): ?>
+                                    <span class="badge bg-purple-50 text-purple-900 border border-purple-200 px-3 py-2 rounded-xl">
+                                        Gastos Edificio #<?= e($ed['edificio_id']) ?>: <strong><?= formatearMoneda($ed['total_gastos_individual']) ?></strong> (+<?= formatearMoneda($ed['cuota_individual_unidad']) ?> / unidad)
+                                    </span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
 

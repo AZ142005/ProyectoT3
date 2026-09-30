@@ -42,6 +42,16 @@ class GastosModel extends BaseModel {
             throw new Exception("El monto total del gasto debe ser superior a 0.");
         }
 
+        // Tipología de gasto: 'comun' (global) o 'individual' (por edificio)
+        $tipoGasto = ($datos['tipo_gasto'] ?? 'comun') === 'individual' ? 'individual' : 'comun';
+        $edificioId = null;
+        if ($tipoGasto === 'individual') {
+            $edificioId = intval($datos['edificio_id'] ?? 0);
+            if ($edificioId <= 0) {
+                throw new Exception("Debe seleccionar un edificio válido para un gasto individual.");
+            }
+        }
+
         $db = $this->db();
 
         // Validación anti-duplicados si se especifica número de factura
@@ -67,8 +77,8 @@ class GastosModel extends BaseModel {
 
         $sql = "
             INSERT INTO gastos_comunes 
-            (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id)
-            VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id)
+            (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id, tipo_gasto, edificio_id)
+            VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id, :tipo_gasto, :edificio_id)
         ";
 
         $stmt = $db->prepare($sql);
@@ -84,7 +94,9 @@ class GastosModel extends BaseModel {
             'soporte'         => !empty($datos['soporte_digital']) ? trim($datos['soporte_digital']) : null,
             'pagina_soporte'  => $paginaSoporte,
             'extracto_texto'  => $extractoTexto,
-            'admin_id'        => intval($datos['admin_id'])
+            'admin_id'        => intval($datos['admin_id']),
+            'tipo_gasto'      => $tipoGasto,
+            'edificio_id'     => $edificioId
         ]);
 
         $gastoId = intval($db->lastInsertId());
@@ -96,11 +108,16 @@ class GastosModel extends BaseModel {
             INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_nuevo, detalles, ip_address)
             VALUES (:usuario_id, :admin_id, 'crear_gasto', 'gastos_comunes', :registro_id, 'activo', :detalles, :ip)
         ");
+        $detallesLog = 'Proveedor: ' . preg_replace('/[\x00-\x1F]/', '', $proveedor) . ' | Monto: ' . $montoTotal . ' | Período: ' . $mes . '/' . $anio . ' | Tipo: ' . $tipoGasto;
+        if ($tipoGasto === 'individual') {
+            $detallesLog .= ' | Edificio ID: ' . $edificioId;
+        }
+
         $stmtLog->execute([
             'usuario_id' => $adminId,
             'admin_id'   => $adminId,
             'registro_id'=> $gastoId,
-            'detalles'   => 'Proveedor: ' . preg_replace('/[\x00-\x1F]/', '', $proveedor) . ' | Monto: ' . $montoTotal . ' | Período: ' . $mes . '/' . $anio,
+            'detalles'   => $detallesLog,
             'ip'         => $ip
         ]);
 
@@ -126,39 +143,59 @@ class GastosModel extends BaseModel {
             $where .= " AND g.categoria_id = :cat_id";
             $params['cat_id'] = intval($filtros['categoria_id']);
         }
+        if (!empty($filtros['tipo_gasto'])) {
+            $where .= " AND g.tipo_gasto = :tipo_gasto";
+            $params['tipo_gasto'] = trim($filtros['tipo_gasto']);
+        }
+        if (!empty($filtros['edificio_id'])) {
+            $where .= " AND g.edificio_id = :edificio_id";
+            $params['edificio_id'] = intval($filtros['edificio_id']);
+        }
 
         $baseSql = "
             SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color,
-                   u.nombre_completo AS admin_nombre
+                   u.nombre_completo AS admin_nombre, ed.nombre AS edificio_nombre
             FROM gastos_comunes g
             INNER JOIN categorias_gastos c ON g.categoria_id = c.id
             INNER JOIN usuarios u ON g.admin_id = u.id
+            LEFT JOIN edificios ed ON g.edificio_id = ed.id
             {$where}
         ";
 
         $countSql = "SELECT COUNT(*) AS total FROM gastos_comunes g {$where}";
 
-        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'g.fecha DESC');
+        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'g.fecha_gasto DESC, g.id DESC');
     }
 
     /**
-     * Obtiene todos los gastos comunes de un período para el visor de residentes.
+     * Obtiene todos los gastos de un período para el visor de residentes o informes,
+     * incluyendo si es gasto común o individual por edificio.
      */
-    public function obtenerGastosPorPeriodo(int $mes, int $anio, int $limit = 200): array {
-        // 4.3: Safety cap — maximum 500 gastos per period
+    public function obtenerGastosPorPeriodo(int $mes, int $anio, int $limit = 200, ?int $edificioId = null): array {
+        // Safety cap — maximum 500 gastos per period
         $limit = min(max(1, $limit), 500);
         $db = $this->db();
+
+        $whereEdificio = "";
+        $params = ['mes' => $mes, 'anio' => $anio];
+        if ($edificioId !== null && $edificioId > 0) {
+            $whereEdificio = " AND (g.tipo_gasto = 'comun' OR (g.tipo_gasto = 'individual' AND g.edificio_id = :edificio_id))";
+            $params['edificio_id'] = $edificioId;
+        }
+
         $sql = "
-            SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color
+            SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color,
+                   ed.nombre AS edificio_nombre
             FROM gastos_comunes g
             INNER JOIN categorias_gastos c ON g.categoria_id = c.id
-            WHERE g.mes = :mes AND g.anio = :anio AND g.deleted_at IS NULL
+            LEFT JOIN edificios ed ON g.edificio_id = ed.id
+            WHERE g.mes = :mes AND g.anio = :anio AND g.deleted_at IS NULL {$whereEdificio}
             ORDER BY c.nombre ASC, g.fecha_gasto ASC
             LIMIT {$limit}
         ";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute(['mes' => $mes, 'anio' => $anio]);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -191,6 +228,100 @@ class GastosModel extends BaseModel {
         $stmt = $db->prepare("SELECT ROUND(COALESCE(SUM(monto_total), 0), 2) AS total FROM gastos_comunes WHERE mes = :mes AND anio = :anio AND deleted_at IS NULL");
         $stmt->execute(['mes' => $mes, 'anio' => $anio]);
         return round(floatval($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.0), 2);
+    }
+
+    /**
+     * Calcula el monto total de gastos comunes globales de un período.
+     */
+    public function obtenerTotalGastosGlobales(int $mes, int $anio): float {
+        $db = $this->db();
+        $stmt = $db->prepare("SELECT ROUND(COALESCE(SUM(monto_total), 0), 2) AS total FROM gastos_comunes WHERE mes = :mes AND anio = :anio AND tipo_gasto = 'comun' AND deleted_at IS NULL");
+        $stmt->execute(['mes' => $mes, 'anio' => $anio]);
+        return round(floatval($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.0), 2);
+    }
+
+    /**
+     * Calcula el monto total de gastos individuales de un edificio específico en un período.
+     */
+    public function obtenerTotalGastosPorEdificio(int $edificioId, int $mes, int $anio): float {
+        $db = $this->db();
+        $stmt = $db->prepare("SELECT ROUND(COALESCE(SUM(monto_total), 0), 2) AS total FROM gastos_comunes WHERE mes = :mes AND anio = :anio AND tipo_gasto = 'individual' AND edificio_id = :edificio_id AND deleted_at IS NULL");
+        $stmt->execute(['mes' => $mes, 'anio' => $anio, 'edificio_id' => $edificioId]);
+        return round(floatval($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.0), 2);
+    }
+
+    /**
+     * Calcula la distribución dinámica de cuotas para todas las unidades activas del condominio.
+     * Fórmula:
+     * Cuota Unidad = Fracción Global (Total Gastos Comunes / Total Unidades Activas)
+     *              + Fracción Edificio (Total Gastos Edificio / Total Unidades Activas del Edificio)
+     *
+     * @param int $mes
+     * @param int $anio
+     * @return array
+     */
+    public function calcularDistribucionCuotas(int $mes, int $anio): array {
+        $db = $this->db();
+
+        // 1. Obtener todas las unidades activas del condominio
+        $stmtUnidades = $db->query("SELECT id, numero, edificio_id FROM unidades WHERE estado = 1 ORDER BY edificio_id ASC, numero ASC");
+        $unidades = $stmtUnidades->fetchAll(PDO::FETCH_ASSOC);
+        $totalUnidadesActivas = count($unidades);
+
+        // 2. Total de gastos comunes globales
+        $totalGlobal = $this->obtenerTotalGastosGlobales($mes, $anio);
+        $cuotaGlobalUnidad = ($totalUnidadesActivas > 0) ? round($totalGlobal / $totalUnidadesActivas, 2) : 0.00;
+
+        // 3. Agrupar unidades activas por edificio
+        $unidadesPorEdificio = [];
+        foreach ($unidades as $u) {
+            $edId = intval($u['edificio_id'] ?? 0);
+            if (!isset($unidadesPorEdificio[$edId])) {
+                $unidadesPorEdificio[$edId] = [];
+            }
+            $unidadesPorEdificio[$edId][] = $u;
+        }
+
+        // 4. Calcular totales y cuotas por edificio
+        $edificiosCalculo = [];
+        foreach ($unidadesPorEdificio as $edId => $listaUnidades) {
+            $totalEdificio = ($edId > 0) ? $this->obtenerTotalGastosPorEdificio($edId, $mes, $anio) : 0.00;
+            $countEd = count($listaUnidades);
+            $cuotaEdificioUnidad = ($countEd > 0) ? round($totalEdificio / $countEd, 2) : 0.00;
+
+            $edificiosCalculo[$edId] = [
+                'edificio_id'             => $edId,
+                'total_gastos_individual' => $totalEdificio,
+                'total_unidades'          => $countEd,
+                'cuota_individual_unidad' => $cuotaEdificioUnidad
+            ];
+        }
+
+        // 5. Calcular por unidad individual
+        $distribucionUnidades = [];
+        foreach ($unidades as $u) {
+            $uId = intval($u['id']);
+            $edId = intval($u['edificio_id'] ?? 0);
+            $cuotaEd = $edificiosCalculo[$edId]['cuota_individual_unidad'] ?? 0.00;
+            $cuotaTotal = round($cuotaGlobalUnidad + $cuotaEd, 2);
+
+            $distribucionUnidades[$uId] = [
+                'unidad_id'         => $uId,
+                'numero'            => $u['numero'],
+                'edificio_id'       => $edId,
+                'fraccion_global'   => $cuotaGlobalUnidad,
+                'fraccion_edificio' => $cuotaEd,
+                'cuota_total'       => $cuotaTotal
+            ];
+        }
+
+        return [
+            'total_global'        => $totalGlobal,
+            'total_unidades'      => $totalUnidadesActivas,
+            'cuota_global_unidad' => $cuotaGlobalUnidad,
+            'edificios'           => $edificiosCalculo,
+            'unidades'            => $distribucionUnidades
+        ];
     }
 
     /**
@@ -269,8 +400,8 @@ class GastosModel extends BaseModel {
 
             $sqlInsert = "
                 INSERT INTO gastos_comunes 
-                (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id)
-                VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id)
+                (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id, tipo_gasto, edificio_id)
+                VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id, :tipo_gasto, :edificio_id)
             ";
             $stmtInsert = $db->prepare($sqlInsert);
 
@@ -288,6 +419,8 @@ class GastosModel extends BaseModel {
                 $fechaGasto = !empty($item['fecha_gasto']) ? trim($item['fecha_gasto']) : sprintf('%04d-%02d-01', $anio, $mes);
                 $paginaSoporte = max(1, intval($item['pagina_soporte'] ?? 1));
                 $extractoTexto = !empty($item['extracto_texto']) ? trim($item['extracto_texto']) : null;
+                $tipoGasto = ($item['tipo_gasto'] ?? 'comun') === 'individual' ? 'individual' : 'comun';
+                $edificioId = ($tipoGasto === 'individual' && !empty($item['edificio_id'])) ? intval($item['edificio_id']) : null;
 
                 if ($monto <= 0 || empty($proveedor) || empty($descripcion)) {
                     $omitidos++;
@@ -320,7 +453,9 @@ class GastosModel extends BaseModel {
                     'soporte'         => $archivoMaestro,
                     'pagina_soporte'  => $paginaSoporte,
                     'extracto_texto'  => $extractoTexto,
-                    'admin_id'        => $adminId
+                    'admin_id'        => $adminId,
+                    'tipo_gasto'      => $tipoGasto,
+                    'edificio_id'     => $edificioId
                 ]);
 
                 $gastoId = intval($db->lastInsertId());

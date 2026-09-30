@@ -22,28 +22,34 @@
         </div>
     </div>
 
-    <!-- Tarjetas de Resumen Financiero y Alícuota -->
+    <!-- Tarjetas de Resumen Financiero y Distribución Dinámica -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Gasto Total del Condominio</span>
-            <div class="text-2xl font-bold text-on-surface"><?= e(formatearMoneda($totalMes)) ?></div>
-            <p class="text-xs text-slate-500 mt-2">Suma de todos los gastos comunes aprobados.</p>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Gastos Comunes Globales</span>
+            <div class="text-2xl font-bold text-on-surface"><?= e(formatearMoneda($totalGlobal ?? $totalMes)) ?></div>
+            <p class="text-xs text-slate-500 mt-2">Fracción base por unidad: <strong class="text-emerald-700"><?= e(formatearMoneda($cuotaGlobal ?? 0)) ?></strong> (entre <?= e($unidadesActivas) ?> unidades).</p>
         </div>
 
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Unidades Habitacionales Activas</span>
-            <div class="text-2xl font-bold text-primary"><?= e($unidadesActivas) ?> Apartamentos</div>
-            <p class="text-xs text-slate-500 mt-2">Base comunitaria de distribución equitativa.</p>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wide d-block mb-1">Gastos de su Edificio</span>
+            <div class="text-2xl font-bold text-purple-800"><?= e(formatearMoneda($totalEdificio ?? 0)) ?></div>
+            <p class="text-xs text-slate-500 mt-2">
+                <?php if (($unidadesEdificio ?? 0) > 0 && ($totalEdificio ?? 0) > 0): ?>
+                    Fracción torre: <strong class="text-purple-800">+<?= e(formatearMoneda($cuotaEdificio ?? 0)) ?></strong> (entre <?= e($unidadesEdificio) ?> unidades).
+                <?php else: ?>
+                    Sin gastos individuales registrados este período.
+                <?php endif; ?>
+            </p>
         </div>
 
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm border-l-4 border-l-primary">
-            <span class="text-xs font-bold text-primary uppercase tracking-wide d-block mb-1">Cuota Alícuota por Unidad</span>
-            <div class="text-2xl font-bold text-primary"><?= e(formatearMoneda($alicuotaEstimada)) ?></div>
-            <p class="text-xs text-slate-500 mt-2">Monto estimado correspondiente a su residencia.</p>
+            <span class="text-xs font-bold text-primary uppercase tracking-wide d-block mb-1">Cuota Total Estimada</span>
+            <div class="text-2xl font-bold text-primary"><?= e(formatearMoneda($cuotaTotalUnidad ?? $alicuotaEstimada)) ?></div>
+            <p class="text-xs text-slate-500 mt-2">Cálculo dinámico: Fracción Global + Fracción Edificio.</p>
         </div>
     </div>
 
-    <!-- Desglose de Gastos Comunes -->
+    <!-- Desglose de Gastos -->
     <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
         <h3 class="font-bold text-on-surface text-base mb-4 flex items-center gap-2">
             <span class="material-symbols-outlined text-primary">receipt</span>
@@ -61,6 +67,7 @@
                     <thead>
                         <tr class="border-b border-background text-xs font-bold text-slate-400 uppercase">
                             <th class="py-3 px-3">Categoría</th>
+                            <th class="py-3 px-3">Alcance</th>
                             <th class="py-3 px-3">Proveedor / Concepto</th>
                             <th class="py-3 px-3 text-center">Fecha</th>
                             <th class="py-3 px-3 text-end">Monto Total</th>
@@ -77,6 +84,19 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-3">
+                                    <?php if (($g['tipo_gasto'] ?? 'comun') === 'individual'): ?>
+                                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200">
+                                            <span class="material-symbols-outlined text-xs">apartment</span>
+                                            <?= e($g['edificio_nombre'] ?? 'Edificio') ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="material-symbols-outlined text-xs">public</span>
+                                            Común
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3 px-3">
                                     <div class="font-bold text-on-surface"><?= e($g['proveedor']) ?></div>
                                     <small class="text-slate-500"><?= e($g['descripcion']) ?> (Fac: <?= e($g['nro_factura_proveedor'] ?: 'S/N') ?>)</small>
                                 </td>
@@ -88,7 +108,9 @@
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <?php if (!empty($g['soporte_digital'])): 
-                                        $cuotaUnidadGasto = ($unidadesActivas > 0) ? round($g['monto_total'] / $unidadesActivas, 2) : 0.00;
+                                        $esIndiv = ($g['tipo_gasto'] ?? 'comun') === 'individual';
+                                        $baseDiv = $esIndiv ? max(1, ($unidadesEdificio ?? 1)) : max(1, $unidadesActivas);
+                                        $cuotaUnidadGasto = round($g['monto_total'] / $baseDiv, 2);
                                         $datosGastoJson = json_encode([
                                             'proveedor'        => $g['proveedor'],
                                             'descripcion'      => $g['descripcion'],

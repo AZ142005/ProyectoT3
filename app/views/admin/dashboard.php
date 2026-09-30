@@ -290,7 +290,7 @@ $anio = intval($anio ?? date('Y'));
                             <div class="pt-3 border-top mt-4 d-flex justify-content-between align-items-center">
                                 <span class="text-muted text-xs">Total egresos mes: <strong class="text-primary"><?= e(formatearMoneda($resumen['total_gastos_mes'] ?? 0)) ?></strong></span>
                                 <a href="/admin/gastos" class="btn btn-sm btn-outline-secondary rounded-xl text-xs font-bold px-3 py-1.5 d-inline-flex align-items-center gap-1">
-                                    <span>Gestionar Gastos Comunes</span>
+                                    <span>Gestionar Gastos</span>
                                     <span class="material-symbols-outlined text-xs">arrow_forward</span>
                                 </a>
                             </div>

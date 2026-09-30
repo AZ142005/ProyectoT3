@@ -11,7 +11,7 @@ use App\Models\UnidadesModel;
 class GastoController extends Controller {
 
     /**
-     * Muestra el panel administrativo de gastos comunes.
+     * Muestra el panel administrativo de gastos.
      */
     public function index() {
         Auth::requireRole('admin');
@@ -20,13 +20,23 @@ class GastoController extends Controller {
         $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
         $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));
         $categoriaId = !empty($_GET['categoria_id']) ? intval($_GET['categoria_id']) : null;
+        $tipoGasto = !empty($_GET['tipo_gasto']) ? trim($_GET['tipo_gasto']) : null;
+        $edificioId = !empty($_GET['edificio_id']) ? intval($_GET['edificio_id']) : null;
 
         $gastosModel = new GastosModel();
         $categoriasModel = new CategoriasGastosModel();
+        $edificiosModel = new \App\Models\EdificiosModel();
 
-        $filtros = ['mes' => $mes, 'anio' => $anio, 'categoria_id' => $categoriaId];
+        $filtros = [
+            'mes'          => $mes,
+            'anio'         => $anio,
+            'categoria_id' => $categoriaId,
+            'tipo_gasto'   => $tipoGasto,
+            'edificio_id'  => $edificioId,
+        ];
         $resultado = $gastosModel->obtenerGastosAdmin($pagina, 15, $filtros);
         $categorias = $categoriasModel->getActivas();
+        $edificios = $edificiosModel->getAll();
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
@@ -40,17 +50,18 @@ class GastoController extends Controller {
         $this->render('admin/gastos/index', [
             'gastos'              => $resultado['datos'],
             'categorias'          => $categorias,
+            'edificios'           => $edificios,
             'totalesPorCategoria' => $totalesPorCategoria,
             'totalMes'            => $totalMes,
             'filtros'             => $filtros,
             'paginacion'          => $paginacion,
             'layout'              => 'admin',
-            'title'               => 'Gestión de Gastos Comunes y Soportes'
+            'title'               => 'Gestión de Gastos y Soportes'
         ]);
     }
 
     /**
-     * Guarda un nuevo gasto común con soporte digital adjunto.
+     * Guarda un nuevo gasto (común o individual) con soporte digital adjunto.
      */
     public function guardar() {
         Auth::requireRole('admin');
@@ -63,10 +74,18 @@ class GastoController extends Controller {
         $fechaGasto = trim($_POST['fecha_gasto'] ?? date('Y-m-d'));
         $proveedor = trim($_POST['proveedor'] ?? '');
         $nroFactura = trim($_POST['nro_factura_proveedor'] ?? '');
+        $tipoGasto = ($_POST['tipo_gasto'] ?? 'comun') === 'individual' ? 'individual' : 'comun';
+        $edificioId = intval($_POST['edificio_id'] ?? 0);
         $adminId = Auth::id() ?? 1;
 
         if ($categoriaId <= 0 || empty($descripcion) || $montoTotal <= 0 || empty($proveedor)) {
             Flash::set('danger', 'Todos los campos marcados con (*) son obligatorios y el monto debe ser superior a 0.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
+        if ($tipoGasto === 'individual' && $edificioId <= 0) {
+            Flash::set('danger', 'Debe seleccionar un edificio para registrar un gasto individual.');
             $this->redirect('/admin/gastos');
             return;
         }
@@ -108,13 +127,15 @@ class GastoController extends Controller {
                 'proveedor'             => $proveedor,
                 'nro_factura_proveedor' => $nroFactura,
                 'soporte_digital'       => $nombreArchivoSoporte,
-                'admin_id'              => $adminId
+                'admin_id'              => $adminId,
+                'tipo_gasto'            => $tipoGasto,
+                'edificio_id'           => ($tipoGasto === 'individual') ? $edificioId : null,
             ]);
 
-            Flash::set('success', 'Gasto común registrado exitosamente con su soporte digital.');
+            Flash::set('success', 'Gasto registrado exitosamente con su soporte digital.');
         } catch (\Exception $e) {
             error_log("[GASTO] Error registrar gasto: " . $e->getMessage());
-            Flash::set('danger', 'Error al registrar el gasto común. Verifique los datos e intente de nuevo.');
+            Flash::set('danger', 'Error al registrar el gasto. Verifique los datos e intente de nuevo.');
         }
 
         $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
@@ -172,32 +193,56 @@ class GastoController extends Controller {
      */
     public function rendicionResidente() {
         Auth::requireRole('residente');
+        $residente = $this->getAuthenticatedResidente();
+        $unidadId = intval($residente['unidad_id'] ?? 0);
+        $edificioId = intval($residente['edificio_id'] ?? 0);
 
         $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
         $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));
 
         $gastosModel = new GastosModel();
-        $unidadesModel = new UnidadesModel();
 
-        $gastos = $gastosModel->obtenerGastosPorPeriodo($mes, $anio);
+        // Obtener gastos del período: comunes globales + individuales de su edificio (o todos si no tiene edificio)
+        $gastos = $gastosModel->obtenerGastosPorPeriodo($mes, $anio, 200, $edificioId ?: null);
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
-        // 4.5: Optimized count — direct SQL instead of loading full array
+        // Optimización de conteo directo de unidades activas
         $db = \App\Core\Database::getConnection();
         $stmtCount = $db->query("SELECT COUNT(*) as cnt FROM unidades WHERE estado = 1");
         $unidadesActivas = intval($stmtCount->fetch(\PDO::FETCH_ASSOC)['cnt'] ?? 0);
         $alicuotaEstimada = ($unidadesActivas > 0) ? round($totalMes / $unidadesActivas, 2) : 0.00;
 
+        // Distribución dinámica de cuotas (Global + Edificio)
+        $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
+        $infoUnidad = $distribucion['unidades'][$unidadId] ?? null;
+
+        $totalGlobal = $distribucion['total_global'] ?? 0.0;
+        $cuotaGlobal = $distribucion['cuota_global_unidad'] ?? 0.0;
+
+        $infoEdificio = $distribucion['edificios'][$edificioId] ?? null;
+        $totalEdificio = $infoEdificio['total_gastos_individual'] ?? 0.0;
+        $unidadesEdificio = $infoEdificio['total_unidades'] ?? 0;
+        $cuotaEdificio = $infoEdificio['cuota_individual_unidad'] ?? 0.0;
+
+        $cuotaTotalUnidad = $infoUnidad['cuota_total'] ?? round($cuotaGlobal + $cuotaEdificio, 2);
+
         $this->render('residente/gastos', [
             'gastos'              => $gastos,
             'totalesPorCategoria' => $totalesPorCategoria,
             'totalMes'            => $totalMes,
+            'totalGlobal'         => $totalGlobal,
+            'totalEdificio'       => $totalEdificio,
+            'unidadesActivas'     => $unidadesActivas,
+            'unidadesEdificio'    => $unidadesEdificio,
+            'cuotaGlobal'         => $cuotaGlobal,
+            'cuotaEdificio'       => $cuotaEdificio,
+            'cuotaTotalUnidad'    => $cuotaTotalUnidad,
+            'alicuotaEstimada'    => $cuotaTotalUnidad ?: $alicuotaEstimada,
+            'residente'           => $residente,
             'mes'                 => $mes,
             'anio'                => $anio,
-            'unidadesActivas'     => $unidadesActivas,
-            'alicuotaEstimada'    => $alicuotaEstimada,
-            'title'               => 'Rendición de Cuentas y Justificación de Gastos'
+            'title'               => 'Rendición de Cuentas y Gastos'
         ]);
     }
 

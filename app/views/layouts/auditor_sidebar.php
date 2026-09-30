@@ -3,7 +3,7 @@ $navItems = [
     ['route' => 'dashboard',    'url' => '/auditor/dashboard',         'icon' => 'policy',         'label' => 'Dashboard Fiscal'],
     ['route' => 'logs',         'url' => '/auditor/log-transacciones', 'icon' => 'history',        'label' => 'Log Auditoría'],
     ['route' => 'conciliacion', 'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliaciones'],
-    ['route' => 'gastos',       'url' => '/admin/gastos',              'icon' => 'inventory_2',    'label' => 'Gastos Comunes'],
+    ['route' => 'gastos',       'url' => '/admin/gastos',              'icon' => 'inventory_2',    'label' => 'Gastos'],
     ['route' => 'morosidad',    'url' => '/admin/reportes/morosidad',  'icon' => 'account_balance_wallet', 'label' => 'Balance'],
 ];
 ?>

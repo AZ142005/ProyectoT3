@@ -115,8 +115,13 @@ class FacturasModel extends BaseModel {
 
             $stmtDup = $db->prepare("SELECT id FROM facturas WHERE unidad_id = :unidad_id AND mes = :mes AND anio = :anio AND deleted_at IS NULL LIMIT 1 FOR UPDATE");
 
+            // Calcular distribución dinámica de cuotas a partir de los gastos declarados del período
+            $gastosModel = new \App\Models\GastosModel();
+            $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
+            $distribucionUnidades = $distribucion['unidades'] ?? [];
+
             foreach ($unidades as $unidad) {
-                $unidad_id = $unidad['id'];
+                $unidad_id = intval($unidad['id']);
                 
                 // Doble verificación por unidad: prevenir duplicados si se ejecuta concurrentemente
                 $stmtDup->execute(['unidad_id' => $unidad_id, 'mes' => $mes, 'anio' => $anio]);
@@ -128,13 +133,20 @@ class FacturasModel extends BaseModel {
                 $row = $stmtSaldoFavor->fetch();
                 $saldo_favor = round(floatval($row['total'] ?? 0), 2);
 
-                $monto_factura = round(floatval($unidad['cuota_mensual'] ?? 0), 2);
+                // Cuota calculada dinámicamente: Fracción Global + Fracción Edificio
+                if (isset($distribucionUnidades[$unidad_id]) && $distribucionUnidades[$unidad_id]['cuota_total'] > 0) {
+                    $monto_factura = round(floatval($distribucionUnidades[$unidad_id]['cuota_total']), 2);
+                } else {
+                    // Fallback para entornos de prueba con cuotas preestablecidas
+                    $monto_factura = round(floatval($unidad['cuota_mensual'] ?? 0), 2);
+                }
+
                 if ($monto_factura <= 0) {
-                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota_mensual={$monto_factura} (<= 0)");
+                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota calculada={$monto_factura} (<= 0)");
                     continue;
                 }
                 if ($monto_factura > 999999.99) {
-                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota_mensual={$monto_factura} (exceeds max)");
+                    error_log("[FACTURA] Skipping unidad {$unidad_id}: cuota={$monto_factura} (exceeds max)");
                     continue;
                 }
                 $monto_a_pagar = $monto_factura;

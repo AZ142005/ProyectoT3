@@ -176,12 +176,15 @@ class AdminController extends Controller {
 
         $unidadesModel = new UnidadesModel();
         $facturasModel = new FacturasModel();
+        $gastosModel = new \App\Models\GastosModel();
 
         $unidades = $unidadesModel->getActivas();
         $mes = date('n');
         $anio = date('Y');
 
         $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
+        $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
+        $totalGastosMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
         $mensaje = '';
         $error = '';
@@ -193,7 +196,7 @@ class AdminController extends Controller {
             } else {
                 $stats = $facturasModel->crearFacturasMasivas($unidades, $mes, $anio);
                 if ($stats !== false) {
-                    $msgText = "Se generaron {$stats['generadas']} facturas para el mes " . nombreMes($mes) . " de {$anio}.";
+                    $msgText = "Se generaron {$stats['generadas']} facturas calculadas para el mes " . nombreMes($mes) . " de {$anio}.";
                     if ($stats['con_saldo_favor'] > 0) {
                         $msgText .= " Se aplicó saldo a favor en {$stats['con_saldo_favor']} unidades (Total usado: " . formatearMoneda($stats['total_saldo_favor_usado']) . ").";
                     }
@@ -212,6 +215,8 @@ class AdminController extends Controller {
             'mes'                 => $mes,
             'anio'                => $anio,
             'facturas_existentes' => $facturas_existentes,
+            'distribucion'        => $distribucion,
+            'totalGastosMes'      => $totalGastosMes,
             'mensaje'             => $mensaje,
             'error'               => $error,
             'showNav'             => false,

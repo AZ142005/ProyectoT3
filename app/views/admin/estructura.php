@@ -402,7 +402,7 @@
                                         <h3 class="text-base font-bold text-on-surface">Paso 2: Creación y Alta de Unidades</h3>
                                         <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($unidades) ?> creadas</span>
                                     </div>
-                                    <p class="text-xs text-on-surface-variant mt-1">Crea los apartamentos o locales para cada torre y establece su cuota mensual base.</p>
+                                    <p class="text-xs text-on-surface-variant mt-1">Crea los apartamentos o locales para cada torre del conjunto residencial.</p>
                                 </div>
                                 <div>
                                     <?php if (empty($edificios)): ?>
@@ -435,7 +435,6 @@
                                             <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
                                                 <th class="p-3.5">Código / Unidad</th>
                                                 <th class="p-3.5">Edificio / Torre</th>
-                                                <th class="p-3.5">Cuota Mensual Base</th>
                                                 <th class="p-3.5">Estado</th>
                                                 <th class="p-3.5 text-right">Acciones de Configuración</th>
                                             </tr>
@@ -450,7 +449,6 @@
                                                             <?= e($u['edificio_nombre'] ?? 'Sin asignar') ?>
                                                         </span>
                                                     </td>
-                                                    <td class="p-3.5 font-bold text-primary"><?= e(formatearMoneda($u['cuota_mensual'])) ?></td>
                                                     <td class="p-3.5">
                                                         <?php if ($u['estado'] == 1): ?>
                                                             <span class="bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-md">Activa</span>
@@ -464,8 +462,7 @@
                                                                     data-id="<?= e($u['id']) ?>" 
                                                                     data-numero="<?= e($u['numero']) ?>" 
                                                                     data-edificio-id="<?= e($u['edificio_id']) ?>" 
-                                                                    data-cuota="<?= e($u['cuota_mensual']) ?>" 
-                                                                    onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, this.dataset.cuota, 'configuracion')" 
+                                                                    onclick="editUnidad(this.dataset.id, this.dataset.numero, this.dataset.edificioId, 'configuracion')" 
                                                                     class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-background rounded-lg transition-colors" 
                                                                     title="Editar Unidad">
                                                                 <span class="material-symbols-outlined text-lg">edit</span>
@@ -562,12 +559,6 @@
                 </select>
             </div>
 
-            <div class="flex flex-col gap-1">
-                <label for="unidad_cuota_mensual" class="text-xs font-bold text-on-surface-variant uppercase">Cuota Mensual (Bs) *</label>
-                <input type="number" step="0.01" min="0" id="unidad_cuota_mensual" name="cuota_mensual" required placeholder="Ej: 150.00"
-                       class="w-full px-3.5 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface font-medium focus:outline-none focus:border-primary focus:bg-white text-sm">
-            </div>
-
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-background">
                 <button type="button" onclick="closeModalUnidad()" class="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-background transition-colors">Cancelar</button>
                 <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary-hover text-white shadow-sm transition-colors">Guardar Unidad</button>
@@ -611,19 +602,17 @@ function openModalUnidad(tab = 'configuracion') {
     document.getElementById('unidad_tab_input').value = tab;
     document.getElementById('unidad_numero').value = '';
     document.getElementById('unidad_edificio_id').value = '';
-    document.getElementById('unidad_cuota_mensual').value = '';
     document.getElementById('modalUnidadTitle').innerText = 'Agregar Unidad';
     const m = document.getElementById('modalUnidad');
     m.classList.remove('hidden');
     m.classList.add('flex');
 }
 
-function editUnidad(id, numero, edificioId, cuotaMensual, tab = 'configuracion') {
+function editUnidad(id, numero, edificioId, tab = 'configuracion') {
     document.getElementById('unidad_id_input').value = id;
     document.getElementById('unidad_tab_input').value = tab;
     document.getElementById('unidad_numero').value = numero || '';
     document.getElementById('unidad_edificio_id').value = edificioId || '';
-    document.getElementById('unidad_cuota_mensual').value = cuotaMensual || '';
     document.getElementById('modalUnidadTitle').innerText = 'Editar Unidad';
     const m = document.getElementById('modalUnidad');
     m.classList.remove('hidden');
