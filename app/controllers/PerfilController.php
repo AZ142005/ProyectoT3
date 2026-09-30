@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Models\PersonasModel;
 use App\Models\SolicitudesModel;
+use App\Models\UsuariosModel;
 
 class PerfilController extends Controller {
 
@@ -19,9 +20,13 @@ class PerfilController extends Controller {
         $personaId = $user['persona_id'] ?? null;
 
         $persona = null;
+        $usuarioAdmin = null;
         $solicitudes = [];
 
-        if ($personaId) {
+        if (($user['role'] ?? '') === 'admin') {
+            $usuariosModel = new UsuariosModel();
+            $usuarioAdmin = $usuariosModel->getById((int)$user['id']);
+        } elseif ($personaId) {
             $personasModel = new PersonasModel();
             $persona = $personasModel->findById($personaId);
 
@@ -30,10 +35,11 @@ class PerfilController extends Controller {
         }
 
         $this->render('perfil/index', [
-            'user'        => $user,
-            'persona'     => $persona,
-            'solicitudes' => $solicitudes,
-            'title'       => 'Mi Perfil'
+            'user'         => $user,
+            'persona'      => $persona,
+            'usuarioAdmin' => $usuarioAdmin,
+            'solicitudes'  => $solicitudes,
+            'title'        => 'Mi Perfil'
         ]);
     }
 
@@ -61,8 +67,10 @@ class PerfilController extends Controller {
 
         // Manejo para Administradores: Actualización directa de su perfil
         if ($role === 'admin') {
-            $nombre = trim($_POST['nombre'] ?? '');
-            $email = trim($_POST['email'] ?? '');
+            $nombre   = trim($_POST['nombre'] ?? '');
+            $email    = trim($_POST['email'] ?? '');
+            $cedula   = trim($_POST['cedula'] ?? '');
+            $telefono = trim($_POST['telefono'] ?? '');
             $password = trim($_POST['password'] ?? '');
 
             if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -71,31 +79,70 @@ class PerfilController extends Controller {
                 return;
             }
 
+            if (empty($nombre)) {
+                Flash::set('danger', 'El nombre completo es obligatorio.');
+                $this->redirect('/perfil');
+                return;
+            }
+
+            // Validación de Cédula (opcional, pero si se provee debe cumplir formato)
+            if (!empty($cedula)) {
+                if (!validarCedula($cedula)) {
+                    Flash::set('danger', 'El formato del número de cédula no es válido (debe tener entre 5 y 8 dígitos).');
+                    $this->redirect('/perfil');
+                    return;
+                }
+                $cedula = normalizarCedula($cedula);
+            } else {
+                $cedula = null;
+            }
+
+            // Validación de Teléfono (opcional, pero si se provee debe cumplir formato venezolano)
+            if (!empty($telefono)) {
+                $telLimpio = preg_replace('/[^0-9]/', '', $telefono);
+                if (!validarTelefono($telLimpio)) {
+                    Flash::set('danger', 'El formato del teléfono no es válido (use una operadora válida como 0412, 0414, 0424, 0416 o 0426).');
+                    $this->redirect('/perfil');
+                    return;
+                }
+                $telefono = $telLimpio;
+            } else {
+                $telefono = null;
+            }
+
+            if (!empty($password)) {
+                if (strlen($password) < 8 || !validarPassword($password)) {
+                    Flash::set('danger', 'La nueva contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.');
+                    $this->redirect('/perfil');
+                    return;
+                }
+            }
+
+            $usuariosModel = new UsuariosModel();
+
+            // Verificar unicidad de cédula si fue suministrada
+            if (!empty($cedula) && $usuariosModel->cedulaExisteEnOtroUsuario($cedula, (int)$user['id'])) {
+                Flash::set('danger', 'El número de cédula ya se encuentra registrado por otro usuario.');
+                $this->redirect('/perfil');
+                return;
+            }
+
             try {
-                $db = \App\Core\Database::getConnection();
-                
-                if (!empty($nombre)) {
-                    $stmt = $db->prepare("UPDATE usuarios SET nombre_completo = :nombre, email = :email WHERE id = :id");
-                    $stmt->execute(['nombre' => $nombre, 'email' => $email, 'id' => $user['id']]);
+                $exito = $usuariosModel->actualizarPerfil((int)$user['id'], [
+                    'nombre_completo' => $nombre,
+                    'email'           => $email,
+                    'cedula'          => $cedula,
+                    'telefono'        => $telefono,
+                    'password'        => !empty($password) ? $password : null
+                ]);
+
+                if ($exito) {
                     $_SESSION['auth_user']['name'] = $nombre;
+                    $_SESSION['auth_user']['email'] = $email;
+                    Flash::set('success', 'Sus datos de administrador han sido actualizados correctamente.');
                 } else {
-                    $stmt = $db->prepare("UPDATE usuarios SET email = :email WHERE id = :id");
-                    $stmt->execute(['email' => $email, 'id' => $user['id']]);
+                    Flash::set('danger', 'Error al actualizar sus datos.');
                 }
-                $_SESSION['auth_user']['email'] = $email;
-
-                if (!empty($password)) {
-                    if (strlen($password) < 8 || !validarPassword($password)) {
-                        Flash::set('danger', 'La nueva contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.');
-                        $this->redirect('/perfil');
-                        return;
-                    }
-                    $hash = password_hash($password, PASSWORD_BCRYPT);
-                    $stmtPass = $db->prepare("UPDATE usuarios SET password = :password WHERE id = :id");
-                    $stmtPass->execute(['password' => $hash, 'id' => $user['id']]);
-                }
-
-                Flash::set('success', 'Sus datos de administrador han sido actualizados correctamente.');
             } catch (\Exception $e) {
                 error_log("[PERFIL] Error al actualizar datos de admin: " . $e->getMessage());
                 Flash::set('danger', 'Error al actualizar sus datos.');

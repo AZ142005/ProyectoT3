@@ -66,15 +66,15 @@ $isAuditor = ($role === 'auditor');
             <div class="flex flex-col gap-4 text-sm">
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Cédula de Identidad</span>
-                    <span class="font-semibold text-on-surface"><?= e($persona['cedula'] ?? 'N/A') ?></span>
+                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['cedula']) ? $usuarioAdmin['cedula'] : 'No registrada') : (!empty($persona['cedula']) ? $persona['cedula'] : 'N/A')) ?></span>
                 </div>
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Correo Electrónico</span>
-                    <span class="font-semibold text-on-surface"><?= e($persona['email'] ?? $user['email']) ?></span>
+                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['email']) ? $usuarioAdmin['email'] : ($user['email'] ?? '')) : (!empty($persona['email']) ? $persona['email'] : ($user['email'] ?? ''))) ?></span>
                 </div>
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Teléfono Móvil</span>
-                    <span class="font-semibold text-on-surface"><?= e($persona['telefono'] ?? 'No registrado') ?></span>
+                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['telefono']) ? $usuarioAdmin['telefono'] : 'No registrado') : (!empty($persona['telefono']) ? $persona['telefono'] : 'No registrado')) ?></span>
                 </div>
             </div>
         </div>
@@ -86,27 +86,55 @@ $isAuditor = ($role === 'auditor');
                     <span class="material-symbols-outlined text-primary">manage_accounts</span>
                     Actualizar Datos del Administrador
                 </h3>
-                <p class="text-xs text-on-surface-variant mb-6">Actualice su nombre institucional, correo electrónico o contraseña de acceso.</p>
+                <p class="text-xs text-on-surface-variant mb-6">Actualice su nombre institucional, cédula, teléfono, correo electrónico o contraseña de acceso.</p>
 
                 <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
                     <?= csrf_field() ?>
 
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nombre Completo</label>
-                        <input type="text" name="nombre" value="<?= e($user['name'] ?? '') ?>" required
-                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nombre Completo</label>
+                            <input type="text" name="nombre" value="<?= e($usuarioAdmin['nombre_completo'] ?? $user['name'] ?? '') ?>" required
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Correo Electrónico</label>
+                            <input type="email" name="email" value="<?= e($usuarioAdmin['email'] ?? $user['email'] ?? '') ?>" required
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Correo Electrónico</label>
-                        <input type="email" name="email" value="<?= e($user['email'] ?? '') ?>" required
-                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Número de Cédula</label>
+                            <input type="text" name="cedula" id="admin_cedula" value="<?= e($usuarioAdmin['cedula'] ?? '') ?>" placeholder="Ej: V-12345678"
+                                   pattern="^[VEJPGvejpg]?-?[0-9]{5,8}$"
+                                   title="Ingrese una cédula válida (ej: V-12345678 o 12345678)"
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                            <small class="text-slate-400 text-xs mt-1 block">Opcional. Formato: V-12345678 o 5 a 8 dígitos.</small>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Número Telefónico</label>
+                            <input type="tel" name="telefono" id="admin_telefono" value="<?= e($usuarioAdmin['telefono'] ?? '') ?>" placeholder="Ej: 04121234567" maxlength="11"
+                                   pattern="^(0412|0414|0424|0416|0426)[0-9]{7}$"
+                                   title="Ingrese un número telefónico venezolano de 11 dígitos (ej: 04121234567)"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)"
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                            <small class="text-slate-400 text-xs mt-1 block">Opcional. 11 dígitos (0412, 0414, 0424, 0416, 0426).</small>
+                        </div>
                     </div>
 
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Nueva Contraseña (Opcional)</label>
-                        <input type="password" name="password" minlength="8" placeholder="Mínimo 8 caracteres (letras y números), o dejar en blanco"
-                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                        <div class="relative">
+                            <input type="password" id="admin_password" name="password" minlength="8" placeholder="Mínimo 8 caracteres (letras y números), o dejar en blanco"
+                                   class="w-full pl-4 pr-11 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                            <button type="button" id="btnTogglePassword" onclick="togglePassword('admin_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors flex items-center justify-center p-1" title="Mostrar/Ocultar contraseña">
+                                <span id="iconTogglePassword" class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                        </div>
                         <small class="text-slate-400 text-xs mt-1 block">Debe contener al menos 8 caracteres con letras y números.</small>
                     </div>
 
@@ -238,3 +266,28 @@ $isAuditor = ($role === 'auditor');
 <?php else: ?>
 </div>
 <?php endif; ?>
+
+<style>
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important;
+}
+</style>
+<script>
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const icon = btn ? (btn.querySelector ? (btn.querySelector('.material-symbols-outlined') || btn) : document.getElementById(btn)) : null;
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) icon.textContent = 'visibility_off';
+    } else {
+        input.type = 'password';
+        if (icon) icon.textContent = 'visibility';
+    }
+}
+function togglePasswordVisibility(inputId, iconId) {
+    togglePassword(inputId, iconId);
+}
+</script>
+

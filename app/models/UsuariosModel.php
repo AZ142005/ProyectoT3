@@ -172,7 +172,7 @@ class UsuariosModel extends BaseModel {
                 COALESCE(u.cedula, 'N/A') AS cedula,
                 u.nombre_completo AS nombre_completo,
                 u.email AS email,
-                NULL AS telefono,
+                u.telefono AS telefono,
                 (CASE WHEN u.rol = 'admin' THEN 'Administrador' WHEN u.rol = 'auditor' THEN 'Auditor' ELSE u.rol END) AS rol_texto,
                 u.rol AS rol_clave,
                 'Sistema / Oficina' AS detalle_ubicacion,
@@ -221,5 +221,51 @@ class UsuariosModel extends BaseModel {
             'password' => $nuevoHash,
             'id'       => $userId
         ]);
+    }
+
+    /**
+     * Actualiza los datos de perfil de un usuario del sistema (nombre, email, cédula, teléfono y opcionalmente password).
+     *
+     * @param int $userId
+     * @param array $datos
+     * @return bool
+     */
+    public function actualizarPerfil(int $userId, array $datos): bool {
+        $campos = [
+            'nombre_completo = :nombre',
+            'email = :email',
+            'cedula = :cedula',
+            'telefono = :telefono'
+        ];
+        $params = [
+            'id'       => $userId,
+            'nombre'   => trim($datos['nombre_completo'] ?? ''),
+            'email'    => trim($datos['email'] ?? ''),
+            'cedula'   => !empty($datos['cedula']) ? trim($datos['cedula']) : null,
+            'telefono' => !empty($datos['telefono']) ? trim($datos['telefono']) : null,
+        ];
+
+        if (!empty($datos['password'])) {
+            $campos[] = 'password = :password';
+            $params['password'] = password_hash($datos['password'], PASSWORD_BCRYPT);
+        }
+
+        $setClauses = implode(', ', $campos);
+        $sql = sprintf("UPDATE usuarios SET %s WHERE id = :id", $setClauses);
+        $stmt = $this->db()->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    /**
+     * Verifica si un número de cédula ya se encuentra registrado por otro usuario.
+     *
+     * @param string $cedula
+     * @param int $excludeId
+     * @return bool
+     */
+    public function cedulaExisteEnOtroUsuario(string $cedula, int $excludeId): bool {
+        $stmt = $this->db()->prepare("SELECT id FROM usuarios WHERE cedula = :cedula AND id != :excludeId LIMIT 1");
+        $stmt->execute(['cedula' => $cedula, 'excludeId' => $excludeId]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
