@@ -54,6 +54,12 @@
                     color: #ffffff !important;
                     box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.25);
                 }
+                .fila-edificio {
+                    transition: background-color 0.2s ease-in-out;
+                }
+                .fila-unidades-collapse {
+                    transition: height 0.25s ease-in-out;
+                }
                 </style>
 
                 <!-- NAVEGACIÓN EN DOS PARTES: VISUALIZACIÓN VS CONFIGURACIÓN INICIAL -->
@@ -158,8 +164,7 @@
                                                 $estaAbierto = ($filtroEdificio === (int)$ed['id']);
                                                 ?>
                                                 <tr class="fila-edificio hover:bg-background/40 transition-colors cursor-pointer" 
-                                                    data-bs-toggle="collapse" 
-                                                    data-bs-target="#collapse-edificio-<?= e($ed['id']) ?>" 
+                                                    data-collapse-target="#collapse-edificio-<?= e($ed['id']) ?>" 
                                                     aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
                                                     data-busqueda="<?= strtolower(e($ed['nombre'] . ' ' . ($ed['descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'numero')))) ?>">
                                                     <td class="p-3.5 font-bold text-on-surface">
@@ -188,20 +193,23 @@
                                                         </span>
                                                     </td>
                                                     <td class="p-3.5 text-right pe-4">
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl"
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl btn-toggle-unidades"
                                                                 data-bs-toggle="collapse" 
                                                                 data-bs-target="#collapse-edificio-<?= e($ed['id']) ?>"
+                                                                aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
                                                                 title="Ver unidades de <?= e($ed['nombre']) ?>">
-                                                            <span>Ver Unidades</span>
-                                                            <span class="material-symbols-outlined text-sm">expand_more</span>
+                                                            <span class="btn-text"><?= $estaAbierto ? 'Ocultar' : 'Ver Unidades' ?></span>
+                                                            <span class="material-symbols-outlined text-sm chevron-icon"><?= $estaAbierto ? 'expand_less' : 'expand_more' ?></span>
                                                         </button>
                                                     </td>
                                                 </tr>
 
                                                 <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO -->
-                                                <tr class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse bg-slate-50/70" id="collapse-edificio-<?= e($ed['id']) ?>">
-                                                    <td colspan="4" class="p-4 border-b border-outline-variant/60">
-                                                        <div class="bg-white rounded-xl border border-outline-variant p-4 shadow-xs space-y-3">
+                                                <tr class="fila-unidades-contenedor bg-slate-50/70" style="<?= $estaAbierto ? '' : 'display: none;' ?>">
+                                                    <td colspan="4" class="p-0 border-b border-outline-variant/60">
+                                                        <div class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse" id="collapse-edificio-<?= e($ed['id']) ?>">
+                                                            <div class="p-4">
+                                                                <div class="bg-white rounded-xl border border-outline-variant p-4 shadow-xs space-y-3">
                                                             <div class="flex items-center justify-between border-b border-background pb-2.5 flex-wrap gap-2">
                                                                 <div class="flex items-center gap-2">
                                                                     <span class="material-symbols-outlined text-primary text-base">roofing</span>
@@ -287,6 +295,8 @@
                                                                     </table>
                                                                 </div>
                                                             <?php endif; ?>
+                                                        </div>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -641,21 +651,36 @@ function filtrarTablaVisualizacion(query) {
     const rows = document.querySelectorAll('#tablaDirectorioEdificios tbody tr.fila-edificio');
     let visibles = 0;
     rows.forEach(row => {
-        const targetId = row.getAttribute('data-bs-target');
-        const collapseRow = targetId ? document.querySelector(targetId) : null;
+        const targetId = row.getAttribute('data-collapse-target') || row.getAttribute('data-bs-target');
+        const collapseEl = targetId ? document.querySelector(targetId) : null;
+        const containerRow = collapseEl ? collapseEl.closest('tr.fila-unidades-contenedor') : null;
         const textoEdificio = (row.dataset.busqueda || row.innerText || '').toLowerCase();
-        const textoUnidades = collapseRow ? (collapseRow.innerText || '').toLowerCase() : '';
+        const textoUnidades = collapseEl ? (collapseEl.innerText || '').toLowerCase() : '';
 
         if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
             row.style.display = '';
             visibles++;
-            if (q && textoUnidades.includes(q) && collapseRow) {
-                collapseRow.classList.add('show');
+            if (q && textoUnidades.includes(q) && collapseEl) {
+                if (containerRow) {
+                    containerRow.style.display = '';
+                }
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+                } else {
+                    collapseEl.classList.add('show');
+                }
             }
         } else {
             row.style.display = 'none';
-            if (collapseRow) {
-                collapseRow.classList.remove('show');
+            if (collapseEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).hide();
+                } else {
+                    collapseEl.classList.remove('show');
+                }
+            }
+            if (containerRow) {
+                containerRow.style.display = 'none';
             }
         }
     });
@@ -669,6 +694,66 @@ function filtrarTablaVisualizacion(query) {
         }
     }
 }
+
+// CONTROL DEL COLAPSO Y EXPANSIÓN DE UNIDADES POR EDIFICIO
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Manejo del clic en la fila del edificio (sin conflicto con el botón)
+    const filasEdificio = document.querySelectorAll('#tablaDirectorioEdificios tbody tr.fila-edificio');
+    filasEdificio.forEach(row => {
+        row.addEventListener('click', (e) => {
+            // Si el clic fue directamente en el botón o en un enlace/input, dejar que actúe su propio evento
+            if (e.target.closest('button, a, input, select, .btn')) {
+                return;
+            }
+            const targetSelector = row.getAttribute('data-collapse-target');
+            if (targetSelector) {
+                const targetEl = document.querySelector(targetSelector);
+                if (targetEl && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(targetEl).toggle();
+                }
+            }
+        });
+    });
+
+    // 2. Eventos show y hide para sincronizar contenedor <tr>, icono y texto del botón
+    const collapseElements = document.querySelectorAll('.fila-unidades-collapse');
+    collapseElements.forEach(collapseEl => {
+        const contenedorTr = collapseEl.closest('tr.fila-unidades-contenedor');
+
+        collapseEl.addEventListener('show.bs.collapse', () => {
+            if (contenedorTr) {
+                contenedorTr.style.display = '';
+            }
+            const targetId = '#' + collapseEl.id;
+            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
+            triggerBtns.forEach(btn => {
+                const icon = btn.querySelector('.chevron-icon');
+                if (icon) icon.textContent = 'expand_less';
+                const textSpan = btn.querySelector('.btn-text');
+                if (textSpan) textSpan.textContent = 'Ocultar';
+                btn.setAttribute('aria-expanded', 'true');
+            });
+        });
+
+        collapseEl.addEventListener('hide.bs.collapse', () => {
+            const targetId = '#' + collapseEl.id;
+            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
+            triggerBtns.forEach(btn => {
+                const icon = btn.querySelector('.chevron-icon');
+                if (icon) icon.textContent = 'expand_more';
+                const textSpan = btn.querySelector('.btn-text');
+                if (textSpan) textSpan.textContent = 'Ver Unidades';
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        collapseEl.addEventListener('hidden.bs.collapse', () => {
+            if (contenedorTr) {
+                contenedorTr.style.display = 'none';
+            }
+        });
+    });
+});
 
 // SINCRONIZACIÓN Y PERSISTENCIA DE PESTAÑAS (TABS)
 document.addEventListener('DOMContentLoaded', () => {
