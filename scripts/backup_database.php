@@ -21,6 +21,12 @@ if (!is_dir($backupDir)) {
     mkdir($backupDir, 0755, true);
 }
 
+// Garantizar protección contra accesos web directos
+$htaccessFile = $backupDir . '/.htaccess';
+if (!file_exists($htaccessFile)) {
+    file_put_contents($htaccessFile, "# Bloqueo total de acceso HTTP directo a los archivos de respaldo\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order deny,allow\n    Deny from all\n</IfModule>\nOptions -Indexes\n");
+}
+
 // 1. Limpieza Preventiva al Inicio: Purga de respaldos > 7 días
 echo "1. Ejecutando limpieza preventiva de copias antiguas (> 7 días)...\n";
 $archivosEliminados = 0;
@@ -41,10 +47,10 @@ try {
     $db = Database::getConnection();
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $dbHost = getenv('DB_HOST') ?: 'localhost';
-    $dbName = getenv('DB_NAME') ?: 'condominio_cobranzas';
-    $dbUser = getenv('DB_USER') ?: 'root';
-    $dbPass = getenv('DB_PASS') ?: '';
+    $dbHost = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: (defined('DB_HOST') ? DB_HOST : 'localhost');
+    $dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: (defined('DB_NAME') ? DB_NAME : 'condominio_cobranzas');
+    $dbUser = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: (defined('DB_USER') ? DB_USER : 'root');
+    $dbPass = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: (defined('DB_PASS') ? DB_PASS : '');
 
     $timestamp = date('Y-m-d_H-i-s');
     $nombreBase = "backup_{$timestamp}";
@@ -151,11 +157,26 @@ try {
     ]);
     echo "   ✔ Respaldo registrado exitosamente para auditoría.\n";
 
+    // 6. Registro permanente en archivo de log del servidor
+    $logDir = dirname(__DIR__) . '/storage/logs';
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0755, true);
+    }
+    $logFile = $logDir . '/backups.log';
+    $logMsg = "[" . date('Y-m-d H:i:s') . "] [SUCCESS] Archivo: " . basename($rutaSqlGz) . " (" . round($tamanoBytes / 1024, 2) . " KB) | SHA-256: {$hashSha256} | Tablas: " . ($tablasCount ?: 16) . " | Purgados: {$archivosEliminados}\n";
+    @file_put_contents($logFile, $logMsg, FILE_APPEND | LOCK_EX);
+
     echo "\n========================================================\n";
     echo "✅ RESPALDO Y ROTACIÓN COMPLETADOS CON ÉXITO.\n";
     echo "========================================================\n";
 
 } catch (Exception $e) {
+    $logDir = dirname(__DIR__) . '/storage/logs';
+    if (is_dir($logDir)) {
+        $logFile = $logDir . '/backups.log';
+        $logMsg = "[" . date('Y-m-d H:i:s') . "] [ERROR] Falló respaldo: " . $e->getMessage() . "\n";
+        @file_put_contents($logFile, $logMsg, FILE_APPEND | LOCK_EX);
+    }
     echo "\n❌ ERROR EN GENERACIÓN DE RESPALDO: " . $e->getMessage() . "\n";
     exit(1);
 }

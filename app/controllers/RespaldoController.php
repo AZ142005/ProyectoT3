@@ -29,7 +29,7 @@ class RespaldoController extends Controller {
         $this->render('admin/respaldos/index', [
             'respaldos' => $respaldos,
             'layout'    => 'admin',
-            'title'     => 'Respaldos de Base de Datos (RNF 3)'
+            'title'     => 'Respaldos Automatizados del Servidor (RNF 3)'
         ]);
     }
 
@@ -39,42 +39,8 @@ class RespaldoController extends Controller {
     public function generarManual() {
         Auth::requireRole(UserRole::ADMIN);
 
-        // Rate limiting: máximo 3 respaldos por hora
-        if (!RateLimiter::attempt('backup', 3, 3600)) {
-            $segundos = RateLimiter::secondsUntilAvailable('backup', 3600);
-            $minutos = ceil($segundos / 60);
-            Flash::set('danger', "Debe esperar {$minutos} minuto(s) antes de generar otro respaldo.");
-            $this->redirect('/admin/respaldos');
-            return;
-        }
-
-        $backupScript = dirname(__DIR__, 2) . '/scripts/backup_database.php';
-
-        if (!file_exists($backupScript)) {
-            Flash::set('danger', 'Script de respaldo no encontrado. Contacte al administrador del sistema.');
-            $this->redirect('/admin/respaldos');
-            return;
-        }
-
-        try {
-            // Ejecutar script CLI de respaldo con sanitización completa
-            $phpBin = escapeshellarg(PHP_BINARY ?: 'php');
-            $scriptPath = escapeshellarg($backupScript);
-            $output = [];
-            $returnVar = 0;
-            exec("{$phpBin} {$scriptPath} 2>&1", $output, $returnVar);
-
-            if ($returnVar === 0) {
-                Flash::set('success', 'Respaldo de base de datos generado exitosamente con compresión y firma SHA-256.');
-            } else {
-                error_log("[RESPALDO] Output: " . implode("\n", $output));
-                Flash::set('danger', 'Error al generar respaldo. Revise los logs del servidor para más detalles.');
-            }
-        } catch (\Exception $e) {
-            error_log("[RESPALDO] Error ejecutar respaldo: " . $e->getMessage());
-            Flash::set('danger', 'Error al generar el respaldo de base de datos.');
-        }
-
+        // La generación manual desde web fue reemplazada por automatización de servidor
+        Flash::set('info', 'La generación manual ha sido deshabilitada. Los respaldos se ejecutan automáticamente a nivel de servidor (CLI / Cron).');
         $this->redirect('/admin/respaldos');
     }
 
