@@ -50,3 +50,11 @@
 - Spot check del padre: `php -l` 4/4 + `BalanceAgrupadoEdificiosTest` 45✅/0❌/0⚠.
 - Verificador independiente: VERIFICADO — patrón visual 4/4, funcionalidad preservada (names/actions/ids/valores, hidden tab, condicionales y links), diff acotado a las tarjetas (+ buscador rápido de morosidad), sin colisiones de id, adversarial sin hallazgos. Residual honesto: sin verificación renderizada en navegador.
 - RDD: `review status` → `immutable_review_transport_unsupported` (OpenCode no elegible; solo claude-code/codex). `assess` con inventario declarado → risk `medium` / `under_budget`; ruta RDD-off: auto-verificación del writer + verificador independiente (modelo flash → bias de verificación).
+
+## Iteración 2026-10-01 (feedback del usuario): compactado vertical
+- Pedido: "reduce el tamaño vertical de los filtros, ocupan mucho espacio". Cambio autorizado; directo en main.
+- Alcance: 6 tarjetas del patrón unificado — Historial (`comprobantes.php`), Pagos admin, Usuarios, Gastos, Carta de Deuda y Conciliación.
+- Patrón compacto: card `p-6→p-4` (no aplica a Conciliación, ya `p-4`) y `mb-8→mb-6` en todas; header `mb-4 pb-3→mb-3 pb-2` (Conciliación `mb-3 pb-3→mb-2 pb-2`); form `gap-4→gap-3`; wrappers `gap-1.5→gap-1`; controles `py-2.5→py-2`; fila de botones sin `pt-2`; buscador rápido de Carta de Deuda `py-2.5→py-2`.
+- Estado: [x] completada. Commit `e09bfd4` (6 archivos, 57 reemplazos de clase, +57/−57).
+- Verificación: writer (`php -l` 6/6; suites HistorialPagos, UsuarioAdmin, UsuarioAdminAcciones, UsuariosSolicitudesTabs, GastosTipologia, BalanceAgrupado, Behavior [1 fallo preexistente de entorno], ConciliacionSimplificada, ConciliacionCentralizada — verdes). Spot check del padre: `php -l` 6/6 + HistorialPagosTest 20✅. Verificador independiente: VERIFICADO (57/57 solo clase; fuera de alcance intacto; adversarial sin hallazgos). Residual: sin render en navegador.
+- RDD: assess (inventario declarado) → `medium` / `under_budget`; ruta RDD-off con verificador independiente (writer en modelo flash).
