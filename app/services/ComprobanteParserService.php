@@ -147,7 +147,7 @@ class ComprobanteParserService {
         //   c) Respaldo: "pago móvil" sin banco identificable.
         $bancos = [
             'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv'],
-            'mercantil'  => ['mercantil', 'banco mercantil'],
+            'mercantil'  => ['mercantil', 'banco mercantil', 'tpago'],
             'banesco'    => ['banesco', 'banco universal banesco'],
             'provincial' => ['provincial', 'bbva'],
             'bancamiga'  => ['bancamiga'],
@@ -187,24 +187,62 @@ class ComprobanteParserService {
             $resultado['banco'] = $codigosBanco[$matchesOrigen[1]];
         }
 
-        // b) Coincidencia posicional: nombres de banco y códigos de cuenta
+        // b) Coincidencia posicional: nombres de banco y códigos de cuenta.
+        //    Las menciones al banco receptor (tras etiquetas como "destino",
+        //    "receptor" o "beneficiario", con el valor incluso en la línea
+        //    siguiente) no identifican al emisor y quedan excluidas.
         if ($resultado['banco'] === null) {
+            $zonasReceptor = [];
+            if (preg_match_all('/(?:destino|receptor|beneficiario|acreditad[oa]|recibe)/i', $textoBancos, $mZonas, PREG_OFFSET_CAPTURE)) {
+                foreach ($mZonas[0] as $mZona) {
+                    $inicio = $mZona[1];
+                    $fin = $inicio;
+                    $buscado = $inicio;
+                    for ($n = 0; $n < 2; $n++) {
+                        $salto = strpos($textoBancos, "\n", $buscado);
+                        if ($salto === false) { $fin = strlen($textoBancos); break; }
+                        $fin = $salto;
+                        $buscado = $salto + 1;
+                    }
+                    $zonasReceptor[] = [$inicio, min($fin, $inicio + 160)];
+                }
+            }
+            $enZonaReceptor = function (int $posicion) use ($zonasReceptor): bool {
+                foreach ($zonasReceptor as $zona) {
+                    if ($posicion >= $zona[0] && $posicion <= $zona[1]) { return true; }
+                }
+                return false;
+            };
+
             $mejorPosicion = PHP_INT_MAX;
             foreach ($bancos as $bancoKey => $patrones) {
                 foreach ($patrones as $patron) {
-                    $posicion = strpos($textoBancos, $this->normalizarTextoBancos($patron));
-                    if ($posicion !== false && $posicion < $mejorPosicion) {
-                        $mejorPosicion = $posicion;
-                        $resultado['banco'] = $bancoKey;
+                    $buscar = $this->normalizarTextoBancos($patron);
+                    $offset = 0;
+                    while (($posicion = strpos($textoBancos, $buscar, $offset)) !== false) {
+                        if (!$enZonaReceptor($posicion)) {
+                            if ($posicion < $mejorPosicion) {
+                                $mejorPosicion = $posicion;
+                                $resultado['banco'] = $bancoKey;
+                            }
+                            break;
+                        }
+                        $offset = $posicion + 1;
                     }
                 }
             }
             foreach ($codigosBanco as $codigo => $bancoKey) {
-                if (preg_match('/(?<![0-9])' . $codigo . '/', $textoBancos, $mCodigo, PREG_OFFSET_CAPTURE)) {
-                    if ($mCodigo[0][1] < $mejorPosicion) {
-                        $mejorPosicion = $mCodigo[0][1];
-                        $resultado['banco'] = $bancoKey;
+                $offset = 0;
+                while (preg_match('/(?<![0-9])' . $codigo . '/', $textoBancos, $mCodigo, PREG_OFFSET_CAPTURE, $offset)) {
+                    $posicionCodigo = $mCodigo[0][1];
+                    if (!$enZonaReceptor($posicionCodigo)) {
+                        if ($posicionCodigo < $mejorPosicion) {
+                            $mejorPosicion = $posicionCodigo;
+                            $resultado['banco'] = $bancoKey;
+                        }
+                        break;
                     }
+                    $offset = $posicionCodigo + 1;
                 }
             }
         }
@@ -368,8 +406,9 @@ class ComprobanteParserService {
 
     /**
      * Normaliza texto para comparación de nombres de banco: minúsculas, sin
-     * acentos y sin espacios, de modo que "BancoFondoComún" coincida con
-     * "fondo comun".
+     * acentos, sin espacios ni tabulaciones (conserva los saltos de línea,
+     * que delimitan las zonas de contexto receptor). Así "BancoFondoComún"
+     * coincide con "fondo comun".
      */
     private function normalizarTextoBancos(string $texto): string {
         $texto = mb_strtolower($texto, 'UTF-8');
@@ -377,7 +416,7 @@ class ComprobanteParserService {
             'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
             'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u'
         ]);
-        return preg_replace('/\s+/', '', $texto);
+        return preg_replace('/[ \t]+/', '', $texto);
     }
 
     /**
