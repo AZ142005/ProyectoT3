@@ -137,33 +137,86 @@ class ComprobanteParserService {
         }
 
         // 2. Detección de Banco Pagador / Emisor
+        // Estrategia (los comprobantes suelen mencionar también al banco receptor,
+        // por lo que no basta con buscar cualquier nombre de banco en el texto):
+        //   a) Contexto explícito de origen ("Origen: 0151...", "Banco emisor ..."):
+        //      el código bancario de 4 dígitos identifica al emisor.
+        //   b) Coincidencia posicional: gana el banco cuya señal aparece primero
+        //      en el texto; la marca del emisor va al inicio del comprobante y las
+        //      menciones al receptor aparecen después.
+        //   c) Respaldo: "pago móvil" sin banco identificable.
         $bancos = [
-            'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv', '0102'],
-            'mercantil'  => ['mercantil', 'banco mercantil', '0105'],
-            'banesco'    => ['banesco', 'banco universal banesco', '0134'],
-            'provincial' => ['provincial', 'bbva', 'bbva provincial', '0108'],
-            'bancamiga'  => ['bancamiga', '0172'],
-            'bnc'        => ['bnc', 'nacional de credito', '0191'],
-            'bancaribe'  => ['bancaribe', 'caribe', '0114'],
-            'tesoro'     => ['tesoro', 'banco del tesoro', '0163'],
-            'exterior'   => ['exterior', 'banco exterior', '0115'],
-            'plaza'      => ['plaza', 'banco plaza', '0138'],
-            'activo'     => ['activo', 'banco activo', '0171'],
-            'sofitasa'   => ['sofitasa', '0137'],
-            '100banco'   => ['100% banco', '100banco', '0156'],
-            'bfc'        => ['fondo comun', 'bfc', '0151'],
-            'pago_movil' => ['pago movil', 'pagomovil', 'c2p', 'p2p']
+            'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv'],
+            'mercantil'  => ['mercantil', 'banco mercantil'],
+            'banesco'    => ['banesco', 'banco universal banesco'],
+            'provincial' => ['provincial', 'bbva'],
+            'bancamiga'  => ['bancamiga'],
+            'bnc'        => ['bnc', 'nacional de credito'],
+            'bancaribe'  => ['bancaribe', 'caribe'],
+            'tesoro'     => ['tesoro', 'banco del tesoro'],
+            'exterior'   => ['exterior', 'banco exterior'],
+            'plaza'      => ['plaza', 'banco plaza'],
+            'activo'     => ['activo', 'banco activo'],
+            'sofitasa'   => ['sofitasa'],
+            '100banco'   => ['100% banco', '100banco'],
+            'bfc'        => ['bfc', 'fondo comun', 'banco fondo comun']
+        ];
+        $codigosBanco = [
+            '0102' => 'venezuela',
+            '0105' => 'mercantil',
+            '0134' => 'banesco',
+            '0108' => 'provincial',
+            '0172' => 'bancamiga',
+            '0191' => 'bnc',
+            '0114' => 'bancaribe',
+            '0163' => 'tesoro',
+            '0115' => 'exterior',
+            '0138' => 'plaza',
+            '0171' => 'activo',
+            '0137' => 'sofitasa',
+            '0156' => '100banco',
+            '0151' => 'bfc'
         ];
 
-        foreach ($bancos as $bancoKey => $patrones) {
-            foreach ($patrones as $patron) {
-                if (stripos($texto, $patron) !== false) {
-                    $resultado['banco'] = $bancoKey === 'pago_movil' ? 'mercantil' : $bancoKey;
-                    $resultado['banco_pagador'] = $resultado['banco'];
-                    $resultado['detectado'] = true;
-                    break 2;
+        $textoBancos = $this->normalizarTextoBancos($texto);
+
+        // a) Contexto explícito de origen con código bancario
+        $patronOrigen = '/(?:origen|bancoemisor|emisor|desde|cuentaorigen|cta\.?origen)[^0-9]{0,12}('
+            . implode('|', array_keys($codigosBanco)) . ')/';
+        if (preg_match($patronOrigen, $textoBancos, $matchesOrigen)) {
+            $resultado['banco'] = $codigosBanco[$matchesOrigen[1]];
+        }
+
+        // b) Coincidencia posicional: nombres de banco y códigos de cuenta
+        if ($resultado['banco'] === null) {
+            $mejorPosicion = PHP_INT_MAX;
+            foreach ($bancos as $bancoKey => $patrones) {
+                foreach ($patrones as $patron) {
+                    $posicion = strpos($textoBancos, $this->normalizarTextoBancos($patron));
+                    if ($posicion !== false && $posicion < $mejorPosicion) {
+                        $mejorPosicion = $posicion;
+                        $resultado['banco'] = $bancoKey;
+                    }
                 }
             }
+            foreach ($codigosBanco as $codigo => $bancoKey) {
+                if (preg_match('/(?<![0-9])' . $codigo . '/', $textoBancos, $mCodigo, PREG_OFFSET_CAPTURE)) {
+                    if ($mCodigo[0][1] < $mejorPosicion) {
+                        $mejorPosicion = $mCodigo[0][1];
+                        $resultado['banco'] = $bancoKey;
+                    }
+                }
+            }
+        }
+
+        // c) Respaldo: pago móvil sin banco identificable
+        if ($resultado['banco'] === null && preg_match('/(?:pago\s*m[oó]vil|pagomovil|c2p|p2p)/iu', $texto)) {
+            $resultado['banco'] = 'mercantil';
+        }
+
+        if ($resultado['banco'] !== null) {
+            $resultado['banco_pagador'] = $resultado['banco'];
+            $resultado['detectado'] = true;
         }
 
         // 3. Detección de Cuenta Receptora / Destino (código bancario de 4 dígitos o número de 20 dígitos)
@@ -311,6 +364,20 @@ class ComprobanteParserService {
             'fecha'      => null,
             'detectado'  => false
         ];
+    }
+
+    /**
+     * Normaliza texto para comparación de nombres de banco: minúsculas, sin
+     * acentos y sin espacios, de modo que "BancoFondoComún" coincida con
+     * "fondo comun".
+     */
+    private function normalizarTextoBancos(string $texto): string {
+        $texto = mb_strtolower($texto, 'UTF-8');
+        $texto = strtr($texto, [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+            'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u'
+        ]);
+        return preg_replace('/\s+/', '', $texto);
     }
 
     /**
