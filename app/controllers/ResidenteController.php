@@ -164,28 +164,11 @@ class ResidenteController extends Controller {
     }
 
     /**
-     * Muestra todo el historial de comprobantes del residente.
+     * Historial unificado: "Mis Pagos" muestra tanto los pagos (portal público /
+     * administración) como los comprobantes del formulario residente de la unidad.
      */
     public function historial() {
         Auth::requireRole('residente');
-        $residente = $this->getAuthenticatedResidente();
-        $residente_id = Auth::id();
-        $pagina = max(1, intval($_GET['page'] ?? 1));
-
-        $comprobantesModel = new ComprobantesModel();
-        $resultado = $comprobantesModel->getAllByResidente($residente_id, $pagina, 20);
-
-        $this->render('residente/historial', [
-            'residente'   => $residente,
-            'comprobantes' => $resultado['datos'],
-            'paginacion'  => [
-                'total'        => $resultado['total'],
-                'pagina'       => $resultado['pagina'],
-                'porPagina'    => $resultado['porPagina'],
-                'totalPaginas' => $resultado['totalPaginas'],
-            ],
-            'showNav' => true,
-            'title' => 'Historial de Pagos - Condominio Digital'
-        ]);
+        $this->redirect('/pagos');
     }
 }

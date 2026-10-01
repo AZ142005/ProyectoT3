@@ -24,10 +24,16 @@ class PagoController extends Controller {
         
         if ($rol === 'residente') {
             $residente = $this->getAuthenticatedResidente();
-            $residenteId = Auth::id();
+            $unidadId = intval($residente['unidad_id'] ?? 0);
             $pagina = max(1, intval($_GET['page'] ?? 1));
-            $resultado = $pagoModel->obtenerPagosPorResidente($residenteId, $pagina, 20);
-            
+
+            // Lista unificada de la unidad: pagos (portal público / administración)
+            // + comprobantes del formulario residente. Cualquier miembro activo de
+            // la unidad ve todos los movimientos.
+            $resultado = $unidadId > 0
+                ? $pagoModel->obtenerTodosPagos(['unidad_id' => $unidadId], $pagina, 20)
+                : ['datos' => [], 'total' => 0, 'pagina' => 1, 'porPagina' => 20, 'totalPaginas' => 1];
+
             $this->render('pagos/residente/lista', [
                 'residente'  => $residente,
                 'pagos'      => $resultado['datos'],
@@ -200,24 +206,36 @@ class PagoController extends Controller {
      */
     public function detalle($id) {
         Auth::requireLogin();
-        
+
         $pagoModel = new PagoModel();
-        $pago = $pagoModel->obtenerPagoPorId(intval($id));
-        
+        $id = intval($id);
+        $tipo = strtolower(trim($_GET['tipo'] ?? ''));
+
+        // ?tipo=comprobante evita la colisión de IDs entre `pagos` y `comprobantes_pago`.
+        $pago = ($tipo === 'comprobante')
+            ? $pagoModel->obtenerComprobantePorId($id)
+            : $pagoModel->obtenerPagoPorId($id);
+
         if (!$pago) {
             Flash::error('Pago no encontrado.');
             $rol = Auth::role();
             $redirectUrl = ($rol === 'admin' || $rol === 'auditor') ? '/admin/comprobantes' : '/pagos';
             $this->redirect($redirectUrl);
         }
-        
-        // Seguridad: Los residentes solo pueden ver sus propios detalles de pago
+
+        // Seguridad: el residente ve los movimientos de SU unidad (cualquier
+        // miembro activo), no solo los que registró él mismo.
         $rol = Auth::role();
-        if ($rol === 'residente' && intval($pago['residente_id']) !== intval(Auth::id())) {
-            Flash::error('Acceso denegado a este pago.');
-            $this->redirect('/pagos');
+        if ($rol === 'residente') {
+            $residente = $this->getAuthenticatedResidente();
+            $unidadResidente = intval($residente['unidad_id'] ?? 0);
+            $unidadMovimiento = intval($pago['unidad_id'] ?? 0);
+            if ($unidadResidente <= 0 || $unidadMovimiento !== $unidadResidente) {
+                Flash::error('Acceso denegado a este pago.');
+                $this->redirect('/pagos');
+            }
         }
-        
+
         $this->render('pagos/detalle', [
             'pago'    => $pago,
             'rol'     => $rol,

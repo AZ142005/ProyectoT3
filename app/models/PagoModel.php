@@ -242,6 +242,14 @@ class PagoModel extends BaseModel {
             $countSql .= " AND p.fecha_pago = :fecha";
             $params['fecha'] = $filtros['fecha'];
         }
+        if (!empty($filtros['unidad_id'])) {
+            // Lista unificada de una unidad (pagos + comprobantes): usada por el
+            // portal del residente para que cualquier miembro de la unidad vea
+            // todos los movimientos.
+            $baseSql .= " AND p.unidad_id = :unidad_id";
+            $countSql .= " AND p.unidad_id = :unidad_id";
+            $params['unidad_id'] = intval($filtros['unidad_id']);
+        }
         
         $result = $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'p.fecha_registro DESC');
         return $result;
@@ -284,8 +292,22 @@ class PagoModel extends BaseModel {
         }
 
         // Si no se encuentra en pagos, buscar en comprobantes_pago para compatibilidad total
+        return $this->obtenerComprobantePorId($id);
+    }
+
+    /**
+     * Detalle de un comprobante del sistema anterior (comprobantes_pago) con los
+     * datos de su factura y unidad. Usado también por el detalle con ?tipo=comprobante
+     * para evitar la colisión de IDs entre ambas tablas.
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function obtenerComprobantePorId($id) {
+        $id = intval($id);
+        $db = $this->db();
         $sqlComp = "SELECT c.*, c.fecha_envio AS fecha_registro, UPPER(c.estado) AS estado,
-                           f.numero_factura, f.saldo AS saldo_factura, f.monto_total,
+                           f.numero_factura, f.saldo AS saldo_factura, f.monto_total, f.unidad_id,
                            u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                            CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
                     FROM comprobantes_pago c
@@ -298,15 +320,15 @@ class PagoModel extends BaseModel {
         $stmtComp->execute(['id' => $id]);
         $comp = $stmtComp->fetch(PDO::FETCH_ASSOC);
 
-        if ($comp) {
-            $comp['tipo_origen'] = 'comprobante';
-            $comp['saldo_restante'] = ($comp['saldo_factura'] ?? 0) - ($comp['monto'] ?? 0);
-            $comp['log_auditoria'] = [];
-            $comp['action_url'] = '/admin/comprobante/verificar?id=' . $comp['id'];
-            return $comp;
+        if (!$comp) {
+            return false;
         }
 
-        return false;
+        $comp['tipo_origen'] = 'comprobante';
+        $comp['saldo_restante'] = ($comp['saldo_factura'] ?? 0) - ($comp['monto'] ?? 0);
+        $comp['log_auditoria'] = [];
+        $comp['action_url'] = '/admin/comprobante/verificar?id=' . $comp['id'];
+        return $comp;
     }
 
     /**

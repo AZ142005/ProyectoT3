@@ -35,19 +35,33 @@ $userRole = $_SESSION['auth_user']['role'] ?? '';
 if ($userRole === 'residente') {
     try {
         $db = \App\Core\Database::getConnection();
-        $stmt = $db->prepare(
-            "SELECT 1 FROM pagos WHERE archivo = :archivo AND residente_id = :uid 
-             UNION 
-             SELECT 1 FROM comprobantes_pago WHERE archivo = :archivo2 AND residente_id = :uid2 
-             LIMIT 1"
-        );
-        $stmt->execute([
-            'archivo'  => $filename,
-            'uid'      => $userId,
-            'archivo2' => $filename,
-            'uid2'     => $userId
-        ]);
-        if (!$stmt->fetch()) {
+
+        // La unidad del residente autenticado define los comprobantes visibles:
+        // cualquier miembro activo de la unidad puede ver los movimientos de su unidad.
+        $stmtUnidad = $db->prepare("SELECT unidad_id FROM personas WHERE id = :uid AND estado = 1");
+        $stmtUnidad->execute(['uid' => $userId]);
+        $unidadId = intval($stmtUnidad->fetchColumn() ?: 0);
+
+        $autorizado = false;
+        if ($unidadId > 0) {
+            $stmt = $db->prepare(
+                "SELECT 1 FROM pagos WHERE archivo = :archivo AND unidad_id = :unidad
+                 UNION
+                 SELECT 1 FROM comprobantes_pago c
+                 INNER JOIN facturas f ON c.factura_id = f.id
+                 WHERE c.archivo = :archivo2 AND f.unidad_id = :unidad2
+                 LIMIT 1"
+            );
+            $stmt->execute([
+                'archivo'  => $filename,
+                'unidad'   => $unidadId,
+                'archivo2' => $filename,
+                'unidad2'  => $unidadId
+            ]);
+            $autorizado = (bool) $stmt->fetch();
+        }
+
+        if (!$autorizado) {
             http_response_code(403);
             exit('Acceso denegado: no autorizado para acceder a este comprobante.');
         }
