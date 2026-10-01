@@ -10,35 +10,14 @@ use App\Models\SolicitudesRegistroModel;
 class SolicitudesRegistroController extends Controller {
 
     /**
-     * Muestra la bandeja de gestión de solicitudes de registro de residentes.
+     * Redirige la antigua bandeja autónoma a la pestaña de solicitudes
+     * dentro de la sección unificada de usuarios.
      */
     public function index(): void {
         Auth::requireRole(UserRole::ADMIN);
 
-        $pagina = max(1, intval($_GET['page'] ?? 1));
-        $filtroEstado = isset($_GET['estado']) && in_array($_GET['estado'], ['pendiente', 'aprobada', 'rechazada'], true)
-            ? $_GET['estado']
-            : null;
-
-        $model = new SolicitudesRegistroModel();
-        $resultado = $model->obtenerListado($pagina, 15, $filtroEstado);
-        $pendientesCount = $model->contarPendientes();
-
-        $this->render('admin/solicitudes_registro/index', [
-            'solicitudes'     => $resultado['datos'],
-            'paginacion'      => [
-                'total'        => $resultado['total'],
-                'pagina'       => $resultado['pagina'],
-                'porPagina'    => $resultado['porPagina'],
-                'totalPaginas' => $resultado['totalPaginas'],
-            ],
-            'filtroEstado'    => $filtroEstado,
-            'filtros'         => ['estado' => $filtroEstado ?? ''],
-            'pendientesCount' => $pendientesCount,
-            'showNav'         => false,
-            'layout'          => 'admin',
-            'title'           => 'Gestión de Solicitudes de Registro - Condominio'
-        ]);
+        header('Location: /admin/usuarios?tab=solicitudes');
+        exit;
     }
 
     /**
@@ -50,7 +29,7 @@ class SolicitudesRegistroController extends Controller {
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {
             Flash::error("ID de solicitud no válido.");
-            $this->redirect('/admin/solicitudes-registro');
+            $this->redirect('/admin/usuarios?tab=solicitudes');
             return;
         }
 
@@ -65,7 +44,7 @@ class SolicitudesRegistroController extends Controller {
             Flash::error($e->getMessage());
         }
 
-        $this->redirect('/admin/solicitudes-registro');
+        $this->redirect('/admin/usuarios?tab=solicitudes');
     }
 
     /**
@@ -79,7 +58,7 @@ class SolicitudesRegistroController extends Controller {
 
         if ($id <= 0) {
             Flash::error("ID de solicitud no válido.");
-            $this->redirect('/admin/solicitudes-registro');
+            $this->redirect('/admin/usuarios?tab=solicitudes');
             return;
         }
 
@@ -94,6 +73,6 @@ class SolicitudesRegistroController extends Controller {
             Flash::error($e->getMessage());
         }
 
-        $this->redirect('/admin/solicitudes-registro');
+        $this->redirect('/admin/usuarios?tab=solicitudes');
     }
 }
