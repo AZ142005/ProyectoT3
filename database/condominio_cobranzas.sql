@@ -292,8 +292,11 @@ CREATE TABLE `gastos_comunes` (
   `mes` int(11) DEFAULT NULL,
   `anio` int(11) DEFAULT NULL,
   `descripcion` text NOT NULL,
+  `tipo_gasto` enum('comun','individual') NOT NULL DEFAULT 'comun',
+  `edificio_id` int(11) DEFAULT NULL,
   `monto_total` decimal(10,2) DEFAULT 0.00,
   `fecha` date NOT NULL,
+  `fecha_gasto` date DEFAULT NULL,
   `proveedor` varchar(150) DEFAULT NULL,
   `nro_factura_proveedor` varchar(50) DEFAULT NULL,
   `soporte_digital` varchar(255) DEFAULT NULL,
@@ -305,7 +308,9 @@ CREATE TABLE `gastos_comunes` (
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_gastos_periodo` (`periodo`),
-  KEY `idx_gastos_categoria` (`categoria_id`)
+  KEY `idx_gastos_categoria` (`categoria_id`),
+  KEY `fk_gastos_edificio` (`edificio_id`),
+  CONSTRAINT `fk_gastos_edificio` FOREIGN KEY (`edificio_id`) REFERENCES `edificios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Volcado de datos para la tabla `gastos_comunes`
@@ -404,8 +409,8 @@ CREATE TABLE `notificaciones` (
   `leida` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_notif_residente` (`residente_id`,`leido`),
   KEY `idx_notificaciones_persona` (`persona_id`),
+  KEY `idx_notif_residente` (`residente_id`,`leido`),
   CONSTRAINT `fk_notif_residente` FOREIGN KEY (`residente_id`) REFERENCES `personas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -623,7 +628,7 @@ CREATE TABLE `unidades` (
   `edificio_id` int(11) DEFAULT NULL,
   `propietario_id` int(11) DEFAULT NULL,
   `numero` varchar(20) NOT NULL,
-  `cuota_mensual` decimal(10,2) NOT NULL,
+  `cuota_mensual` decimal(10,2) NOT NULL DEFAULT 0.00,
   `estado` tinyint(4) DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `numero` (`numero`),
@@ -650,6 +655,7 @@ CREATE TABLE `usuarios` (
   `usuario` varchar(50) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
   `cedula` varchar(20) DEFAULT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `nombre_completo` varchar(150) DEFAULT NULL,
   `rol` enum('admin') DEFAULT 'admin',
