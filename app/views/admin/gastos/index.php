@@ -50,49 +50,52 @@
     </div>
 
     <!-- Barra de Filtros -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
-        <div class="card-body p-3">
-            <form method="GET" action="/admin/gastos" class="row g-2 align-items-end">
-                <div class="col-md-2 col-6">
-                    <label class="form-label text-muted small fw-bold mb-1">Mes</label>
-                    <select name="mes" class="form-select form-select-sm">
-                        <?php for ($m = 1; $m <= 12; $m++): ?>
-                            <option value="<?= e($m) ?>" <?= $m === intval($filtros['mes']) ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
-                        <?php endfor; ?>
-                    </select>
-                </div>
-                <div class="col-md-2 col-6">
-                    <label class="form-label text-muted small fw-bold mb-1">Año</label>
-                    <input type="number" name="anio" value="<?= e($filtros['anio']) ?>" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-2 col-6">
-                    <label class="form-label text-muted small fw-bold mb-1">Categoría</label>
-                    <select name="categoria_id" class="form-select form-select-sm">
-                        <option value="">Todas</option>
-                        <?php foreach ($categorias as $cat): ?>
-                            <option value="<?= e($cat['id']) ?>" <?= (!empty($filtros['categoria_id']) && intval($filtros['categoria_id']) === intval($cat['id'])) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3 col-6">
-                    <label class="form-label text-muted small fw-bold mb-1">Tipo de Gasto</label>
-                    <select name="tipo_gasto" class="form-select form-select-sm">
-                        <option value="">Todos los tipos</option>
-                        <option value="comun" <?= ($filtros['tipo_gasto'] ?? '') === 'comun' ? 'selected' : '' ?>>Común (Global)</option>
-                        <option value="individual" <?= ($filtros['tipo_gasto'] ?? '') === 'individual' ? 'selected' : '' ?>>Individual (Por Edificio)</option>
-                    </select>
-                </div>
-                <div class="col-md-3 col-12 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm fw-bold flex-fill d-inline-flex align-items-center justify-content-center gap-1">
-                        <span class="material-symbols-outlined fs-6">filter_alt</span>
-                        <span>Filtrar</span>
-                    </button>
-                    <a href="/admin/gastos" class="btn btn-outline-secondary btn-sm" title="Limpiar filtros">
-                        <span class="material-symbols-outlined fs-6">restart_alt</span>
-                    </a>
-                </div>
-            </form>
+    <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
+        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
+            <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
         </div>
+        <form method="GET" action="/admin/gastos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div class="flex flex-col gap-1.5">
+                <label for="mes" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Mes</label>
+                <select name="mes" id="mes" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <?php for ($m = 1; $m <= 12; $m++): ?>
+                        <option value="<?= e($m) ?>" <?= $m === intval($filtros['mes']) ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label for="anio" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Año</label>
+                <input type="number" name="anio" id="anio" value="<?= e($filtros['anio']) ?>" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label for="categoria_id" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Categoría</label>
+                <select name="categoria_id" id="categoria_id" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todas</option>
+                    <?php foreach ($categorias as $cat): ?>
+                        <option value="<?= e($cat['id']) ?>" <?= (!empty($filtros['categoria_id']) && intval($filtros['categoria_id']) === intval($cat['id'])) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label for="tipo_gasto" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Tipo de Gasto</label>
+                <select name="tipo_gasto" id="tipo_gasto" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todos los tipos</option>
+                    <option value="comun" <?= ($filtros['tipo_gasto'] ?? '') === 'comun' ? 'selected' : '' ?>>Común (Global)</option>
+                    <option value="individual" <?= ($filtros['tipo_gasto'] ?? '') === 'individual' ? 'selected' : '' ?>>Individual (Por Edificio)</option>
+                </select>
+            </div>
+            <div class="col-span-full flex justify-end gap-2 pt-2">
+                <a href="/admin/gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
+                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                    Limpiar Filtros
+                </a>
+                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+                    <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+                    Aplicar Filtros
+                </button>
+            </div>
+        </form>
     </div>
 
     <!-- Resumen de Totales por Categoría -->

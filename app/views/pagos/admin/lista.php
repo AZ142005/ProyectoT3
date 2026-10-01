@@ -23,14 +23,14 @@
 
             <!-- Filtros de Búsqueda -->
             <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
-                <h3 class="text-sm font-bold text-on-surface mb-4 flex items-center gap-1.5 uppercase tracking-wider text-slate-500">
-                    <span class="material-symbols-outlined text-sm">filter_alt</span>
-                    Filtros de Búsqueda
-                </h3>
-                <form method="GET" action="/pagos" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-on-surface-variant">Estado</label>
-                        <select name="estado" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary transition-all">
+                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                    <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
+                </div>
+                <form method="GET" action="/pagos" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="estado" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Estado</label>
+                        <select name="estado" id="estado" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                             <option value="">Todos los estados</option>
                             <option value="PENDIENTE" <?= ($filtros['estado'] === 'PENDIENTE') ? 'selected' : '' ?>>Pendientes</option>
                             <option value="EN REVISIÓN" <?= ($filtros['estado'] === 'EN REVISIÓN') ? 'selected' : '' ?>>En revisión</option>
@@ -38,28 +38,29 @@
                             <option value="RECHAZADO" <?= ($filtros['estado'] === 'RECHAZADO') ? 'selected' : '' ?>>Rechazados</option>
                         </select>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-on-surface-variant">Edificio / Torre</label>
-                        <select name="edificio" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary transition-all">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="edificio" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Edificio / Torre</label>
+                        <select name="edificio" id="edificio" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                             <option value="">Todos los edificios</option>
                             <?php foreach ($edificios as $ed): ?>
                                 <option value="<?= e($ed['id']) ?>" <?= ($filtros['edificio'] == $ed['id']) ? 'selected' : '' ?>><?= e($ed['nombre']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-semibold text-on-surface-variant">Fecha de Pago</label>
-                        <input type="date" name="fecha" value="<?= e($filtros['fecha']) ?>"
-                               class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary transition-all">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="fecha" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Fecha de Pago</label>
+                        <input type="date" name="fecha" id="fecha" value="<?= e($filtros['fecha']) ?>"
+                               class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
                     </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="flex-1 bg-primary hover:bg-primary-hover text-white font-bold py-2 rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">search</span>
-                            Filtrar
-                        </button>
-                        <a href="/pagos" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-on-surface border border-slate-200 font-bold rounded-xl text-xs text-center transition-all flex items-center justify-center">
-                            Limpiar
+                    <div class="col-span-full flex justify-end gap-2 pt-2">
+                        <a href="/pagos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1">
+                            <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                            Limpiar Filtros
                         </a>
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+                            <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+                            Aplicar Filtros
+                        </button>
                     </div>
                 </form>
             </div>
