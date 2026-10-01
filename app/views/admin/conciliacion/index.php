@@ -44,11 +44,11 @@
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
                 <!-- Barra de Acciones del Contenido -->
-                <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2">
+                <div class="flex justify-end items-center mb-4 flex-wrap gap-2">
                     <?php if (!empty($lotes)): ?>
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="small text-dark fw-bold text-nowrap">Lote activo:</label>
-                            <select class="form-select form-select-sm shadow-sm" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote activo:</label>
+                            <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
                                 <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
                                 <?php foreach ($lotes as $l): ?>
                                     <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
@@ -58,207 +58,231 @@
                             </select>
                         </div>
                     <?php endif; ?>
-                    <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
-                        <span class="material-symbols-outlined fs-6">upload_file</span>
+                    <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
+                        <span class="material-symbols-outlined text-[16px]">upload_file</span>
                         <span>Importar Extracto</span>
                     </button>
                 </div>
 
                 <!-- Métricas Rápidas / Indicadores Clave -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-100" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Pagos por Verificar">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Pagos por Verificar</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($pagosPendientes) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-warning opacity-75">pending_actions</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-amber-400 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Pagos por Verificar">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Pagos por Verificar</span>
+                                <span class="text-2xl font-black text-on-surface block"><?= count($pagosPendientes) ?></span>
                             </div>
-                            <small class="text-muted mt-2 d-block">Listado general en espera</small>
+                            <span class="material-symbols-outlined text-4xl text-warning opacity-75">pending_actions</span>
                         </div>
+                        <small class="text-xs text-on-surface-variant mt-2 block">Listado general en espera</small>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-100" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Exactas">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Exactas</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-success opacity-75">verified</span>
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-green-500 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Exactas</span>
+                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
                             </div>
-                            <small class="text-muted mt-2 d-block">Coincidencia por referencia y monto</small>
+                            <span class="material-symbols-outlined text-4xl text-success opacity-75">verified</span>
                         </div>
+                        <small class="text-xs text-on-surface-variant mt-2 block">Coincidencia por referencia y monto</small>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info h-100" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Sugeridas">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Sugeridas</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-info opacity-75">rule</span>
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-sky-500 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Sugeridas">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Sugeridas</span>
+                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
                             </div>
-                            <small class="text-muted mt-2 d-block">Sugerencias por fecha y monto</small>
+                            <span class="material-symbols-outlined text-4xl text-info opacity-75">rule</span>
                         </div>
+                        <small class="text-xs text-on-surface-variant mt-2 block">Sugerencias por fecha y monto</small>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-100" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Movimientos Sin Coincidencia">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Sin Coincidencia</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-secondary opacity-75">help</span>
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-slate-400 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Movimientos Sin Coincidencia">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Sin Coincidencia</span>
+                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
                             </div>
-                            <small class="text-muted mt-2 d-block">Movimientos sin asociar</small>
+                            <span class="material-symbols-outlined text-4xl text-secondary opacity-75">help</span>
                         </div>
+                        <small class="text-xs text-on-surface-variant mt-2 block">Movimientos sin asociar</small>
                     </div>
                 </div>
 
+                <!-- Filtros de Coincidencia (fuera de la lista de la bandeja) -->
+                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-8">
+                    <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                        <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
+                        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Coincidencia</h2>
+                    </div>
+                    <div class="flex flex-wrap gap-2" id="filtrosConciliacion" role="group" aria-label="Filtros de coincidencia de la bandeja">
+                        <button type="button" class="filtro-pill active px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="todas" id="filtro-todas">
+                            Todas (<?= (int)$conteosConciliacion['total'] ?>)
+                        </button>
+                        <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="exacta" id="filtro-exactas">
+                            Exactas (<?= (int)$conteosConciliacion['exacta'] ?>)
+                        </button>
+                        <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sugerida" id="filtro-sugeridas">
+                            Sugeridas (<?= (int)$conteosConciliacion['sugerida'] ?>)
+                        </button>
+                        <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="inconsistencia" id="filtro-inconsistencias">
+                            Inconsistencias (<?= (int)$conteosConciliacion['inconsistencia'] ?>)
+                        </button>
+                        <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sin_coincidencia" id="filtro-sin-coincidencia">
+                            Sin Coincidencia (<?= (int)$conteosConciliacion['sin_coincidencia'] ?>)
+                        </button>
+                        <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sin_extracto" id="filtro-sin-extracto">
+                            Sin Extracto (<?= (int)$conteosConciliacion['sin_extracto'] ?>)
+                        </button>
+                    </div>
+                </div>
+
+                <style>
+                    .filtro-pill {
+                        padding: 0.375rem 0.75rem;
+                        border-radius: 9999px;
+                        border: 1px solid #e2e8f0;
+                        font-size: 0.75rem;
+                        line-height: 1rem;
+                        font-weight: 700;
+                        background-color: #f1f5f9;
+                        color: #334155;
+                        cursor: pointer;
+                        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+                    }
+                    .filtro-pill:hover {
+                        background-color: #e2e8f0;
+                    }
+                    .filtro-pill.active {
+                        background-color: var(--bs-primary, #27ae60);
+                        color: #fff;
+                        border-color: var(--bs-primary, #27ae60);
+                    }
+                </style>
+
                 <!-- BANDEJA UNIFICADA: PAGOS POR VERIFICAR Y CONCILIAR -->
-                <div class="card border-0 shadow-sm rounded-3 mb-4" id="seccionConciliacion">
-                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm" id="seccionConciliacion">
+                    <div class="flex justify-between items-center pb-4 border-b border-background mb-6 flex-wrap gap-2">
                         <div>
-                            <h5 class="mb-0 fw-bolder text-dark d-flex align-items-center gap-2">
+                            <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
                                 <span class="material-symbols-outlined text-warning">hourglass_top</span>
                                 <span>Pagos por Verificar y Conciliar</span>
-                            </h5>
-                            <span class="small text-muted">Bandeja única de pagos reportados y movimientos del extracto bancario</span>
+                            </h3>
+                            <p class="text-xs text-on-surface-variant">Bandeja única de pagos reportados y movimientos del extracto bancario</p>
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-light text-dark border fw-bold px-3 py-1.5">Total: <?= count($filasConciliacion) ?></span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant">Total: <?= count($filasConciliacion) ?></span>
                             <?php if (!empty($resultadoCruce['coincidencias_exactas'])): ?>
-                                <button type="button" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1" onclick="conciliarLoteExactas()">
-                                    <span class="material-symbols-outlined fs-6">done_all</span>
+                                <button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-xl shadow-sm text-xs inline-flex items-center gap-1.5 transition-all" onclick="conciliarLoteExactas()">
+                                    <span class="material-symbols-outlined text-[16px]">done_all</span>
                                     <span>Conciliar Todas las Exactas (1-Clic)</span>
                                 </button>
                             <?php endif; ?>
                         </div>
                     </div>
 
-                    <!-- Filtro por tipo de coincidencia (independiente de la tabla) -->
-                    <div class="card-header bg-light py-2 border-bottom">
-                        <ul class="nav nav-pills card-header-pills flex-wrap gap-1" id="filtrosConciliacion" role="tablist">
-                            <li class="nav-item">
-                                <button type="button" class="nav-link active fw-bold text-dark" id="filtro-todas" data-filtro-categoria="todas">
-                                    Todas (<?= (int)$conteosConciliacion['total'] ?>)
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-exactas" data-filtro-categoria="exacta">
-                                    Exactas (<?= (int)$conteosConciliacion['exacta'] ?>)
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sugeridas" data-filtro-categoria="sugerida">
-                                    Sugeridas (<?= (int)$conteosConciliacion['sugerida'] ?>)
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-inconsistencias" data-filtro-categoria="inconsistencia">
-                                    Inconsistencias (<?= (int)$conteosConciliacion['inconsistencia'] ?>)
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sin-coincidencia" data-filtro-categoria="sin_coincidencia">
-                                    Sin Coincidencia (<?= (int)$conteosConciliacion['sin_coincidencia'] ?>)
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sin-extracto" data-filtro-categoria="sin_extracto">
-                                    Sin Extracto (<?= (int)$conteosConciliacion['sin_extracto'] ?>)
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
+                    <?php if (empty($filasConciliacion)): ?>
+                        <div class="text-center py-12 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-5xl text-success mb-2 block">task_alt</span>
+                            <p class="font-semibold">No hay movimientos pendientes de verificación ni conciliación.</p>
+                            <p class="text-xs mt-1">Todos los pagos reportados y los movimientos del extracto bancario ya fueron resueltos.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm border-collapse" id="tablaConciliacion">
+                                <thead>
+                                    <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                        <th class="py-3 px-4">Residente</th>
+                                        <th class="py-3 px-4">Inmueble</th>
+                                        <th class="py-3 px-4">Referencia</th>
+                                        <th class="py-3 px-4 text-end">Monto (Bs.)</th>
+                                        <th class="py-3 px-4">Fecha</th>
+                                        <th class="py-3 px-4 text-end">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-background">
+                                    <?php foreach ($filasConciliacion as $fila): ?>
+                                        <?php
+                                        $pago = $fila['pago'];
+                                        $extracto = $fila['extracto'];
 
-                    <div class="card-body p-0">
-                        <?php if (empty($filasConciliacion)): ?>
-                            <div class="text-center py-5 text-muted">
-                                <span class="material-symbols-outlined fs-1 text-success d-block mb-2">task_alt</span>
-                                <strong class="text-dark">No hay movimientos pendientes de verificación ni conciliación.</strong>
-                                <p class="small text-muted mt-1 mb-0">Todos los pagos reportados y los movimientos del extracto bancario ya fueron resueltos.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0" id="tablaConciliacion">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="ps-4 py-3">Residente</th>
-                                            <th class="py-3">Inmueble</th>
-                                            <th class="py-3">Referencia</th>
-                                            <th class="py-3 text-end">Monto (Bs.)</th>
-                                            <th class="py-3">Fecha</th>
-                                            <th class="py-3 text-end pe-4">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="border-top-0">
-                                        <?php foreach ($filasConciliacion as $fila): ?>
-                                            <?php
-                                            $pago = $fila['pago'];
-                                            $extracto = $fila['extracto'];
+                                        if ($pago !== null) {
+                                            $residente  = $pago['residente_nombre'] ?: 'Residente';
+                                            $inmueble   = ($pago['edificio_nombre'] ?: 'Sin Torre') . ' - Unidad ' . ($pago['unidad_numero'] ?: 'S/N');
+                                            $referencia = $pago['referencia'] ?: 'S/R';
+                                            $monto      = $pago['monto'];
 
-                                            if ($pago !== null) {
-                                                $residente  = $pago['residente_nombre'] ?: 'Residente';
-                                                $inmueble   = ($pago['edificio_nombre'] ?: 'Sin Torre') . ' - Unidad ' . ($pago['unidad_numero'] ?: 'S/N');
-                                                $referencia = $pago['referencia'] ?: 'S/R';
-                                                $monto      = $pago['monto'];
-
-                                                if ($extracto !== null) {
-                                                    $detalle = ['extracto' => $proyectarExtractoDetalle($extracto), 'pago' => $proyectarPagoDetalle($pago)];
-                                                } else {
-                                                    $detalle = ['pago' => $proyectarPagoDetalle($pago)];
-                                                }
+                                            if ($extracto !== null) {
+                                                $detalle = ['extracto' => $proyectarExtractoDetalle($extracto), 'pago' => $proyectarPagoDetalle($pago)];
                                             } else {
-                                                $residente  = '—';
-                                                $inmueble   = '—';
-                                                $referencia = ($extracto['referencia_bancaria'] ?: ($extracto['referencia'] ?? '')) ?: 'S/R';
-                                                $monto      = $extracto['monto'];
-                                                $detalle    = ['extracto' => $proyectarExtractoDetalle($extracto)];
+                                                $detalle = ['pago' => $proyectarPagoDetalle($pago)];
                                             }
-                                            ?>
-                                            <tr class="border-bottom" data-categoria="<?= e($fila['categoria']) ?>">
-                                                <td class="ps-4">
-                                                    <div class="fw-bold text-dark"><?= e($residente) ?></div>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark"><?= e($inmueble) ?></div>
-                                                </td>
-                                                <td class="font-monospace fw-bold text-dark">
-                                                    <?= e($referencia) ?>
-                                                </td>
-                                                <td class="text-end font-monospace fw-bolder text-dark">
-                                                    <?= e(formatearMoneda($monto)) ?>
-                                                </td>
-                                                <td class="text-muted small">
-                                                    <?= e(date('d/m/Y', strtotime($fila['fecha']))) ?>
-                                                </td>
-                                                <td class="text-end pe-4 text-nowrap">
+                                        } else {
+                                            $residente  = '—';
+                                            $inmueble   = '—';
+                                            $referencia = ($extracto['referencia_bancaria'] ?: ($extracto['referencia'] ?? '')) ?: 'S/R';
+                                            $monto      = $extracto['monto'];
+                                            $detalle    = ['extracto' => $proyectarExtractoDetalle($extracto)];
+                                        }
+                                        ?>
+                                        <tr class="hover:bg-background/40 transition-colors" data-categoria="<?= e($fila['categoria']) ?>">
+                                            <td class="py-4 px-4 font-semibold text-on-surface">
+                                                <?= e($residente) ?>
+                                            </td>
+                                            <td class="py-4 px-4 text-xs font-medium text-slate-700">
+                                                <?= e($inmueble) ?>
+                                            </td>
+                                            <td class="py-4 px-4 font-mono text-xs">
+                                                <?= e($referencia) ?>
+                                            </td>
+                                            <td class="py-4 px-4 font-bold text-on-surface">
+                                                <?= e(formatearMoneda($monto)) ?>
+                                            </td>
+                                            <td class="py-4 px-4 text-xs">
+                                                <?= e(date('d/m/Y', strtotime($fila['fecha']))) ?>
+                                            </td>
+                                            <td class="py-4 px-4 text-end">
+                                                <div class="flex items-center justify-end gap-1.5">
+                                                    <?php if ($pago !== null && $extracto !== null): ?>
+                                                        <form method="POST" action="/admin/conciliacion/conciliar" class="inline-flex" onsubmit="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
+                                                            <?= csrf_field() ?>
+                                                            <input type="hidden" name="extracto_id" value="<?= (int)$extracto['id'] ?>">
+                                                            <input type="hidden" name="pago_id" value="<?= (int)$pago['id'] ?>">
+                                                            <input type="hidden" name="origen_tipo" value="<?= e($pago['origen_tabla'] ?? 'pago') ?>">
+                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Conciliar pago">Conciliar</button>
+                                                        </form>
+                                                        <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Rechazar pago" onclick="abrirModalRechazo(<?= (int)$pago['id'] ?>, '<?= e($pago['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($pago['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($pago['referencia'] ?? 'S/R')) ?>')">Rechazar</button>
+                                                    <?php elseif ($pago !== null): ?>
+                                                        <form method="POST" action="/admin/conciliacion/verificar" class="inline-flex" onsubmit="return confirm('¿Confirma la verificación y aprobación de este pago?');">
+                                                            <?= csrf_field() ?>
+                                                            <input type="hidden" name="pago_id" value="<?= (int)$pago['id'] ?>">
+                                                            <input type="hidden" name="origen_tipo" value="<?= e($pago['origen_tabla'] ?? 'pago') ?>">
+                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Verificar pago">Verificar</button>
+                                                        </form>
+                                                        <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Rechazar pago" onclick="abrirModalRechazo(<?= (int)$pago['id'] ?>, '<?= e($pago['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($pago['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($pago['referencia'] ?? 'S/R')) ?>')">Rechazar</button>
+                                                    <?php endif; ?>
                                                     <button type="button"
-                                                            class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg border border-slate-200"
+                                                            class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-1.5 rounded-lg border border-slate-200"
                                                             onclick='verDetalleConciliacion(<?= json_encode($detalle, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                             title="Ver Detalle">
                                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                                        <span>Detalles</span>
                                                     </button>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                        <tr id="filtroSinResultados" style="display: none;">
-                                            <td colspan="6" class="text-center py-5 text-muted">
-                                                <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">filter_alt_off</span>
-                                                <strong>No hay movimientos en esta categoría.</strong>
+                                                </div>
                                             </td>
                                         </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                                    <?php endforeach; ?>
+                                    <tr id="filtroSinResultados" style="display: none;">
+                                        <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                            <span class="material-symbols-outlined text-5xl text-on-surface-variant/40 block mb-2">filter_alt_off</span>
+                                            <strong>No hay movimientos en esta categoría.</strong>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
             </div>

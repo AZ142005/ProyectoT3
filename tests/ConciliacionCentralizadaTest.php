@@ -97,29 +97,33 @@ class ConciliacionCentralizadaTest extends TestCase {
     }
 
     /**
-     * Verifica que los colores semánticos estén restaurados en badges, botones y componentes,
-     * pero manteniendo los montos y números sin clases de color (text-dark o font-monospace).
+     * Verifica que los montos de la bandeja permanezcan neutrales mientras las
+     * acciones por fila conservan su semántica visual: verde para conciliar/verificar,
+     * rojo para rechazar y gris para ver el detalle.
      */
     public function testVistaRestauraColoresSemanticosExceptoNumeros(): void {
         $viewPath = VIEWS_PATH . '/admin/conciliacion/index.php';
         $content = file_get_contents($viewPath);
 
-        // Los montos no deben tener clases de texto de color
+        // Los montos permanecen neutrales: la celda de monto usa text-on-surface y no colores semánticos
         $this->assertFalse(
-            (bool)preg_match('/<td[^>]*font-monospace[^>]*text-(success|danger|warning|info|primary)/i', $content),
-            "Las celdas de números/montos no deben llevar clases de color de texto"
+            (bool)preg_match('/<td[^>]*font-bold[^>]*text-(green|red|success|danger|warning|info|primary)/i', $content),
+            "La celda de monto no debe combinar número con clases de color semántico"
         );
 
-        // La vista debe tener botones semánticos restaurados
-        $this->assertTrue(str_contains($content, 'btn-success'), "La vista debe incluir botones de éxito (btn-success)");
-        $this->assertTrue(str_contains($content, 'btn-primary'), "La vista debe incluir botones primarios (btn-primary)");
-        $this->assertTrue(str_contains($content, 'btn-outline-danger') || str_contains($content, 'btn-danger'), "La vista debe incluir botones de peligro");
+        // Las acciones directas por fila sí son semánticas: verde para conciliar/verificar
+        $this->assertTrue(str_contains($content, 'bg-green-50'), "Las acciones de conciliar/verificar deben usar verde (bg-green-50)");
+        $this->assertTrue(str_contains($content, 'text-green-700'), "Las acciones de conciliar/verificar deben usar verde (text-green-700)");
 
-        // Debe utilizar text-dark para la legibilidad de números y textos base
-        $this->assertTrue(
-            str_contains($content, 'text-dark'),
-            "La vista debe usar text-dark para textos y números"
-        );
+        // Rojo para rechazar
+        $this->assertTrue(str_contains($content, 'bg-red-50'), "La acción de rechazo debe usar rojo (bg-red-50)");
+        $this->assertTrue(str_contains($content, 'text-red-700'), "La acción de rechazo debe usar rojo (text-red-700)");
+
+        // El botón de detalle conserva el gris neutro del historial
+        $this->assertTrue(str_contains($content, 'bg-slate-100'), "El botón de detalle debe usar el gris del historial (bg-slate-100)");
+
+        // La base textual del estilo nuevo es on-surface
+        $this->assertTrue(str_contains($content, 'text-on-surface'), "La vista debe usar text-on-surface para textos y números");
     }
 
     /**

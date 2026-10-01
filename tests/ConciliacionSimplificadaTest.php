@@ -3,8 +3,9 @@ namespace Tests;
 
 /**
  * Verifica el contrato visual de admin/conciliacion/index.php:
- * tarjetas de métricas restauradas, bandeja unificada compacta con filtro de
- * coincidencias y botón "Detalles", sin descargas por fila ni ruido deprecado.
+ * tarjetas de métricas restauradas, filtros de coincidencia fuera de la lista,
+ * bandeja con estilo del Historial de Pagos, acciones directas por fila
+ * (Conciliar/Verificar/Rechazar) y detalle en ícono, sin descargas por fila.
  */
 class ConciliacionSimplificadaTest extends TestCase {
 
@@ -49,14 +50,35 @@ class ConciliacionSimplificadaTest extends TestCase {
             "Debe existir el filtro 'Todas', activo por defecto");
         $this->assertStringContains('id="filtro-sin-extracto"', $content,
             "Debe existir el filtro de pagos sin extracto");
-        $this->assertStringContains('Detalles', $content,
-            "Cada fila debe ofrecer el botón emergente 'Detalles'");
+        $this->assertStringContains('title="Ver Detalle"', $content,
+            "Cada fila debe ofrecer el botón de detalle del historial ('Ver Detalle')");
         $this->assertStringContains('Conciliar Todas las Exactas', $content,
             "Debe conservarse la conciliación en lote (1-Clic)");
-        $this->assertStringContains('table-sm', $content,
-            "Las tablas de datos deben usar densidad compacta (table-sm)");
+        $this->assertStringContains('border-collapse', $content,
+            "La tabla de la bandeja debe usar el estilo del historial (border-collapse)");
+        $this->assertStringContains('text-sm', $content,
+            "La tabla de la bandeja debe usar el estilo del historial (text-sm)");
         $this->assertFalse(str_contains($content, 'title="Descargar comprobante"'),
             "No debe existir descarga de comprobante por fila");
+
+        // Acciones directas por fila dentro de la tabla de la bandeja
+        $inicioTabla = strpos($content, 'id="tablaConciliacion"');
+        $this->assertTrue($inicioTabla !== false, "Debe existir la tabla de la bandeja de conciliación");
+        $finTabla = strpos($content, '</table>', $inicioTabla);
+        $this->assertTrue($finTabla !== false, "La tabla de la bandeja debe cerrar correctamente");
+        $tabla = substr($content, $inicioTabla, $finTabla - $inicioTabla);
+
+        $this->assertFalse(str_contains($tabla, 'table-sm'),
+            "La tabla de la bandeja no debe usar clases Bootstrap de tabla (table-sm)");
+        $this->assertStringContains('action="/admin/conciliacion/conciliar"', $tabla,
+            "Las filas con pago y extracto deben ofrecer la conciliación directa");
+        $this->assertStringContains('action="/admin/conciliacion/verificar"', $tabla,
+            "Las filas de pago sin extracto deben ofrecer la verificación directa");
+
+        foreach (['>Conciliar<', '>Verificar<', '>Rechazar<'] as $botonDirecto) {
+            $this->assertStringContains($botonDirecto, $tabla,
+                "La tabla debe incluir el botón directo {$botonDirecto}");
+        }
     }
 
     public function testVistaEliminaColumnaLoteCondicional(): void {
