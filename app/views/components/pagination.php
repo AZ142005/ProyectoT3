@@ -12,6 +12,7 @@ $baseUrl = e($_SERVER['PHP_SELF'] . '?' . http_build_query(array_filter([
     'fecha'       => $filtros['fecha'] ?? '',
     'fecha_desde' => $filtros['fecha_desde'] ?? '',
     'fecha_hasta' => $filtros['fecha_hasta'] ?? '',
+    'tab'         => $filtros['tab'] ?? '',
 ])));
 $separator = str_contains($baseUrl, '?') ? '&' : '?';
 $pagina = (int) $paginacion['pagina'];

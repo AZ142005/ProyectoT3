@@ -1,43 +1,23 @@
-<div class="flex flex-1 min-h-screen w-full">
-    <?php $activeRoute = 'solicitudes_registro'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
-
-    <!-- Contenido Principal -->
-    <div class="flex-1 flex flex-col min-w-0">
-        <!-- Barra superior -->
-        <header class="bg-white border-b border-outline-variant h-16 px-6 flex justify-between items-center shrink-0">
-            <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
-                    <span class="material-symbols-outlined">menu</span>
-                </button>
-                <h1 class="text-xl font-bold text-on-surface">Gestión de Solicitudes de Registro</h1>
-            </div>
-            <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
-                <span class="material-symbols-outlined text-[18px]">logout</span>
-            </a>
-        </header>
-
-        <!-- Contenido principal scrollable -->
-        <div class="flex-grow p-6 overflow-y-auto">
-            <div class="container-fluid p-0">
-                <!-- Mensajes Flash -->
-                <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
-
-                <!-- Filtros y Resumen -->
+                <!-- Encabezado interno y Filtros de la pestaña -->
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined text-primary fs-4">how_to_reg</span>
+                        <h2 class="fs-6 fw-bold mb-0 text-dark">Solicitudes de Registro</h2>
+                    </div>
                     <div class="btn-group shadow-sm" role="group" aria-label="Filtros de estado">
-                        <a href="/admin/solicitudes-registro" class="btn btn-outline-secondary <?= empty($filtroEstado) ? 'active font-bold' : '' ?>">
-                            Todas (<?= e($paginacion['total']) ?>)
+                        <a href="/admin/usuarios?tab=solicitudes" class="btn btn-outline-secondary <?= empty($estadoSolicitud) ? 'active font-bold' : '' ?>">
+                            Todas (<?= e($paginacionSolicitudes['total']) ?>)
                         </a>
-                        <a href="/admin/solicitudes-registro?estado=pendiente" class="btn btn-outline-warning text-dark <?= ($filtroEstado === 'pendiente') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=pendiente" class="btn btn-outline-warning text-dark <?= ($estadoSolicitud === 'pendiente') ? 'active font-bold' : '' ?>">
                             Pendientes
                             <?php if ($pendientesCount > 0): ?>
                                 <span class="badge bg-warning text-dark ms-1 rounded-pill"><?= e($pendientesCount) ?></span>
                             <?php endif; ?>
                         </a>
-                        <a href="/admin/solicitudes-registro?estado=aprobada" class="btn btn-outline-success <?= ($filtroEstado === 'aprobada') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=aprobada" class="btn btn-outline-success <?= ($estadoSolicitud === 'aprobada') ? 'active font-bold' : '' ?>">
                             Aprobadas
                         </a>
-                        <a href="/admin/solicitudes-registro?estado=rechazada" class="btn btn-outline-danger <?= ($filtroEstado === 'rechazada') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=rechazada" class="btn btn-outline-danger <?= ($estadoSolicitud === 'rechazada') ? 'active font-bold' : '' ?>">
                             Rechazadas
                         </a>
                     </div>
@@ -47,7 +27,7 @@
                 <div class="card border-0 shadow-sm rounded-3">
                     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0 fw-bold text-dark">Bandeja de Solicitudes de Residentes</h5>
-                        <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Registros</span>
+                        <span class="badge bg-primary rounded-pill"><?= e($paginacionSolicitudes['total']) ?> Registros</span>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -67,7 +47,7 @@
                                         <tr>
                                             <td colspan="6" class="text-center py-5 text-muted">
                                                 <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">how_to_reg</span>
-                                                No hay solicitudes de registro <?= !empty($filtroEstado) ? 'con estado ' . e($filtroEstado) : 'pendientes o registradas' ?>.
+                                                No hay solicitudes de registro <?= !empty($estadoSolicitud) ? 'con estado ' . e($estadoSolicitud) : 'pendientes o registradas' ?>.
                                             </td>
                                         </tr>
                                     <?php else: ?>
@@ -154,14 +134,14 @@
 
                         <!-- Paginación -->
                         <div class="p-3 border-top bg-light">
-                            <?php include VIEWS_PATH . '/components/pagination.php'; ?>
+                            <?php
+                            $filtros = ['estado' => $estadoSolicitud ?? '', 'tab' => 'solicitudes'];
+                            $paginacion = $paginacionSolicitudes;
+                            include VIEWS_PATH . '/components/pagination.php';
+                            ?>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Modal para Rechazar Solicitud de Registro -->
 <div class="modal fade" id="modalRechazarSolicitudRegistro" tabindex="-1" aria-hidden="true">

@@ -11,7 +11,7 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">group</span>
-                    <span>Gestión de Usuarios y Credenciales</span>
+                    <span>Usuarios y Solicitudes</span>
                 </h1>
             </div>
             <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
@@ -24,6 +24,64 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash Estándar -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+                <!-- ESTILOS ESPECÍFICOS PARA PESTAÑAS -->
+                <style>
+                .nav-pills .nav-link {
+                    color: #475569;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    transition: all 0.2s ease-in-out;
+                }
+                .nav-pills .nav-link:hover:not(.active) {
+                    background-color: #f1f5f9;
+                    color: #0f172a;
+                }
+                .nav-pills .nav-link.active {
+                    background-color: #27ae60 !important;
+                    border-color: #27ae60 !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.25);
+                }
+                </style>
+
+                <!-- NAVEGACIÓN EN DOS PESTAÑAS: USUARIOS VS SOLICITUDES DE REGISTRO -->
+                <div class="bg-white rounded-2xl border border-outline-variant p-2 shadow-sm mb-4">
+                    <ul class="nav nav-pills nav-fill gap-2" id="usuariosTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= ($tabActual === 'usuarios') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                                    id="tab-usuarios-btn"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#tab-usuarios"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="tab-usuarios"
+                                    aria-selected="<?= ($tabActual === 'usuarios') ? 'true' : 'false' ?>">
+                                <span class="material-symbols-outlined text-[20px]">group</span>
+                                <span>Usuarios</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= ($tabActual === 'solicitudes') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                                    id="tab-solicitudes-btn"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#tab-solicitudes"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="tab-solicitudes"
+                                    aria-selected="<?= ($tabActual === 'solicitudes') ? 'true' : 'false' ?>">
+                                <span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+                                <span>Solicitudes de Registro</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content" id="usuariosTabsContent">
+                    <!-- ========================================================================= -->
+                    <!-- PESTAÑA 1: LISTADO UNIFICADO DE USUARIOS Y CREDENCIALES                    -->
+                    <!-- ========================================================================= -->
+                    <div class="tab-pane fade <?= ($tabActual === 'usuarios') ? 'show active' : '' ?> space-y-6" id="tab-usuarios" role="tabpanel" aria-labelledby="tab-usuarios-btn">
 
                 <!-- Banner Especial de Contraseña Reiniciada -->
                 <?php if (!empty($passwordReseteada) && is_array($passwordReseteada)): ?>
@@ -61,6 +119,7 @@
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-4">
                         <form method="GET" action="/admin/usuarios" class="row g-3 align-items-end">
+                            <input type="hidden" name="tab" value="usuarios">
                             <div class="col-md-7 col-lg-8">
                                 <label for="buscar" class="form-label fw-bold text-secondary small">Buscar Usuario</label>
                                 <div class="input-group">
@@ -89,7 +148,7 @@
                                     <span>Filtrar</span>
                                 </button>
                                 <?php if (!empty($buscar) || !empty($rol)): ?>
-                                    <a href="/admin/usuarios" class="btn btn-outline-secondary fw-semibold d-inline-flex align-items-center justify-center" title="Limpiar filtros">
+                                    <a href="/admin/usuarios?tab=usuarios" class="btn btn-outline-secondary fw-semibold d-inline-flex align-items-center justify-center" title="Limpiar filtros">
                                         <span class="material-symbols-outlined fs-6">close</span>
                                     </a>
                                 <?php endif; ?>
@@ -306,6 +365,7 @@
                                 <ul class="pagination pagination-sm mb-0">
                                     <?php
                                     $queryParams = [];
+                                    $queryParams['tab'] = 'usuarios';
                                     if (!empty($buscar)) $queryParams['buscar'] = $buscar;
                                     if (!empty($rol)) $queryParams['rol'] = $rol;
                                     $buildPageUrl = function($p) use ($queryParams) {
@@ -340,6 +400,16 @@
                             </nav>
                         </div>
                     <?php endif; ?>
+                </div>
+
+                    </div>
+                    <!-- ========================================================================= -->
+                    <!-- PESTAÑA 2: SOLICITUDES DE REGISTRO DE RESIDENTES                          -->
+                    <!-- URL de la pestaña: /admin/usuarios?tab=solicitudes                        -->
+                    <!-- ========================================================================= -->
+                    <div class="tab-pane fade <?= ($tabActual === 'solicitudes') ? 'show active' : '' ?> space-y-6" id="tab-solicitudes" role="tabpanel" aria-labelledby="tab-solicitudes-btn">
+                        <?php require VIEWS_PATH . '/admin/solicitudes_registro/index.php'; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -771,5 +841,19 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelarEliminacion();
         });
     }
+});
+
+// SINCRONIZACIÓN Y PERSISTENCIA DE PESTAÑAS (TABS)
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('#usuariosTabs button[data-bs-toggle="pill"]');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', (e) => {
+            const targetId = e.target.getAttribute('data-bs-target');
+            const tabName = targetId === '#tab-solicitudes' ? 'solicitudes' : 'usuarios';
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabName);
+            window.history.replaceState({}, '', url);
+        });
+    });
 });
 </script>
