@@ -112,8 +112,8 @@
                 </div>
 
                 <!-- Filtros de Coincidencia (fuera de la lista de la bandeja) -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-8">
-                    <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
+                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
                         <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
                         <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Coincidencia</h2>
                     </div>

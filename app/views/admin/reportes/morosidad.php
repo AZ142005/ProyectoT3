@@ -83,15 +83,15 @@
     </div>
 
     <!-- Barra de Filtros -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
-        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+    <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
+        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
             <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
             <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
         </div>
-        <form method="GET" action="/admin/reportes/morosidad" id="formFiltrosBalance" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-            <div class="flex flex-col gap-1.5">
+        <form method="GET" action="/admin/reportes/morosidad" id="formFiltrosBalance" class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+            <div class="flex flex-col gap-1">
                 <label for="edificio_id" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Filtrar por Edificio / Torre</label>
-                <select name="edificio_id" id="edificio_id" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                <select name="edificio_id" id="edificio_id" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                     <option value="">-- Todos los Edificios --</option>
                     <?php foreach ($edificios as $ed): ?>
                         <option value="<?= e($ed['id']) ?>" <?= (($filtros['edificio_id'] ?? '') == $ed['id']) ? 'selected' : '' ?>>
@@ -100,16 +100,16 @@
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="flex flex-col gap-1.5">
+            <div class="flex flex-col gap-1">
                 <label for="dias_mora" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Antigüedad de Deuda</label>
-                <select name="dias_mora" id="dias_mora" class="w-full px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                <select name="dias_mora" id="dias_mora" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                     <option value="">-- Todos los Rangos --</option>
                     <option value="30" <?= (($filtros['dias_mora'] ?? '') == '30') ? 'selected' : '' ?>>Mayor a 30 Días</option>
                     <option value="60" <?= (($filtros['dias_mora'] ?? '') == '60') ? 'selected' : '' ?>>Mayor a 60 Días</option>
                     <option value="90" <?= (($filtros['dias_mora'] ?? '') == '90') ? 'selected' : '' ?>>Crítico (Mayor a 90 Días)</option>
                 </select>
             </div>
-            <div class="col-span-full flex justify-end gap-2 pt-2">
+            <div class="col-span-full flex justify-end gap-2">
                 <a href="/admin/reportes/morosidad" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar Filtros">
                     <span class="material-symbols-outlined text-[16px]">clear_all</span>
                     Limpiar Filtros
@@ -141,7 +141,7 @@
                 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
                 <input type="text" id="buscadorBalance" placeholder="Búsqueda rápida por nombre de edificio, número de unidad o propietario..."
                        onkeyup="filtrarBalance(this.value)"
-                       class="w-full pl-8 pr-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                       class="w-full pl-8 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
             </div>
         </div>
 
