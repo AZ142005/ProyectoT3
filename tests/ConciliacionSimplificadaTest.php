@@ -58,6 +58,8 @@ class ConciliacionSimplificadaTest extends TestCase {
             "La tabla de la bandeja debe usar el estilo del historial (border-collapse)");
         $this->assertStringContains('text-sm', $content,
             "La tabla de la bandeja debe usar el estilo del historial (text-sm)");
+        $this->assertStringContains('py-4 px-4 text-end font-bold text-on-surface', $content,
+            "El monto de la bandeja debe quedar alineado a la derecha con su encabezado");
         $this->assertFalse(str_contains($content, 'title="Descargar comprobante"'),
             "No debe existir descarga de comprobante por fila");
 

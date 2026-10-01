@@ -237,7 +237,7 @@
                                             <td class="py-4 px-4 font-mono text-xs">
                                                 <?= e($referencia) ?>
                                             </td>
-                                            <td class="py-4 px-4 font-bold text-on-surface">
+                                            <td class="py-4 px-4 text-end font-bold text-on-surface">
                                                 <?= e(formatearMoneda($monto)) ?>
                                             </td>
                                             <td class="py-4 px-4 text-xs">
