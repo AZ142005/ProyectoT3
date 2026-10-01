@@ -16,7 +16,7 @@
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h1 class="text-xl font-bold text-on-surface">Balance</h1>
+                <h1 class="text-xl font-bold text-on-surface">Carta de Deuda</h1>
             </div>
             <a href="<?= \App\Core\Auth::role() === 'auditor' ? '/auth/logout' : '/admin/logout' ?>" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
@@ -32,7 +32,7 @@
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Balance General</h4>
+            <h4 class="fw-bold text-dark mb-1">Carta de Deuda</h4>
             <p class="text-muted small mb-0">Consolidado financiero por edificios y desglose de solvencia de unidades</p>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -86,15 +86,7 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
         <div class="card-body py-3">
             <form method="GET" action="/admin/reportes/morosidad" class="row g-3 align-items-end" id="formFiltrosBalance">
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Estado Financiero</label>
-                    <select name="estado" class="form-select">
-                        <option value="">-- Todos los Estados --</option>
-                        <option value="solvente" <?= (($filtros['estado'] ?? '') === 'solvente') ? 'selected' : '' ?>>Solventes (Al Día)</option>
-                        <option value="deudor" <?= (($filtros['estado'] ?? '') === 'deudor') ? 'selected' : '' ?>>Con Deuda (Morosos)</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-bold small text-muted">Filtrar por Edificio / Torre</label>
                     <select name="edificio_id" class="form-select">
                         <option value="">-- Todos los Edificios --</option>
@@ -105,7 +97,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-bold small text-muted">Antigüedad de Deuda</label>
                     <select name="dias_mora" class="form-select">
                         <option value="">-- Todos los Rangos --</option>
@@ -114,7 +106,7 @@
                         <option value="90" <?= (($filtros['dias_mora'] ?? '') == '90') ? 'selected' : '' ?>>Crítico (Mayor a 90 Días)</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
+                <div class="col-md-4 d-flex gap-2">
                     <button type="submit" class="btn btn-primary fw-bold flex-fill d-inline-flex align-items-center justify-content-center gap-1 shadow-sm">
                         <span class="material-symbols-outlined fs-6">filter_list</span> Filtrar
                     </button>
@@ -130,7 +122,7 @@
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <h5 class="card-title mb-0 fw-bold text-dark">Balance General</h5>
+                <h5 class="card-title mb-0 fw-bold text-dark">Carta de Deuda</h5>
                 <small class="text-muted">Vista consolidada por edificio con detalle de unidades desplegable</small>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -159,7 +151,7 @@
                             <th class="ps-4 py-3" style="width: 32%;">Edificio</th>
                             <th class="py-3" style="width: 16%;">Unidades</th>
                             <th class="py-3" style="width: 20%;">Estado de Solvencia</th>
-                            <th class="py-3 text-end" style="width: 18%;">Balance Total (Bs)</th>
+                            <th class="py-3 text-end" style="width: 18%;">Deuda Total (Bs)</th>
                             <th class="py-3 text-center pe-4" style="width: 14%; min-width: 140px;">Detalle</th>
                         </tr>
                     </thead>
@@ -254,7 +246,7 @@
                                                     <span class="badge bg-slate-100 text-slate-700 border text-xs"><?= e($totalUnidades) ?> unidades</span>
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <span class="text-xs text-muted">Balance del Edificio:</span>
+                                                    <span class="text-xs text-muted">Deuda del Edificio:</span>
                                                     <span class="fw-bold fs-6 font-monospace <?= $tieneDeuda ? 'text-danger' : 'text-success' ?>">
                                                         <?= e(formatearMoneda($ed['balance_total'])) ?>
                                                     </span>

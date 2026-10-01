@@ -85,16 +85,25 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         }
     }
 
-    public function testVistaRenombraTituloABalanceGeneral(): void {
+    public function testVistaRenombraTituloACartaDeDeuda(): void {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $this->assertTrue(file_exists($viewPath), "La vista admin/reportes/morosidad.php debe existir");
 
         $content = file_get_contents($viewPath);
 
         // 1. Encabezado de la vista y de la tarjeta
-        $this->assertStringContains('Balance General', $content, "La vista debe incluir el título 'Balance General'");
-        $this->assertFalse(str_contains($content, 'Detalle de Unidades (Balance General)'),
-            "La vista ya no debe tener el título antiguo 'Detalle de Unidades (Balance General)'");
+        $this->assertStringContains('Carta de Deuda', $content, "La vista debe incluir el título 'Carta de Deuda'");
+        $this->assertFalse(str_contains($content, 'Balance General'),
+            "La vista ya no debe tener el título antiguo 'Balance General'");
+
+        // 2. Navegación lateral (admin y auditor) alineada al nuevo nombre
+        $adminSidebar = file_get_contents(VIEWS_PATH . '/layouts/admin_sidebar.php');
+        $this->assertStringContains("'label' => 'Carta de Deuda'", $adminSidebar,
+            "El sidebar de admin debe etiquetar la sección como 'Carta de Deuda'");
+
+        $auditorSidebar = file_get_contents(VIEWS_PATH . '/layouts/auditor_sidebar.php');
+        $this->assertStringContains("'label' => 'Carta de Deuda'", $auditorSidebar,
+            "El sidebar de auditor debe etiquetar la sección como 'Carta de Deuda'");
     }
 
     public function testVistaAgrupacionEdificiosYDrillDown(): void {
@@ -137,7 +146,7 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $content = file_get_contents($viewPath);
 
-        $this->assertStringContains('name="estado"', $content, "Debe existir el filtro por estado financiero");
+        $this->assertFalse(str_contains($content, 'name="estado"'), "Ya no debe existir el filtro por estado financiero");
         $this->assertStringContains('name="edificio_id"', $content, "Debe existir el filtro por edificio");
         $this->assertStringContains('name="dias_mora"', $content, "Debe existir el filtro por días de mora");
         $this->assertStringContains('id="buscadorBalance"', $content, "Debe existir el buscador rápido id='buscadorBalance'");

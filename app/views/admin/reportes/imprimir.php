@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= e($title ?? 'Reporte Oficial de Balance') ?></title>
+    <title><?= e($title ?? 'Reporte Oficial de Deuda') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; }
@@ -31,7 +31,7 @@
     <!-- Cabecera Oficial -->
     <div class="text-center mb-4 border-bottom pb-3">
         <h2 class="fw-bold mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h2>
-        <h5 class="text-secondary fw-semibold mb-2">REPORTE OFICIAL DE BALANCE Y ESTADO FINANCIERO DE UNIDADES</h5>
+        <h5 class="text-secondary fw-semibold mb-2">REPORTE OFICIAL DE DEUDA Y ESTADO FINANCIERO DE UNIDADES</h5>
         <p class="small text-muted mb-0">Fecha de Emisión: <?= date('d/m/Y H:i:s') ?> | Sistema de Cobranzas y Condominio Digital</p>
     </div>
 
