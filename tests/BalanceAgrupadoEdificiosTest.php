@@ -85,6 +85,28 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         }
     }
 
+    public function testFiltroPorEstadoSigueDisponibleEnElReporteCompleto(): void {
+        $reportesModel = new ReportesModel();
+
+        $sinFiltro = $reportesModel->obtenerReporteMorosidadCompleto();
+        $deudores  = $reportesModel->obtenerReporteMorosidadCompleto(['estado' => 'deudor']);
+        $solventes = $reportesModel->obtenerReporteMorosidadCompleto(['estado' => 'solvente']);
+
+        foreach ($deudores as $u) {
+            $this->assertTrue(floatval($u['total_deuda']) > 0,
+                "En 'deudor', toda unidad del reporte completo debe tener deuda mayor a 0");
+        }
+        foreach ($solventes as $u) {
+            $this->assertTrue(floatval($u['total_deuda']) <= 0,
+                "En 'solvente', toda unidad del reporte completo debe tener deuda en 0");
+        }
+        $this->assertEquals(
+            count($sinFiltro),
+            count($deudores) + count($solventes),
+            "El filtro de estado debe seguir disponible para impresión/CSV (partición del reporte completo)"
+        );
+    }
+
     public function testVistaRenombraTituloACartaDeDeuda(): void {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $this->assertTrue(file_exists($viewPath), "La vista admin/reportes/morosidad.php debe existir");

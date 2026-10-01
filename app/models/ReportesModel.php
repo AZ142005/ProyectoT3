@@ -229,6 +229,13 @@ class ReportesModel extends BaseModel {
             $params['edificio_id'] = intval($filtros['edificio_id']);
         }
 
+        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
+        if ($estadoFiltro === 'solvente') {
+            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
+            $where .= " AND m.total_deuda > 0";
+        }
+
         if (!empty($filtros['dias_mora'])) {
             $dias = intval($filtros['dias_mora']);
             $where .= " AND m.dias_mora_max >= :dias";

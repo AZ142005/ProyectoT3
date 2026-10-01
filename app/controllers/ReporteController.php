@@ -62,7 +62,8 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? ''
         ];
 
         $reportesModel = new ReportesModel();
@@ -87,7 +88,8 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? ''
         ];
 
         $reportesModel = new ReportesModel();
