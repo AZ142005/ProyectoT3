@@ -103,6 +103,8 @@ class ComprobanteParserService {
      * Nota sobre detección de montos:
      * - Formato venezolano: 1.250,50 (punto como separador de miles, coma decimal)
      * - Formato internacional: 1250.50 (punto decimal)
+     * - OCR con separadores mezclados (ej. 6,670,50): se normaliza tomando el
+     *   último separador como decimal.
      * El parser detecta ambos formatos correctamente antes de hacer la conversión.
      *
      * @param string $texto
@@ -198,22 +200,27 @@ class ComprobanteParserService {
         }
 
         // 5. Detección de Monto con distinción correcta de formato
-        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i', $texto, $matchesMonto)) {
-            $montoStr = str_replace('.', '', $matchesMonto[1]);
-            $montoStr = str_replace(',', '.', $montoStr);
-            $resultado['monto'] = round(floatval($montoStr), 2);
-            $resultado['detectado'] = true;
-        } elseif (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]+\.[0-9]{2})\b/i', $texto, $matchesMonto)) {
-            $resultado['monto'] = round(floatval($matchesMonto[1]), 2);
-            $resultado['detectado'] = true;
-        } elseif (preg_match('/(?<![0-9])((?:[0-9]{1,3}(?:\.[0-9]{3})*|[0-9]{4,}),[0-9]{2})/', $texto, $matchesMontoVen)) {
-            $montoStr = str_replace('.', '', $matchesMontoVen[1]);
-            $montoStr = str_replace(',', '.', $montoStr);
-            $resultado['monto'] = round(floatval($montoStr), 2);
-            $resultado['detectado'] = true;
-        } elseif (preg_match('/\b([0-9]+\.[0-9]{2})\b/', $texto, $matchesDec)) {
-            $resultado['monto'] = round(floatval($matchesDec[1]), 2);
-            $resultado['detectado'] = true;
+        // Nota: el OCR suele mezclar separadores (p. ej. "Bs.6,670,50" por "6.670,50").
+        // normalizarMonto() interpreta el último separador como decimal y descarta
+        // los demás, evitando capturas parciales como "6,67" extraída de "6,670,50".
+        if (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*((?:[0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]+)[.,][0-9]{2})/i', $texto, $matchesMonto)) {
+            $montoNormalizado = $this->normalizarMonto($matchesMonto[1]);
+            if ($montoNormalizado !== null) {
+                $resultado['monto'] = $montoNormalizado;
+                $resultado['detectado'] = true;
+            }
+        } elseif (preg_match('/(?<![0-9])((?:[0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]{4,})[.,][0-9]{2})/', $texto, $matchesMontoVen)) {
+            $montoNormalizado = $this->normalizarMonto($matchesMontoVen[1]);
+            if ($montoNormalizado !== null) {
+                $resultado['monto'] = $montoNormalizado;
+                $resultado['detectado'] = true;
+            }
+        } elseif (preg_match('/(?<![0-9.,])([0-9]+[.,][0-9]{2})(?![0-9])/', $texto, $matchesDec)) {
+            $montoNormalizado = $this->normalizarMonto($matchesDec[1]);
+            if ($montoNormalizado !== null) {
+                $resultado['monto'] = $montoNormalizado;
+                $resultado['detectado'] = true;
+            }
         }
 
         // 6. Detección de Fecha (dd/mm/aaaa, dd-mm-aaaa, o texto en español)
@@ -304,5 +311,27 @@ class ComprobanteParserService {
             'fecha'      => null,
             'detectado'  => false
         ];
+    }
+
+    /**
+     * Normaliza un monto capturado por OCR a float.
+     *
+     * El OCR puede leer separadores de forma inconsistente (p. ej. "6,670,50"
+     * en lugar de "6.670,50"). Se toma el último separador (punto o coma) como
+     * decimal y se descartan los separadores restantes.
+     *
+     * @param string $token Grupo capturado por las expresiones de monto
+     * @return float|null Monto normalizado, o null si no se puede interpretar
+     */
+    private function normalizarMonto(string $token): ?float {
+        $token = preg_replace('/[^0-9.,]/', '', $token);
+        if (!preg_match('/^(.*)[.,]([0-9]{2})$/', $token, $partes)) {
+            return null;
+        }
+        $entero = preg_replace('/[^0-9]/', '', $partes[1]);
+        if ($entero === '') {
+            return null;
+        }
+        return round(floatval($entero . '.' . $partes[2]), 2);
     }
 }

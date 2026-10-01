@@ -503,9 +503,10 @@
 
     function aplicarExtraccionInteligente(data) {
         let camposLlenados = 0;
-        let inconsistencias = 0;
+        let camposActualizados = 0;
 
-        // Regla: "solo completar los vacios" y "indicar inconsistencias"
+        // Regla: si el campo está vacío se completa; si tiene otro valor, se
+        // actualiza automáticamente con el del comprobante (sin botones).
 
         // 1. Monto
         if (data.monto) {
@@ -520,11 +521,9 @@
                     const numActual = parseFloat(valActual);
                     const numDetectado = parseFloat(data.monto);
                     if (Math.abs(numActual - numDetectado) > 0.005) {
-                        mostrarAlertaInconsistencia('monto', data.monto, `Bs. ${data.monto}`, `Bs. ${valActual}`, (val) => {
-                            el.value = val;
-                            marcarCampoAutollenado('monto');
-                        });
-                        inconsistencias++;
+                        el.value = data.monto;
+                        marcarCampoAutollenado('monto');
+                        camposActualizados++;
                     }
                 }
             }
@@ -553,22 +552,17 @@
                         ? (document.getElementById('banco_pagador_otro')?.value || 'OTRO') 
                         : valActual;
                     if (matchedBanco && currentValNormalized.toLowerCase() !== data.banco_pagador.toLowerCase() && valActual !== matchedBanco) {
-                        const descDetectado = (matchedBanco === 'OTRO') ? data.banco_pagador : matchedBanco;
-                        const descActual = (valActual === 'OTRO') ? (document.getElementById('banco_pagador_otro')?.value || 'Otro') : el.options[el.selectedIndex]?.text;
-                        mostrarAlertaInconsistencia('banco_pagador', data.banco_pagador, descDetectado, descActual, (val) => {
-                            const targetBanco = seleccionarBancoPagador(val);
-                            if (targetBanco === 'OTRO') {
-                                el.value = 'OTRO';
-                                toggleBancoOtro(el);
-                                const inputOtro = document.getElementById('banco_pagador_otro');
-                                if (inputOtro) inputOtro.value = val;
-                            } else {
-                                el.value = targetBanco;
-                                toggleBancoOtro(el);
-                            }
-                            marcarCampoAutollenado('banco_pagador');
-                        });
-                        inconsistencias++;
+                        if (matchedBanco === 'OTRO') {
+                            el.value = 'OTRO';
+                            toggleBancoOtro(el);
+                            const inputOtro = document.getElementById('banco_pagador_otro');
+                            if (inputOtro) inputOtro.value = data.banco_pagador;
+                        } else {
+                            el.value = matchedBanco;
+                            toggleBancoOtro(el);
+                        }
+                        marcarCampoAutollenado('banco_pagador');
+                        camposActualizados++;
                     }
                 }
             }
@@ -584,11 +578,9 @@
                     marcarCampoAutollenado('fecha_pago');
                     camposLlenados++;
                 } else if (valActual !== data.fecha_pago) {
-                    mostrarAlertaInconsistencia('fecha_pago', data.fecha_pago, data.fecha_pago, valActual, (val) => {
-                        el.value = val;
-                        marcarCampoAutollenado('fecha_pago');
-                    });
-                    inconsistencias++;
+                    el.value = data.fecha_pago;
+                    marcarCampoAutollenado('fecha_pago');
+                    camposActualizados++;
                 }
             }
         }
@@ -606,11 +598,9 @@
                     const normActual = valActual.replace(/^0+/, '');
                     const normDetectado = String(data.referencia).replace(/^0+/, '');
                     if (normActual !== normDetectado) {
-                        mostrarAlertaInconsistencia('referencia', data.referencia, data.referencia, valActual, (val) => {
-                            el.value = val;
-                            marcarCampoAutollenado('referencia');
-                        });
-                        inconsistencias++;
+                        el.value = data.referencia;
+                        marcarCampoAutollenado('referencia');
+                        camposActualizados++;
                     }
                 }
             }
@@ -620,13 +610,11 @@
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && (data.cuenta_bancaria_id || data.banco_receptor)) {
             let matchedIndex = -1;
-            let detectedLabel = '';
 
             if (data.cuenta_bancaria_id) {
                 for (let i = 0; i < selCuenta.options.length; i++) {
                     if (selCuenta.options[i].value === String(data.cuenta_bancaria_id)) {
                         matchedIndex = i;
-                        detectedLabel = selCuenta.options[i].text;
                         break;
                     }
                 }
@@ -638,7 +626,6 @@
                     const optBnc = (selCuenta.options[i].getAttribute('data-banco') || '').toLowerCase();
                     if (optBnc && (optBnc.includes(bncLower) || bncLower.includes(optBnc))) {
                         matchedIndex = i;
-                        detectedLabel = selCuenta.options[i].text;
                         break;
                     }
                 }
@@ -652,72 +639,23 @@
                     marcarCampoAutollenado('cuenta_bancaria_id');
                     camposLlenados++;
                 } else if (selCuenta.selectedIndex !== matchedIndex) {
-                    const currentLabel = selCuenta.options[selCuenta.selectedIndex].text;
-                    const targetValue = selCuenta.options[matchedIndex].value;
-                    mostrarAlertaInconsistencia('cuenta_bancaria_id', targetValue, detectedLabel, currentLabel, (val) => {
-                        selCuenta.value = val;
-                        actualizarInfoCuenta(selCuenta);
-                        marcarCampoAutollenado('cuenta_bancaria_id');
-                    });
-                    inconsistencias++;
+                    selCuenta.selectedIndex = matchedIndex;
+                    actualizarInfoCuenta(selCuenta);
+                    marcarCampoAutollenado('cuenta_bancaria_id');
+                    camposActualizados++;
                 }
             }
         }
 
         // Mostrar resumen en UI
-        if (inconsistencias > 0) {
-            mostrarResumenExtraccion('inconsistencia', `Se autocompletaron ${camposLlenados} campo(s). Se detectaron ${inconsistencias} diferencia(s) con valores ya ingresados.`);
+        if (camposLlenados > 0 && camposActualizados > 0) {
+            mostrarResumenExtraccion('exito', `Se autocompletaron ${camposLlenados} campo(s) y se actualizaron ${camposActualizados} desde el comprobante.`);
+        } else if (camposActualizados > 0) {
+            mostrarResumenExtraccion('exito', `Se actualizaron ${camposActualizados} campo(s) con los datos del comprobante.`);
         } else if (camposLlenados > 0) {
             mostrarResumenExtraccion('exito', `Se autocompletaron ${camposLlenados} campo(s) exitosamente a partir del comprobante.`);
         } else {
             mostrarResumenExtraccion('info', 'Los datos del comprobante coinciden con los ya ingresados en el formulario.');
-        }
-    }
-
-    function mostrarAlertaInconsistencia(campoId, valorDetectado, textoDetectado, textoActual, callbackAplicar) {
-        const contenedor = document.getElementById(`inconsistencia-${campoId}`);
-        if (!contenedor) return;
-
-        contenedor.innerHTML = `
-            <div class="mt-1.5 flex items-center justify-between gap-2 p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 shadow-xs transition-all">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="material-symbols-outlined text-[17px] text-amber-600 shrink-0">warning</span>
-                    <span class="truncate">
-                        Comprobante indica: <strong class="font-bold text-amber-950 font-mono">${escapeHtml(textoDetectado)}</strong>
-                        <span class="text-amber-700 hidden sm:inline">(actual: ${escapeHtml(textoActual)})</span>
-                    </span>
-                </div>
-                <button type="button" class="btn-aplicar px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-all shrink-0 active:scale-95 flex items-center gap-1 shadow-xs cursor-pointer">
-                    <span class="material-symbols-outlined text-[13px]">check</span>
-                    Aplicar
-                </button>
-            </div>
-        `;
-
-        const btn = contenedor.querySelector('.btn-aplicar');
-        btn.addEventListener('click', () => {
-            if (callbackAplicar) callbackAplicar(valorDetectado);
-            contenedor.innerHTML = '';
-            const badge = document.getElementById(`badge-${campoId}`);
-            if (badge) {
-                badge.classList.remove('hidden');
-                badge.classList.add('inline-flex');
-            }
-        });
-
-        // Escuchar si el usuario corrige manualmente el campo para limpiar la alerta
-        const el = document.getElementById(campoId);
-        if (el) {
-            const handler = () => {
-                const valNow = el.value.trim();
-                if (valNow === String(valorDetectado).trim()) {
-                    contenedor.innerHTML = '';
-                    el.removeEventListener('input', handler);
-                    el.removeEventListener('change', handler);
-                }
-            };
-            el.addEventListener('input', handler);
-            el.addEventListener('change', handler);
         }
     }
 

@@ -71,16 +71,18 @@
     }
 
     /**
-     * Determina si hace falta la pasada de refuerzo: falta algún dato clave
-     * o la lectura base no produjo texto analizable. Nunca reintenta cuando el
-     * fallo fue por límite de solicitudes.
+     * Determina si hace falta la pasada de refuerzo: la lectura base no produjo
+     * texto analizable o no reconoció el monto. La pasada de refuerzo (Sauvola)
+     * está pensada para recuperar importes de capturas en modo oscuro; no aporta
+     * fecha ni referencia confiables, por lo que no dispara por esos campos.
+     * Nunca reintenta cuando el fallo fue por límite de solicitudes.
      */
     function necesitaRefuerzo(datos) {
         if (!datos) { return false; }
         if (!datos.success) {
             return String(datos.error || '').indexOf('Demasiadas') === -1;
         }
-        return !datos.monto || !datos.referencia || !datos.fecha_pago;
+        return !datos.monto;
     }
 
     /**
