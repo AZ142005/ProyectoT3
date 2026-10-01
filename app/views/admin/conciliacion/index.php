@@ -64,418 +64,200 @@
                     </button>
                 </div>
 
-                <!-- SECCIÓN 1: LISTADO GENERAL DE PAGOS PENDIENTES POR VERIFICAR -->
-                <div class="card border-0 shadow-sm rounded-3 mb-4" id="seccionPagosPendientes">
-                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0 fw-bolder text-dark d-flex align-items-center gap-2">
-                            <span class="material-symbols-outlined text-warning">hourglass_top</span>
-                            <span>Pagos por Verificar</span>
-                        </h5>
-                        <span class="badge bg-light text-dark border fw-bold px-3 py-1.5">Total: <?= count($pagosPendientes) ?></span>
+                <!-- Métricas Rápidas / Indicadores Clave -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-100" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Pagos por Verificar">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small fw-bold text-uppercase d-block">Pagos por Verificar</span>
+                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($pagosPendientes) ?></span>
+                                </div>
+                                <span class="material-symbols-outlined fs-1 text-warning opacity-75">pending_actions</span>
+                            </div>
+                            <small class="text-muted mt-2 d-block">Listado general en espera</small>
+                        </div>
                     </div>
 
-                    <div class="card-body p-0">
-                        <?php if (empty($pagosPendientes)): ?>
-                            <div class="text-center py-5 text-muted">
-                                <span class="material-symbols-outlined fs-1 text-success d-block mb-2">task_alt</span>
-                                <strong class="text-dark">No hay pagos pendientes de verificación en el sistema.</strong>
-                                <p class="small text-muted mt-1 mb-0">Todos los pagos ingresados han sido conciliados, aprobados o rechazados.</p>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-100" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Exactas">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Exactas</span>
+                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
+                                </div>
+                                <span class="material-symbols-outlined fs-1 text-success opacity-75">verified</span>
                             </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="ps-4 py-3">Residente</th>
-                                            <th class="py-3">Inmueble</th>
-                                            <th class="py-3">Factura</th>
-                                            <th class="py-3 text-center">Referencia</th>
-                                            <th class="py-3 text-end">Monto (Bs.)</th>
-                                            <th class="py-3">Fecha Pago</th>
-                                            <th class="py-3">Comprobante</th>
-                                            <th class="py-3 text-end pe-4">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="border-top-0">
-                                        <?php foreach ($pagosPendientes as $p): ?>
-                                            <tr class="border-bottom">
-                                                <td class="ps-4">
-                                                    <div class="fw-bold text-dark"><?= e($p['residente_nombre'] ?: 'Residente') ?></div>
-                                                    <small class="text-muted font-monospace"><?= e($p['residente_cedula']) ?></small>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark">Unidad <?= e($p['unidad_numero'] ?: 'S/N') ?></div>
-                                                    <small class="text-muted"><?= e($p['edificio_nombre'] ?: 'Condominio') ?></small>
-                                                </td>
-                                                <td>
-                                                    <?php if (!empty($p['numero_factura'])): ?>
-                                                        <span class="font-monospace fw-bold text-dark">#<?= e($p['numero_factura']) ?></span>
-                                                    <?php elseif (!empty($p['factura_id'])): ?>
-                                                        <span class="font-monospace fw-bold text-dark">#<?= e($p['factura_id']) ?></span>
-                                                    <?php else: ?>
-                                                        <span class="text-muted small fw-bold">General</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-center font-monospace fw-bold text-dark">
-                                                    <?= e($p['referencia'] ?: 'S/R') ?>
-                                                </td>
-                                                <td class="text-end font-monospace fw-bolder text-dark">
-                                                    <?= e(formatearMoneda($p['monto'])) ?>
-                                                </td>
-                                                <td class="text-muted small">
-                                                    <?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?>
-                                                </td>
-                                                <td>
-                                                    <?php if (!empty($p['archivo'])): ?>
-                                                        <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>&download=1"
-                                                           download="<?= e($p['archivo']) ?>"
-                                                           class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
-                                                           title="Descargar comprobante">
-                                                            <span class="material-symbols-outlined fs-6">download</span>
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="text-muted small">Sin archivo</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-end pe-4 text-nowrap">
-                                                    <div class="d-inline-flex align-items-center gap-1">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center"
-                                                                onclick='verDetallePagoDirecto(<?= json_encode($proyectarPagoDetalle($p), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
-                                                                title="Ver Detalles Completos">
-                                                            <span class="material-symbols-outlined fs-6">visibility</span>
-                                                        </button>
+                            <small class="text-muted mt-2 d-block">Coincidencia por referencia y monto</small>
+                        </div>
+                    </div>
 
-                                                        <form method="POST" action="/admin/conciliacion/verificar" class="d-inline" onsubmit="return confirm('¿Confirma la verificación y aprobación de este pago?');">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="pago_id" value="<?= e($p['id']) ?>">
-                                                            <input type="hidden" name="origen_tipo" value="<?= e($p['origen_tabla']) ?>">
-                                                            <button type="submit" class="btn btn-success btn-sm text-white fw-bold d-inline-flex align-items-center"
-                                                                    title="Verificar y Aprobar Pago">
-                                                                <span class="material-symbols-outlined fs-6">check</span>
-                                                            </button>
-                                                        </form>
-
-                                                        <button type="button" class="btn btn-outline-danger btn-sm text-danger fw-bold d-inline-flex align-items-center"
-                                                                onclick="abrirModalRechazo(<?= (int)$p['id'] ?>, '<?= e($p['origen_tabla']) ?>', '<?= e(addslashes($p['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($p['referencia'] ?? 'S/R')) ?>')"
-                                                                title="Rechazar Pago">
-                                                            <span class="material-symbols-outlined fs-6">cancel</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info h-100" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Sugeridas">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Sugeridas</span>
+                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
+                                </div>
+                                <span class="material-symbols-outlined fs-1 text-info opacity-75">rule</span>
                             </div>
-                        <?php endif; ?>
+                            <small class="text-muted mt-2 d-block">Sugerencias por fecha y monto</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-100" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Movimientos Sin Coincidencia">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small fw-bold text-uppercase d-block">Sin Coincidencia</span>
+                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
+                                </div>
+                                <span class="material-symbols-outlined fs-1 text-secondary opacity-75">help</span>
+                            </div>
+                            <small class="text-muted mt-2 d-block">Movimientos sin asociar</small>
+                        </div>
                     </div>
                 </div>
 
-                <!-- SECCIÓN 2: CRUCE INTELIGENTE DE PAGOS (EXTRACTOS BANCARIOS) -->
-                <div class="card border-0 shadow-sm rounded-3 mb-4" id="seccionCruceInteligente">
+                <!-- BANDEJA UNIFICADA: PAGOS POR VERIFICAR Y CONCILIAR -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4" id="seccionConciliacion">
                     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
-                            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                                <span class="material-symbols-outlined text-primary">auto_awesome</span>
-                                <span>Cruce Inteligente de Pagos</span>
+                            <h5 class="mb-0 fw-bolder text-dark d-flex align-items-center gap-2">
+                                <span class="material-symbols-outlined text-warning">hourglass_top</span>
+                                <span>Pagos por Verificar y Conciliar</span>
                             </h5>
-                            <span class="small text-muted">Detección y emparejamiento automático entre el extracto bancario y los pagos reportados</span>
+                            <span class="small text-muted">Bandeja única de pagos reportados y movimientos del extracto bancario</span>
                         </div>
-
-                        <?php if (!empty($resultadoCruce['coincidencias_exactas'])): ?>
-                            <button type="button" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1" onclick="conciliarLoteExactas()">
-                                <span class="material-symbols-outlined fs-6">done_all</span>
-                                <span>Conciliar Todas las Exactas (1-Clic)</span>
-                            </button>
-                        <?php endif; ?>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border fw-bold px-3 py-1.5">Total: <?= count($filasConciliacion) ?></span>
+                            <?php if (!empty($resultadoCruce['coincidencias_exactas'])): ?>
+                                <button type="button" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1" onclick="conciliarLoteExactas()">
+                                    <span class="material-symbols-outlined fs-6">done_all</span>
+                                    <span>Conciliar Todas las Exactas (1-Clic)</span>
+                                </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
+                    <!-- Filtro por tipo de coincidencia (independiente de la tabla) -->
                     <div class="card-header bg-light py-2 border-bottom">
-                        <ul class="nav nav-pills card-header-pills" id="cruceTabs" role="tablist">
+                        <ul class="nav nav-pills card-header-pills flex-wrap gap-1" id="filtrosConciliacion" role="tablist">
                             <li class="nav-item">
-                                <button class="nav-link active fw-bold text-dark" id="exactas-tab" data-bs-toggle="tab" data-bs-target="#exactas" type="button">
-                                    Coincidencias Exactas (<?= count($resultadoCruce['coincidencias_exactas']) ?>)
+                                <button type="button" class="nav-link active fw-bold text-dark" id="filtro-todas" data-filtro-categoria="todas">
+                                    Todas (<?= (int)$conteosConciliacion['total'] ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link fw-bold text-dark" id="sugeridas-tab" data-bs-toggle="tab" data-bs-target="#sugeridas" type="button">
-                                    Coincidencias Sugeridas (<?= count($resultadoCruce['coincidencias_sugeridas']) ?>)
+                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-exactas" data-filtro-categoria="exacta">
+                                    Exactas (<?= (int)$conteosConciliacion['exacta'] ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link fw-bold text-dark" id="inconsistencias-tab" data-bs-toggle="tab" data-bs-target="#inconsistencias" type="button">
-                                    Inconsistencias (<?= count($resultadoCruce['inconsistencias']) ?>)
+                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sugeridas" data-filtro-categoria="sugerida">
+                                    Sugeridas (<?= (int)$conteosConciliacion['sugerida'] ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link fw-bold text-dark" id="sin-coincidencia-tab" data-bs-toggle="tab" data-bs-target="#sin-coincidencia" type="button">
-                                    Sin Coincidencia (<?= count($resultadoCruce['sin_coincidencia']) ?>)
+                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-inconsistencias" data-filtro-categoria="inconsistencia">
+                                    Inconsistencias (<?= (int)$conteosConciliacion['inconsistencia'] ?>)
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sin-coincidencia" data-filtro-categoria="sin_coincidencia">
+                                    Sin Coincidencia (<?= (int)$conteosConciliacion['sin_coincidencia'] ?>)
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link fw-bold text-dark" id="filtro-sin-extracto" data-filtro-categoria="sin_extracto">
+                                    Sin Extracto (<?= (int)$conteosConciliacion['sin_extracto'] ?>)
                                 </button>
                             </li>
                         </ul>
                     </div>
 
                     <div class="card-body p-0">
-                        <div class="tab-content" id="cruceTabsContent">
-                            <!-- TAB 1: COINCIDENCIAS EXACTAS -->
-                            <div class="tab-pane fade show active" id="exactas" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3">Movimiento Banco (Extracto)</th>
-                                                <th class="py-3">Pago Reportado (Residente)</th>
-                                                <th class="py-3 text-center">Referencia</th>
-                                                <th class="py-3 text-end">Monto (Bs.)</th>
-                                                <th class="py-3 text-end pe-4">Acción</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php if (empty($resultadoCruce['coincidencias_exactas'])): ?>
-                                                <tr>
-                                                    <td colspan="5" class="text-center py-5 text-muted">
-                                                        <span class="material-symbols-outlined fs-1 text-success d-block mb-2">task_alt</span>
-                                                        <strong>No hay coincidencias exactas pendientes por conciliar.</strong>
-                                                    </td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($resultadoCruce['coincidencias_exactas'] as $match): ?>
-                                                    <tr>
-                                                        <td class="ps-4">
-                                                            <div class="fw-bold text-dark"><?= e($match['extracto']['banco']) ?></div>
-                                                            <small class="text-muted"><?= date('d/m/Y', strtotime($match['extracto']['fecha_movimiento'])) ?> | <?= e(substr($match['extracto']['descripcion_banco'], 0, 30)) ?></small>
-                                                        </td>
-                                                        <td>
-                                                            <div class="fw-bold text-dark"><?= e($match['pago']['residente_nombre']) ?></div>
-                                                            <small class="text-muted">Apto <?= e($match['pago']['unidad_numero']) ?> (<?= e($match['pago']['edificio_nombre']) ?>)</small>
-                                                        </td>
-                                                        <td class="text-center font-monospace fw-bold text-dark">
-                                                            <?= e($match['extracto']['referencia_bancaria']) ?>
-                                                        </td>
-                                                        <td class="text-end font-monospace fw-bolder text-dark">
-                                                            <?= e(formatearMoneda($match['extracto']['monto'])) ?>
-                                                        </td>
-                                                        <td class="text-end pe-4 text-nowrap">
-                                                            <div class="d-inline-flex align-items-center gap-1">
-                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
-                                                                        onclick='verDetalleConciliacion(<?= json_encode(['extracto' => $proyectarExtractoDetalle($match['extracto']), 'pago' => $proyectarPagoDetalle($match['pago'])], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
-                                                                        title="Ver Detalle y Comprobante">
-                                                                    <span class="material-symbols-outlined fs-6">visibility</span>
-                                                                </button>
-                                                                <?php if (!empty($match['pago']['archivo'])): ?>
-                                                                    <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
-                                                                       download="<?= e($match['pago']['archivo']) ?>"
-                                                                       class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center"
-                                                                       title="Descargar Comprobante">
-                                                                        <span class="material-symbols-outlined fs-6">download</span>
-                                                                    </a>
-                                                                <?php endif; ?>
-                                                                <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
-                                                                    <?= csrf_field() ?>
-                                                                    <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
-                                                                    <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
-                                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                                    <button type="submit" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center"
-                                                                            onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');"
-                                                                            title="Aprobar y Conciliar">
-                                                                        <span class="material-symbols-outlined fs-6">check</span>
-                                                                    </button>
-                                                                </form>
-                                                                <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
-                                                                        onclick="abrirModalRechazo(<?= (int)$match['pago']['id'] ?>, '<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($match['pago']['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($match['pago']['referencia'] ?? 'S/R')) ?>')"
-                                                                        title="Rechazar Pago">
-                                                                    <span class="material-symbols-outlined fs-6">cancel</span>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                        <?php if (empty($filasConciliacion)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <span class="material-symbols-outlined fs-1 text-success d-block mb-2">task_alt</span>
+                                <strong class="text-dark">No hay movimientos pendientes de verificación ni conciliación.</strong>
+                                <p class="small text-muted mt-1 mb-0">Todos los pagos reportados y los movimientos del extracto bancario ya fueron resueltos.</p>
                             </div>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0" id="tablaConciliacion">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-4 py-3">Residente</th>
+                                            <th class="py-3">Inmueble</th>
+                                            <th class="py-3">Referencia</th>
+                                            <th class="py-3 text-end">Monto (Bs.)</th>
+                                            <th class="py-3">Fecha</th>
+                                            <th class="py-3 text-end pe-4">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="border-top-0">
+                                        <?php foreach ($filasConciliacion as $fila): ?>
+                                            <?php
+                                            $pago = $fila['pago'];
+                                            $extracto = $fila['extracto'];
 
-                            <!-- TAB 2: COINCIDENCIAS SUGERIDAS -->
-                            <div class="tab-pane fade" id="sugeridas" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3">Movimiento Banco</th>
-                                                <th class="py-3">Pago Sugerido</th>
-                                                <th class="py-3 text-center">Ref. Banco vs Pago</th>
-                                                <th class="py-3 text-end">Monto (Bs.)</th>
-                                                <th class="py-3 text-center">Similitud</th>
-                                                <th class="py-3 text-end pe-4">Acción</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php if (empty($resultadoCruce['coincidencias_sugeridas'])): ?>
-                                                <tr>
-                                                    <td colspan="6" class="text-center py-5 text-muted">
-                                                        <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">rule</span>
-                                                        <strong>No hay coincidencias sugeridas pendientes.</strong>
-                                                    </td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($resultadoCruce['coincidencias_sugeridas'] as $match): ?>
-                                                    <tr>
-                                                        <td class="ps-4">
-                                                            <div class="fw-bold text-dark"><?= e($match['extracto']['banco']) ?></div>
-                                                            <small class="text-muted"><?= date('d/m/Y', strtotime($match['extracto']['fecha_movimiento'])) ?></small>
-                                                        </td>
-                                                        <td>
-                                                            <div class="fw-bold text-dark"><?= e($match['pago']['residente_nombre']) ?></div>
-                                                            <small class="text-muted">Apto <?= e($match['pago']['unidad_numero']) ?> | Fecha: <?= date('d/m/Y', strtotime($match['pago']['fecha_pago'])) ?></small>
-                                                            <?php if (!empty($match['alerta'])): ?>
-                                                                <div><span class="badge bg-warning text-dark border border-warning-subtle mt-1" style="font-size: 0.75rem;"><span class="material-symbols-outlined align-middle" style="font-size: 13px;">warning</span> <?= e($match['alerta']) ?></span></div>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center font-monospace small">
-                                                            <span class="text-muted">Bco:</span> <strong class="text-dark"><?= e($match['extracto']['referencia_bancaria']) ?></strong><br>
-                                                            <span class="text-muted">Res:</span> <strong class="text-dark"><?= e($match['pago']['referencia']) ?></strong>
-                                                        </td>
-                                                        <td class="text-end font-monospace fw-bold text-dark">
-                                                            <?= e(formatearMoneda($match['extracto']['monto'])) ?>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold">
-                                                                <?= e($match['similitud']) ?>% Similitud
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-end pe-4 text-nowrap">
-                                                            <div class="d-inline-flex align-items-center gap-1">
-                                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
-                                                                        onclick='verDetalleConciliacion(<?= json_encode(['extracto' => $proyectarExtractoDetalle($match['extracto']), 'pago' => $proyectarPagoDetalle($match['pago'])], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
-                                                                        title="Ver Detalle y Comprobante">
-                                                                    <span class="material-symbols-outlined fs-6">visibility</span>
-                                                                </button>
-                                                                <?php if (!empty($match['pago']['archivo'])): ?>
-                                                                    <a href="/comprobante-proxy.php?file=<?= urlencode($match['pago']['archivo']) ?>&download=1"
-                                                                       download="<?= e($match['pago']['archivo']) ?>"
-                                                                       class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center"
-                                                                       title="Descargar Comprobante">
-                                                                        <span class="material-symbols-outlined fs-6">download</span>
-                                                                    </a>
-                                                                <?php endif; ?>
-                                                                <form method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
-                                                                    <?= csrf_field() ?>
-                                                                    <input type="hidden" name="extracto_id" value="<?= e($match['extracto']['id']) ?>">
-                                                                    <input type="hidden" name="pago_id" value="<?= e($match['pago']['id']) ?>">
-                                                                    <input type="hidden" name="origen_tipo" value="<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>">
-                                                                    <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center"
-                                                                            onclick="return confirm('¿Confirmar conciliación sugerida?');"
-                                                                            title="Aprobar Cruce Sugerido">
-                                                                        <span class="material-symbols-outlined fs-6">check</span>
-                                                                    </button>
-                                                                </form>
-                                                                <button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
-                                                                        onclick="abrirModalRechazo(<?= (int)$match['pago']['id'] ?>, '<?= e($match['pago']['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($match['pago']['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($match['pago']['referencia'] ?? 'S/R')) ?>')"
-                                                                        title="Rechazar Pago">
-                                                                    <span class="material-symbols-outlined fs-6">cancel</span>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                            if ($pago !== null) {
+                                                $residente  = $pago['residente_nombre'] ?: 'Residente';
+                                                $inmueble   = ($pago['edificio_nombre'] ?: 'Sin Torre') . ' - Unidad ' . ($pago['unidad_numero'] ?: 'S/N');
+                                                $referencia = $pago['referencia'] ?: 'S/R';
+                                                $monto      = $pago['monto'];
 
-                            <!-- TAB 3: INCONSISTENCIAS -->
-                            <div class="tab-pane fade" id="inconsistencias" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3">Fecha</th>
-                                                <th class="py-3">Banco / Descripción</th>
-                                                <th class="py-3">Referencia</th>
-                                                <th class="py-3 text-end">Monto (Bs.)</th>
-                                                <th class="py-3">Detalle Inconsistencia</th>
+                                                if ($extracto !== null) {
+                                                    $detalle = ['extracto' => $proyectarExtractoDetalle($extracto), 'pago' => $proyectarPagoDetalle($pago)];
+                                                } else {
+                                                    $detalle = ['pago' => $proyectarPagoDetalle($pago)];
+                                                }
+                                            } else {
+                                                $residente  = '—';
+                                                $inmueble   = '—';
+                                                $referencia = ($extracto['referencia_bancaria'] ?: ($extracto['referencia'] ?? '')) ?: 'S/R';
+                                                $monto      = $extracto['monto'];
+                                                $detalle    = ['extracto' => $proyectarExtractoDetalle($extracto)];
+                                            }
+                                            ?>
+                                            <tr class="border-bottom" data-categoria="<?= e($fila['categoria']) ?>">
+                                                <td class="ps-4">
+                                                    <div class="fw-bold text-dark"><?= e($residente) ?></div>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold text-dark"><?= e($inmueble) ?></div>
+                                                </td>
+                                                <td class="font-monospace fw-bold text-dark">
+                                                    <?= e($referencia) ?>
+                                                </td>
+                                                <td class="text-end font-monospace fw-bolder text-dark">
+                                                    <?= e(formatearMoneda($monto)) ?>
+                                                </td>
+                                                <td class="text-muted small">
+                                                    <?= e(date('d/m/Y', strtotime($fila['fecha']))) ?>
+                                                </td>
+                                                <td class="text-end pe-4 text-nowrap">
+                                                    <button type="button"
+                                                            class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg border border-slate-200"
+                                                            onclick='verDetalleConciliacion(<?= json_encode($detalle, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                            title="Ver Detalle">
+                                                        <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                        <span>Detalles</span>
+                                                    </button>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php if (empty($resultadoCruce['inconsistencias'])): ?>
-                                                <tr>
-                                                    <td colspan="5" class="text-center py-5 text-muted">
-                                                        <span class="material-symbols-outlined fs-1 text-success d-block mb-2">verified</span>
-                                                        <strong>¡Excelente! No se detectaron inconsistencias en el extracto analizado.</strong>
-                                                    </td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($resultadoCruce['inconsistencias'] as $inc): ?>
-                                                    <tr>
-                                                        <td class="ps-4 small text-muted"><?= date('d/m/Y', strtotime($inc['extracto']['fecha_movimiento'])) ?></td>
-                                                        <td><?= e($inc['extracto']['banco']) ?> - <?= e(substr($inc['extracto']['descripcion_banco'], 0, 40)) ?></td>
-                                                        <td class="font-monospace fw-bold text-dark"><?= e($inc['extracto']['referencia_bancaria'] ?: 'N/A') ?></td>
-                                                        <td class="text-end font-monospace fw-bold text-dark"><?= e(formatearMoneda($inc['extracto']['monto'])) ?></td>
-                                                        <td>
-                                                            <span class="badge bg-danger rounded-pill px-3 py-1 fw-bold"><?= e($inc['motivo']) ?></span>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        <?php endforeach; ?>
+                                        <tr id="filtroSinResultados" style="display: none;">
+                                            <td colspan="6" class="text-center py-5 text-muted">
+                                                <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">filter_alt_off</span>
+                                                <strong>No hay movimientos en esta categoría.</strong>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-
-                            <!-- TAB 4: SIN COINCIDENCIA -->
-                            <div class="tab-pane fade" id="sin-coincidencia" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3">Fecha Movimiento</th>
-                                                <th class="py-3">Banco / Descripción</th>
-                                                <th class="py-3 text-center">Referencia Banco</th>
-                                                <th class="py-3 text-end">Monto (Crédito)</th>
-                                                <?php if (empty($loteActual)): ?>
-                                                    <th class="py-3 text-end pe-4">Lote</th>
-                                                <?php endif; ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php if (empty($resultadoCruce['sin_coincidencia'])): ?>
-                                                <tr>
-                                                    <td colspan="<?= empty($loteActual) ? 5 : 4 ?>" class="text-center py-5 text-muted">
-                                                        <span class="material-symbols-outlined fs-1 text-success d-block mb-2">check_circle</span>
-                                                        <strong>Todos los créditos del extracto cuentan con coincidencias registradas.</strong>
-                                                    </td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($resultadoCruce['sin_coincidencia'] as $sc): ?>
-                                                    <tr>
-                                                        <td class="ps-4 small text-muted">
-                                                            <div class="fw-bold text-dark"><?= date('d/m/Y', strtotime($sc['extracto']['fecha_movimiento'])) ?></div>
-                                                        </td>
-                                                        <td>
-                                                            <div class="fw-bold text-dark"><?= e($sc['extracto']['banco']) ?></div>
-                                                            <small class="text-muted"><?= e(substr($sc['extracto']['descripcion_banco'] ?: ($sc['extracto']['descripcion'] ?? ''), 0, 50)) ?></small>
-                                                        </td>
-                                                        <td class="text-center font-monospace fw-bold text-dark">
-                                                            <?= e($sc['extracto']['referencia_bancaria'] ?: ($sc['extracto']['referencia'] ?? 'N/A')) ?>
-                                                        </td>
-                                                        <td class="text-end font-monospace fw-bold text-dark">
-                                                            <?= e(formatearMoneda($sc['extracto']['monto'])) ?>
-                                                        </td>
-                                                        <?php if (empty($loteActual)): ?>
-                                                            <td class="text-end pe-4 text-muted small font-monospace">
-                                                                <?= e($sc['extracto']['lote_importacion'] ?? '') ?>
-                                                            </td>
-                                                        <?php endif; ?>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -752,54 +534,100 @@
         document.getElementById('formLoteExactas').submit();
     }
 
-    function verDetallePagoDirecto(pago) {
-        verDetalleConciliacion({
-            extracto: null,
-            pago: pago
-        });
-    }
-
     function verDetalleConciliacion(match) {
         const ext = match.extracto || null;
-        const pago = match.pago || match || {};
-        const isComp = (pago.origen_tabla === 'comprobante');
+        const pago = match.pago || null;
+        const isComp = !!(pago && pago.origen_tabla === 'comprobante');
 
-        document.getElementById('mdlPagoId').textContent = String(pago.id || 0).padStart(6, '0');
-        document.getElementById('mdlEstadoBadge').textContent = (pago.estado || 'PENDIENTE').toUpperCase();
+        document.getElementById('mdlPagoId').textContent = pago ? String(pago.id || 0).padStart(6, '0') : '—';
+        document.getElementById('mdlEstadoBadge').textContent = pago ? (pago.estado || 'PENDIENTE').toUpperCase() : 'SIN PAGO';
 
-        // Comparativa
+        // Comparativa: lado Extracto Bancario
         if (ext) {
             document.getElementById('mdlExtMonto').textContent = 'Bs. ' + Number(ext.monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2});
             document.getElementById('mdlExtRef').textContent = ext.referencia_bancaria || ext.referencia || 'N/A';
             document.getElementById('mdlExtFecha').textContent = ext.fecha_movimiento || '-';
             document.getElementById('mdlExtBanco').textContent = ext.banco || '-';
-            document.getElementById('mdlFormConciliar').action = '/admin/conciliacion/conciliar';
-            document.getElementById('mdlInputExtractoId').value = ext.id || 0;
-            document.getElementById('mdlBtnConfirmarConciliacion').querySelector('span:last-child').textContent = 'Aprobar y Conciliar';
         } else {
             document.getElementById('mdlExtMonto').textContent = 'Sin extracto vinculado';
             document.getElementById('mdlExtRef').textContent = 'N/A';
             document.getElementById('mdlExtFecha').textContent = '-';
             document.getElementById('mdlExtBanco').textContent = '-';
-            document.getElementById('mdlFormConciliar').action = '/admin/conciliacion/verificar';
-            document.getElementById('mdlInputExtractoId').value = '0';
-            document.getElementById('mdlBtnConfirmarConciliacion').querySelector('span:last-child').textContent = 'Verificar y Aprobar';
         }
 
-        document.getElementById('mdlPagoMonto').textContent = 'Bs. ' + Number(pago.monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2});
-        document.getElementById('mdlPagoRef').textContent = pago.referencia || 'S/R';
-        document.getElementById('mdlPagoFecha').textContent = pago.fecha_pago || '-';
-        document.getElementById('mdlPagoBanco').textContent = (pago.banco_pagador || pago.banco_origen || 'No especificado');
+        // Comparativa: lado Pago Reportado
+        if (pago) {
+            document.getElementById('mdlPagoMonto').textContent = 'Bs. ' + Number(pago.monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2});
+            document.getElementById('mdlPagoRef').textContent = pago.referencia || 'S/R';
+            document.getElementById('mdlPagoFecha').textContent = pago.fecha_pago || '-';
+            document.getElementById('mdlPagoBanco').textContent = (pago.banco_pagador || pago.banco_origen || 'No especificado');
+        } else {
+            document.getElementById('mdlPagoMonto').textContent = '—';
+            document.getElementById('mdlPagoRef').textContent = 'Sin pago registrado';
+            document.getElementById('mdlPagoFecha').textContent = '—';
+            document.getElementById('mdlPagoBanco').textContent = '—';
+        }
 
-        // Residente
-        document.getElementById('mdlResidente').textContent = pago.residente_nombre || 'Residente';
-        document.getElementById('mdlCedula').textContent = pago.residente_cedula || 'N/A';
-        document.getElementById('mdlUnidad').textContent = (pago.edificio_nombre ? pago.edificio_nombre + ' - ' : '') + 'Unidad ' + (pago.unidad_numero || 'S/N');
-        document.getElementById('mdlMetodo').textContent = (pago.metodo_pago || 'Transferencia').replace('_', ' ');
+        // Residente e inmueble
+        if (pago) {
+            document.getElementById('mdlResidente').textContent = pago.residente_nombre || 'Residente';
+            document.getElementById('mdlCedula').textContent = pago.residente_cedula || 'N/A';
+            document.getElementById('mdlUnidad').textContent = (pago.edificio_nombre ? pago.edificio_nombre + ' - ' : '') + 'Unidad ' + (pago.unidad_numero || 'S/N');
+            document.getElementById('mdlMetodo').textContent = (pago.metodo_pago || 'Transferencia').replace('_', ' ');
+        } else {
+            document.getElementById('mdlResidente').textContent = '—';
+            document.getElementById('mdlCedula').textContent = '—';
+            document.getElementById('mdlUnidad').textContent = '—';
+            document.getElementById('mdlMetodo').textContent = '—';
+        }
+
+        // Acciones disponibles solo cuando existe un pago sobre el cual operar
+        const linkPantallaCompleta = document.getElementById('mdlLinkPantallaCompleta');
+        const formConciliar = document.getElementById('mdlFormConciliar');
+        const btnRechazarModal = document.getElementById('mdlBtnRechazarModal');
+
+        if (pago) {
+            if (ext) {
+                formConciliar.action = '/admin/conciliacion/conciliar';
+                document.getElementById('mdlInputExtractoId').value = ext.id || 0;
+                document.getElementById('mdlBtnConfirmarConciliacion').querySelector('span:last-child').textContent = 'Aprobar y Conciliar';
+            } else {
+                formConciliar.action = '/admin/conciliacion/verificar';
+                document.getElementById('mdlInputExtractoId').value = '0';
+                document.getElementById('mdlBtnConfirmarConciliacion').querySelector('span:last-child').textContent = 'Verificar y Aprobar';
+            }
+
+            document.getElementById('mdlInputPagoId').value = pago.id || 0;
+            document.getElementById('mdlInputOrigenTipo').value = pago.origen_tabla || 'pago';
+
+            // Link a pantalla completa
+            linkPantallaCompleta.href = isComp
+                ? '/admin/comprobante/verificar?id=' + pago.id + '&from=conciliacion'
+                : '/pagos/detalle/' + pago.id + '?from=conciliacion';
+
+            // Configurar botón Rechazar dentro del modal de detalle
+            btnRechazarModal.onclick = function() {
+                const modalDetalle = bootstrap.Modal.getInstance(document.getElementById('modalDetallePago'));
+                if (modalDetalle) modalDetalle.hide();
+                abrirModalRechazo(pago.id, pago.origen_tabla || 'pago', pago.residente_nombre, pago.referencia);
+            };
+
+            linkPantallaCompleta.style.display = '';
+            formConciliar.style.display = '';
+            btnRechazarModal.style.display = '';
+        } else {
+            document.getElementById('mdlInputPagoId').value = '0';
+            document.getElementById('mdlInputOrigenTipo').value = 'pago';
+
+            // Sin pago registrado no hay verificación, conciliación ni rechazo posibles
+            linkPantallaCompleta.style.display = 'none';
+            formConciliar.style.display = 'none';
+            btnRechazarModal.style.display = 'none';
+        }
 
         // Factura
         const factWrap = document.getElementById('mdlFacturaWrapper');
-        if (pago.numero_factura || pago.factura_id) {
+        if (pago && (pago.numero_factura || pago.factura_id)) {
             factWrap.style.display = 'block';
             document.getElementById('mdlFacturaNumero').textContent = pago.numero_factura || pago.factura_id;
         } else {
@@ -808,15 +636,15 @@
 
         // Observaciones
         const obsWrap = document.getElementById('mdlObsWrapper');
-        if (pago.observaciones && pago.observaciones.trim() !== '') {
+        if (pago && pago.observaciones && pago.observaciones.trim() !== '') {
             obsWrap.style.display = 'block';
             document.getElementById('mdlObservaciones').textContent = pago.observaciones;
         } else {
             obsWrap.style.display = 'none';
         }
 
-        // Archivo / Comprobante
-        const archivo = pago.archivo || '';
+        // Archivo / Comprobante (la descarga vive solo dentro del modal, igual que el detalle del historial)
+        const archivo = (pago && pago.archivo) ? pago.archivo : '';
         const imgContainer = document.getElementById('mdlPreviewImgContainer');
         const pdfContainer = document.getElementById('mdlPreviewPdfContainer');
         const sinContainer = document.getElementById('mdlSinArchivoContainer');
@@ -844,27 +672,43 @@
             sinContainer.style.display = 'block';
         }
 
-        // Parámetros formulario
-        document.getElementById('mdlInputPagoId').value = pago.id || 0;
-        document.getElementById('mdlInputOrigenTipo').value = pago.origen_tabla || 'pago';
-
-        // Link a pantalla completa
-        const detailUrl = isComp 
-            ? '/admin/comprobante/verificar?id=' + pago.id + '&from=conciliacion'
-            : '/pagos/detalle/' + pago.id + '?from=conciliacion';
-        document.getElementById('mdlLinkPantallaCompleta').href = detailUrl;
-
-        // Configurar botón Rechazar dentro del modal de detalle
-        document.getElementById('mdlBtnRechazarModal').onclick = function() {
-            const modalDetalle = bootstrap.Modal.getInstance(document.getElementById('modalDetallePago'));
-            if (modalDetalle) modalDetalle.hide();
-            abrirModalRechazo(pago.id, pago.origen_tabla || 'pago', pago.residente_nombre, pago.referencia);
-        };
-
         // Abrir modal
         const modal = new bootstrap.Modal(document.getElementById('modalDetallePago'));
         modal.show();
     }
+
+    // Filtro client-side de la bandeja unificada por categoría de coincidencia
+    (function inicializarFiltroConciliacion() {
+        const contenedor = document.getElementById('filtrosConciliacion');
+        if (!contenedor) return;
+
+        const pills = contenedor.querySelectorAll('[data-filtro-categoria]');
+        const sinResultados = document.getElementById('filtroSinResultados');
+
+        function aplicarFiltro(categoria) {
+            pills.forEach(function (pill) {
+                pill.classList.toggle('active', pill.dataset.filtroCategoria === categoria);
+            });
+
+            const filas = document.querySelectorAll('#tablaConciliacion tbody tr[data-categoria]');
+            let visibles = 0;
+            filas.forEach(function (fila) {
+                const coincide = categoria === 'todas' || fila.dataset.categoria === categoria;
+                fila.style.display = coincide ? '' : 'none';
+                if (coincide) visibles++;
+            });
+
+            if (sinResultados) {
+                sinResultados.style.display = (filas.length > 0 && visibles === 0) ? '' : 'none';
+            }
+        }
+
+        pills.forEach(function (pill) {
+            pill.addEventListener('click', function () {
+                aplicarFiltro(pill.dataset.filtroCategoria);
+            });
+        });
+    })();
 
     function abrirModalRechazo(pagoId, origenTipo, residenteNombre, referencia) {
         document.getElementById('rechazoModalPagoId').value = pagoId;

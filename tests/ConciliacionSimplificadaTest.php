@@ -2,18 +2,21 @@
 namespace Tests;
 
 /**
- * Verifica la simplificación visual de admin/conciliacion/index.php:
- * se eliminan duplicaciones y ruido, conservando tabs, acciones y utilidad operativa.
+ * Verifica el contrato visual de admin/conciliacion/index.php:
+ * tarjetas de métricas restauradas, bandeja unificada compacta con filtro de
+ * coincidencias y botón "Detalles", sin descargas por fila ni ruido deprecado.
  */
 class ConciliacionSimplificadaTest extends TestCase {
 
-    public function testVistaEliminaBloqueMetricasRapidas(): void {
+    public function testVistaRestauraBloqueMetricasRapidas(): void {
         $content = file_get_contents(VIEWS_PATH . '/admin/conciliacion/index.php');
 
-        $this->assertFalse(str_contains($content, 'Métricas Rápidas'),
-            "La vista no debe contener el bloque de Métricas Rápidas");
-        $this->assertFalse(str_contains($content, 'Indicadores Clave'),
-            "La vista no debe contener el comentario de Indicadores Clave");
+        $this->assertStringContains('Métricas Rápidas', $content,
+            "La vista debe restaurar el bloque de Métricas Rápidas");
+        $this->assertStringContains('Indicadores Clave', $content,
+            "La vista debe incluir el comentario de Indicadores Clave");
+        $this->assertStringContains('pending_actions', $content,
+            "La tarjeta de Pagos por Verificar debe conservar su ícono");
     }
 
     public function testVistaEliminaEncabezadoDuplicado(): void {
@@ -39,33 +42,30 @@ class ConciliacionSimplificadaTest extends TestCase {
         $this->assertFalse(str_contains($content, '⚪'), "La etiqueta de Sin Coincidencia no debe llevar emoji");
     }
 
-    public function testVistaConservaTabsAccionesYTablasCompactas(): void {
+    public function testVistaConservaAccionesFiltrosYTablasCompactas(): void {
         $content = file_get_contents(VIEWS_PATH . '/admin/conciliacion/index.php');
 
-        $this->assertStringContains('id="exactas-tab"', $content, "Debe conservarse la pestaña de Exactas");
-        $this->assertStringContains('id="sugeridas-tab"', $content, "Debe conservarse la pestaña de Sugeridas");
-        $this->assertStringContains('id="inconsistencias-tab"', $content, "Debe conservarse la pestaña de Inconsistencias");
-        $this->assertStringContains('id="sin-coincidencia-tab"', $content, "Debe conservarse la pestaña de Sin Coincidencia");
-
+        $this->assertStringContains('id="filtro-todas"', $content,
+            "Debe existir el filtro 'Todas', activo por defecto");
+        $this->assertStringContains('id="filtro-sin-extracto"', $content,
+            "Debe existir el filtro de pagos sin extracto");
+        $this->assertStringContains('Detalles', $content,
+            "Cada fila debe ofrecer el botón emergente 'Detalles'");
         $this->assertStringContains('Conciliar Todas las Exactas', $content,
             "Debe conservarse la conciliación en lote (1-Clic)");
-        $this->assertStringContains('download=1', $content,
-            "Debe conservarse la descarga directa de comprobantes");
         $this->assertStringContains('table-sm', $content,
             "Las tablas de datos deben usar densidad compacta (table-sm)");
+        $this->assertFalse(str_contains($content, 'title="Descargar comprobante"'),
+            "No debe existir descarga de comprobante por fila");
     }
 
-    public function testVistaMuestraColumnaLoteSoloSinLoteSeleccionado(): void {
+    public function testVistaEliminaColumnaLoteCondicional(): void {
         $content = file_get_contents(VIEWS_PATH . '/admin/conciliacion/index.php');
 
-        $this->assertMatchesRegex('/empty\(\$loteActual\)[\s\S]{0,200}>\s*Lote\s*<\/th>/', $content,
-            "El encabezado 'Lote' solo debe renderizarse cuando no hay lote seleccionado");
-
-        $this->assertMatchesRegex('/empty\(\$loteActual\)[\s\S]{0,300}lote_importacion/', $content,
-            "La celda de lote solo debe renderizarse cuando no hay lote seleccionado");
-
-        $this->assertStringContains('colspan="<?= empty($loteActual) ? 5 : 4 ?>"', $content,
-            "El colspan del estado vacío debe ajustarse a las columnas visibles");
+        $this->assertFalse(str_contains($content, '>Lote<'),
+            "La columna Lote debe eliminarse de la bandeja unificada");
+        $this->assertFalse(str_contains($content, 'empty($loteActual) ? 5 : 4'),
+            "Ya no debe existir el colspan condicional por lote");
     }
 
     public function testVistaProyectaPayloadsDeDetalleSinEmbeberEntidadesCompletas(): void {

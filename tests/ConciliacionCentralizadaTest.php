@@ -7,8 +7,8 @@ use App\Core\Database;
 class ConciliacionCentralizadaTest extends TestCase {
 
     /**
-     * Verifica que la vista admin/conciliacion/index.php contenga la nueva lista
-     * general de "Pagos por Verificar" con todas sus columnas y acciones requeridas.
+     * Verifica que la vista admin/conciliacion/index.php contenga la bandeja unificada
+     * de "Pagos por Verificar y Conciliar" con sus columnas y la verificación directa.
      */
     public function testVistaContieneListaPagosPorVerificar(): void {
         $viewPath = VIEWS_PATH . '/admin/conciliacion/index.php';
@@ -16,48 +16,55 @@ class ConciliacionCentralizadaTest extends TestCase {
 
         $content = file_get_contents($viewPath);
 
-        // 1. Título de sección de pagos por verificar
+        // 1. Título de la bandeja de pagos por verificar
         $this->assertStringContains('Pagos por Verificar', $content,
-            "La vista debe incluir la sección de 'Pagos por Verificar'");
+            "La vista debe incluir la bandeja de 'Pagos por Verificar'");
 
-        // 2. Encabezados de tabla requeridos
+        // 2. Encabezados de tabla requeridos por el contrato de la bandeja unificada
         $this->assertStringContains('>Residente<', $content, "Debe tener columna Residente");
         $this->assertStringContains('>Inmueble<', $content, "Debe tener columna Inmueble");
-        $this->assertStringContains('>Factura<', $content, "Debe tener columna Factura");
         $this->assertStringContains('>Referencia<', $content, "Debe tener columna Referencia");
         $this->assertStringContains('>Monto (Bs.)<', $content, "Debe tener columna Monto");
-        $this->assertStringContains('>Fecha Pago<', $content, "Debe tener columna Fecha Pago");
-        $this->assertStringContains('>Comprobante<', $content, "Debe tener columna Comprobante");
+        $this->assertStringContains('>Fecha<', $content, "Debe tener columna Fecha");
         $this->assertStringContains('>Acción<', $content, "Debe tener columna Acción");
 
-        // 3. Descarga directa con download=1
-        $this->assertStringContains('download=1', $content,
-            "La vista debe incluir enlaces de descarga con parámetro download=1");
-
-        // 4. Formulario de verificación/aprobación directa
+        // 3. Formulario de verificación/aprobación directa (acciones del modal de detalle)
         $this->assertStringContains('/admin/conciliacion/verificar', $content,
             "La vista debe incluir acción hacia /admin/conciliacion/verificar");
     }
 
     /**
-     * Verifica que la vista mantenga intactas las 4 listas del Cruce Inteligente:
-     * Exactas, Sugeridas, Inconsistencias y Sin Coincidencia.
+     * Verifica que la vista mantenga las 4 categorías del Cruce Inteligente
+     * (Exactas, Sugeridas, Inconsistencias y Sin Coincidencia) más "Sin Extracto"
+     * como filtros de una tabla única de conciliación.
      */
     public function testVistaMantieneCruceInteligenteYCuatroListas(): void {
         $viewPath = VIEWS_PATH . '/admin/conciliacion/index.php';
         $content = file_get_contents($viewPath);
 
-        // 1. Pestañas de los 4 estados de coincidencia
-        $this->assertStringContains('id="exactas-tab"', $content, "Debe existir pestaña de Exactas");
-        $this->assertStringContains('id="sugeridas-tab"', $content, "Debe existir pestaña de Sugeridas");
-        $this->assertStringContains('id="inconsistencias-tab"', $content, "Debe existir pestaña de Inconsistencias");
-        $this->assertStringContains('id="sin-coincidencia-tab"', $content, "Debe existir pestaña de Sin Coincidencia");
+        // 1. Tabla única de la bandeja de conciliación
+        $this->assertStringContains('id="tablaConciliacion"', $content,
+            "Debe existir la tabla única de conciliación");
 
-        // 2. Paneles de contenido asociados
-        $this->assertStringContains('id="exactas"', $content, "Debe existir panel de contenido de Exactas");
-        $this->assertStringContains('id="sugeridas"', $content, "Debe existir panel de contenido de Sugeridas");
-        $this->assertStringContains('id="inconsistencias"', $content, "Debe existir panel de contenido de Inconsistencias");
-        $this->assertStringContains('id="sin-coincidencia"', $content, "Debe existir panel de contenido de Sin Coincidencia");
+        // 2. Pills de filtro por categoría (4 del cruce + Sin Extracto)
+        $this->assertStringContains('id="filtro-todas"', $content, "Debe existir filtro 'Todas' por defecto");
+        $this->assertStringContains('id="filtro-exactas"', $content, "Debe existir filtro de Exactas");
+        $this->assertStringContains('id="filtro-sugeridas"', $content, "Debe existir filtro de Sugeridas");
+        $this->assertStringContains('id="filtro-inconsistencias"', $content, "Debe existir filtro de Inconsistencias");
+        $this->assertStringContains('id="filtro-sin-coincidencia"', $content, "Debe existir filtro de Sin Coincidencia");
+        $this->assertStringContains('id="filtro-sin-extracto"', $content, "Debe existir filtro de Sin Extracto");
+
+        // 3. Contadores por categoría alimentados por el controlador
+        $this->assertMatchesRegex('/id="filtro-exactas"[\s\S]{0,200}\$conteosConciliacion\[\'exacta\'\]/', $content,
+            "El filtro de Exactas debe mostrar su contador");
+        $this->assertMatchesRegex('/id="filtro-sugeridas"[\s\S]{0,200}\$conteosConciliacion\[\'sugerida\'\]/', $content,
+            "El filtro de Sugeridas debe mostrar su contador");
+        $this->assertMatchesRegex('/id="filtro-inconsistencias"[\s\S]{0,200}\$conteosConciliacion\[\'inconsistencia\'\]/', $content,
+            "El filtro de Inconsistencias debe mostrar su contador");
+        $this->assertMatchesRegex('/id="filtro-sin-coincidencia"[\s\S]{0,200}\$conteosConciliacion\[\'sin_coincidencia\'\]/', $content,
+            "El filtro de Sin Coincidencia debe mostrar su contador");
+        $this->assertMatchesRegex('/id="filtro-sin-extracto"[\s\S]{0,200}\$conteosConciliacion\[\'sin_extracto\'\]/', $content,
+            "El filtro de Sin Extracto debe mostrar su contador");
     }
 
     /**
