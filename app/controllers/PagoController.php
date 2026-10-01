@@ -234,7 +234,11 @@ class PagoController extends Controller {
         Auth::requireLogin();
         // G2-02: Rate limit OCR endpoint — max 20 requests/min/user
         if (!\App\Core\RateLimiter::attempt('ocr_' . Auth::id(), 20, 60)) {
-            $this->json(['success' => false, 'error' => 'Demasiadas solicitudes de análisis.'], 429);
+            $this->json([
+                'success'    => false,
+                'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                'error'      => 'Demasiadas solicitudes de análisis.'
+            ], 429);
             return;
         }
 
@@ -265,16 +269,18 @@ class PagoController extends Controller {
                 $resultado = $parser->procesarArchivo($tmpPath, 'pdf');
             } else {
                 $this->json([
-                    'success'   => false,
-                    'detectado' => false,
-                    'error'     => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
+                    'success'    => false,
+                    'detectado'  => false,
+                    'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                    'error'      => 'Para imágenes, la extracción se procesa mediante el motor de reconocimiento en el navegador.'
                 ], 400);
                 return;
             }
         } else {
             $this->json([
-                'success' => false,
-                'error'   => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
+                'success'    => false,
+                'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                'error'      => 'No se proporcionó texto de OCR ni archivo válido para analizar.'
             ], 400);
             return;
         }
@@ -336,6 +342,7 @@ class PagoController extends Controller {
 
         $this->json([
             'success'            => true,
+            'csrf_token'         => $_SESSION['csrf_token'] ?? '',
             'detectado'          => (bool)$resultado['detectado'],
             'banco_pagador'      => $bancoPagador,
             'banco_receptor'     => $bancoReceptor,
