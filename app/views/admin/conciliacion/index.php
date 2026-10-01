@@ -1,11 +1,22 @@
 <div class="flex flex-1 min-h-screen w-full">
     <?php 
     $activeRoute = 'conciliacion'; 
-    if (\App\Core\Auth::role() === 'auditor') {
-        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
-    } else {
-        require VIEWS_PATH . '/layouts/admin_sidebar.php';
-    }
+    require VIEWS_PATH . '/layouts/admin_sidebar.php';
+
+    // Campos consumidos realmente por el JS de los modales de detalle (evita embeber PII no usada).
+    $proyectarPagoDetalle = function (array $pago): array {
+        return array_intersect_key($pago, array_flip([
+            'id', 'estado', 'origen_tabla', 'monto', 'referencia', 'fecha_pago',
+            'banco_pagador', 'banco_origen', 'residente_nombre', 'residente_cedula',
+            'edificio_nombre', 'unidad_numero', 'metodo_pago', 'numero_factura',
+            'factura_id', 'observaciones', 'archivo',
+        ]));
+    };
+    $proyectarExtractoDetalle = function (array $extracto): array {
+        return array_intersect_key($extracto, array_flip([
+            'id', 'banco', 'monto', 'referencia_bancaria', 'referencia', 'fecha_movimiento',
+        ]));
+    };
     ?>
 
     <!-- Contenido Principal -->
@@ -33,97 +44,33 @@
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
                 <!-- Barra de Acciones del Contenido -->
-                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                    <div>
-                        <h4 class="fw-bolder text-dark mb-1">Centro de Verificación y Conciliación</h4>
-                        <p class="text-muted small mb-0">Módulo exclusivo para verificación, aprobación y cruce bancario de pagos reportados</p>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <?php if (!empty($lotes)): ?>
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="small text-dark fw-bold text-nowrap">Lote activo:</label>
-                                <select class="form-select form-select-sm shadow-sm" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
-                                    <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
-                                    <?php foreach ($lotes as $l): ?>
-                                        <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
-                                            <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (int)$l['pendientes'] ?> pend.]
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
-                            <span class="material-symbols-outlined fs-6">upload_file</span>
-                            <span>Importar Extracto</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Métricas Rápidas / Indicadores Clave -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-100" role="button" onclick="document.getElementById('seccionPagosPendientes').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Pagos por Verificar">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Pagos por Verificar</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($pagosPendientes) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-warning opacity-75">pending_actions</span>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Listado general en espera</small>
+                <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2">
+                    <?php if (!empty($lotes)): ?>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small text-dark fw-bold text-nowrap">Lote activo:</label>
+                            <select class="form-select form-select-sm shadow-sm" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
+                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
+                                <?php foreach ($lotes as $l): ?>
+                                    <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
+                                        <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (int)$l['pendientes'] ?> pend.]
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-100" role="button" onclick="document.getElementById('exactas-tab').click(); document.getElementById('seccionCruceInteligente').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Exactas">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Exactas</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-success opacity-75">verified</span>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Coincidencia por referencia y monto</small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info h-100" role="button" onclick="document.getElementById('sugeridas-tab').click(); document.getElementById('seccionCruceInteligente').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Coincidencias Sugeridas">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Sugeridas</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-info opacity-75">rule</span>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Sugerencias por fecha y monto</small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-100" role="button" onclick="document.getElementById('sin-coincidencia-tab').click(); document.getElementById('seccionCruceInteligente').scrollIntoView({behavior: 'smooth'});" style="cursor: pointer;" title="Ver Movimientos Sin Coincidencia">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted small fw-bold text-uppercase d-block">Sin Coincidencia</span>
-                                    <span class="h3 fw-bolder text-dark mb-0"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
-                                </div>
-                                <span class="material-symbols-outlined fs-1 text-secondary opacity-75">help</span>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Movimientos sin asociar</small>
-                        </div>
-                    </div>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
+                        <span class="material-symbols-outlined fs-6">upload_file</span>
+                        <span>Importar Extracto</span>
+                    </button>
                 </div>
 
                 <!-- SECCIÓN 1: LISTADO GENERAL DE PAGOS PENDIENTES POR VERIFICAR -->
                 <div class="card border-0 shadow-sm rounded-3 mb-4" id="seccionPagosPendientes">
                     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <h5 class="mb-0 fw-bolder text-dark d-flex align-items-center gap-2">
-                                <span class="material-symbols-outlined text-warning">hourglass_top</span>
-                                <span>Pagos por Verificar</span>
-                            </h5>
-                            <span class="small text-muted">Listado centralizado de todos los pagos reportados que requieren verificación y resolución</span>
-                        </div>
+                        <h5 class="mb-0 fw-bolder text-dark d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined text-warning">hourglass_top</span>
+                            <span>Pagos por Verificar</span>
+                        </h5>
                         <span class="badge bg-light text-dark border fw-bold px-3 py-1.5">Total: <?= count($pagosPendientes) ?></span>
                     </div>
 
@@ -136,7 +83,7 @@
                             </div>
                         <?php else: ?>
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
+                                <table class="table table-sm table-hover align-middle mb-0">
                                     <thead class="table-light">
                                         <tr>
                                             <th class="ps-4 py-3">Residente</th>
@@ -180,19 +127,12 @@
                                                 </td>
                                                 <td>
                                                     <?php if (!empty($p['archivo'])): ?>
-                                                        <div class="d-inline-flex align-items-center gap-1">
-                                                            <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>" target="_blank"
-                                                               class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
-                                                               title="Ver comprobante en pestaña nueva">
-                                                                <span class="material-symbols-outlined fs-6">visibility</span>
-                                                            </a>
-                                                            <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>&download=1"
-                                                               download="<?= e($p['archivo']) ?>"
-                                                               class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
-                                                               title="Descargar comprobante">
-                                                                <span class="material-symbols-outlined fs-6">download</span>
-                                                            </a>
-                                                        </div>
+                                                        <a href="/comprobante-proxy.php?file=<?= urlencode($p['archivo']) ?>&download=1"
+                                                           download="<?= e($p['archivo']) ?>"
+                                                           class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center py-1 px-2"
+                                                           title="Descargar comprobante">
+                                                            <span class="material-symbols-outlined fs-6">download</span>
+                                                        </a>
                                                     <?php else: ?>
                                                         <span class="text-muted small">Sin archivo</span>
                                                     <?php endif; ?>
@@ -200,7 +140,7 @@
                                                 <td class="text-end pe-4 text-nowrap">
                                                     <div class="d-inline-flex align-items-center gap-1">
                                                         <button type="button" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center"
-                                                                onclick='verDetallePagoDirecto(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                                onclick='verDetallePagoDirecto(<?= json_encode($proyectarPagoDetalle($p), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                 title="Ver Detalles Completos">
                                                             <span class="material-symbols-outlined fs-6">visibility</span>
                                                         </button>
@@ -254,22 +194,22 @@
                         <ul class="nav nav-pills card-header-pills" id="cruceTabs" role="tablist">
                             <li class="nav-item">
                                 <button class="nav-link active fw-bold text-dark" id="exactas-tab" data-bs-toggle="tab" data-bs-target="#exactas" type="button">
-                                    🟢 Coincidencias Exactas (<?= count($resultadoCruce['coincidencias_exactas']) ?>)
+                                    Coincidencias Exactas (<?= count($resultadoCruce['coincidencias_exactas']) ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
                                 <button class="nav-link fw-bold text-dark" id="sugeridas-tab" data-bs-toggle="tab" data-bs-target="#sugeridas" type="button">
-                                    🟡 Coincidencias Sugeridas (<?= count($resultadoCruce['coincidencias_sugeridas']) ?>)
+                                    Coincidencias Sugeridas (<?= count($resultadoCruce['coincidencias_sugeridas']) ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
                                 <button class="nav-link fw-bold text-dark" id="inconsistencias-tab" data-bs-toggle="tab" data-bs-target="#inconsistencias" type="button">
-                                    🔴 Inconsistencias (<?= count($resultadoCruce['inconsistencias']) ?>)
+                                    Inconsistencias (<?= count($resultadoCruce['inconsistencias']) ?>)
                                 </button>
                             </li>
                             <li class="nav-item">
                                 <button class="nav-link fw-bold text-dark" id="sin-coincidencia-tab" data-bs-toggle="tab" data-bs-target="#sin-coincidencia" type="button">
-                                    ⚪ Sin Coincidencia (<?= count($resultadoCruce['sin_coincidencia']) ?>)
+                                    Sin Coincidencia (<?= count($resultadoCruce['sin_coincidencia']) ?>)
                                 </button>
                             </li>
                         </ul>
@@ -280,21 +220,20 @@
                             <!-- TAB 1: COINCIDENCIAS EXACTAS -->
                             <div class="tab-pane fade show active" id="exactas" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
+                                    <table class="table table-sm table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-4 py-3">Movimiento Banco (Extracto)</th>
                                                 <th class="py-3">Pago Reportado (Residente)</th>
                                                 <th class="py-3 text-center">Referencia</th>
                                                 <th class="py-3 text-end">Monto (Bs.)</th>
-                                                <th class="py-3 text-center">Estado Cruce</th>
                                                 <th class="py-3 text-end pe-4">Acción</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php if (empty($resultadoCruce['coincidencias_exactas'])): ?>
                                                 <tr>
-                                                    <td colspan="6" class="text-center py-5 text-muted">
+                                                    <td colspan="5" class="text-center py-5 text-muted">
                                                         <span class="material-symbols-outlined fs-1 text-success d-block mb-2">task_alt</span>
                                                         <strong>No hay coincidencias exactas pendientes por conciliar.</strong>
                                                     </td>
@@ -316,13 +255,10 @@
                                                         <td class="text-end font-monospace fw-bolder text-dark">
                                                             <?= e(formatearMoneda($match['extracto']['monto'])) ?>
                                                         </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-success rounded-pill px-3 py-1">Exacta</span>
-                                                        </td>
                                                         <td class="text-end pe-4 text-nowrap">
                                                             <div class="d-inline-flex align-items-center gap-1">
                                                                 <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
-                                                                        onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                                        onclick='verDetalleConciliacion(<?= json_encode(['extracto' => $proyectarExtractoDetalle($match['extracto']), 'pago' => $proyectarPagoDetalle($match['pago'])], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                         title="Ver Detalle y Comprobante">
                                                                     <span class="material-symbols-outlined fs-6">visibility</span>
                                                                 </button>
@@ -363,7 +299,7 @@
                             <!-- TAB 2: COINCIDENCIAS SUGERIDAS -->
                             <div class="tab-pane fade" id="sugeridas" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
+                                    <table class="table table-sm table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-4 py-3">Movimiento Banco</th>
@@ -411,7 +347,7 @@
                                                         <td class="text-end pe-4 text-nowrap">
                                                             <div class="d-inline-flex align-items-center gap-1">
                                                                 <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center"
-                                                                        onclick='verDetalleConciliacion(<?= json_encode($match, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                                                                        onclick='verDetalleConciliacion(<?= json_encode(['extracto' => $proyectarExtractoDetalle($match['extracto']), 'pago' => $proyectarPagoDetalle($match['pago'])], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                                                                         title="Ver Detalle y Comprobante">
                                                                     <span class="material-symbols-outlined fs-6">visibility</span>
                                                                 </button>
@@ -452,7 +388,7 @@
                             <!-- TAB 3: INCONSISTENCIAS -->
                             <div class="tab-pane fade" id="inconsistencias" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
+                                    <table class="table table-sm table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-4 py-3">Fecha</th>
@@ -491,21 +427,22 @@
                             <!-- TAB 4: SIN COINCIDENCIA -->
                             <div class="tab-pane fade" id="sin-coincidencia" role="tabpanel">
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
+                                    <table class="table table-sm table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-4 py-3">Fecha Movimiento</th>
                                                 <th class="py-3">Banco / Descripción</th>
                                                 <th class="py-3 text-center">Referencia Banco</th>
                                                 <th class="py-3 text-end">Monto (Crédito)</th>
-                                                <th class="py-3 text-center">Estado Cruce</th>
-                                                <th class="py-3 text-end pe-4">Lote</th>
+                                                <?php if (empty($loteActual)): ?>
+                                                    <th class="py-3 text-end pe-4">Lote</th>
+                                                <?php endif; ?>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php if (empty($resultadoCruce['sin_coincidencia'])): ?>
                                                 <tr>
-                                                    <td colspan="6" class="text-center py-5 text-muted">
+                                                    <td colspan="<?= empty($loteActual) ? 5 : 4 ?>" class="text-center py-5 text-muted">
                                                         <span class="material-symbols-outlined fs-1 text-success d-block mb-2">check_circle</span>
                                                         <strong>Todos los créditos del extracto cuentan con coincidencias registradas.</strong>
                                                     </td>
@@ -526,12 +463,11 @@
                                                         <td class="text-end font-monospace fw-bold text-dark">
                                                             <?= e(formatearMoneda($sc['extracto']['monto'])) ?>
                                                         </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-secondary rounded-pill px-3 py-1">Sin Pago Pendiente</span>
-                                                        </td>
-                                                        <td class="text-end pe-4 text-muted small font-monospace">
-                                                            <?= e($sc['extracto']['lote_importacion'] ?? '') ?>
-                                                        </td>
+                                                        <?php if (empty($loteActual)): ?>
+                                                            <td class="text-end pe-4 text-muted small font-monospace">
+                                                                <?= e($sc['extracto']['lote_importacion'] ?? '') ?>
+                                                            </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
