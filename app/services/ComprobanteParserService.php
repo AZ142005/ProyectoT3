@@ -127,6 +127,18 @@ class ComprobanteParserService {
             return $resultado;
         }
 
+        // Las capturas de teléfono suelen incluir notificaciones superpuestas
+        // ("PagomovilBDV recibido", "Recibiste un PagomovilBDV por Bs...");
+        // se descartan para que no contaminen la detección (en particular la
+        // del banco emisor, que veía un "BDV" de la notificación).
+        $lineas = preg_split('/\r?\n/', $texto);
+        $lineas = array_filter($lineas, function (string $linea): bool {
+            $avisoRecibido  = preg_match('/recibi(?:do|ste)/iu', $linea) === 1;
+            $mencionPagoMovil = preg_match('/pagomovil|pago\s*m[oó]vil/iu', $linea) === 1;
+            return !($avisoRecibido && $mencionPagoMovil);
+        });
+        $texto = implode("\n", $lineas);
+
         // 1. Detección de Método de Pago
         if (preg_match('/(?:pago\s*m[oó]vil|pagomovil|p2p|c2p)/iu', $texto)) {
             $resultado['metodo_pago'] = 'pago_movil';
@@ -144,7 +156,8 @@ class ComprobanteParserService {
         //   b) Coincidencia posicional: gana el banco cuya señal aparece primero
         //      en el texto; la marca del emisor va al inicio del comprobante y las
         //      menciones al receptor aparecen después.
-        //   c) Respaldo: "pago móvil" sin banco identificable.
+        // Si ninguna señal identifica al emisor, el banco queda vacío: es mejor
+        // no adivinar que marcar un banco equivocado.
         $bancos = [
             'venezuela'  => ['venezuela', 'banco de venezuela', 'bdv'],
             'mercantil'  => ['mercantil', 'banco mercantil', 'tpago'],
@@ -193,7 +206,7 @@ class ComprobanteParserService {
         //    siguiente) no identifican al emisor y quedan excluidas.
         if ($resultado['banco'] === null) {
             $zonasReceptor = [];
-            if (preg_match_all('/(?:destino|receptor|beneficiario|acreditad[oa]|recibe)/i', $textoBancos, $mZonas, PREG_OFFSET_CAPTURE)) {
+            if (preg_match_all('/(?:destino|receptor|beneficiario|acreditad[oa]|recibe|banco[:\-]|banco(?=[0-9]{4}))/iu', $textoBancos, $mZonas, PREG_OFFSET_CAPTURE)) {
                 foreach ($mZonas[0] as $mZona) {
                     $inicio = $mZona[1];
                     $fin = $inicio;
@@ -245,11 +258,6 @@ class ComprobanteParserService {
                     $offset = $posicionCodigo + 1;
                 }
             }
-        }
-
-        // c) Respaldo: pago móvil sin banco identificable
-        if ($resultado['banco'] === null && preg_match('/(?:pago\s*m[oó]vil|pagomovil|c2p|p2p)/iu', $texto)) {
-            $resultado['banco'] = 'mercantil';
         }
 
         if ($resultado['banco'] !== null) {
@@ -314,12 +322,13 @@ class ComprobanteParserService {
             }
         }
 
-        // 6. Detección de Fecha (dd/mm/aaaa, dd-mm-aaaa, o texto en español)
-        if (preg_match('/([0-3]?[0-9])[\/\-]([0-1]?[0-9])[\/\-](202[0-9])/', $texto, $matchesFecha)) {
+        // 6. Detección de Fecha (dd/mm/aaaa, dd/mm/aa, dd-mm-aaaa, o texto en español)
+        if (preg_match('/([0-3]?[0-9])[\/\-]([0-1]?[0-9])[\/\-](20[0-9]{2}|[0-9]{2})(?![0-9])/', $texto, $matchesFecha)) {
             $dia  = sprintf('%02d', $matchesFecha[1]);
             $mes  = sprintf('%02d', $matchesFecha[2]);
-            $anio = $matchesFecha[3];
-            $resultado['fecha'] = "{$anio}-{$mes}-{$dia}";
+            $anio = intval($matchesFecha[3]);
+            if ($anio < 100) { $anio += 2000; } // Año de 2 dígitos (ej. 26 -> 2026)
+            $resultado['fecha'] = sprintf('%04d-%s-%s', $anio, $mes, $dia);
             $resultado['detectado'] = true;
         } elseif (preg_match('/(202[0-9])[\/\-]([0-1]?[0-9])[\/\-]([0-3]?[0-9])/', $texto, $matchesFechaIso)) {
             $anio = $matchesFechaIso[1];
