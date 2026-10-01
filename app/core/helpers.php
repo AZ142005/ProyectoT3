@@ -180,7 +180,7 @@ if (!function_exists('badgeEstado')) {
             'pendiente'   => ['bg-warning text-dark', 'schedule', 'Pendiente'],
             'en revisión' => ['bg-info text-white', 'info', 'En Revisión'],
             'aprobado'    => ['bg-success text-white', 'check_circle', 'Aprobado'],
-            'rechazado'   => ['bg-danger text-white', 'cancel', 'Rechazado'],
+            'rechazado'   => ['bg-danger text-white', 'cancel', 'No Aprobado'],
             'pagada'      => ['bg-success text-white', 'payments', 'Pagada'],
             'pagado'      => ['bg-success text-white', 'payments', 'Pagado'],
             'vencido'     => ['bg-danger text-white', 'error', 'Vencido'],

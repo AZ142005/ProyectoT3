@@ -404,11 +404,11 @@ $origenForm = match($fromParam) {
                             <h3 class="text-base font-bold text-on-surface">Resolución de Pago</h3>
                         </div>
                         <div class="p-4 rounded-xl <?= $estado === 'APROBADO' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-800' ?> text-xs leading-relaxed">
-                            <p class="font-bold text-sm mb-1">Pago <?= e($estado) ?></p>
+                            <p class="font-bold text-sm mb-1">Pago <?= e($estado === 'RECHAZADO' ? 'NO APROBADO' : $estado) ?></p>
                             <p>
                                 <?= $estado === 'APROBADO' 
                                     ? 'Este pago fue verificado y aprobado. Los saldos y facturas han sido liquidados.' 
-                                    : 'Este pago fue rechazado. No se generaron modificaciones a las facturas.' ?>
+                                    : 'Este pago no fue aprobado. No se generaron modificaciones a las facturas.' ?>
                             </p>
                             <p class="mt-2 text-[11px] opacity-80">
                                 La opción de descarga del comprobante permanece activa para fines de auditoría histórica.
@@ -440,7 +440,7 @@ $origenForm = match($fromParam) {
                     <!-- Evento Inicial -->
                     <div class="relative">
                         <div class="absolute -left-[35px] top-1 <?= $estadoInicial === 'EN REVISIÓN' ? 'bg-blue-500 ring-blue-500/20' : 'bg-yellow-500 ring-yellow-500/20' ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
-                        <p class="text-sm font-bold text-on-surface">Pago Registrado (<?= e($estadoInicial) ?>)</p>
+                        <p class="text-sm font-bold text-on-surface">Pago Registrado (<?= e($estadoInicial === 'RECHAZADO' ? 'NO APROBADO' : $estadoInicial) ?>)</p>
                         <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por <?= e($residenteNombre) ?></p>
                         <p class="text-[10px] text-slate-400 mt-0.5">
                             <?= !empty($pago['fecha_registro']) ? e(date('d/m/Y h:i A', strtotime($pago['fecha_registro']))) : e(date('d/m/Y', strtotime($pago['fecha_pago']))) ?>
@@ -459,7 +459,7 @@ $origenForm = match($fromParam) {
                         ?>
                         <div class="relative">
                             <div class="absolute -left-[35px] top-1 <?= e($dotColor) ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
-                            <p class="text-sm font-bold text-on-surface">Cambio a <?= e($log['estado_nuevo']) ?></p>
+                            <p class="text-sm font-bold text-on-surface">Cambio a <?= e($log['estado_nuevo'] === 'RECHAZADO' ? 'NO APROBADO' : $log['estado_nuevo']) ?></p>
                             <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por <?= e($log['admin_nombre']) ?></p>
                             <p class="text-[10px] text-slate-400 mt-0.5"><?= e(date('d/m/Y h:i A', strtotime($log['fecha_registro']))) ?></p>
                             
@@ -473,7 +473,7 @@ $origenForm = match($fromParam) {
                     <?php elseif (in_array($estado, ['APROBADO', 'RECHAZADO'], true)): ?>
                         <div class="relative">
                             <div class="absolute -left-[35px] top-1 <?= $estado === 'APROBADO' ? 'bg-green-500 ring-green-500/20' : 'bg-red-500 ring-red-500/20' ?> h-4 w-4 rounded-full border-4 border-white shadow-sm ring-4"></div>
-                            <p class="text-sm font-bold text-on-surface">Procesado como <?= e($estado) ?></p>
+                            <p class="text-sm font-bold text-on-surface">Procesado como <?= e($estado === 'RECHAZADO' ? 'NO APROBADO' : $estado) ?></p>
                             <p class="text-xs font-semibold text-on-surface-variant mt-0.5">Por Administración</p>
                             <?php if (!empty($pago['observaciones_admin'])): ?>
                                 <div class="mt-2 text-xs bg-slate-50 border border-slate-200 p-3 rounded-lg text-on-surface-variant italic">

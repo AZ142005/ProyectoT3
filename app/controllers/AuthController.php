@@ -156,7 +156,7 @@ class AuthController extends Controller {
                                     $error = 'Su cuenta se encuentra en proceso de revisión y aún no ha sido verificada por la administración. No podrá iniciar sesión hasta que su solicitud sea validada y aprobada.';
                                 } elseif ($solicitud && $solicitud['estado'] === 'rechazada') {
                                     $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
-                                    $error = "Su solicitud de registro fue rechazada por la administración{$motivo}";
+                                    $error = "Su solicitud de registro no fue aprobada por la administración{$motivo}";
                                 } else {
                                     $personaInactiva = null;
                                     foreach ($variantesCedula as $vCed) {

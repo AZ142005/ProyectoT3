@@ -591,9 +591,12 @@ class PagoModel extends BaseModel {
 
         $emailService = new \App\Services\EmailService();
         $notifService = new \App\Services\NotificationService();
+        $estadoTexto = ($nuevoEstado === 'RECHAZADO')
+            ? 'no fue aprobado'
+            : 'ha sido ' . strtolower($nuevoEstado);
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
             $info['telefono'] ?? '',
-            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de " . formatearMoneda(floatval($info['monto'])) . " ha sido " . strtolower($nuevoEstado) . "."
+            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de " . formatearMoneda(floatval($info['monto'])) . " " . $estadoTexto . "."
         );
 
         if ($nuevoEstado === 'APROBADO') {
@@ -610,7 +613,7 @@ class PagoModel extends BaseModel {
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Aprobado", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " ha sido aprobado.", "success", "/pagos");
 
         } elseif ($nuevoEstado === 'RECHAZADO') {
-            $asunto = "✖ Pago Rechazado - Referencia " . $info['referencia'];
+            $asunto = "✖ Pago No Aprobado - Referencia " . $info['referencia'];
             $cuerpoHtml = $emailService->renderTemplate('pago_rechazado', [
                 'nombreResidente' => $info['nombre_completo'],
                 'monto'           => $info['monto'],
@@ -619,7 +622,7 @@ class PagoModel extends BaseModel {
             ]);
 
             $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
-            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Rechazado", "Su pago Ref. " . $info['referencia'] . " ha sido rechazado. Motivo: " . $motivo, "danger", "/pagos/subir");
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago No Aprobado", "Su pago Ref. " . $info['referencia'] . " no fue aprobado. Motivo: " . $motivo, "danger", "/pagos/subir");
         } elseif ($nuevoEstado === 'EN REVISIÓN') {
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago en Revisión", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " está siendo revisado por la administración.", "info", "/pagos");
         }
