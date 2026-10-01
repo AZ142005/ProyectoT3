@@ -452,6 +452,8 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
 <!-- Tesseract.js v5 CDN para OCR en navegador -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<!-- Módulo compartido de extracción de comprobantes (OCR en dos pasadas) -->
+<script src="/js/comprobante-ocr.js"></script>
 
 <script>
 (function () {
@@ -848,52 +850,24 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         limpiarInconsistencias();
 
         try {
-            const formData = new FormData();
-            const csrfInput = document.querySelector('input[name="csrf_token"]') || document.querySelector('meta[name="csrf-token"]');
-            if (csrfInput) {
-                formData.append('csrf_token', csrfInput.value || csrfInput.content);
-            }
-
-            if (file.type.indexOf('image/') === 0) {
-                actualizarEstadoOCR('ocr', 'Iniciando motor OCR...');
-                if (typeof Tesseract === 'undefined') {
-                    throw new Error('Librería OCR no disponible. Verifique su conexión.');
-                }
-
-                const result = await Tesseract.recognize(file, 'spa', {
-                    logger: function (m) {
-                        if (m.status === 'recognizing text') {
-                            const pct = Math.round((m.progress || 0) * 100);
-                            actualizarEstadoOCR('ocr', 'Leyendo imagen (' + pct + '%)...');
-                        } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
-                            actualizarEstadoOCR('ocr', 'Cargando motor de visión...');
-                        }
+            const resultado = await ComprobanteOCR.procesar(file, {
+                endpoint: '/pago-directo/extraer',
+                onEstado: function (estado, valor) {
+                    if (estado === 'motor') {
+                        actualizarEstadoOCR('ocr', 'Cargando motor de visión...');
+                    } else if (estado === 'leyendo') {
+                        actualizarEstadoOCR('ocr', 'Leyendo imagen (' + valor + '%)...');
+                    } else if (estado === 'refuerzo') {
+                        actualizarEstadoOCR('analizando', 'Refinando lectura de la captura...');
+                    } else if (estado === 'analizando') {
+                        actualizarEstadoOCR('analizando', 'Estructurando datos bancarios...');
+                    } else if (estado === 'pdf') {
+                        actualizarEstadoOCR('analizando', 'Analizando PDF en el servidor...');
                     }
-                });
-
-                const textoExtraido = (result && result.data && result.data.text) || '';
-                formData.append('texto_extraido', textoExtraido);
-                actualizarEstadoOCR('analizando', 'Estructurando datos bancarios...');
-            } else {
-                actualizarEstadoOCR('analizando', 'Analizando PDF en el servidor...');
-                formData.append('comprobante', file);
-            }
-
-            const response = await fetch('/pago-directo/extraer', {
-                method: 'POST',
-                body: formData
+                }
             });
 
-            const data = await response.json();
-
-            // La validación CSRF rota el token tras cada POST: se actualiza el del formulario
-            // para permitir análisis repetidos (reanalizar / cambiar archivo) sin recargar la página.
-            if (data.csrf_token) {
-                const csrfHidden = document.querySelector('input[name="csrf_token"]');
-                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-                if (csrfHidden) { csrfHidden.value = data.csrf_token; }
-                if (csrfMeta) { csrfMeta.setAttribute('content', data.csrf_token); }
-            }
+            const data = resultado.datos;
 
             if (data.success) {
                 ultimosDatosExtraidos = data;
@@ -903,7 +877,8 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             }
         } catch (err) {
             console.error('Error en extracción:', err);
-            mostrarResumenExtraccion('info', 'Extracción automática no completada (' + (err.message || 'error') + '). Ingrese los datos manualmente.');
+            const detalleError = (err && err.message) ? err.message : 'el motor OCR no pudo iniciarse';
+            mostrarResumenExtraccion('info', 'Extracción automática no completada (' + detalleError + '). Ingrese los datos manualmente.');
         } finally {
             finalizarEstadoOCR();
         }

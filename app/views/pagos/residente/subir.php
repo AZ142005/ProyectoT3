@@ -295,6 +295,8 @@
 
 <!-- Tesseract.js v5 CDN para OCR en cliente (agnóstico de servidor) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<!-- Módulo compartido de extracción de comprobantes (OCR en dos pasadas) -->
+<script src="/js/comprobante-ocr.js"></script>
 
 <script>
     const fileInput = document.getElementById('comprobante');
@@ -459,49 +461,28 @@
 
         btnOCR.disabled = true;
         ocrSpinner.classList.remove('hidden');
+        ocrText.textContent = "Iniciando lectura...";
         limpiarInconsistencias();
 
         try {
-            const formData = new FormData();
-            const csrfInput = document.querySelector('input[name="csrf_token"]') || document.querySelector('meta[name="csrf-token"]');
-            if (csrfInput) {
-                formData.append('csrf_token', csrfInput.value || csrfInput.content);
-            }
-
-            // Flujo A: Imágenes (JPG / PNG) analizadas con Tesseract.js en el navegador
-            if (file.type.startsWith('image/')) {
-                ocrText.textContent = "Iniciando motor OCR...";
-
-                if (typeof Tesseract === 'undefined') {
-                    throw new Error("Librería OCR no disponible. Verifique su conexión a internet.");
-                }
-
-                const result = await Tesseract.recognize(file, 'spa', {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            const pct = Math.round((m.progress || 0) * 100);
-                            ocrText.textContent = `Leyendo imagen (${pct}%)...`;
-                        } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
-                            ocrText.textContent = "Cargando motor de visión...";
-                        }
+            const resultado = await ComprobanteOCR.procesar(file, {
+                endpoint: '/pagos/extraer',
+                onEstado: (estado, valor) => {
+                    if (estado === 'motor') {
+                        ocrText.textContent = "Cargando motor de visión...";
+                    } else if (estado === 'leyendo') {
+                        ocrText.textContent = `Leyendo imagen (${valor}%)...`;
+                    } else if (estado === 'refuerzo') {
+                        ocrText.textContent = "Refinando lectura de la captura...";
+                    } else if (estado === 'analizando') {
+                        ocrText.textContent = "Estructurando datos bancarios...";
+                    } else if (estado === 'pdf') {
+                        ocrText.textContent = "Analizando PDF...";
                     }
-                });
-
-                const textoExtraido = result?.data?.text || '';
-                formData.append('texto_extraido', textoExtraido);
-                ocrText.textContent = "Estructurando datos bancarios...";
-            } else {
-                // Flujo B: PDF analizado directamente en el servidor mediante streams nativos FlateDecode
-                ocrText.textContent = "Analizando PDF...";
-                formData.append('comprobante', file);
-            }
-
-            const response = await fetch('/pagos/extraer', {
-                method: 'POST',
-                body: formData
+                }
             });
 
-            const data = await response.json();
+            const data = resultado.datos;
 
             if (data.success) {
                 ultimosDatosExtraidos = data;
@@ -511,7 +492,8 @@
             }
         } catch (err) {
             console.error("Error en proceso OCR:", err);
-            mostrarResumenExtraccion('info', "Extracción automática no completada (" + (err.message || "error") + "). Ingrese los datos manualmente.");
+            const detalleError = (err && err.message) ? err.message : "el motor OCR no pudo iniciarse";
+            mostrarResumenExtraccion('info', "Extracción automática no completada (" + detalleError + "). Ingrese los datos manualmente.");
         } finally {
             btnOCR.disabled = false;
             ocrText.textContent = "Reanalizar comprobante";

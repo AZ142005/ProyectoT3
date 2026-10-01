@@ -206,7 +206,7 @@ class ComprobanteParserService {
         } elseif (preg_match('/(?:monto|total|importe|bs\.?|ves|\$|por)[:\s]*([0-9]+\.[0-9]{2})\b/i', $texto, $matchesMonto)) {
             $resultado['monto'] = round(floatval($matchesMonto[1]), 2);
             $resultado['detectado'] = true;
-        } elseif (preg_match('/([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/', $texto, $matchesMontoVen)) {
+        } elseif (preg_match('/(?<![0-9])((?:[0-9]{1,3}(?:\.[0-9]{3})*|[0-9]{4,}),[0-9]{2})/', $texto, $matchesMontoVen)) {
             $montoStr = str_replace('.', '', $matchesMontoVen[1]);
             $montoStr = str_replace(',', '.', $montoStr);
             $resultado['monto'] = round(floatval($montoStr), 2);
