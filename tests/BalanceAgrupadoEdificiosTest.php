@@ -56,21 +56,31 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         }
     }
 
-    public function testFiltroPorEstadoDeudorYSolvente(): void {
+    public function testOrdenPorMayorDeudaPorDefecto(): void {
         $reportesModel = new ReportesModel();
 
-        $deudores = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'deudor']);
-        foreach ($deudores as $ed) {
-            $this->assertTrue($ed['balance_total'] > 0, "En filtro 'deudor', los edificios resultantes deben tener balance deudor > 0");
-            foreach ($ed['unidades'] as $u) {
-                $this->assertEquals('deudor', $u['estado_financiero'], "Todas las unidades en filtro 'deudor' deben ser deudoras");
-            }
+        $consolidado = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio();
+        for ($i = 1; $i < count($consolidado); $i++) {
+            $this->assertTrue(
+                $consolidado[$i - 1]['balance_total'] >= $consolidado[$i]['balance_total'],
+                "Los edificios deben ordenarse por deuda descendente (más crítico primero)"
+            );
         }
 
-        $solventes = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']);
-        foreach ($solventes as $ed) {
-            foreach ($ed['unidades'] as $u) {
-                $this->assertEquals('solvente', $u['estado_financiero'], "Todas las unidades en filtro 'solvente' deben ser solventes");
+        $conFiltroSolvente = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']);
+        $this->assertEquals(
+            count($consolidado),
+            count($conFiltroSolvente),
+            "El parámetro 'estado' ya no debe alterar la cantidad de edificios del consolidado"
+        );
+
+        foreach ($consolidado as $ed) {
+            $unidades = $ed['unidades'] ?? [];
+            for ($i = 1; $i < count($unidades); $i++) {
+                $this->assertTrue(
+                    (float)$unidades[$i - 1]['total_deuda'] >= (float)$unidades[$i]['total_deuda'],
+                    "Las unidades de cada edificio deben mantener el orden por deuda descendente"
+                );
             }
         }
     }

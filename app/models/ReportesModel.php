@@ -87,7 +87,7 @@ class ReportesModel extends BaseModel {
      * Obtiene el reporte de balance general consolidado agrupado por edificio,
      * totalizando los montos financieros y agrupando las unidades de cada torre.
      *
-     * @param array $filtros Filtros opcionales: 'edificio_id', 'estado' ('solvente'|'deudor'), 'dias_mora'
+     * @param array $filtros Filtros opcionales: 'edificio_id', 'dias_mora'
      * @return array Lista consolidada de edificios con sus unidades y balance
      */
     public function obtenerReporteBalanceAgrupadoPorEdificio(array $filtros = []): array {
@@ -97,13 +97,6 @@ class ReportesModel extends BaseModel {
         if (!empty($filtros['edificio_id'])) {
             $where .= " AND u.edificio_id = :edificio_id";
             $params['edificio_id'] = intval($filtros['edificio_id']);
-        }
-
-        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
-        if ($estadoFiltro === 'solvente') {
-            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
-        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
-            $where .= " AND m.total_deuda > 0";
         }
 
         if (!empty($filtros['dias_mora'])) {
@@ -204,7 +197,7 @@ class ReportesModel extends BaseModel {
             $edificiosMap[$eid]['unidades'][] = $u;
         }
 
-        $filtroEspecifico = !empty($filtros['estado']) || !empty($filtros['dias_mora']);
+        $filtroEspecifico = !empty($filtros['dias_mora']);
         $resultado = [];
         foreach ($edificiosMap as $eid => $ed) {
             if ($filtroEspecifico && $ed['total_unidades'] === 0) {
@@ -212,6 +205,11 @@ class ReportesModel extends BaseModel {
             }
             $resultado[] = $ed;
         }
+
+        usort($resultado, static function (array $a, array $b): int {
+            return ($b['balance_total'] <=> $a['balance_total'])
+                ?: strcmp((string)$a['edificio_nombre'], (string)$b['edificio_nombre']);
+        });
 
         return $resultado;
     }
@@ -229,13 +227,6 @@ class ReportesModel extends BaseModel {
         if (!empty($filtros['edificio_id'])) {
             $where .= " AND u.edificio_id = :edificio_id";
             $params['edificio_id'] = intval($filtros['edificio_id']);
-        }
-
-        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
-        if ($estadoFiltro === 'solvente') {
-            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
-        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
-            $where .= " AND m.total_deuda > 0";
         }
 
         if (!empty($filtros['dias_mora'])) {
@@ -461,7 +452,7 @@ class ReportesModel extends BaseModel {
     public function exportarCsvStreaming(array $filtros = []): void {
         $datos = $this->obtenerReporteMorosidadCompleto($filtros);
 
-        $filename = 'balance_unidades_' . date('Y-m-d_H-i') . '.csv';
+        $filename = 'deuda_unidades_' . date('Y-m-d_H-i') . '.csv';
 
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
