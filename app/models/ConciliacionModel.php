@@ -26,8 +26,8 @@ class ConciliacionModel extends BaseModel {
 
         $sqlInsert = "
             INSERT INTO extractos_bancarios 
-            (banco, fecha_movimiento, referencia_bancaria, referencia, descripcion_banco, descripcion, monto, tipo_movimiento, estado_conciliacion, lote_importacion)
-            VALUES (:banco, :fecha, :ref_bancaria, :referencia, :desc_banco, :descripcion, :monto, :tipo, :estado, :lote)
+            (banco, fecha_movimiento, referencia_bancaria, referencia, descripcion_banco, descripcion, monto, tipo_movimiento, estado_conciliacion, estado, lote_importacion)
+            VALUES (:banco, :fecha, :ref_bancaria, :referencia, :desc_banco, :descripcion, :monto, :tipo, :estado_conciliacion, :estado, :lote)
         ";
         $stmtInsert = $db->prepare($sqlInsert);
 
@@ -56,22 +56,24 @@ class ConciliacionModel extends BaseModel {
             }
 
             // Los débitos se marcan automáticamente como descartados de la conciliación de cobranzas
-            $estado = ($tipo === 'debito') ? 'descartado' : 'pendiente';
+            $estadoConciliacion = ($tipo === 'debito') ? 'descartado' : 'pendiente';
+            $estado = ($tipo === 'debito') ? 'descartado' : 'disponible';
             if ($tipo === 'debito') {
                 $debitos++;
             }
 
             $stmtInsert->execute([
-                'banco'         => $banco,
-                'fecha'         => $fecha,
-                'ref_bancaria'  => $referencia,
-                'referencia'    => $referencia,
-                'desc_banco'    => $desc,
-                'descripcion'   => $desc,
-                'monto'         => $montoAbs,
-                'tipo'          => $tipo,
-                'estado'        => $estado,
-                'lote'          => $lote
+                'banco'               => $banco,
+                'fecha'               => $fecha,
+                'ref_bancaria'        => $referencia,
+                'referencia'          => $referencia,
+                'desc_banco'          => $desc,
+                'descripcion'         => $desc,
+                'monto'               => $montoAbs,
+                'tipo'                => $tipo,
+                'estado_conciliacion' => $estadoConciliacion,
+                'estado'              => $estado,
+                'lote'                => $lote
             ]);
 
             $insertados++;
@@ -85,9 +87,6 @@ class ConciliacionModel extends BaseModel {
     }
 
     /**
-     * Obtiene los extractos bancarios pendientes de conciliación (solo créditos).
-     */
-    /**
      * Obtiene los extractos bancarios pendientes de conciliación (solo créditos disponibles no vinculados).
      * Aplica exclusión dura a nivel de consulta SQL (defensa en profundidad).
      */
@@ -96,15 +95,17 @@ class ConciliacionModel extends BaseModel {
         $sql = "
             SELECT m.*,
                    m.id,
-                   COALESCE(m.fecha_movimiento, m.fecha) AS fecha_movimiento,
-                   COALESCE(m.referencia_bancaria, m.referencia) AS referencia_bancaria,
-                   COALESCE(m.descripcion_banco, m.descripcion) AS descripcion_banco,
-                   COALESCE(m.monto, m.importe) AS monto,
-                   COALESCE(m.tipo_movimiento, m.tipo) AS tipo_movimiento,
+                   m.fecha_movimiento,
+                   m.referencia_bancaria,
+                   m.descripcion_banco,
+                   m.monto,
+                   m.tipo_movimiento,
                    COALESCE(m.estado, 'disponible') AS estado
             FROM extractos_bancarios m
-            WHERE (m.estado = 'disponible' OR (m.estado IS NULL AND m.estado_conciliacion = 'pendiente'))
-              AND COALESCE(m.tipo_movimiento, m.tipo) = 'credito'
+            WHERE (m.estado IN ('disponible', 'pendiente') OR (m.estado IS NULL AND m.estado_conciliacion = 'pendiente'))
+              AND m.estado NOT IN ('conciliado', 'anulado', 'descartado')
+              AND (m.estado_conciliacion IS NULL OR m.estado_conciliacion = 'pendiente')
+              AND m.tipo_movimiento = 'credito'
               AND NOT EXISTS (
                   SELECT 1 FROM conciliacion_abono_pago c
                   WHERE c.movimiento_id = m.id
