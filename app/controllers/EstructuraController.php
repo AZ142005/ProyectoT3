@@ -176,9 +176,10 @@ class EstructuraController extends Controller {
         $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id          = intval($_POST['id'] ?? 0);
-            $numero      = trim($_POST['numero'] ?? '');
-            $edificio_id = intval($_POST['edificio_id'] ?? 0);
+            $id                      = intval($_POST['id'] ?? 0);
+            $numero                  = trim($_POST['numero'] ?? '');
+            $edificio_id             = intval($_POST['edificio_id'] ?? 0);
+            $asignarEstacionamiento = !empty($_POST['asignar_estacionamiento']);
 
             if (empty($numero)) {
                 Flash::error('El código/número de la unidad es obligatorio.');
@@ -204,8 +205,15 @@ class EstructuraController extends Controller {
                         $res = $unidadesModel->update($id, $data);
                         Flash::success($res ? 'Unidad actualizada exitosamente.' : 'Error al actualizar la unidad.');
                     } else {
-                        $res = $unidadesModel->create($data);
-                        Flash::success($res ? 'Unidad registrada exitosamente.' : 'Error al registrar la unidad.');
+                        $res = $unidadesModel->createWithEstacionamiento($data, $asignarEstacionamiento);
+                        if ($res) {
+                            $msg = $asignarEstacionamiento 
+                                ? 'Unidad registrada y puesto de estacionamiento asignado exitosamente.' 
+                                : 'Unidad registrada exitosamente.';
+                            Flash::success($msg);
+                        } else {
+                            Flash::error('Error al registrar la unidad o asignar el puesto de estacionamiento.');
+                        }
                     }
                     $this->invalidarCacheEstructura();
                 }

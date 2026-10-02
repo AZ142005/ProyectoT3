@@ -30,7 +30,7 @@ class PersonasModel extends BaseModel {
     }
 
     public function getActiveByEmail($email) {
-        $stmt = $this->db()->prepare("SELECT * FROM personas WHERE email = :email AND estado = 1");
+        $stmt = $this->db()->prepare("SELECT * FROM personas WHERE LOWER(email) = LOWER(:email) AND estado = 1 LIMIT 1");
         $stmt->execute(['email' => $email]);
         return $stmt->fetch();
     }
@@ -153,7 +153,7 @@ class PersonasModel extends BaseModel {
      * Verifica si un correo electrónico ya está en uso por otra persona activa.
      */
     public function emailExistsActive(string $email, ?int $excludeId = null): bool {
-        $sql = "SELECT id FROM personas WHERE email = :email AND estado = 1";
+        $sql = "SELECT id FROM personas WHERE LOWER(email) = LOWER(:email) AND estado = 1";
         $params = ['email' => $email];
         if ($excludeId && $excludeId > 0) {
             $sql .= " AND id != :exclude_id";

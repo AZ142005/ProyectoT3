@@ -324,14 +324,14 @@ class SolicitudesRegistroModel extends BaseModel {
             }
 
             // 3. Crear o reactivar habitante en 'personas'
-            $stmtCheckP = $db->prepare("SELECT id, estado FROM personas WHERE cedula = :cedula FOR UPDATE");
-            $stmtCheckP->execute(['cedula' => $solicitud['cedula']]);
+            $stmtCheckP = $db->prepare("SELECT id, estado FROM personas WHERE (LOWER(email) = LOWER(:email) OR cedula = :cedula) FOR UPDATE");
+            $stmtCheckP->execute(['email' => $solicitud['email'], 'cedula' => $solicitud['cedula']]);
             $personaExistente = $stmtCheckP->fetch(PDO::FETCH_ASSOC);
 
             $personaId = 0;
             if ($personaExistente) {
                 if ((int)$personaExistente['estado'] === 1) {
-                    throw new \RuntimeException('Ya existe un habitante activo con esta cédula de identidad.');
+                    throw new \RuntimeException('Ya existe un habitante activo con este correo electrónico o cédula de identidad.');
                 }
                 // Reactivación
                 $personaId = (int)$personaExistente['id'];

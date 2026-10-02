@@ -241,15 +241,28 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        // Validación de Correo si fue suministrado
-        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // Validación de Correo (obligatorio y único)
+        if (empty($email)) {
+            Flash::error('El correo electrónico es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $email = strtolower(trim($email));
+        if (!validarEmail($email)) {
             Flash::error('El formato del correo electrónico no es válido.');
             $this->redirect('/admin/usuarios');
             return;
         }
 
+        if ($personasModel->emailExistsActive($email, $id)) {
+            Flash::error('El correo electrónico ya se encuentra registrado por otro residente.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
         $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
-        $exito = $personasModel->actualizarContacto($id, $telLimpio, !empty($email) ? $email : null);
+        $exito = $personasModel->actualizarContacto($id, $telLimpio, $email);
 
         if ($exito) {
             Flash::success("Datos de contacto actualizados correctamente para {$nombre}.");

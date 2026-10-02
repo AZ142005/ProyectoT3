@@ -683,6 +683,18 @@
                 </select>
             </div>
 
+            <!-- Asignación automática de puesto de estacionamiento -->
+            <div id="contenedor_auto_estacionamiento" class="pt-2 border-t border-background">
+                <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-on-surface-variant uppercase select-none">
+                    <input type="checkbox" id="asignar_estacionamiento" name="asignar_estacionamiento" value="1"
+                           class="w-4 h-4 rounded text-primary focus:ring-primary/20 border-outline-variant cursor-pointer" checked>
+                    <span>Asignar puesto de estacionamiento automáticamente</span>
+                </label>
+                <p class="text-xs text-on-surface-variant mt-1 pl-6 normal-case font-normal">
+                    Se creará y vinculará un puesto con nomenclatura <strong>Puesto - [Número]</strong> a esta unidad.
+                </p>
+            </div>
+
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-background">
                 <button type="button" onclick="closeModalUnidad()" class="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-background transition-colors">Cancelar</button>
                 <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary-hover text-white shadow-sm transition-colors">Guardar Unidad</button>
@@ -726,6 +738,10 @@ function openModalUnidad(tab = 'configuracion', edificioId = '') {
     document.getElementById('unidad_tab_input').value = tab;
     document.getElementById('unidad_numero').value = '';
     document.getElementById('unidad_edificio_id').value = edificioId ? String(edificioId) : '';
+    const autoBox = document.getElementById('contenedor_auto_estacionamiento');
+    if (autoBox) autoBox.classList.remove('hidden');
+    const chk = document.getElementById('asignar_estacionamiento');
+    if (chk) chk.checked = true;
     document.getElementById('modalUnidadTitle').innerText = 'Agregar Unidad';
     const m = document.getElementById('modalUnidad');
     m.classList.remove('hidden');
@@ -737,6 +753,10 @@ function editUnidad(id, numero, edificioId, tab = 'configuracion') {
     document.getElementById('unidad_tab_input').value = tab;
     document.getElementById('unidad_numero').value = numero || '';
     document.getElementById('unidad_edificio_id').value = edificioId || '';
+    const autoBox = document.getElementById('contenedor_auto_estacionamiento');
+    if (autoBox) autoBox.classList.add('hidden');
+    const chk = document.getElementById('asignar_estacionamiento');
+    if (chk) chk.checked = false;
     document.getElementById('modalUnidadTitle').innerText = 'Editar Unidad';
     const m = document.getElementById('modalUnidad');
     m.classList.remove('hidden');

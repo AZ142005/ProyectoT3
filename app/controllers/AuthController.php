@@ -32,149 +32,101 @@ class AuthController extends Controller {
                 $minutos = ceil($segundos / 60);
                 $error = "Demasiados intentos de inicio de sesión. Intente de nuevo en {$minutos} minuto(s).";
             } else {
-                $rawEmail = trim($_POST['email'] ?? '');
+                $email    = strtolower(trim($_POST['email'] ?? ''));
                 $password = trim($_POST['password'] ?? '');
 
-                // Validación estricta: ya no se permite el ingreso con correo electrónico
-                if (!empty($rawEmail) && (filter_var($rawEmail, FILTER_VALIDATE_EMAIL) || str_contains($rawEmail, '@'))) {
-                    $error = 'El ingreso con correo electrónico ya no está permitido. Debe ingresar únicamente con su cédula de identidad.';
+                if (empty($email) || empty($password)) {
+                    $error = 'Por favor, ingresa tu correo electrónico y contraseña.';
+                } elseif (!validarEmail($email)) {
+                    $error = 'El formato del correo electrónico no es válido (ejemplo: usuario@dominio.com).';
                 } else {
-                    $cedulaTipo   = strtoupper(trim($_POST['cedula_tipo'] ?? ''));
-                    $cedulaNumero = preg_replace('/\D/', '', trim($_POST['cedula_numero'] ?? ''));
+                    $loginExitoso = false;
+                    $foundUserId = null;
+                    $foundType = null; // 'admin' or 'residente'
 
-                    // Fallback para entradas unificadas
-                    if (empty($cedulaNumero) && !empty($_POST['cedula'])) {
-                        $raw = normalizarCedula($_POST['cedula']);
-                        if (in_array(substr($raw, 0, 1), ['V', 'E', 'J', 'G'], true)) {
-                            $cedulaTipo = substr($raw, 0, 1);
-                            $cedulaNumero = substr($raw, 1);
+                    $usuariosModel = new UsuariosModel();
+                    $personasModel = new PersonasModel();
+
+                    // 1. Buscar en la tabla de usuarios (Admin / Auditor)
+                    $usuario = $usuariosModel->getActiveByEmail($email);
+                    if (!$usuario && $email === 'admin@condominio.local') {
+                        $usuario = $usuariosModel->getActiveByUsuario('admin');
+                    }
+
+                    if ($usuario) {
+                        if ($usuariosModel->estaBloqueado((int)$usuario['id'])) {
+                            $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
+                        } elseif (password_verify($password, $usuario['password'])) {
+                            $usuariosModel->resetIntentosFallidos((int)$usuario['id']);
+                            $loginExitoso = true;
+                            $foundUserId = (int)$usuario['id'];
+                            $foundType = 'admin';
+
+                            if (!empty($usuario['two_factor_enabled'])) {
+                                return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
+                            }
+
+                            if (($usuario['rol'] ?? '') === UserRole::AUDITOR) {
+                                Auth::loginAsAuditor($usuario);
+                                $this->redirect('/auditor/dashboard');
+                            } else {
+                                Auth::loginAsAdmin($usuario);
+                                $this->redirect('/admin/dashboard');
+                            }
+                            return;
                         } else {
-                            $cedulaTipo = 'V';
-                            $cedulaNumero = $raw;
+                            // Admin encontrado pero contraseña incorrecta
+                            $usuariosModel->incrementarIntentosFallidos((int)$usuario['id']);
+                            $error = 'Correo electrónico o contraseña incorrectos.';
                         }
                     }
 
-                    if (empty($cedulaNumero) || empty($password)) {
-                        $error = 'Por favor, ingresa tu cédula de identidad y contraseña.';
-                    } elseif (empty($cedulaTipo) || !in_array($cedulaTipo, ['V', 'E', 'J', 'G'], true)) {
-                        $error = 'Seleccione un tipo de documento válido (V, E, J, G).';
-                    } elseif (strlen($cedulaNumero) < 5 || strlen($cedulaNumero) > 10) {
-                        $error = 'El número de documento debe contener entre 5 y 10 dígitos numéricos.';
-                    } else {
-                        $identificador = $cedulaTipo . $cedulaNumero;
-                        $loginExitoso = false;
-                        $foundUserId = null;
-                        $foundType = null; // 'admin' or 'residente'
+                    // 2. Buscar en la tabla de residentes (Personas)
+                    if (!$usuario && empty($error)) {
+                        $residente = $personasModel->getActiveByEmail($email);
 
-                        $usuariosModel = new UsuariosModel();
-                        $personasModel = new PersonasModel();
-
-                        // 1. Buscar en la tabla de usuarios (Admin / Auditor)
-                        $usuario = $usuariosModel->getActiveByCedula($identificador);
-                        if (!$usuario && ($identificador === 'V00000000' || $cedulaNumero === '00000000')) {
-                            $usuario = $usuariosModel->getActiveByUsuario('admin');
-                        }
-
-                        if ($usuario) {
-                            if ($usuariosModel->estaBloqueado((int)$usuario['id'])) {
+                        if ($residente) {
+                            if ($personasModel->estaBloqueado((int)$residente['id'])) {
                                 $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
-                            } elseif (password_verify($password, $usuario['password'])) {
-                                $usuariosModel->resetIntentosFallidos((int)$usuario['id']);
+                            } elseif (!empty($residente['password']) && password_verify($password, $residente['password'])) {
+                                $personasModel->resetIntentosFallidos((int)$residente['id']);
                                 $loginExitoso = true;
-                                $foundUserId = (int)$usuario['id'];
-                                $foundType = 'admin';
+                                $foundUserId = (int)$residente['id'];
+                                $foundType = 'residente';
 
-                                if (!empty($usuario['two_factor_enabled'])) {
-                                    return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
+                                if (!empty($residente['two_factor_enabled'])) {
+                                    return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
                                 }
 
-                                if (($usuario['rol'] ?? '') === UserRole::AUDITOR) {
-                                    Auth::loginAsAuditor($usuario);
-                                    $this->redirect('/auditor/dashboard');
-                                } else {
-                                    Auth::loginAsAdmin($usuario);
-                                    $this->redirect('/admin/dashboard');
-                                }
+                                Auth::loginAsResidente($residente);
+                                $this->redirect('/residente/dashboard');
                                 return;
                             } else {
-                                // Admin encontrado pero contraseña incorrecta
-                                $usuariosModel->incrementarIntentosFallidos((int)$usuario['id']);
-                                $error = 'Credenciales incorrectas. Verifica tu cédula y contraseña.';
+                                // Residente encontrado pero contraseña incorrecta
+                                $personasModel->incrementarIntentosFallidos((int)$residente['id']);
+                                $error = 'Correo electrónico o contraseña incorrectos.';
                             }
-                        }
+                        } else {
+                            // 3. Si no se encuentra usuario activo ni residente activo
+                            $solicitudesModel = new SolicitudesRegistroModel();
+                            $solicitud = $solicitudesModel->buscarUltimaPorIdentificador($email);
 
-                        // 2. Buscar en la tabla de residentes (Personas)
-                        if (!$usuario && empty($error)) {
-                            $residente = null;
-                            $variantesCedula = array_values(array_unique(array_filter([
-                                $identificador,
-                                $cedulaTipo . '-' . $cedulaNumero,
-                                $cedulaNumero,
-                                $cedulaTipo . $cedulaNumero
-                            ])));
-
-                            foreach ($variantesCedula as $vCed) {
-                                $residente = $personasModel->getActiveByCedula($vCed);
-                                if ($residente) {
-                                    break;
-                                }
-                            }
-
-                            if ($residente) {
-                                if ($personasModel->estaBloqueado((int)$residente['id'])) {
-                                    $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
-                                } elseif (!empty($residente['password']) && password_verify($password, $residente['password'])) {
-                                    $personasModel->resetIntentosFallidos((int)$residente['id']);
-                                    $loginExitoso = true;
-                                    $foundUserId = (int)$residente['id'];
-                                    $foundType = 'residente';
-
-                                    if (!empty($residente['two_factor_enabled'])) {
-                                        return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
-                                    }
-
-                                    Auth::loginAsResidente($residente);
-                                    $this->redirect('/residente/dashboard');
-                                    return;
-                                } else {
-                                    // Residente encontrado pero contraseña incorrecta
-                                    $personasModel->incrementarIntentosFallidos((int)$residente['id']);
-                                    $error = 'Credenciales incorrectas. Verifica tu cédula y contraseña.';
-                                }
+                            if ($solicitud && $solicitud['estado'] === 'pendiente') {
+                                $error = 'Su cuenta se encuentra en proceso de revisión y aún no ha sido verificada por la administración. No podrá iniciar sesión hasta que su solicitud sea validada y aprobada.';
+                            } elseif ($solicitud && $solicitud['estado'] === 'rechazada') {
+                                $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
+                                $error = "Su solicitud de registro no fue aprobada por la administración{$motivo}";
                             } else {
-                                // 3. Si no se encuentra usuario activo ni residente activo
-                                $solicitudesModel = new SolicitudesRegistroModel();
-                                $solicitud = null;
-                                foreach ($variantesCedula as $vCed) {
-                                    $solicitud = $solicitudesModel->buscarUltimaPorIdentificador($vCed);
-                                    if ($solicitud) {
-                                        break;
-                                    }
-                                }
+                                $personaInactiva = $personasModel->getByEmail($email);
 
-                                if ($solicitud && $solicitud['estado'] === 'pendiente') {
-                                    $error = 'Su cuenta se encuentra en proceso de revisión y aún no ha sido verificada por la administración. No podrá iniciar sesión hasta que su solicitud sea validada y aprobada.';
-                                } elseif ($solicitud && $solicitud['estado'] === 'rechazada') {
-                                    $motivo = !empty($solicitud['motivo_rechazo']) ? ': ' . $solicitud['motivo_rechazo'] : '.';
-                                    $error = "Su solicitud de registro no fue aprobada por la administración{$motivo}";
+                                if ($personaInactiva && (int)($personaInactiva['estado'] ?? 0) !== 1) {
+                                    $error = 'Su cuenta de residente se encuentra inactiva o aún no ha sido verificada. Por favor, comuníquese con la administración.';
                                 } else {
-                                    $personaInactiva = null;
-                                    foreach ($variantesCedula as $vCed) {
-                                        $personaInactiva = $personasModel->getByCedula($vCed);
-                                        if ($personaInactiva) {
-                                            break;
-                                        }
-                                    }
-
-                                    if ($personaInactiva && (int)($personaInactiva['estado'] ?? 0) !== 1) {
-                                        $error = 'Su cuenta de residente se encuentra inactiva o aún no ha sido verificada. Por favor, comuníquese con la administración.';
+                                    $usuarioInactivo = $usuariosModel->getByEmailOrUsuario($email);
+                                    if ($usuarioInactivo && (int)($usuarioInactivo['estado'] ?? 0) !== 1) {
+                                        $error = 'Su cuenta de usuario se encuentra inactiva o aún no ha sido verificada. Por favor, contacte a la administración.';
                                     } else {
-                                        $usuarioInactivo = $usuariosModel->getByCedula($identificador);
-                                        if ($usuarioInactivo && (int)($usuarioInactivo['estado'] ?? 0) !== 1) {
-                                            $error = 'Su cuenta de usuario se encuentra inactiva o aún no ha sido verificada. Por favor, contacte a la administración.';
-                                        } else {
-                                            $error = 'Credenciales incorrectas. Verifica tu cédula y contraseña.';
-                                        }
+                                        $error = 'Correo electrónico o contraseña incorrectos.';
                                     }
                                 }
                             }
@@ -185,9 +137,10 @@ class AuthController extends Controller {
         }
 
         $this->render('auth/login', [
-            'error'   => $error,
-            'showNav' => false,
-            'title'   => 'Iniciar Sesión - Condominio Digital'
+            'error'      => $error,
+            'showNav'    => false,
+            'hideFooter' => true,
+            'title'      => 'Iniciar Sesión - Condominio Digital'
         ]);
     }
 
@@ -379,7 +332,7 @@ class AuthController extends Controller {
                 $telCodigo         = trim($_POST['telefono_codigo'] ?? '');
                 $telNumero         = trim($_POST['telefono_numero'] ?? '');
                 $telefono          = !empty($telNumero) ? ($telCodigo . $telNumero) : trim($_POST['telefono'] ?? '');
-                $email             = trim($_POST['email'] ?? '');
+                $email             = strtolower(trim($_POST['email'] ?? ''));
                 $unidadId          = intval($_POST['unidad_id'] ?? 0);
                 $numeroResidentes  = intval($_POST['numero_residentes'] ?? 1);
                 $password          = trim($_POST['password'] ?? '');
@@ -397,7 +350,7 @@ class AuthController extends Controller {
                     $error = 'El número de teléfono debe contener exactamente 7 dígitos tras la operadora.';
                 } elseif (!empty($telefono) && !validarTelefono($telefono)) {
                     $error = 'El formato del teléfono no es válido (use operadoras 0412, 0422, 0414, 0424, 0416 o 0426).';
-                } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                } elseif (!validarEmail($email)) {
                     $error = 'El formato de correo electrónico no es válido.';
                 } elseif ($numeroResidentes < 1 || $numeroResidentes > 20) {
                     $error = 'El número de residentes debe ser entre 1 y 20 personas.';

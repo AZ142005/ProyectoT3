@@ -192,12 +192,26 @@ class ConciliacionController extends Controller {
     public function conciliarPago() {
         Auth::requireRole('admin');
 
-        $extractoId = intval($_POST['extracto_id'] ?? 0);
-        $pagoId = intval($_POST['pago_id'] ?? 0);
-        $origenTipo = trim($_POST['origen_tipo'] ?? 'auto');
-        $adminId = Auth::id() ?? 1;
+        $isAjax = (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
+               || (!empty($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'application/json'))
+               || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+        $extractoId     = intval($_POST['extracto_id'] ?? ($_POST['movimiento_id'] ?? 0));
+        $pagoId         = intval($_POST['pago_id'] ?? 0);
+        $origenTipo     = trim($_POST['origen_tipo'] ?? 'auto');
+        $idempotencyKey = trim($_POST['idempotency_key'] ?? ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? ''));
+        $adminId        = intval(Auth::id() ?? 1);
 
         if ($extractoId <= 0 || $pagoId <= 0) {
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'codigo'  => 'PARAMETROS_INVALIDOS',
+                    'error'   => 'Parámetros de conciliación inválidos.'
+                ], 400);
+                return;
+            }
             Flash::set('danger', 'Parámetros de conciliación inválidos.');
             $this->redirect('/admin/conciliacion');
             return;
@@ -205,11 +219,45 @@ class ConciliacionController extends Controller {
 
         try {
             $conciliacionService = new ConciliacionBancariaService();
-            $resultado = $conciliacionService->conciliarYaprobar($extractoId, $pagoId, $adminId, $origenTipo);
+            $resultado = $conciliacionService->conciliarYaprobar(
+                $extractoId,
+                $pagoId,
+                $adminId,
+                $origenTipo,
+                $idempotencyKey ?: null
+            );
+
+            if ($isAjax) {
+                $this->json([
+                    'success'     => true,
+                    'codigo'      => $resultado['codigo'] ?? 'CONCILIACION_EXITOSA',
+                    'idempotente' => !empty($resultado['idempotente']),
+                    'mensaje'     => $resultado['mensaje']
+                ], 200);
+                return;
+            }
 
             Flash::set('success', $resultado['mensaje']);
-        } catch (\Exception $e) {
+        } catch (\App\Core\ConciliacionException $ce) {
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'codigo'  => $ce->getCodigoNegocio(),
+                    'error'   => $ce->getMessage()
+                ], $ce->getStatusHttp());
+                return;
+            }
+            Flash::set('danger', $ce->getMessage());
+        } catch (\Throwable $e) {
             error_log("[CONCILIACION] Error conciliar pago: " . $e->getMessage());
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'codigo'  => 'ERROR_INTERNO',
+                    'error'   => 'Error al procesar la conciliación del pago.'
+                ], 500);
+                return;
+            }
             Flash::set('danger', 'Error al procesar la conciliación del pago.');
         }
 

@@ -228,6 +228,8 @@ $router->post('/perfil/2fa/toggle', [\App\Controllers\PerfilController::class, '
 $router->post('/api/v1/auth/login', [\App\Controllers\ApiController::class, 'login']);
 $router->post('/api/v1/auth/refresh', [\App\Controllers\ApiController::class, 'refresh']);
 $router->get('/api/v1/residente/estado-cuenta', [\App\Controllers\ApiController::class, 'estadoCuenta']);
+$router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
+$router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Auditoría y Fiscalización de Solo Lectura (RF 8) ---
 $router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::AUDITOR, UserRole::ADMIN]);

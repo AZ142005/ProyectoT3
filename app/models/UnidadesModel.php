@@ -91,6 +91,120 @@ class UnidadesModel extends BaseModel {
         return parent::create('unidades', $actualData);
     }
 
+    /**
+     * Crea una unidad habitacional y opcionalmente genera y asigna un puesto
+     * de estacionamiento de forma atómica en una única transacción de base de datos.
+     *
+     * @param array $data ['numero' => ..., 'edificio_id' => ...]
+     * @param bool $asignarEstacionamiento
+     * @return string|false ID de la unidad creada o false si falla
+     */
+    public function createWithEstacionamiento(array $data, bool $asignarEstacionamiento = false): string|false {
+        $db = $this->db();
+        $db->beginTransaction();
+
+        try {
+            $data['estado'] = 1;
+            $columns = implode(', ', array_keys($data));
+            $placeholders = ':' . implode(', :', array_keys($data));
+            $sql = sprintf("INSERT INTO unidades (%s) VALUES (%s)", $columns, $placeholders);
+
+            $stmtUnidad = $db->prepare($sql);
+            if (!$stmtUnidad->execute($data)) {
+                $db->rollBack();
+                return false;
+            }
+
+            $unidadId = (int)$db->lastInsertId();
+
+            if ($asignarEstacionamiento) {
+                $numeroPuesto = 'Puesto - ' . $data['numero'];
+
+                // Verificar si existe un puesto con el mismo número que esté desocupado para vincularlo
+                $stmtCheck = $db->prepare("
+                    SELECT id, unidad_id 
+                    FROM estacionamientos 
+                    WHERE numero = :numero AND (deleted_at IS NULL OR deleted_at = '')
+                    LIMIT 1
+                ");
+                $stmtCheck->execute(['numero' => $numeroPuesto]);
+                $puestoExistente = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+
+                if ($puestoExistente) {
+                    if (empty($puestoExistente['unidad_id'])) {
+                        // Si existe y no está asignado, vincularlo a esta unidad
+                        $stmtUpd = $db->prepare("
+                            UPDATE estacionamientos 
+                            SET unidad_id = :unidad_id, edificio_id = :edificio_id 
+                            WHERE id = :id
+                        ");
+                        $ok = $stmtUpd->execute([
+                            'unidad_id'   => $unidadId,
+                            'edificio_id' => $data['edificio_id'] ?? null,
+                            'id'          => $puestoExistente['id']
+                        ]);
+                        if (!$ok) {
+                            $db->rollBack();
+                            return false;
+                        }
+                    } else {
+                        // Ya ocupado por otra unidad; registrar uno alternativo con sufijo para evitar duplicidad
+                        $numeroPuestoAlt = $numeroPuesto . '-' . $unidadId;
+                        $stmtIns = $db->prepare("
+                            INSERT INTO estacionamientos (numero, tipo, edificio_id, unidad_id, estado)
+                            VALUES (:numero, 'descubierto', :edificio_id, :unidad_id, 1)
+                        ");
+                        $ok = $stmtIns->execute([
+                            'numero'      => $numeroPuestoAlt,
+                            'edificio_id' => $data['edificio_id'] ?? null,
+                            'unidad_id'   => $unidadId
+                        ]);
+                        if (!$ok) {
+                            $db->rollBack();
+                            return false;
+                        }
+                    }
+                } else {
+                    // Puesto nuevo no existente
+                    $stmtIns = $db->prepare("
+                        INSERT INTO estacionamientos (numero, tipo, edificio_id, unidad_id, estado)
+                        VALUES (:numero, 'descubierto', :edificio_id, :unidad_id, 1)
+                    ");
+                    $ok = $stmtIns->execute([
+                        'numero'      => $numeroPuesto,
+                        'edificio_id' => $data['edificio_id'] ?? null,
+                        'unidad_id'   => $unidadId
+                    ]);
+                    if (!$ok) {
+                        $db->rollBack();
+                        return false;
+                    }
+                }
+            }
+
+            $db->commit();
+            return (string)$unidadId;
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[ERROR ATOMIC TRANSACTION UNIDAD/ESTACIONAMIENTO] ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si una unidad habitacional ya tiene un puesto de estacionamiento asignado.
+     */
+    public function tieneEstacionamientoAsignado(int $unidadId): bool {
+        $stmt = $this->db()->prepare("
+            SELECT COUNT(*) FROM estacionamientos 
+            WHERE unidad_id = :uid AND (deleted_at IS NULL OR deleted_at = '')
+        ");
+        $stmt->execute(['uid' => $unidadId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
     public function update($tableTablaOId, $idOData = null, ?array $data = null): bool {
         $id = (is_int($tableTablaOId) || is_numeric($tableTablaOId)) ? (int)$tableTablaOId : (int)$idOData;
         $actualData = is_array($idOData) ? $idOData : ($data ?? []);

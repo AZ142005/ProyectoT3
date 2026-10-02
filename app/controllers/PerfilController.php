@@ -73,7 +73,8 @@ class PerfilController extends Controller {
             $telefono = trim($_POST['telefono'] ?? '');
             $password = trim($_POST['password'] ?? '');
 
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $email = strtolower(trim($email));
+            if (empty($email) || !validarEmail($email)) {
                 Flash::set('danger', 'Debe proporcionar un correo electrónico válido.');
                 $this->redirect('/perfil');
                 return;
@@ -119,6 +120,13 @@ class PerfilController extends Controller {
             }
 
             $usuariosModel = new UsuariosModel();
+
+            // Verificar unicidad de correo electrónico
+            if ($usuariosModel->emailExists($email, (int)$user['id'])) {
+                Flash::set('danger', 'El correo electrónico ya se encuentra registrado por otro usuario.');
+                $this->redirect('/perfil');
+                return;
+            }
 
             // Verificar unicidad de cédula si fue suministrada
             if (!empty($cedula) && $usuariosModel->cedulaExisteEnOtroUsuario($cedula, (int)$user['id'])) {

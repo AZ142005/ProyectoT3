@@ -1,3 +1,4 @@
+<?php if (empty($hideFooter)): ?>
     <footer class="bg-[#1a252f] text-white/50 py-6 px-8 text-center text-xs mt-auto border-t-2 border-[#4a2c11] w-full">
         <div class="flex justify-center gap-5 flex-wrap mb-2">
             <?php if (!\App\Core\Auth::check()): ?>
@@ -10,6 +11,7 @@
             &copy; <?= date('Y') ?> Condominio Digital - Sistema de Cobranzas. Todos los derechos reservados.
         </p>
     </footer>
+<?php endif; ?>
 
     <!-- Modal de confirmación de cierre de sesión -->
     <?php if (file_exists(VIEWS_PATH . '/components/modal_logout.php')) { include VIEWS_PATH . '/components/modal_logout.php'; } ?>

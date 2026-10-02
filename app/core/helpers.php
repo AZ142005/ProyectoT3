@@ -151,12 +151,22 @@ if (!function_exists('validarCedula')) {
 
 if (!function_exists('validarEmail')) {
     /**
-     * Valida una dirección de correo electrónico.
+     * Valida el formato de correo electrónico mediante expresiones regulares (Regex)
+     * y verificación compatible con estándares RFC (filter_var).
+     * Garantiza formato estricto: usuario@dominio.tld
      *
-     * @param string $email
+     * @param string|null $email
      * @return bool
      */
     function validarEmail($email) {
+        if ($email === null || trim($email) === '') {
+            return false;
+        }
+        $email = trim($email);
+        $patron = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
+        if (!preg_match($patron, $email)) {
+            return false;
+        }
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 }

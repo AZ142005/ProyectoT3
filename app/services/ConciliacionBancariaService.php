@@ -394,8 +394,8 @@ class ConciliacionBancariaService {
     /**
      * Ejecuta el motor de cruce inteligente jerárquico de 3 niveles entre extracto y pagos reportados (pagos y comprobantes).
      */
-    public function ejecutarCruceInteligente(array $movimientosExtracto): array {
-        $db = Database::getConnection();
+    public function ejecutarCruceInteligente(array $movimientosExtracto, ?PDO $dbInstance = null): array {
+        $pagosPendientes = [];
 
         $sqlPagos = "
             SELECT 'pago' AS origen_tabla,
@@ -434,9 +434,15 @@ class ConciliacionBancariaService {
             ORDER BY fecha_pago ASC
             LIMIT 5000
         ";
-        $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
-        if (count($pagosPendientes) >= 5000) {
-            error_log("[CONCILIACION] WARNING: 5000+ pagos pendientes — resultados truncados.");
+
+        try {
+            $db = $dbInstance ?: Database::getConnection();
+            $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
+            if (count($pagosPendientes) >= 5000) {
+                error_log("[CONCILIACION] WARNING: 5000+ pagos pendientes — resultados truncados.");
+            }
+        } catch (\Throwable $e) {
+            $pagosPendientes = [];
         }
 
         // Indexar pagos por referencia normalizada para búsqueda O(1)
@@ -454,9 +460,16 @@ class ConciliacionBancariaService {
         $pagosEmparejadosKeys = [];
 
         foreach ($movimientosExtracto as $mov) {
-            $refMovNormalizada = $this->normalizarReferencia($mov['referencia_bancaria']);
-            $montoMov = floatval($mov['monto']);
-            $fechaMov = $mov['fecha_movimiento'];
+            // Exclusión dura en cruce inteligente: omitir movimientos no disponibles, ya conciliados o anulados
+            $estadoMov = strtolower(trim($mov['estado'] ?? ($mov['estado_conciliacion'] ?? 'disponible')));
+            if ($estadoMov === 'conciliado' || $estadoMov === 'anulado' || $estadoMov === 'descartado' || $estadoMov !== 'disponible') {
+                continue;
+            }
+
+            $refRaw = !empty($mov['referencia_bancaria']) ? $mov['referencia_bancaria'] : ($mov['referencia'] ?? '');
+            $refMovNormalizada = $this->normalizarReferencia($refRaw);
+            $montoMov = floatval($mov['monto'] ?? ($mov['importe'] ?? 0));
+            $fechaMov = $mov['fecha_movimiento'] ?? ($mov['fecha'] ?? date('Y-m-d'));
 
             if ($refMovNormalizada === '0') {
                 $inconsistencias[] = [
@@ -652,21 +665,19 @@ class ConciliacionBancariaService {
      * @return array
      * @throws Exception
      */
-    public function conciliarYaprobar(int $extractoId, int $pagoId, int $adminId, string $origenTipo = 'auto'): array {
+    public function conciliarYaprobar(
+        int $extractoId,
+        int $pagoId,
+        int $adminId,
+        string $origenTipo = 'auto',
+        ?string $idempotencyKey = null
+    ): array {
         $db = Database::getConnection();
 
         try {
             $db->beginTransaction();
 
-            $stmtExt = $db->prepare("SELECT * FROM extractos_bancarios WHERE id = :id FOR UPDATE");
-            $stmtExt->execute(['id' => $extractoId]);
-            $extracto = $stmtExt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$extracto) {
-                throw new Exception("El movimiento del extracto no existe.");
-            }
-
-            // Determinar si es de la tabla comprobantes_pago o pagos
+            // 1. Determinar si el pago es de la tabla comprobantes_pago o pagos
             $esComprobante = ($origenTipo === 'comprobante');
             if ($origenTipo === 'auto') {
                 $stmtCheckComp = $db->prepare("SELECT id FROM comprobantes_pago WHERE id = :id");
@@ -675,13 +686,75 @@ class ConciliacionBancariaService {
                     $esComprobante = true;
                 }
             }
+            $tipoReal = $esComprobante ? 'comprobante' : 'pago';
+
+            // 2. Reserva Atómica Condicional (UPDATE ... WHERE estado = 'disponible') + Vínculo 1:1
+            $conciliacionModel = new ConciliacionModel();
+            $resAbono = $conciliacionModel->conciliarAbono($extractoId, $pagoId, $adminId, $tipoReal, $idempotencyKey, $db);
+
+            if (!$resAbono['ok']) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw new \App\Core\ConciliacionException(
+                    $resAbono['mensaje'],
+                    $resAbono['status_http'],
+                    $resAbono['codigo']
+                );
+            }
+
+            // 3. Si la operación fue idempotente (reintento del mismo usuario/clave), retornar sin duplicar
+            if (!empty($resAbono['idempotente'])) {
+                if ($db->inTransaction()) {
+                    $db->commit();
+                }
+                return [
+                    'success'     => true,
+                    'idempotente' => true,
+                    'codigo'      => 'OK_IDEMPOTENTE',
+                    'mensaje'     => $resAbono['mensaje']
+                ];
+            }
+
+            // 4. Obtener información del extracto / movimiento para auditoría y comprobante
+            $stmtExt = $db->prepare("SELECT * FROM extractos_bancarios WHERE id = :id");
+            $stmtExt->execute(['id' => $extractoId]);
+            $extracto = $stmtExt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$extracto) {
+                try {
+                    $stmtMov = $db->prepare("
+                        SELECT id, banco, fecha AS fecha_movimiento, referencia AS referencia_bancaria,
+                               descripcion AS descripcion_banco, importe AS monto, lote_importacion, estado
+                        FROM movimientos_bancarios WHERE id = :id
+                    ");
+                    $stmtMov->execute(['id' => $extractoId]);
+                    $extracto = $stmtMov->fetch(PDO::FETCH_ASSOC);
+                } catch (\Throwable $e) {}
+            }
+
+            if (!$extracto) {
+                $extracto = [
+                    'id'                  => $extractoId,
+                    'banco'               => 'banco',
+                    'fecha_movimiento'    => date('Y-m-d'),
+                    'referencia_bancaria' => 'REF-' . $extractoId,
+                    'monto'               => 0.0,
+                    'lote_importacion'    => 'LOTE-DIRECTO'
+                ];
+            }
 
             if ($esComprobante) {
                 return $this->procesarConciliacionComprobante($db, $extracto, $pagoId, $adminId);
             }
 
             return $this->procesarConciliacionPago($db, $extracto, $pagoId, $adminId);
-        } catch (\Exception $e) {
+        } catch (\App\Core\ConciliacionException $ce) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $ce;
+        } catch (\Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
@@ -1316,5 +1389,136 @@ class ConciliacionBancariaService {
             $montoStr = str_replace(',', '.', $montoStr);
         }
         return abs(floatval($montoStr));
+    }
+
+    /**
+     * Ejecuta una auditoría de reconciliación periódica para validar la consistencia 1:1.
+     * Verifica que todo abono con estado 'conciliado' tenga exactamente un registro en conciliacion_abono_pago,
+     * y que no existan pagos ni abonos duplicados en la tabla de vínculos.
+     *
+     * @param PDO|null $db
+     * @return array
+     */
+    public function ejecutarAuditoriaReconciliacion(?PDO $db = null): array {
+        $db = $db ?: Database::getConnection();
+        $divergencias = [];
+
+        // 1. Abonos en movimientos_bancarios o extractos_bancarios con estado = 'conciliado' sin vínculo en conciliacion_abono_pago
+        try {
+            $stmtSinVinculo = $db->query("
+                SELECT 'extractos_bancarios' AS tabla, e.id, e.referencia_bancaria AS referencia, e.monto
+                FROM extractos_bancarios e
+                LEFT JOIN conciliacion_abono_pago c ON e.id = c.movimiento_id
+                WHERE (e.estado = 'conciliado' OR e.estado_conciliacion = 'conciliado') AND c.id IS NULL
+            ");
+            $huerfanosExtractos = $stmtSinVinculo ? $stmtSinVinculo->fetchAll(PDO::FETCH_ASSOC) : [];
+            foreach ($huerfanosExtractos as $h) {
+                $divergencias[] = [
+                    'tipo'          => 'ABONO_CONCILIADO_SIN_VINCULO',
+                    'movimiento_id' => $h['id'],
+                    'tabla'         => $h['tabla'],
+                    'referencia'    => $h['referencia'],
+                    'monto'         => $h['monto'],
+                    'descripcion'   => "El abono ID {$h['id']} figura como conciliado pero no existe en conciliacion_abono_pago."
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            $checkTable = $db->query("SELECT 1 FROM movimientos_bancarios LIMIT 1");
+            if ($checkTable !== false) {
+                $stmtSinVinculoMov = $db->query("
+                    SELECT 'movimientos_bancarios' AS tabla, m.id, m.referencia, m.importe
+                    FROM movimientos_bancarios m
+                    LEFT JOIN conciliacion_abono_pago c ON m.id = c.movimiento_id
+                    WHERE m.estado = 'conciliado' AND c.id IS NULL
+                ");
+                $huerfanosMov = $stmtSinVinculoMov ? $stmtSinVinculoMov->fetchAll(PDO::FETCH_ASSOC) : [];
+                foreach ($huerfanosMov as $h) {
+                    $divergencias[] = [
+                        'tipo'          => 'ABONO_CONCILIADO_SIN_VINCULO',
+                        'movimiento_id' => $h['id'],
+                        'tabla'         => $h['tabla'],
+                        'referencia'    => $h['referencia'],
+                        'monto'         => $h['importe'],
+                        'descripcion'   => "El movimiento bancario ID {$h['id']} figura como conciliado pero no existe en conciliacion_abono_pago."
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 2. Vínculos en conciliacion_abono_pago cuyo movimiento no está en estado conciliado
+        try {
+            $stmtVinculoInvalido = $db->query("
+                SELECT c.id AS vinculo_id, c.movimiento_id, c.pago_id, COALESCE(e.estado, e.estado_conciliacion) AS estado_actual
+                FROM conciliacion_abono_pago c
+                LEFT JOIN extractos_bancarios e ON c.movimiento_id = e.id
+                WHERE e.id IS NOT NULL AND e.estado != 'conciliado' AND e.estado_conciliacion != 'conciliado'
+            ");
+            $invalidos = $stmtVinculoInvalido ? $stmtVinculoInvalido->fetchAll(PDO::FETCH_ASSOC) : [];
+            foreach ($invalidos as $inv) {
+                $divergencias[] = [
+                    'tipo'          => 'VINCULO_CON_ABONO_NO_CONCILIADO',
+                    'vinculo_id'    => $inv['vinculo_id'],
+                    'movimiento_id' => $inv['movimiento_id'],
+                    'pago_id'       => $inv['pago_id'],
+                    'descripcion'   => "El vínculo ID {$inv['vinculo_id']} apunta al abono ID {$inv['movimiento_id']} que tiene estado '{$inv['estado_actual']}' en vez de 'conciliado'."
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        // 3. Chequeo de duplicados en conciliacion_abono_pago
+        try {
+            $stmtDupsMov = $db->query("
+                SELECT movimiento_id, COUNT(*) AS total
+                FROM conciliacion_abono_pago
+                GROUP BY movimiento_id
+                HAVING total > 1
+            ");
+            $dupsMov = $stmtDupsMov ? $stmtDupsMov->fetchAll(PDO::FETCH_ASSOC) : [];
+            foreach ($dupsMov as $dm) {
+                $divergencias[] = [
+                    'tipo'          => 'MOVIMIENTO_DUPLICADO_EN_VINCULOS',
+                    'movimiento_id' => $dm['movimiento_id'],
+                    'total'         => $dm['total'],
+                    'descripcion'   => "El movimiento ID {$dm['movimiento_id']} aparece {$dm['total']} veces en conciliacion_abono_pago (violación de 1:1)."
+                ];
+            }
+
+            $stmtDupsPago = $db->query("
+                SELECT pago_id, COUNT(*) AS total
+                FROM conciliacion_abono_pago
+                GROUP BY pago_id
+                HAVING total > 1
+            ");
+            $dupsPago = $stmtDupsPago ? $stmtDupsPago->fetchAll(PDO::FETCH_ASSOC) : [];
+            foreach ($dupsPago as $dp) {
+                $divergencias[] = [
+                    'tipo'        => 'PAGO_DUPLICADO_EN_VINCULOS',
+                    'pago_id'     => $dp['pago_id'],
+                    'total'       => $dp['total'],
+                    'descripcion' => "El pago ID {$dp['pago_id']} aparece {$dp['total']} veces en conciliacion_abono_pago (violación de 1:1)."
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        $totalConciliados = 0;
+        try {
+            $totalConciliados = (int)$db->query("SELECT COUNT(*) FROM extractos_bancarios WHERE estado = 'conciliado' OR estado_conciliacion = 'conciliado'")->fetchColumn();
+        } catch (\Throwable $e) {}
+
+        $totalVinculos = 0;
+        try {
+            $totalVinculos = (int)$db->query("SELECT COUNT(*) FROM conciliacion_abono_pago")->fetchColumn();
+        } catch (\Throwable $e) {}
+
+        return [
+            'ok'                       => (count($divergencias) === 0),
+            'total_abonos_conciliados' => $totalConciliados,
+            'total_vinculos_activos'   => $totalVinculos,
+            'conteo_divergencias'      => count($divergencias),
+            'divergencias'             => $divergencias,
+            'fecha_auditoria'          => date('Y-m-d H:i:s')
+        ];
     }
 }

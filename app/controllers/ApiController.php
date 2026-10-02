@@ -41,31 +41,21 @@ class ApiController extends Controller {
         }
 
         $input = json_decode($rawBody, true) ?? $_POST;
-        $rawEmail = trim($input['email'] ?? '');
-        $cedulaTipo = strtoupper(trim($input['cedula_tipo'] ?? ''));
-        $cedulaNumero = preg_replace('/\D/', '', trim($input['cedula_numero'] ?? ''));
-        $cedulaInput = trim($input['cedula'] ?? '');
+        $email = strtolower(trim($input['email'] ?? ''));
         $password = trim($input['password'] ?? '');
 
-        if (!empty($rawEmail) && (filter_var($rawEmail, FILTER_VALIDATE_EMAIL) || str_contains($rawEmail, '@'))) {
+        if (empty($email) || empty($password)) {
             $this->json([
                 'success' => false,
-                'error'   => 'El ingreso con correo electrónico ya no está permitido. Debe ingresar con su cédula de identidad.'
+                'error'   => 'Debe proporcionar su correo electrónico y contraseña.'
             ], 400);
             return;
         }
 
-        $cedula = '';
-        if (!empty($cedulaTipo) && !empty($cedulaNumero)) {
-            $cedula = $cedulaTipo . $cedulaNumero;
-        } elseif (!empty($cedulaInput)) {
-            $cedula = normalizarCedula($cedulaInput);
-        }
-
-        if (empty($cedula) || empty($password)) {
+        if (!validarEmail($email)) {
             $this->json([
                 'success' => false,
-                'error'   => 'Debe proporcionar su cédula de identidad y contraseña.'
+                'error'   => 'El formato del correo electrónico no es válido.'
             ], 400);
             return;
         }
@@ -78,8 +68,8 @@ class ApiController extends Controller {
 
         // 1. Buscar en usuarios (Admin / Auditor)
         $usuariosModel = new UsuariosModel();
-        $admin = $usuariosModel->getActiveByCedula($cedula);
-        if (!$admin && ($cedula === 'V00000000' || $cedula === '00000000')) {
+        $admin = $usuariosModel->getActiveByEmail($email);
+        if (!$admin && $email === 'admin@condominio.local') {
             $admin = $usuariosModel->getActiveByUsuario('admin');
         }
         if ($admin) {
@@ -107,7 +97,7 @@ class ApiController extends Controller {
         // 2. Buscar en personas (Residente)
         if (!$user) {
             $personasModel = new PersonasModel();
-            $residente = $personasModel->getActiveByCedula($cedula);
+            $residente = $personasModel->getActiveByEmail($email);
 
             if ($residente && !empty($residente['password'])) {
                 if ($personasModel->estaBloqueado((int)$residente['id'])) {
@@ -136,7 +126,7 @@ class ApiController extends Controller {
         if (!$user) {
             $this->json([
                 'success' => false,
-                'error'   => 'Credenciales inválidas.'
+                'error'   => 'Correo electrónico o contraseña incorrectos.'
             ], 401);
             return;
         }

@@ -537,13 +537,14 @@
                     </div>
 
                     <div class="mb-2">
-                        <label for="act_email" class="form-label fw-bold small text-dark">Correo Electrónico (Opcional)</label>
+                        <label for="act_email" class="form-label fw-bold small text-dark">Correo Electrónico *</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light text-muted">
                                 <span class="material-symbols-outlined fs-6">mail</span>
                             </span>
                             <input type="email" id="act_email" name="email" 
                                    class="form-control" 
+                                   required 
                                    placeholder="residente@ejemplo.com">
                         </div>
                     </div>

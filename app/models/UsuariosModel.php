@@ -18,7 +18,7 @@ class UsuariosModel extends BaseModel {
     }
 
     public function getActiveByEmail($email) {
-        $stmt = $this->db()->prepare("SELECT * FROM usuarios WHERE email = :email AND estado = 1");
+        $stmt = $this->db()->prepare("SELECT * FROM usuarios WHERE LOWER(email) = LOWER(:email) AND estado = 1 LIMIT 1");
         $stmt->execute(['email' => $email]);
         return $stmt->fetch();
     }
@@ -268,6 +268,26 @@ class UsuariosModel extends BaseModel {
     public function cedulaExisteEnOtroUsuario(string $cedula, int $excludeId): bool {
         $stmt = $this->db()->prepare("SELECT id FROM usuarios WHERE cedula = :cedula AND id != :excludeId LIMIT 1");
         $stmt->execute(['cedula' => $cedula, 'excludeId' => $excludeId]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Verifica si un correo electrónico ya está registrado en la tabla usuarios.
+     *
+     * @param string $email
+     * @param int|null $excludeId
+     * @return bool
+     */
+    public function emailExists(string $email, ?int $excludeId = null): bool {
+        $sql = "SELECT id FROM usuarios WHERE LOWER(email) = LOWER(:email)";
+        $params = ['email' => $email];
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= " AND id != :excludeId";
+            $params['excludeId'] = $excludeId;
+        }
+        $sql .= " LIMIT 1";
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
         return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
