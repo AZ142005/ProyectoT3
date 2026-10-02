@@ -13,16 +13,8 @@
         <div class="login-form-container">
             <!-- Logo y Encabezado Principal -->
             <div class="login-brand-header text-center mb-4">
-                <div class="login-brand-icon-box mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
-                        <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
-                        <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
-                        <path d="M10 6h4"/>
-                        <path d="M10 10h4"/>
-                        <path d="M10 14h4"/>
-                        <path d="M10 18h4"/>
-                    </svg>
+                <div class="login-brand-logo mb-3">
+                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="190" height="190">
                 </div>
                 <h1 class="login-brand-title">Condominio Digital</h1>
                 <p class="login-brand-subtitle">Ingresa a tu cuenta para continuar</p>
@@ -225,16 +217,12 @@ body > footer {
     text-align: center;
 }
 
-.login-brand-icon-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    color: #ffffff;
-    border-radius: 14px;
-    box-shadow: 0 8px 20px -3px rgba(16, 185, 129, 0.35);
+.login-brand-logo img {
+    display: block;
+    width: 190px;
+    height: auto;
+    max-width: 100%;
+    margin: 0 auto;
 }
 
 .login-brand-title {

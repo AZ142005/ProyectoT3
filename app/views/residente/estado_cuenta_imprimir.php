@@ -28,6 +28,7 @@
         <!-- Membrete -->
         <div class="row border-bottom pb-4 mb-4 align-items-center">
             <div class="col-8">
+                <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" style="height:64px;width:auto;" class="mb-2">
                 <h4 class="fw-bold text-success mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h4>
                 <p class="small text-muted mb-0">Administración General & Junta de Condominio</p>
                 <p class="small text-muted mb-0">RIF: J-30948572-0 | Morón, Estado Carabobo</p>

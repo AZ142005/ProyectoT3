@@ -6,7 +6,6 @@
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <title><?= e($title ?? 'Sistema de Cobranzas - Condominio') ?></title>
     <!-- Favicon / Icono de la ventana del navegador -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
     <!-- Google Fonts & Material Symbols -->

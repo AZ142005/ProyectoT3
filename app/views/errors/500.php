@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Error 500 - Condominio Digital</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
