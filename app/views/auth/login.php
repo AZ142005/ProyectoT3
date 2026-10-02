@@ -14,9 +14,8 @@
             <!-- Logo y Encabezado Principal -->
             <div class="login-brand-header text-center mb-4">
                 <div class="login-brand-logo mb-3">
-                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="190" height="190">
+                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="240" height="240">
                 </div>
-                <h1 class="login-brand-title">Condominio Digital</h1>
                 <p class="login-brand-subtitle">Ingresa a tu cuenta para continuar</p>
             </div>
 
@@ -142,10 +141,10 @@
         <div class="visual-brand-card">
             <div class="visual-pill">
                 <span class="visual-pill-dot"></span>
-                <span>Condominio Digital · Plataforma Residencial</span>
+                <span>Plataforma Digital para la Cobranza</span>
             </div>
-            <h2 class="visual-card-title">Gestión de condominios moderna, transparente y eficiente.</h2>
-            <p class="visual-card-desc">Controla pagos, consulta estados de cuenta en tiempo real y gestiona la administración de tu comunidad en un solo lugar.</p>
+            <h2 class="visual-card-title">Gestión de pagos eficiente</h2>
+            <p class="visual-card-desc">Gestiona tus pagos y consulta tu estado de cuenta en tiempo real, de forma simple y segura.</p>
         </div>
     </div>
 </div>
@@ -219,18 +218,10 @@ body > footer {
 
 .login-brand-logo img {
     display: block;
-    width: 190px;
+    width: 240px;
     height: auto;
     max-width: 100%;
     margin: 0 auto;
-}
-
-.login-brand-title {
-    font-size: 1.55rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: #111827;
-    margin-bottom: 0.25rem;
 }
 
 .login-brand-subtitle {
@@ -507,9 +498,6 @@ body > footer {
         width: 100%;
         max-width: 100%;
         padding: 2rem 7% 1.5rem;
-    }
-    .login-brand-title {
-        font-size: 1.4rem;
     }
 }
 
