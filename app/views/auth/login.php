@@ -14,7 +14,7 @@
             <!-- Logo y Encabezado Principal -->
             <div class="login-brand-header text-center mb-4">
                 <div class="login-brand-logo mb-3">
-                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="298" height="298">
+                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="423" height="423">
                 </div>
                 <p class="login-brand-subtitle">Ingresa a tu cuenta para continuar</p>
             </div>
@@ -197,6 +197,7 @@ body > footer {
     background-color: #ffffff;
     box-sizing: border-box;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .login-spacer {
@@ -218,11 +219,12 @@ body > footer {
 
 .login-brand-logo img {
     display: block;
-    width: 298px;
+    width: 136.61%;
     height: auto;
-    max-width: 100%;
-    margin: 0 auto;
-    transform: translateX(-4px);
+    max-width: none;
+    margin-left: -18.31%;
+    margin-right: -18.31%;
+    transform: translateX(-1.5%);
 }
 
 .login-brand-subtitle {
