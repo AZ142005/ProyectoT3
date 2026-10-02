@@ -98,7 +98,7 @@ $anio = intval($anio ?? date('Y'));
                                 <div class="d-flex align-items-center justify-content-between">
                                     <span class="text-muted text-xs"><?= e($kpis['unidades_morosas'] ?? 0) ?> unidades deudoras</span>
                                     <a href="/admin/reportes/morosidad" class="text-xs text-primary font-bold text-decoration-none hover:underline d-inline-flex align-items-center gap-0.5">
-                                        <span>Balance</span>
+                                        <span>Carta de Deuda</span>
                                         <span class="material-symbols-outlined text-xs">chevron_right</span>
                                     </a>
                                 </div>
@@ -233,7 +233,7 @@ $anio = intval($anio ?? date('Y'));
                             <div class="pt-3 border-top mt-4 d-flex justify-content-between align-items-center">
                                 <span class="text-muted text-xs">Deuda en mora: <strong class="text-danger"><?= e(formatearMoneda($kpis['total_deuda'] ?? 0)) ?></strong></span>
                                 <a href="/admin/reportes/morosidad" class="btn btn-sm btn-outline-secondary rounded-xl text-xs font-bold px-3 py-1.5 d-inline-flex align-items-center gap-1">
-                                    <span>Ver Reporte de Balance</span>
+                                    <span>Ver Cartas de Deuda</span>
                                     <span class="material-symbols-outlined text-xs">arrow_forward</span>
                                 </a>
                             </div>

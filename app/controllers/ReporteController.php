@@ -16,8 +16,7 @@ class ReporteController extends Controller {
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? '',
-            'estado'      => $_GET['estado'] ?? ''
+            'dias_mora'   => $_GET['dias_mora'] ?? ''
         ];
 
         $reportesModel = new ReportesModel();
@@ -51,7 +50,7 @@ class ReporteController extends Controller {
             'filtros'               => $filtros,
             'paginacion'            => $paginacion,
             'layout'                => 'admin',
-            'title'                 => 'Balance General'
+            'title'                 => 'Carta de Deuda'
         ]);
     }
 
@@ -77,7 +76,7 @@ class ReporteController extends Controller {
             'truncado' => $truncado,
             'kpis'    => $kpis,
             'filtros' => $filtros,
-            'title'   => 'Balance de Unidades - Impresión Oficial'
+            'title'   => 'Deuda de Unidades - Impresión Oficial'
         ]);
     }
 

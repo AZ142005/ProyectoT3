@@ -56,35 +56,76 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         }
     }
 
-    public function testFiltroPorEstadoDeudorYSolvente(): void {
+    public function testOrdenPorMayorDeudaPorDefecto(): void {
         $reportesModel = new ReportesModel();
 
-        $deudores = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'deudor']);
-        foreach ($deudores as $ed) {
-            $this->assertTrue($ed['balance_total'] > 0, "En filtro 'deudor', los edificios resultantes deben tener balance deudor > 0");
-            foreach ($ed['unidades'] as $u) {
-                $this->assertEquals('deudor', $u['estado_financiero'], "Todas las unidades en filtro 'deudor' deben ser deudoras");
-            }
+        $consolidado = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio();
+        for ($i = 1; $i < count($consolidado); $i++) {
+            $this->assertTrue(
+                $consolidado[$i - 1]['balance_total'] >= $consolidado[$i]['balance_total'],
+                "Los edificios deben ordenarse por deuda descendente (más crítico primero)"
+            );
         }
 
-        $solventes = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']);
-        foreach ($solventes as $ed) {
-            foreach ($ed['unidades'] as $u) {
-                $this->assertEquals('solvente', $u['estado_financiero'], "Todas las unidades en filtro 'solvente' deben ser solventes");
+        $conFiltroSolvente = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']);
+        $this->assertEquals(
+            count($consolidado),
+            count($conFiltroSolvente),
+            "El parámetro 'estado' ya no debe alterar la cantidad de edificios del consolidado"
+        );
+
+        foreach ($consolidado as $ed) {
+            $unidades = $ed['unidades'] ?? [];
+            for ($i = 1; $i < count($unidades); $i++) {
+                $this->assertTrue(
+                    (float)$unidades[$i - 1]['total_deuda'] >= (float)$unidades[$i]['total_deuda'],
+                    "Las unidades de cada edificio deben mantener el orden por deuda descendente"
+                );
             }
         }
     }
 
-    public function testVistaRenombraTituloABalanceGeneral(): void {
+    public function testFiltroPorEstadoSigueDisponibleEnElReporteCompleto(): void {
+        $reportesModel = new ReportesModel();
+
+        $sinFiltro = $reportesModel->obtenerReporteMorosidadCompleto();
+        $deudores  = $reportesModel->obtenerReporteMorosidadCompleto(['estado' => 'deudor']);
+        $solventes = $reportesModel->obtenerReporteMorosidadCompleto(['estado' => 'solvente']);
+
+        foreach ($deudores as $u) {
+            $this->assertTrue(floatval($u['total_deuda']) > 0,
+                "En 'deudor', toda unidad del reporte completo debe tener deuda mayor a 0");
+        }
+        foreach ($solventes as $u) {
+            $this->assertTrue(floatval($u['total_deuda']) <= 0,
+                "En 'solvente', toda unidad del reporte completo debe tener deuda en 0");
+        }
+        $this->assertEquals(
+            count($sinFiltro),
+            count($deudores) + count($solventes),
+            "El filtro de estado debe seguir disponible para impresión/CSV (partición del reporte completo)"
+        );
+    }
+
+    public function testVistaRenombraTituloACartaDeDeuda(): void {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $this->assertTrue(file_exists($viewPath), "La vista admin/reportes/morosidad.php debe existir");
 
         $content = file_get_contents($viewPath);
 
         // 1. Encabezado de la vista y de la tarjeta
-        $this->assertStringContains('Balance General', $content, "La vista debe incluir el título 'Balance General'");
-        $this->assertFalse(str_contains($content, 'Detalle de Unidades (Balance General)'),
-            "La vista ya no debe tener el título antiguo 'Detalle de Unidades (Balance General)'");
+        $this->assertStringContains('Carta de Deuda', $content, "La vista debe incluir el título 'Carta de Deuda'");
+        $this->assertFalse(str_contains($content, 'Balance General'),
+            "La vista ya no debe tener el título antiguo 'Balance General'");
+
+        // 2. Navegación lateral (admin y auditor) alineada al nuevo nombre
+        $adminSidebar = file_get_contents(VIEWS_PATH . '/layouts/admin_sidebar.php');
+        $this->assertStringContains("'label' => 'Carta de Deuda'", $adminSidebar,
+            "El sidebar de admin debe etiquetar la sección como 'Carta de Deuda'");
+
+        $auditorSidebar = file_get_contents(VIEWS_PATH . '/layouts/auditor_sidebar.php');
+        $this->assertStringContains("'label' => 'Carta de Deuda'", $auditorSidebar,
+            "El sidebar de auditor debe etiquetar la sección como 'Carta de Deuda'");
     }
 
     public function testVistaAgrupacionEdificiosYDrillDown(): void {
@@ -127,7 +168,7 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $content = file_get_contents($viewPath);
 
-        $this->assertStringContains('name="estado"', $content, "Debe existir el filtro por estado financiero");
+        $this->assertFalse(str_contains($content, 'name="estado"'), "Ya no debe existir el filtro por estado financiero");
         $this->assertStringContains('name="edificio_id"', $content, "Debe existir el filtro por edificio");
         $this->assertStringContains('name="dias_mora"', $content, "Debe existir el filtro por días de mora");
         $this->assertStringContains('id="buscadorBalance"', $content, "Debe existir el buscador rápido id='buscadorBalance'");

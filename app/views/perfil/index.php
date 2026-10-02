@@ -244,7 +244,7 @@ $isAuditor = ($role === 'auditor');
                                         <?php if ($s['estado'] === 'aprobado'): ?>
                                             <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Aprobado</span>
                                         <?php elseif ($s['estado'] === 'rechazado'): ?>
-                                            <span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">Rechazado</span>
+                                            <span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">No Aprobado</span>
                                         <?php else: ?>
                                             <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">Pendiente</span>
                                         <?php endif; ?>

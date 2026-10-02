@@ -25,13 +25,94 @@ class ConciliacionController extends Controller {
         $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractosPendientes);
         $pagosPendientes = $conciliacionModel->obtenerTodosPagosPendientes();
 
+        // Bandeja unificada: una fila por movimiento (pago y/o extracto) para el filtrado por categoría.
+        $filasConciliacion = [];
+
+        foreach ($resultadoCruce['coincidencias_exactas'] as $match) {
+            $filasConciliacion[] = [
+                'categoria' => 'exacta',
+                'pago'      => $match['pago'],
+                'extracto'  => $match['extracto'],
+                'fecha'     => $match['pago']['fecha_pago'] ?: $match['extracto']['fecha_movimiento'],
+            ];
+        }
+
+        foreach ($resultadoCruce['coincidencias_sugeridas'] as $match) {
+            $filasConciliacion[] = [
+                'categoria' => 'sugerida',
+                'pago'      => $match['pago'],
+                'extracto'  => $match['extracto'],
+                'fecha'     => $match['pago']['fecha_pago'] ?: $match['extracto']['fecha_movimiento'],
+            ];
+        }
+
+        foreach ($resultadoCruce['inconsistencias'] as $match) {
+            $filasConciliacion[] = [
+                'categoria' => 'inconsistencia',
+                'pago'      => null,
+                'extracto'  => $match['extracto'],
+                'motivo'    => $match['motivo'],
+                'fecha'     => $match['extracto']['fecha_movimiento'],
+            ];
+        }
+
+        foreach ($resultadoCruce['sin_coincidencia'] as $match) {
+            $filasConciliacion[] = [
+                'categoria' => 'sin_coincidencia',
+                'pago'      => null,
+                'extracto'  => $match['extracto'],
+                'fecha'     => $match['extracto']['fecha_movimiento'],
+            ];
+        }
+
+        // Pagos pendientes que no quedaron emparejados en ningún cruce (evita filas duplicadas).
+        // La clave incluye el origen porque pagos y comprobantes_pago tienen secuencias de id independientes.
+        $pagosEmparejados = [];
+        foreach (['coincidencias_exactas', 'coincidencias_sugeridas'] as $tipoCruce) {
+            foreach ($resultadoCruce[$tipoCruce] as $match) {
+                $clavePago = ($match['pago']['origen_tabla'] ?? 'pago') . '_' . $match['pago']['id'];
+                $pagosEmparejados[$clavePago] = true;
+            }
+        }
+
+        foreach ($pagosPendientes as $pago) {
+            $clavePago = ($pago['origen_tabla'] ?? 'pago') . '_' . $pago['id'];
+            if (isset($pagosEmparejados[$clavePago])) {
+                continue;
+            }
+            $filasConciliacion[] = [
+                'categoria' => 'sin_extracto',
+                'pago'      => $pago,
+                'extracto'  => null,
+                'fecha'     => $pago['fecha_pago'],
+            ];
+        }
+
+        // Orden descendente por fecha (los movimientos más recientes primero).
+        usort($filasConciliacion, fn(array $a, array $b) => strcmp((string)$b['fecha'], (string)$a['fecha']));
+
+        // Conteos por categoría para las tarjetas y las pills de filtro.
+        $conteosConciliacion = [
+            'exacta'           => 0,
+            'sugerida'         => 0,
+            'inconsistencia'   => 0,
+            'sin_coincidencia' => 0,
+            'sin_extracto'     => 0,
+            'total'            => count($filasConciliacion),
+        ];
+        foreach ($filasConciliacion as $fila) {
+            $conteosConciliacion[$fila['categoria']]++;
+        }
+
         $this->render('admin/conciliacion/index', [
-            'lotes'             => $lotes,
-            'loteActual'        => $loteSeleccionado,
-            'resultadoCruce'    => $resultadoCruce,
-            'pagosPendientes'   => $pagosPendientes,
-            'layout'            => 'admin',
-            'title'             => 'Conciliación Bancaria y Verificación de Pagos'
+            'lotes'                 => $lotes,
+            'loteActual'            => $loteSeleccionado,
+            'resultadoCruce'        => $resultadoCruce,
+            'pagosPendientes'       => $pagosPendientes,
+            'filasConciliacion'     => $filasConciliacion,
+            'conteosConciliacion'   => $conteosConciliacion,
+            'layout'                => 'admin',
+            'title'                 => 'Conciliación Bancaria y Verificación de Pagos'
         ]);
     }
 

@@ -7,14 +7,18 @@ use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\UsuariosModel;
 use App\Models\PersonasModel;
+use App\Models\SolicitudesRegistroModel;
 
 class UsuarioAdminController extends Controller {
 
     /**
-     * Muestra el listado unificado de usuarios y residentes con filtros y paginación.
+     * Muestra la sección unificada de usuarios y solicitudes de registro,
+     * con pestañas y filtros/paginación independientes por pestaña.
      */
     public function index(): void {
         Auth::requireRole(UserRole::ADMIN);
+
+        $tabActual = in_array($_GET['tab'] ?? '', ['usuarios', 'solicitudes'], true) ? $_GET['tab'] : 'usuarios';
 
         $buscar    = trim($_GET['buscar'] ?? '');
         $rol       = trim($_GET['rol'] ?? '');
@@ -23,6 +27,15 @@ class UsuarioAdminController extends Controller {
 
         $usuariosModel = new UsuariosModel();
         $resultado = $usuariosModel->obtenerListadoUnificado($buscar, $rol, $pagina, $porPagina);
+
+        // Datos de la pestaña de solicitudes de registro (misma página compartida).
+        $estadoSolicitud = isset($_GET['estado']) && in_array($_GET['estado'], ['pendiente', 'aprobada', 'rechazada'], true)
+            ? $_GET['estado']
+            : null;
+
+        $solicitudesModel = new SolicitudesRegistroModel();
+        $resultadoSolicitudes = $solicitudesModel->obtenerListado($pagina, $porPagina, $estadoSolicitud);
+        $pendientesCount = $solicitudesModel->contarPendientes();
 
         $rawReseteada = Flash::get('password_reseteada');
         $passwordReseteada = !empty($rawReseteada) ? json_decode($rawReseteada, true) : null;
@@ -35,12 +48,22 @@ class UsuarioAdminController extends Controller {
                 'porPagina'    => $resultado['porPagina'],
                 'totalPaginas' => $resultado['totalPaginas'],
             ],
+            'solicitudes'       => $resultadoSolicitudes['datos'],
+            'paginacionSolicitudes' => [
+                'total'        => $resultadoSolicitudes['total'],
+                'pagina'       => $resultadoSolicitudes['pagina'],
+                'porPagina'    => $resultadoSolicitudes['porPagina'],
+                'totalPaginas' => $resultadoSolicitudes['totalPaginas'],
+            ],
+            'estadoSolicitud'   => $estadoSolicitud,
+            'pendientesCount'   => $pendientesCount,
+            'tabActual'         => $tabActual,
             'buscar'            => $buscar,
             'rol'               => $rol,
             'passwordReseteada' => $passwordReseteada,
             'activeRoute'       => 'usuarios',
             'showNav'           => false,
-            'title'             => 'Gestión de Usuarios - Administrador'
+            'title'             => 'Usuarios y Solicitudes - Administrador'
         ]);
     }
 

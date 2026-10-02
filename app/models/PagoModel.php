@@ -242,6 +242,14 @@ class PagoModel extends BaseModel {
             $countSql .= " AND p.fecha_pago = :fecha";
             $params['fecha'] = $filtros['fecha'];
         }
+        if (!empty($filtros['unidad_id'])) {
+            // Lista unificada de una unidad (pagos + comprobantes): usada por el
+            // portal del residente para que cualquier miembro de la unidad vea
+            // todos los movimientos.
+            $baseSql .= " AND p.unidad_id = :unidad_id";
+            $countSql .= " AND p.unidad_id = :unidad_id";
+            $params['unidad_id'] = intval($filtros['unidad_id']);
+        }
         
         $result = $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'p.fecha_registro DESC');
         return $result;
@@ -284,8 +292,22 @@ class PagoModel extends BaseModel {
         }
 
         // Si no se encuentra en pagos, buscar en comprobantes_pago para compatibilidad total
+        return $this->obtenerComprobantePorId($id);
+    }
+
+    /**
+     * Detalle de un comprobante del sistema anterior (comprobantes_pago) con los
+     * datos de su factura y unidad. Usado también por el detalle con ?tipo=comprobante
+     * para evitar la colisión de IDs entre ambas tablas.
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function obtenerComprobantePorId($id) {
+        $id = intval($id);
+        $db = $this->db();
         $sqlComp = "SELECT c.*, c.fecha_envio AS fecha_registro, UPPER(c.estado) AS estado,
-                           f.numero_factura, f.saldo AS saldo_factura, f.monto_total,
+                           f.numero_factura, f.saldo AS saldo_factura, f.monto_total, f.unidad_id,
                            u.numero AS unidad_numero, COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                            CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula
                     FROM comprobantes_pago c
@@ -298,15 +320,15 @@ class PagoModel extends BaseModel {
         $stmtComp->execute(['id' => $id]);
         $comp = $stmtComp->fetch(PDO::FETCH_ASSOC);
 
-        if ($comp) {
-            $comp['tipo_origen'] = 'comprobante';
-            $comp['saldo_restante'] = ($comp['saldo_factura'] ?? 0) - ($comp['monto'] ?? 0);
-            $comp['log_auditoria'] = [];
-            $comp['action_url'] = '/admin/comprobante/verificar?id=' . $comp['id'];
-            return $comp;
+        if (!$comp) {
+            return false;
         }
 
-        return false;
+        $comp['tipo_origen'] = 'comprobante';
+        $comp['saldo_restante'] = ($comp['saldo_factura'] ?? 0) - ($comp['monto'] ?? 0);
+        $comp['log_auditoria'] = [];
+        $comp['action_url'] = '/admin/comprobante/verificar?id=' . $comp['id'];
+        return $comp;
     }
 
     /**
@@ -569,9 +591,12 @@ class PagoModel extends BaseModel {
 
         $emailService = new \App\Services\EmailService();
         $notifService = new \App\Services\NotificationService();
+        $estadoTexto = ($nuevoEstado === 'RECHAZADO')
+            ? 'no fue aprobado'
+            : 'ha sido ' . strtolower($nuevoEstado);
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
             $info['telefono'] ?? '',
-            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de " . formatearMoneda(floatval($info['monto'])) . " ha sido " . strtolower($nuevoEstado) . "."
+            "Hola " . $info['nombre_completo'] . ", le informamos que su pago Ref: " . $info['referencia'] . " de " . formatearMoneda(floatval($info['monto'])) . " " . $estadoTexto . "."
         );
 
         if ($nuevoEstado === 'APROBADO') {
@@ -588,7 +613,7 @@ class PagoModel extends BaseModel {
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Aprobado", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " ha sido aprobado.", "success", "/pagos");
 
         } elseif ($nuevoEstado === 'RECHAZADO') {
-            $asunto = "✖ Pago Rechazado - Referencia " . $info['referencia'];
+            $asunto = "✖ Pago No Aprobado - Referencia " . $info['referencia'];
             $cuerpoHtml = $emailService->renderTemplate('pago_rechazado', [
                 'nombreResidente' => $info['nombre_completo'],
                 'monto'           => $info['monto'],
@@ -597,7 +622,7 @@ class PagoModel extends BaseModel {
             ]);
 
             $notifService->encolarNotificacion($info['email'], $asunto, $cuerpoHtml, $info['telefono'], 'ambos', 'alta');
-            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago Rechazado", "Su pago Ref. " . $info['referencia'] . " ha sido rechazado. Motivo: " . $motivo, "danger", "/pagos/subir");
+            $notifService->registrarNotificacionResidente($info['residente_id'], "Pago No Aprobado", "Su pago Ref. " . $info['referencia'] . " no fue aprobado. Motivo: " . $motivo, "danger", "/pagos/subir");
         } elseif ($nuevoEstado === 'EN REVISIÓN') {
             $notifService->registrarNotificacionResidente($info['residente_id'], "Pago en Revisión", "Su pago Ref. " . $info['referencia'] . " por " . formatearMoneda(floatval($info['monto'])) . " está siendo revisado por la administración.", "info", "/pagos");
         }

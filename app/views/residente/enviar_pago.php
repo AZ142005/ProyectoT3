@@ -69,9 +69,9 @@
                                     <span class="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Saldo Pendiente</span>
                                     <span id="facturaCardSaldo" class="text-lg font-black text-rose-600 font-mono">Bs. 0,00</span>
                                 </div>
-                                <button type="button" id="btnCopiarSaldo" onclick="copiarSaldoAMonto()" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer" title="Cargar este saldo exacto en el campo Monto">
-                                    <span class="material-symbols-outlined text-[15px]">input</span>
-                                    Pagar Saldo
+                                <button type="button" id="btnCopiarSaldo" onclick="copiarSaldoAlPortapapeles(this)" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar el saldo pendiente al portapapeles">
+                                    <span class="material-symbols-outlined text-[15px]">content_copy</span>
+                                    Copiar monto
                                 </button>
                             </div>
                         </div>
@@ -775,18 +775,9 @@ function aplicarExtraccionInteligente(data) {
 }
 
 function marcarCampoAutollenado(campoId) {
-    const el = document.getElementById(campoId);
-    if (el) {
-        el.classList.add('bg-emerald-50', 'border-emerald-500', 'ring-2', 'ring-emerald-200');
-        setTimeout(() => {
-            el.classList.remove('ring-2', 'ring-emerald-200');
-        }, 1500);
-    }
-    const badge = document.getElementById(`badge-${campoId}`);
-    if (badge) {
-        badge.classList.remove('hidden');
-        badge.classList.add('inline-flex');
-    }
+    // El resaltado verde y la etiqueta "Auto-completado" se retiraron a
+    // pedido: los datos se aplican sin marcas sobre los campos y el
+    // resumen del Paso 1 informa el resultado.
 }
 
 function limpiarInconsistencias() {
@@ -905,21 +896,26 @@ function actualizarInfoFactura(selectEl) {
     card.classList.remove('hidden');
 }
 
-function copiarSaldoAMonto() {
+function copiarSaldoAlPortapapeles(btnElement) {
     const sel = document.getElementById('factura_id');
     if (!sel) return;
     const opt = sel.options[sel.selectedIndex];
     if (!opt || !opt.value) return;
-    
-    const rawSaldo = opt.getAttribute('data-saldo-val');
-    if (rawSaldo) {
-        const montoInput = document.getElementById('monto');
-        if (montoInput) {
-            montoInput.value = parseFloat(rawSaldo).toFixed(2);
-            marcarCampoAutollenado('monto');
-            montoInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
+
+    const saldo = parseFloat(opt.getAttribute('data-saldo-val'));
+    if (isNaN(saldo)) return;
+    const texto = saldo.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    navigator.clipboard.writeText(texto).then(() => {
+        if (!btnElement) return;
+        const originalHTML = btnElement.innerHTML;
+        btnElement.innerHTML = `<span class="material-symbols-outlined text-[15px]">check</span> ¡Copiado!`;
+        setTimeout(() => {
+            btnElement.innerHTML = originalHTML;
+        }, 1800);
+    }).catch(err => {
+        console.error('Error al copiar al portapapeles:', err);
+    });
 }
 
 function copiarDatoCuenta(elementId, btnElement) {

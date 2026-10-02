@@ -100,10 +100,9 @@ class PagoDirectoController extends Controller {
      * CSRF ya validado globalmente en public/index.php.
      */
     public function extraer(): void {
-        // Rate limiting por IP: máximo 20 análisis por hora.
-        // En desarrollo se omite para no bloquear las pruebas locales; la
-        // protección se mantiene en producción.
-        if (ENVIRONMENT !== 'development' && !RateLimiter::attempt('pago_directo_extraer', 20, 3600)) {
+        // Rate limiting por IP: máximo 20 análisis por hora (cooldown de la
+        // extracción automática de comprobantes).
+        if (!RateLimiter::attempt('pago_directo_extraer', 20, 3600)) {
             $this->json([
                 'success'    => false,
                 'csrf_token' => $_SESSION['csrf_token'] ?? '',

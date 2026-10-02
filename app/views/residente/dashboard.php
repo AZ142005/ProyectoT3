@@ -127,7 +127,7 @@
                 <span class="material-symbols-outlined text-primary">history</span>
                 Comprobantes Recientes
             </h3>
-            <a href="/residente/historial" class="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1">
+            <a href="/pagos" class="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1">
                 Ver todos
                 <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
             </a>

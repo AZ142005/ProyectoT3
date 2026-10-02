@@ -138,10 +138,10 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     </p>
                     <p id="deudaSaldoFavor" class="hidden mt-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-2xl p-3"></p>
 
-                    <button type="button" id="btnUsarMonto"
-                            class="hidden mt-4 bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[18px]">input</span>
-                        Usar este monto
+                    <button type="button" id="btnCopiarMonto"
+                            class="hidden mt-4 bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 items-center gap-1.5" title="Copiar el monto pendiente al portapapeles">
+                        <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                        Copiar monto
                     </button>
                 </div>
             </div>
@@ -472,7 +472,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     var deudaFacturas = document.getElementById('deudaFacturas');
     var deudaSinFacturas = document.getElementById('deudaSinFacturas');
     var deudaSaldoFavor = document.getElementById('deudaSaldoFavor');
-    var btnUsarMonto = document.getElementById('btnUsarMonto');
+    var btnCopiarMonto = document.getElementById('btnCopiarMonto');
     var montoInput = document.getElementById('monto');
     var bancoSelect = document.getElementById('banco_pagador');
     var cuentaSelect = document.getElementById('cuenta_bancaria_id');
@@ -574,7 +574,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         ultimoTotal = total;
 
         deudaSinFacturas.classList.toggle('hidden', facturas.length > 0);
-        btnUsarMonto.classList.toggle('hidden', total <= 0);
+        btnCopiarMonto.classList.toggle('hidden', total <= 0);
 
         if (saldoFavor > 0) {
             deudaSaldoFavor.textContent = 'Esta unidad tiene un saldo a favor de ' + formatearBs(saldoFavor) + '.';
@@ -630,10 +630,17 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         }
     }
 
-    btnUsarMonto.addEventListener('click', function () {
-        if (ultimoTotal > 0) {
-            montoInput.value = ultimoTotal.toFixed(2);
-        }
+    btnCopiarMonto.addEventListener('click', function () {
+        if (ultimoTotal <= 0 || !navigator.clipboard || !navigator.clipboard.writeText) { return; }
+        const textoMonto = ultimoTotal.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const btn = btnCopiarMonto;
+        navigator.clipboard.writeText(textoMonto).then(function () {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> ¡Copiado!';
+            setTimeout(function () {
+                btn.innerHTML = originalHTML;
+            }, 1800);
+        }).catch(function () {});
     });
 
     edificioSelect.addEventListener('change', function () {
@@ -1062,18 +1069,9 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     }
 
     function marcarCampoAutollenado(campoId) {
-        const el = document.getElementById(campoId);
-        if (el) {
-            el.classList.add('bg-emerald-50', 'border-emerald-500', 'ring-2', 'ring-emerald-200');
-            setTimeout(() => {
-                el.classList.remove('ring-2', 'ring-emerald-200');
-            }, 1500);
-        }
-        const badge = document.getElementById(`badge-${campoId}`);
-        if (badge) {
-            badge.classList.remove('hidden');
-            badge.classList.add('inline-flex');
-        }
+        // El resaltado verde y la etiqueta "Auto-completado" se retiraron a
+        // pedido: los datos se aplican sin marcas sobre los campos y el
+        // resumen del Paso 1 informa el resultado.
     }
 
     function limpiarInconsistencias() {

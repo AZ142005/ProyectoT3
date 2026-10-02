@@ -660,18 +660,9 @@
     }
 
     function marcarCampoAutollenado(campoId) {
-        const el = document.getElementById(campoId);
-        if (el) {
-            el.classList.add('bg-emerald-50', 'border-emerald-500', 'ring-2', 'ring-emerald-200');
-            setTimeout(() => {
-                el.classList.remove('ring-2', 'ring-emerald-200');
-            }, 1500);
-        }
-        const badge = document.getElementById(`badge-${campoId}`);
-        if (badge) {
-            badge.classList.remove('hidden');
-            badge.classList.add('inline-flex');
-        }
+        // El resaltado verde y la etiqueta "Auto-completado" se retiraron a
+        // pedido: los datos se aplican sin marcas sobre los campos y el
+        // resumen del Paso 1 informa el resultado.
     }
 
     function limpiarInconsistencias() {

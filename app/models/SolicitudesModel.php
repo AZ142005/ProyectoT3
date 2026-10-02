@@ -50,7 +50,7 @@ class SolicitudesModel extends BaseModel {
             if ($existing['estado'] === 'rechazado' && $existing['fecha_respuesta']) {
                 $rechazada = strtotime($existing['fecha_respuesta']);
                 if ((time() - $rechazada) < 86400) {
-                    throw new Exception("Esta solicitud fue rechazada hace menos de 24 horas. Espere antes de reintentar.");
+                    throw new Exception("Esta solicitud fue evaluada hace menos de 24 horas y no fue aprobada. Espere antes de reintentar.");
                 }
             }
             // 'aprobado' or rejected > 24h → allow new request
@@ -181,9 +181,12 @@ class SolicitudesModel extends BaseModel {
         $notifService = new \App\Services\NotificationService();
         $msg = ($nuevoEstado === 'aprobado')
             ? "Su solicitud de actualización de datos personales ha sido APROBADA exitosamente."
-            : "Su solicitud de actualización de datos ha sido RECHAZADA. Motivo: " . $motivoAdmin;
+            : "Su solicitud de actualización de datos no fue aprobada. Motivo: " . $motivoAdmin;
+        $titulo = ($nuevoEstado === 'aprobado')
+            ? "Solicitud de Datos Aprobada"
+            : "Solicitud de Datos No Aprobada";
         
-        $notifService->registrarNotificacionResidente($personaId, "Solicitud de Datos " . ucfirst($nuevoEstado), $msg, ($nuevoEstado === 'aprobado' ? 'success' : 'danger'), "/perfil");
+        $notifService->registrarNotificacionResidente($personaId, $titulo, $msg, ($nuevoEstado === 'aprobado' ? 'success' : 'danger'), "/perfil");
 
         return true;
     }

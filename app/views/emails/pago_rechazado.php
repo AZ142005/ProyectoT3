@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Pago Rechazado</title>
+    <title>Pago No Aprobado</title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f0f7f0; color: #2c3e50; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -21,12 +21,12 @@
             <p style="margin:4px 0 0 0; font-size:14px; opacity:0.9;">Las Mesetas de Morón</p>
         </div>
         <div class="content">
-            <span class="badge-danger">✖ Comprobante de Pago Rechazado</span>
+            <span class="badge-danger">✖ Comprobante de Pago No Aprobado</span>
             <p>Estimado(a) residente <strong><?= e($nombreResidente ?? 'Residente') ?></strong>,</p>
             <p>Lamentamos informarle que su comprobante de pago por el monto de <strong><?= e(formatearMoneda($monto ?? 0)) ?></strong> (Ref: <?= e($referencia ?? 'N/A') ?>) no ha sido validado por la administración.</p>
             
             <div class="motivo-box">
-                <p style="margin:0 0 6px 0; font-weight:bold; color:#d35400;">Motivo del Rechazo:</p>
+                <p style="margin:0 0 6px 0; font-weight:bold; color:#d35400;">Motivo de la no aprobación:</p>
                 <p style="margin:0; font-style:italic; text-align:justify;"><?= nl2br(e($motivoRechazo ?? 'No especificado')) ?></p>
             </div>
 
