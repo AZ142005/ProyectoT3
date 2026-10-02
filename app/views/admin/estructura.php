@@ -95,7 +95,7 @@
                                     aria-controls="tab-configuracion" 
                                     aria-selected="<?= ($tabActual === 'configuracion') ? 'true' : 'false' ?>">
                                 <span class="material-symbols-outlined text-[20px]">settings_suggest</span>
-                                <span>Configuración del Sistema (Creación de Unidades)</span>
+                                <span>Creación de Unidades</span>
                             </button>
                         </li>
                     </ul>
@@ -319,25 +319,10 @@
                     </div>
 
                     <!-- ========================================================================= -->
-                    <!-- PARTE 2: CONFIGURACIÓN INICIAL DEL SISTEMA (CREACIÓN DE UNIDADES Y TORRES) -->
+                    <!-- PARTE 2: CREACIÓN DE UNIDADES Y TORRES -->
                     <!-- ========================================================================= -->
                     <div class="tab-pane fade <?= ($tabActual === 'configuracion') ? 'show active' : '' ?> space-y-6" id="tab-configuracion" role="tabpanel" aria-labelledby="tab-configuracion-btn">
                         
-                        <!-- Banner Informativo de Configuración Inicial -->
-                        <div class="bg-blue-50/80 border border-blue-200 rounded-2xl p-5 shadow-sm flex items-start gap-4">
-                            <div class="bg-blue-100 text-blue-700 p-2.5 rounded-xl shrink-0">
-                                <span class="material-symbols-outlined text-2xl">settings_suggest</span>
-                            </div>
-                            <div>
-                                <h4 class="text-sm font-bold text-blue-950 mb-1">Módulo de Configuración Inicial del Sistema</h4>
-                                <p class="text-xs text-blue-800 leading-relaxed">
-                                    Este entorno está destinado a la <strong>parametrización estructural inicial del condominio</strong>. 
-                                    Aquí se registran los <strong>Edificios o Torres</strong> y se realiza la <strong>creación y alta de unidades habitacionales</strong> (apartamentos, penthouses, locales) con sus cuotas base. 
-                                    Una vez configurada la estructura física, las operaciones habituales (asignación de inquilinos, propietarios y consulta) se realizan en la pestaña de <strong>Visualización de Unidades</strong>.
-                                </p>
-                            </div>
-                        </div>
-
                         <!-- SECCIÓN 1: EDIFICIOS / TORRES -->
                         <section class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm space-y-6">
                             <div class="flex items-center justify-between border-b border-background pb-4 flex-wrap gap-2">
