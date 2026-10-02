@@ -45,7 +45,7 @@ class ConciliacionCentralizadaTest extends TestCase {
         // 1. Tabla única de la bandeja de conciliación
         $this->assertStringContains('id="tablaConciliacion"', $content,
             "Debe existir la tabla única de conciliación");
-        $this->assertMatchesRegex('/max-h-\[600px\][^>]*overflow-y-auto/', $content,
+        $this->assertMatchesRegex('/max-h-\[calc\(100vh[^\]]*\)\][^>]*overflow-y-auto/', $content,
             "La bandeja de pagos por verificar debe tener scroll vertical propio");
 
         // 2. Pills de filtro por categoría (4 del cruce + Sin Extracto)

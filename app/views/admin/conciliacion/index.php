@@ -44,7 +44,7 @@
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
                 <!-- Barra de Acciones del Contenido -->
-                <div class="flex justify-end items-center mb-4 flex-wrap gap-2">
+                <div class="flex justify-end items-center mb-3 flex-wrap gap-2">
                     <?php if (!empty($lotes)): ?>
                         <div class="flex items-center gap-2">
                             <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote activo:</label>
@@ -65,55 +65,55 @@
                 </div>
 
                 <!-- Métricas Rápidas / Indicadores Clave -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-amber-400 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Pagos por Verificar">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-amber-400 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Pagos por Verificar">
                         <div class="flex justify-between items-center">
                             <div>
                                 <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Pagos por Verificar</span>
-                                <span class="text-2xl font-black text-on-surface block"><?= count($pagosPendientes) ?></span>
+                                <span class="text-xl font-black text-on-surface block"><?= count($pagosPendientes) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-4xl text-warning opacity-75">pending_actions</span>
+                            <span class="material-symbols-outlined text-3xl text-warning opacity-75">pending_actions</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-2 block">Listado general en espera</small>
+                        <small class="text-xs text-on-surface-variant mt-0.5 block">Listado general en espera</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-green-500 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-green-500 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
                         <div class="flex justify-between items-center">
                             <div>
                                 <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Exactas</span>
-                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
+                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-4xl text-success opacity-75">verified</span>
+                            <span class="material-symbols-outlined text-3xl text-success opacity-75">verified</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-2 block">Coincidencia por referencia y monto</small>
+                        <small class="text-xs text-on-surface-variant mt-0.5 block">Coincidencia por referencia y monto</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-sky-500 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Sugeridas">
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-sky-500 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Sugeridas">
                         <div class="flex justify-between items-center">
                             <div>
                                 <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Sugeridas</span>
-                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
+                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-4xl text-info opacity-75">rule</span>
+                            <span class="material-symbols-outlined text-3xl text-info opacity-75">rule</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-2 block">Sugerencias por fecha y monto</small>
+                        <small class="text-xs text-on-surface-variant mt-0.5 block">Sugerencias por fecha y monto</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-slate-400 p-5 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Movimientos Sin Coincidencia">
+                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-slate-400 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Movimientos Sin Coincidencia">
                         <div class="flex justify-between items-center">
                             <div>
                                 <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Sin Coincidencia</span>
-                                <span class="text-2xl font-black text-on-surface block"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
+                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-4xl text-secondary opacity-75">help</span>
+                            <span class="material-symbols-outlined text-3xl text-secondary opacity-75">help</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-2 block">Movimientos sin asociar</small>
+                        <small class="text-xs text-on-surface-variant mt-0.5 block">Movimientos sin asociar</small>
                     </div>
                 </div>
 
                 <!-- Filtros de Coincidencia (fuera de la lista de la bandeja) -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
-                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
+                <div class="bg-white rounded-2xl border border-outline-variant p-3 shadow-sm mb-4">
+                    <div class="flex items-center gap-2 mb-1.5 pb-1.5 border-b border-slate-100">
                         <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
                         <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Coincidencia</h2>
                     </div>
@@ -169,10 +169,10 @@
                 </style>
 
                 <!-- BANDEJA UNIFICADA: PAGOS POR VERIFICAR Y CONCILIAR -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm" id="seccionConciliacion">
-                    <div class="flex justify-between items-center pb-4 border-b border-background mb-6 flex-wrap gap-2">
+                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm" id="seccionConciliacion">
+                    <div class="flex justify-between items-center pb-3 border-b border-background mb-4 flex-wrap gap-2">
                         <div>
-                            <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
+                            <h3 class="text-base font-bold text-on-surface flex items-center gap-2">
                                 <span class="material-symbols-outlined text-warning">hourglass_top</span>
                                 <span>Pagos por Verificar y Conciliar</span>
                             </h3>
@@ -196,16 +196,16 @@
                             <p class="text-xs mt-1">Todos los pagos reportados y los movimientos del extracto bancario ya fueron resueltos.</p>
                         </div>
                     <?php else: ?>
-                        <div class="max-h-[600px] overflow-x-auto overflow-y-auto">
+                        <div class="max-h-[calc(100vh_-_29rem)] overflow-x-auto overflow-y-auto">
                             <table class="w-full text-left text-sm border-collapse" id="tablaConciliacion">
                                 <thead>
                                     <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
-                                        <th class="py-3 px-4">Residente</th>
-                                        <th class="py-3 px-4">Inmueble</th>
-                                        <th class="py-3 px-4">Referencia</th>
-                                        <th class="py-3 px-4 text-end">Monto (Bs.)</th>
-                                        <th class="py-3 px-4">Fecha</th>
-                                        <th class="py-3 px-4 text-end">Acción</th>
+                                        <th class="py-2.5 px-4">Residente</th>
+                                        <th class="py-2.5 px-4">Inmueble</th>
+                                        <th class="py-2.5 px-4">Referencia</th>
+                                        <th class="py-2.5 px-4 text-end">Monto (Bs.)</th>
+                                        <th class="py-2.5 px-4">Fecha</th>
+                                        <th class="py-2.5 px-4 text-end">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-background">
@@ -234,22 +234,22 @@
                                         }
                                         ?>
                                         <tr class="hover:bg-background/40 transition-colors" data-categoria="<?= e($fila['categoria']) ?>">
-                                            <td class="py-4 px-4 font-semibold text-on-surface">
+                                            <td class="py-2.5 px-4 font-semibold text-on-surface">
                                                 <?= e($residente) ?>
                                             </td>
-                                            <td class="py-4 px-4 text-xs font-medium text-slate-700">
+                                            <td class="py-2.5 px-4 text-xs font-medium text-slate-700">
                                                 <?= e($inmueble) ?>
                                             </td>
-                                            <td class="py-4 px-4 font-mono text-xs">
+                                            <td class="py-2.5 px-4 font-mono text-xs">
                                                 <?= e($referencia) ?>
                                             </td>
-                                            <td class="py-4 px-4 text-end font-bold text-on-surface">
+                                            <td class="py-2.5 px-4 text-end font-bold text-on-surface">
                                                 <?= e(formatearMoneda($monto)) ?>
                                             </td>
-                                            <td class="py-4 px-4 text-xs">
+                                            <td class="py-2.5 px-4 text-xs">
                                                 <?= e(date('d/m/Y', strtotime($fila['fecha']))) ?>
                                             </td>
-                                            <td class="py-4 px-4 text-end">
+                                            <td class="py-2.5 px-4 text-end">
                                                 <div class="flex items-center justify-end gap-1.5">
                                                     <?php if ($pago !== null && $extracto !== null): ?>
                                                         <form method="POST" action="/admin/conciliacion/conciliar" class="inline-flex" onsubmit="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
