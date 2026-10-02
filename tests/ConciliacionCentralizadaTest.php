@@ -45,6 +45,8 @@ class ConciliacionCentralizadaTest extends TestCase {
         // 1. Tabla única de la bandeja de conciliación
         $this->assertStringContains('id="tablaConciliacion"', $content,
             "Debe existir la tabla única de conciliación");
+        $this->assertMatchesRegex('/max-h-\[600px\][^>]*overflow-y-auto/', $content,
+            "La bandeja de pagos por verificar debe tener scroll vertical propio");
 
         // 2. Pills de filtro por categoría (4 del cruce + Sin Extracto)
         $this->assertStringContains('id="filtro-todas"', $content, "Debe existir filtro 'Todas' por defecto");
@@ -54,17 +56,19 @@ class ConciliacionCentralizadaTest extends TestCase {
         $this->assertStringContains('id="filtro-sin-coincidencia"', $content, "Debe existir filtro de Sin Coincidencia");
         $this->assertStringContains('id="filtro-sin-extracto"', $content, "Debe existir filtro de Sin Extracto");
 
-        // 3. Contadores por categoría alimentados por el controlador
-        $this->assertMatchesRegex('/id="filtro-exactas"[\s\S]{0,200}\$conteosConciliacion\[\'exacta\'\]/', $content,
-            "El filtro de Exactas debe mostrar su contador");
-        $this->assertMatchesRegex('/id="filtro-sugeridas"[\s\S]{0,200}\$conteosConciliacion\[\'sugerida\'\]/', $content,
-            "El filtro de Sugeridas debe mostrar su contador");
-        $this->assertMatchesRegex('/id="filtro-inconsistencias"[\s\S]{0,200}\$conteosConciliacion\[\'inconsistencia\'\]/', $content,
-            "El filtro de Inconsistencias debe mostrar su contador");
-        $this->assertMatchesRegex('/id="filtro-sin-coincidencia"[\s\S]{0,200}\$conteosConciliacion\[\'sin_coincidencia\'\]/', $content,
-            "El filtro de Sin Coincidencia debe mostrar su contador");
-        $this->assertMatchesRegex('/id="filtro-sin-extracto"[\s\S]{0,200}\$conteosConciliacion\[\'sin_extracto\'\]/', $content,
-            "El filtro de Sin Extracto debe mostrar su contador");
+        // 3. Visual del filtro sin números ni paréntesis: cada pill muestra solo su etiqueta
+        $this->assertMatchesRegex('/id="filtro-todas">\s*Todas\s*<\/button>/', $content,
+            "El filtro de Todas debe mostrar solo su etiqueta, sin contador");
+        $this->assertMatchesRegex('/id="filtro-exactas">\s*Exactas\s*<\/button>/', $content,
+            "El filtro de Exactas debe mostrar solo su etiqueta, sin contador");
+        $this->assertMatchesRegex('/id="filtro-sugeridas">\s*Sugeridas\s*<\/button>/', $content,
+            "El filtro de Sugeridas debe mostrar solo su etiqueta, sin contador");
+        $this->assertMatchesRegex('/id="filtro-inconsistencias">\s*Inconsistencias\s*<\/button>/', $content,
+            "El filtro de Inconsistencias debe mostrar solo su etiqueta, sin contador");
+        $this->assertMatchesRegex('/id="filtro-sin-coincidencia">\s*Sin Coincidencia\s*<\/button>/', $content,
+            "El filtro de Sin Coincidencia debe mostrar solo su etiqueta, sin contador");
+        $this->assertMatchesRegex('/id="filtro-sin-extracto">\s*Sin Extracto\s*<\/button>/', $content,
+            "El filtro de Sin Extracto debe mostrar solo su etiqueta, sin contador");
     }
 
     /**

@@ -119,22 +119,22 @@
                     </div>
                     <div class="flex flex-wrap gap-2" id="filtrosConciliacion" role="group" aria-label="Filtros de coincidencia de la bandeja">
                         <button type="button" class="filtro-pill active px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="todas" id="filtro-todas">
-                            Todas (<?= (int)$conteosConciliacion['total'] ?>)
+                            Todas
                         </button>
                         <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="exacta" id="filtro-exactas">
-                            Exactas (<?= (int)$conteosConciliacion['exacta'] ?>)
+                            Exactas
                         </button>
                         <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sugerida" id="filtro-sugeridas">
-                            Sugeridas (<?= (int)$conteosConciliacion['sugerida'] ?>)
+                            Sugeridas
                         </button>
                         <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="inconsistencia" id="filtro-inconsistencias">
-                            Inconsistencias (<?= (int)$conteosConciliacion['inconsistencia'] ?>)
+                            Inconsistencias
                         </button>
                         <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sin_coincidencia" id="filtro-sin-coincidencia">
-                            Sin Coincidencia (<?= (int)$conteosConciliacion['sin_coincidencia'] ?>)
+                            Sin Coincidencia
                         </button>
                         <button type="button" class="filtro-pill px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="sin_extracto" id="filtro-sin-extracto">
-                            Sin Extracto (<?= (int)$conteosConciliacion['sin_extracto'] ?>)
+                            Sin Extracto
                         </button>
                     </div>
                 </div>
@@ -159,6 +159,12 @@
                         background-color: var(--bs-primary, #27ae60);
                         color: #fff;
                         border-color: var(--bs-primary, #27ae60);
+                    }
+                    #tablaConciliacion thead th {
+                        position: sticky;
+                        top: 0;
+                        z-index: 10;
+                        background-color: #ffffff;
                     }
                 </style>
 
@@ -190,7 +196,7 @@
                             <p class="text-xs mt-1">Todos los pagos reportados y los movimientos del extracto bancario ya fueron resueltos.</p>
                         </div>
                     <?php else: ?>
-                        <div class="overflow-x-auto">
+                        <div class="max-h-[600px] overflow-x-auto overflow-y-auto">
                             <table class="w-full text-left text-sm border-collapse" id="tablaConciliacion">
                                 <thead>
                                     <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
