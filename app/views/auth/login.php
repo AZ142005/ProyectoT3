@@ -14,7 +14,7 @@
             <!-- Logo y Encabezado Principal -->
             <div class="login-brand-header text-center mb-4">
                 <div class="login-brand-logo mb-3">
-                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="240" height="240">
+                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="300" height="300">
                 </div>
                 <p class="login-brand-subtitle">Ingresa a tu cuenta para continuar</p>
             </div>
@@ -144,7 +144,7 @@
                 <span>Plataforma Digital para la Cobranza</span>
             </div>
             <h2 class="visual-card-title">Gestión de pagos eficiente</h2>
-            <p class="visual-card-desc">Gestiona tus pagos y consulta tu estado de cuenta en tiempo real, de forma simple y segura.</p>
+            <p class="visual-card-desc">Gestiona tus pagos y consulta tu estado de deuda en tiempo real, de forma simple y segura.</p>
         </div>
     </div>
 </div>
@@ -218,7 +218,7 @@ body > footer {
 
 .login-brand-logo img {
     display: block;
-    width: 240px;
+    width: 300px;
     height: auto;
     max-width: 100%;
     margin: 0 auto;

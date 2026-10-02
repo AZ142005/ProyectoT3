@@ -4,7 +4,7 @@
         <div>
             <h2 class="text-2xl font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
-                Mi Estado de Cuenta y Libro Mayor
+                Mi Estado de Deuda y Libro Mayor
             </h2>
             <p class="text-sm text-on-surface-variant mt-1">Historial inmutable de cargos por cuotas y abonos por pagos aprobados.</p>
         </div>

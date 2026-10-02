@@ -52,7 +52,7 @@ class EstadoCuentaController extends Controller {
             'saldoActual' => $saldoActual,
             'paginacion'  => $paginacion,
             'sinUnidad'   => !$unidad,
-            'title'       => 'Mi Estado de Cuenta y Libro Mayor'
+            'title'       => 'Mi Estado de Deuda y Libro Mayor'
         ]);
     }
 
@@ -101,7 +101,7 @@ class EstadoCuentaController extends Controller {
             'unidad'      => $unidad,
             'movimientos' => $resultado['datos'],
             'saldoActual' => $saldoActual,
-            'title'       => 'Estado de Cuenta Oficial - Apto ' . $unidad['numero']
+            'title'       => 'Estado de Deuda Oficial - Apto ' . $unidad['numero']
         ]);
     }
 }

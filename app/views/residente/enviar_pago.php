@@ -369,7 +369,7 @@
         <div class="bg-white rounded-2xl border border-outline-variant p-10 shadow-sm text-center">
             <span class="material-symbols-outlined text-5xl text-primary/30 mb-2">check_circle</span>
             <h3 class="text-xl font-bold text-on-surface mb-2">No tienes facturas pendientes</h3>
-            <p class="text-on-surface-variant text-sm mb-6 max-w-sm mx-auto">Tu estado de cuenta está al día. Si deseas abonar por adelantado para tus próximas cuotas, puedes reportar un pago anticipado.</p>
+            <p class="text-on-surface-variant text-sm mb-6 max-w-sm mx-auto">Tu estado de deuda está al día. Si deseas abonar por adelantado para tus próximas cuotas, puedes reportar un pago anticipado.</p>
             <div class="flex items-center justify-center gap-3 flex-wrap">
                 <a href="/pagos/nuevo" class="bg-primary hover:bg-primary-hover text-white font-bold px-6 py-2.5 rounded-lg shadow-sm transition-transform active:scale-95 flex items-center gap-1 inline-flex">
                     <span class="material-symbols-outlined">add_card</span>

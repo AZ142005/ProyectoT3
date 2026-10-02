@@ -76,7 +76,7 @@
 
             <!-- Cuerpo de la Carta -->
             <div class="mb-4 text-justify" style="line-height: 1.8;">
-                <p>Por medio de la presente, la Administración del Conjunto Residencial <strong>"Las Mesetas de Morón"</strong> se dirige a usted para presentarle la relación detallada del estado de cuenta actualizado de su inmueble. A la presente fecha, se registran cuotas de condominio vencidas acumuladas, por lo que le solicitamos formalmente proceder con la regularización del pago:</p>
+                <p>Por medio de la presente, la Administración del Conjunto Residencial <strong>"Las Mesetas de Morón"</strong> se dirige a usted para presentarle la relación detallada del estado de deuda actualizado de su inmueble. A la presente fecha, se registran cuotas de condominio vencidas acumuladas, por lo que le solicitamos formalmente proceder con la regularización del pago:</p>
             </div>
 
             <!-- Desglose de Facturas -->

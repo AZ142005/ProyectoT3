@@ -59,7 +59,7 @@
             <div class="text-center py-12 text-on-surface-variant">
                 <span class="material-symbols-outlined text-5xl text-primary/30 mb-2">check_circle</span>
                 <p class="font-semibold text-primary">No tienes facturas pendientes</p>
-                <div class="text-sm text-on-surface-variant mt-1">Su estado de cuenta está al día.</div>
+                <div class="text-sm text-on-surface-variant mt-1">Su estado de deuda está al día.</div>
             </div>
         <?php else: ?>
             <div class="overflow-x-auto">

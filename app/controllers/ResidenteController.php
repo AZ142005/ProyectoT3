@@ -37,7 +37,7 @@ class ResidenteController extends Controller {
             'saldo_a_favor_mostrar' => $saldo_a_favor_mostrar,
             'comprobantes' => $comprobantes,
             'showNav' => true,
-            'title' => 'Estado de Cuenta - Residente'
+            'title' => 'Estado de Deuda - Residente'
         ]);
     }
 

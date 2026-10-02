@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= e($title ?? 'Estado de Cuenta Oficial') ?></title>
+    <title><?= e($title ?? 'Estado de Deuda Oficial') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; }
@@ -35,7 +35,7 @@
             </div>
             <div class="col-4 text-end">
                 <div class="border p-2 rounded bg-light text-center">
-                    <small class="text-uppercase text-muted fw-bold d-block">ESTADO DE CUENTA</small>
+                    <small class="text-uppercase text-muted fw-bold d-block">ESTADO DE DEUDA</small>
                     <span class="font-monospace fw-bold">APTO-<?= e($unidad['numero']) ?></span>
                 </div>
             </div>

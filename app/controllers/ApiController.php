@@ -308,7 +308,7 @@ class ApiController extends Controller {
 
         // IDOR fix: solo residentes pueden consultar su propio estado de cuenta
         if (($payload['role'] ?? '') !== UserRole::RESIDENTE) {
-            $this->json(['success' => false, 'error' => 'Solo residentes pueden consultar su estado de cuenta.'], 403);
+            $this->json(['success' => false, 'error' => 'Solo residentes pueden consultar su estado de deuda.'], 403);
             return;
         }
 
