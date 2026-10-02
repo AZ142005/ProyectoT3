@@ -349,7 +349,7 @@
                                     </div>
                                     <p class="text-xs text-on-surface-variant mt-1">Registra los bloques o torres que componen el condominio.</p>
                                 </div>
-                                <button onclick="openModalEdificio('configuracion')" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shadow-sm">
+                                <button onclick="openModalEdificio('configuracion')" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[16px]">add_business</span>
                                     <span>Agregar Edificio</span>
                                 </button>
@@ -428,12 +428,12 @@
                                                class="w-full pl-9 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all">
                                     </div>
                                     <?php if (empty($edificios)): ?>
-                                        <button disabled class="inline-flex items-center gap-1.5 bg-slate-300 text-slate-500 font-bold text-xs px-4 py-2.5 rounded-xl cursor-not-allowed shadow-sm" title="Debes registrar al menos un edificio primero">
+                                        <button disabled class="bg-slate-200 text-slate-400 font-bold px-5 py-2.5 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-not-allowed" title="Debes registrar al menos un edificio primero">
                                             <span class="material-symbols-outlined text-[16px]">add_home</span>
                                             <span>Crear Unidad (Requiere Edificio)</span>
                                         </button>
                                     <?php else: ?>
-                                        <button onclick="openModalUnidad('configuracion')" class="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm">
+                                        <button onclick="openModalUnidad('configuracion')" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
                                             <span class="material-symbols-outlined text-[16px]">add_home</span>
                                             <span>+ Crear Nueva Unidad</span>
                                         </button>

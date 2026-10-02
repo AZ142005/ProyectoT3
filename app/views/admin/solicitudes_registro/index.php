@@ -4,20 +4,20 @@
                         <span class="material-symbols-outlined text-primary fs-4">how_to_reg</span>
                         <h2 class="fs-6 fw-bold mb-0 text-dark">Solicitudes de Registro</h2>
                     </div>
-                    <div class="btn-group shadow-sm" role="group" aria-label="Filtros de estado">
-                        <a href="/admin/usuarios?tab=solicitudes" class="btn btn-outline-secondary <?= empty($estadoSolicitud) ? 'active font-bold' : '' ?>">
+                    <div class="flex flex-wrap gap-2" role="group" aria-label="Filtros de estado">
+                        <a href="/admin/usuarios?tab=solicitudes" class="<?= empty($estadoSolicitud) ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
                             Todas (<?= e($paginacionSolicitudes['total']) ?>)
                         </a>
-                        <a href="/admin/usuarios?tab=solicitudes&estado=pendiente" class="btn btn-outline-warning text-dark <?= ($estadoSolicitud === 'pendiente') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=pendiente" class="<?= ($estadoSolicitud === 'pendiente') ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
                             Pendientes
                             <?php if ($pendientesCount > 0): ?>
-                                <span class="badge bg-warning text-dark ms-1 rounded-pill"><?= e($pendientesCount) ?></span>
+                                <span class="bg-amber-300 text-amber-950 ms-1 rounded-full px-1.5 text-[10px] font-bold"><?= e($pendientesCount) ?></span>
                             <?php endif; ?>
                         </a>
-                        <a href="/admin/usuarios?tab=solicitudes&estado=aprobada" class="btn btn-outline-success <?= ($estadoSolicitud === 'aprobada') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=aprobada" class="<?= ($estadoSolicitud === 'aprobada') ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
                             Aprobadas
                         </a>
-                        <a href="/admin/usuarios?tab=solicitudes&estado=rechazada" class="btn btn-outline-danger <?= ($estadoSolicitud === 'rechazada') ? 'active font-bold' : '' ?>">
+                        <a href="/admin/usuarios?tab=solicitudes&estado=rechazada" class="<?= ($estadoSolicitud === 'rechazada') ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
                             Rechazadas
                         </a>
                     </div>

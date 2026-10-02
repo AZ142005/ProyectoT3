@@ -28,8 +28,8 @@
                         <h4 class="fw-bold text-dark mb-1">Panel de Fiscalización</h4>
                         <p class="text-muted small mb-0">Supervisión en tiempo real de integridad y eventos financieros</p>
                     </div>
-                    <a href="/auditor/exportar-log" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined fs-6">download</span>
+                    <a href="/auditor/exportar-log" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">download</span>
                         <span>Exportar Log Completo</span>
                     </a>
                 </div>
@@ -101,7 +101,7 @@
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0 fw-bold text-dark">Últimos Eventos de Auditoría Registrados</h5>
-            <a href="/auditor/log-transacciones" class="btn btn-primary btn-sm fw-bold">Ver Registro Completo</a>
+            <a href="/auditor/log-transacciones" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">Ver Registro Completo</a>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

@@ -29,8 +29,8 @@
                 <h5 class="card-title mb-0 fw-bold text-dark">Historial de Comunicados Emitidos</h5>
                 <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Publicados</span>
             </div>
-            <button type="button" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoComunicado">
-                <span class="material-symbols-outlined fs-6">add_comment</span>
+            <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalNuevoComunicado">
+                <span class="material-symbols-outlined text-[16px]">add_comment</span>
                 <span>Nuevo Comunicado</span>
             </button>
         </div>

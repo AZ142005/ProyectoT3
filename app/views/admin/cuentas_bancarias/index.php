@@ -38,8 +38,8 @@
             </p>
         </div>
         <div>
-            <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCuenta" onclick="abrirModalCrear()">
-                <span class="material-symbols-outlined">add_circle</span>
+            <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalCuenta" onclick="abrirModalCrear()">
+                <span class="material-symbols-outlined text-[16px]">add_circle</span>
                 <span>Nueva Cuenta Bancaria</span>
             </button>
         </div>

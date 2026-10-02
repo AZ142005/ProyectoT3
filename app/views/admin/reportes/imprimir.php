@@ -12,6 +12,17 @@
             .table-light { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
             .badge { border: 1px solid #000; color: #000 !important; }
         }
+        /* Botones de barra superior alineados al estilo de Conciliación (R1/R2) */
+        .no-print .btn { border-radius: .75rem; font-size: .75rem; line-height: 1rem; font-weight: 700; padding: .625rem 1.25rem; display: inline-flex; align-items: center; gap: .375rem; transition: all .15s ease; }
+        .no-print .btn-primary { background-color: #27ae60; border-color: #27ae60; color: #fff; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+        .no-print .btn-primary:hover { background-color: #1e8449; border-color: #1e8449; color: #fff; }
+        .no-print .btn-outline-secondary { background-color: #f1f5f9; border-color: #e2e8f0; color: #334155; }
+        .no-print .btn-outline-secondary:hover { background-color: #e2e8f0; border-color: #e2e8f0; color: #334155; }
+        .no-print .btn-warning { background-color: #fbbf24; border-color: #fbbf24; color: #451a03; }
+        .no-print .btn-warning:hover { background-color: #f59e0b; border-color: #f59e0b; color: #451a03; }
+        .no-print .btn-success { background-color: #16a34a; border-color: #16a34a; color: #fff; }
+        .no-print .btn-success:hover { background-color: #15803d; border-color: #15803d; color: #fff; }
+        .no-print .btn:disabled, .no-print .btn.disabled { background-color: #f1f5f9; border-color: #e2e8f0; color: #94a3b8; }
     </style>
 </head>
 <body class="p-4">

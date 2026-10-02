@@ -67,9 +67,9 @@ $anio = intval($anio ?? date('Y'));
                                 <span class="material-symbols-outlined text-sm">pending</span>
                                 <?= e($resumen['total_pendientes']) ?> por conciliar
                             </span>
-                            <a href="/admin/conciliacion" class="btn btn-sm btn-primary rounded-xl px-3 py-2 fw-bold text-xs d-inline-flex align-items-center gap-1">
+                            <a href="/admin/conciliacion" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
                                 <span>Ir a Conciliación</span>
-                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                             </a>
                         </div>
                     <?php else: ?>
@@ -361,9 +361,9 @@ $anio = intval($anio ?? date('Y'));
                                 </h5>
                                 <span class="text-xs text-muted">Registro de pagos verificados o procesados (solo lectura)</span>
                             </div>
-                            <a href="/admin/comprobantes" class="btn btn-sm btn-outline-secondary rounded-xl text-xs font-bold px-3 py-1.5 d-inline-flex align-items-center gap-1">
+                            <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
                                 <span>Ver Historial</span>
-                                <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                             </a>
                         </div>
                         <div class="card-body p-0">

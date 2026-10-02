@@ -26,8 +26,8 @@
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="card-title mb-0 fw-bold text-dark">Eventos de Auditoría (Total: <?= e(formatearCantidad($paginacion['total'])) ?>)</h5>
-            <a href="/auditor/exportar-log" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                <span class="material-symbols-outlined fs-6">download</span>
+            <a href="/auditor/exportar-log" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">download</span>
                 <span>Exportar CSV</span>
             </a>
         </div>

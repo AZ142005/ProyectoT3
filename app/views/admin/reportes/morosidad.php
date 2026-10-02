@@ -36,12 +36,12 @@
             <p class="text-muted small mb-0">Consolidado financiero por edificios y desglose de solvencia de unidades</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="btn btn-outline-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                <span class="material-symbols-outlined fs-6">csv</span>
+            <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">csv</span>
                 <span>Exportar CSV</span>
             </a>
-            <a href="/admin/reportes/morosidad/imprimir?<?= http_build_query($filtros) ?>" target="_blank" class="btn btn-danger btn-sm font-weight-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                <span class="material-symbols-outlined fs-6">print</span>
+            <a href="/admin/reportes/morosidad/imprimir?<?= http_build_query($filtros) ?>" target="_blank" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">print</span>
                 <span>Imprimir PDF</span>
             </a>
         </div>
