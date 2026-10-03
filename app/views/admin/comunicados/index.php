@@ -44,19 +44,30 @@
                             <th class="py-3 px-4 text-center">Urgencia</th>
                             <th class="py-3 px-4">Publicado por</th>
                             <th class="py-3 px-4">Fecha de Emisión</th>
+                            <th class="py-3 px-4">Duración</th>
                             <th class="py-3 px-4 text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-background">
                         <?php if (empty($comunicados)): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                <td colspan="7" class="text-center py-12 text-on-surface-variant">
                                     <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">campaign</span>
                                     No se han publicado comunicados en la cartelera digital aún.
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php $duracionEtiquetas = [1 => '24 horas', 3 => '3 días', 7 => '1 semana', 14 => '2 semanas', 30 => '30 días']; ?>
                             <?php foreach ($comunicados as $c): ?>
+                                <?php
+                                    $duracionLabel = 'Sin vencimiento';
+                                    $duracionTitle = '';
+                                    if (!empty($c['fecha_expiracion'])) {
+                                        $diasDuracion = (int)round((strtotime($c['fecha_expiracion']) - strtotime($c['fecha_publicacion'])) / 86400);
+                                        $duracionLabel = $duracionEtiquetas[$diasDuracion] ?? ($diasDuracion . ' días');
+                                        $duracionTitle = 'Vence: ' . date('d/m/Y H:i', strtotime($c['fecha_expiracion']));
+                                    }
+                                ?>
                                 <tr class="hover:bg-background/40 transition-colors">
                                     <td class="py-4 px-4 font-semibold text-on-surface">
                                         <?= e($c['titulo']) ?>
@@ -69,6 +80,10 @@
                                         <?php elseif ($c['edificio_id']): ?>
                                             <span class="badge bg-info text-on-surface">
                                                 Edificio <?= e($c['edificio_nombre']) ?>
+                                            </span>
+                                        <?php elseif (!empty($c['destinos_count'])): ?>
+                                            <span class="badge bg-primary-subtle text-primary">
+                                                <?= e($c['destinos_count']) ?> unidades específicas
                                             </span>
                                         <?php else: ?>
                                             <span class="badge bg-success">
@@ -87,6 +102,7 @@
                                     </td>
                                     <td class="py-4 px-4 text-xs"><?= e($c['admin_nombre']) ?></td>
                                     <td class="py-4 px-4 text-xs text-on-surface-variant"><?= date('d/m/Y H:i', strtotime($c['fecha_publicacion'])) ?></td>
+                                    <td class="py-4 px-4 text-xs text-on-surface-variant"<?= $duracionTitle !== '' ? ' title="' . e($duracionTitle) . '"' : '' ?>><?= e($duracionLabel) ?></td>
                                     <td class="py-4 px-4 text-end">
                                         <form method="POST" action="/admin/comunicados/eliminar" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar este comunicado de la cartelera?');">
                                             <?= csrf_field() ?>
@@ -134,7 +150,7 @@
                             </div>
 
                             <div class="row g-3 mb-3">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold small text-on-surface-variant">Dirigido a Edificio / Torre</label>
                                     <select name="edificio_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                         <option value="">-- Todos los Edificios (Global) --</option>
@@ -143,7 +159,7 @@
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold small text-on-surface-variant">Nivel de Urgencia <span class="text-danger">*</span></label>
                                     <select name="nivel_urgencia" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                         <option value="normal">Normal (Información habitual)</option>
@@ -151,7 +167,10 @@
                                         <option value="urgente">Urgente (Notificación al instante)</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold small text-on-surface-variant">Duración en Cartelera <span class="text-danger">*</span></label>
                                     <select name="duracion_dias" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                         <option value="1">24 horas</option>
@@ -162,6 +181,38 @@
                                         <option value="0">Sin vencimiento</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <?php
+                            $unidadesPorEdificio = [];
+                            foreach ($unidades ?? [] as $u) {
+                                $nombreEdificio = !empty($u['edificio_nombre']) ? $u['edificio_nombre'] : 'Sin edificio';
+                                $unidadesPorEdificio[$nombreEdificio][] = $u;
+                            }
+                            ?>
+                            <button type="button" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center justify-center gap-1.5" data-bs-toggle="collapse" data-bs-target="#bloqueDestinosAvanzados" aria-expanded="false" aria-controls="bloqueDestinosAvanzados">
+                                <span class="material-symbols-outlined text-[16px]">tune</span>
+                                <span>Avanzado (unidades específicas)</span>
+                            </button>
+                            <div class="collapse mt-3" id="bloqueDestinosAvanzados">
+                                <p class="text-xs text-on-surface-variant mb-2">Si seleccionás unidades, el comunicado se dirige solo a ellas (se ignora el destino general).</p>
+                                <?php if (!empty($unidadesPorEdificio)): ?>
+                                    <div class="max-h-64 overflow-y-auto p-3 bg-background rounded-xl border border-outline-variant divide-y divide-background">
+                                        <?php foreach ($unidadesPorEdificio as $nombreEdificio => $unidadesEdificio): ?>
+                                            <div class="py-2">
+                                                <p class="text-xs font-bold text-on-surface-variant uppercase"><?= e($nombreEdificio) ?></p>
+                                                <?php foreach ($unidadesEdificio as $u): ?>
+                                                    <label class="d-flex align-items-center gap-2 py-1.5">
+                                                        <input type="checkbox" name="unidades[]" value="<?= e($u['id']) ?>" class="form-check-input m-0">
+                                                        <span class="text-sm">Apto <?= e($u['numero']) ?> — <?= e($nombreEdificio) ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-xs text-on-surface-variant">No hay unidades activas registradas.</p>
+                                <?php endif; ?>
                             </div>
 
                             <div class="mb-3">
@@ -223,6 +274,7 @@
     const inputContenido = form.querySelector('[name="contenido"]');
     const selectUrgencia = form.querySelector('[name="nivel_urgencia"]');
     const selectEdificio = form.querySelector('[name="edificio_id"]');
+    const checkboxesUnidades = form.querySelectorAll('[name="unidades[]"]');
 
     const previewTitulo = document.getElementById('previewTitulo');
     const previewContenido = document.getElementById('previewContenido');
@@ -278,7 +330,16 @@
     }
 
     function actualizarEdificio() {
-        if (selectEdificio.value === '') {
+        let unidadesSeleccionadas = 0;
+        checkboxesUnidades.forEach(function (checkbox) {
+            if (checkbox.checked) {
+                unidadesSeleccionadas++;
+            }
+        });
+
+        if (unidadesSeleccionadas > 0) {
+            previewEdificio.textContent = unidadesSeleccionadas + ' unidades específicas';
+        } else if (selectEdificio.value === '') {
             previewEdificio.textContent = 'Todos los Edificios';
         } else {
             previewEdificio.textContent = selectEdificio.options[selectEdificio.selectedIndex].text;
@@ -301,6 +362,9 @@
     inputContenido.addEventListener('input', actualizarContenido);
     selectUrgencia.addEventListener('change', actualizarUrgencia);
     selectEdificio.addEventListener('change', actualizarEdificio);
+    checkboxesUnidades.forEach(function (checkbox) {
+        checkbox.addEventListener('change', actualizarEdificio);
+    });
 
     modal.addEventListener('shown.bs.modal', actualizarPreview);
     document.addEventListener('DOMContentLoaded', actualizarPreview);

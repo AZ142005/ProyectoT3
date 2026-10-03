@@ -73,6 +73,19 @@ class ComunicadoController extends Controller {
         }
         $fechaExpiracion = $diasDuracion > 0 ? date('Y-m-d H:i:s', time() + ($diasDuracion * 86400)) : null;
 
+        // Destinos avanzados: unidades específicas de uno o varios edificios.
+        // Si hay selección, toma prioridad sobre el destino general (edificio/unidad).
+        $unidadesDestino = [];
+        if (isset($_POST['unidades']) && is_array($_POST['unidades'])) {
+            $unidadesDestino = array_values(array_unique(array_filter(array_map('intval', array_filter($_POST['unidades'], 'is_scalar')), function ($id) {
+                return $id > 0;
+            })));
+        }
+        if (!empty($unidadesDestino)) {
+            $edificioId = null;
+            $unidadId = null;
+        }
+
         if (empty($titulo) || empty($contenido)) {
             Flash::set('danger', 'El título y el contenido son obligatorios.');
             $this->redirect('/admin/comunicados');
@@ -126,9 +139,13 @@ class ComunicadoController extends Controller {
                 'fecha_expiracion' => $fechaExpiracion
             ]);
 
+            if (!empty($unidadesDestino)) {
+                $comunicadosModel->asignarDestinosUnidades($comunicadoId, $unidadesDestino);
+            }
+
             // Si se marcó "Enviar por correo", se encola el comunicado para los residentes elegibles
             if ($enviarEmail) {
-                $this->encolarComunicadoCorreo($titulo, $contenido, $edificioId, $unidadId);
+                $this->encolarComunicadoCorreo($titulo, $contenido, $edificioId, $unidadId, $unidadesDestino);
             }
 
             Flash::set('success', 'Comunicado publicado exitosamente en la cartelera digital.');
@@ -190,15 +207,22 @@ class ComunicadoController extends Controller {
      * Agrupa por persona_id para evitar notificaciones duplicadas.
      * Limita a 500 destinatarios máximo.
      */
-    private function encolarComunicadoCorreo(string $titulo, string $contenido, ?int $edificioId, ?int $unidadId) {
+    private function encolarComunicadoCorreo(string $titulo, string $contenido, ?int $edificioId, ?int $unidadId, array $unidadesDestino = []) {
         $db = \App\Core\Database::getConnection();
         $sql = "SELECT DISTINCT p.id AS persona_id, p.email, p.telefono 
                 FROM personas p 
-                INNER JOIN unidades u ON u.propietario_id = p.id 
+                INNER JOIN unidades u ON p.unidad_id = u.id
                 WHERE p.email IS NOT NULL AND p.email != ''";
 
         $params = [];
-        if ($unidadId) {
+        if (!empty($unidadesDestino)) {
+            $placeholders = [];
+            foreach (array_values($unidadesDestino) as $indice => $unidadDestinoId) {
+                $placeholders[] = ':ud' . $indice;
+                $params['ud' . $indice] = intval($unidadDestinoId);
+            }
+            $sql .= " AND u.id IN (" . implode(', ', $placeholders) . ")";
+        } elseif ($unidadId) {
             $sql .= " AND u.id = :unidad_id";
             $params['unidad_id'] = $unidadId;
         } elseif ($edificioId) {

@@ -56,6 +56,37 @@ class ComunicadosModel extends BaseModel {
     }
 
     /**
+     * Asigna unidades específicas como destino de un comunicado, permitiendo
+     * abarcar unidades de uno o varios edificios. Deduplica y sanitiza los IDs;
+     * ignora valores no positivos.
+     *
+     * @param int   $comunicadoId
+     * @param int[] $unidadIds
+     */
+    public function asignarDestinosUnidades(int $comunicadoId, array $unidadIds): void {
+        $unidadIds = array_values(array_unique(array_filter(array_map('intval', $unidadIds), function ($id) {
+            return $id > 0;
+        })));
+
+        if ($comunicadoId <= 0 || empty($unidadIds)) {
+            return;
+        }
+
+        $db = $this->db();
+        $stmt = $db->prepare("
+            INSERT INTO comunicados_destinos (comunicado_id, unidad_id)
+            VALUES (:comunicado_id, :unidad_id)
+        ");
+
+        foreach ($unidadIds as $unidadId) {
+            $stmt->execute([
+                'comunicado_id' => $comunicadoId,
+                'unidad_id'     => $unidadId,
+            ]);
+        }
+    }
+
+    /**
      * Detecta un comunicado reciente idéntico (mismo admin, título, contenido y
      * destinos) dentro de la ventana indicada, para evitar publicaciones
      * duplicadas por doble envío. Los destinos se comparan de forma null-safe.
@@ -107,7 +138,8 @@ class ComunicadosModel extends BaseModel {
         $params['ahora_exp'] = date('Y-m-d H:i:s');
 
         $where .= " AND (
-            (c.edificio_id IS NULL AND c.unidad_id IS NULL)";
+            (c.edificio_id IS NULL AND c.unidad_id IS NULL
+                AND NOT EXISTS (SELECT 1 FROM comunicados_destinos cdg WHERE cdg.comunicado_id = c.id))";
 
         if ($edificioId) {
             $where .= " OR (c.edificio_id = :edificio_id AND c.unidad_id IS NULL)";
@@ -116,7 +148,9 @@ class ComunicadosModel extends BaseModel {
 
         if ($unidadId) {
             $where .= " OR (c.unidad_id = :unidad_id)";
+            $where .= " OR EXISTS (SELECT 1 FROM comunicados_destinos cd WHERE cd.comunicado_id = c.id AND cd.unidad_id = :unidad_destino)";
             $params['unidad_id'] = $unidadId;
+            $params['unidad_destino'] = $unidadId;
         }
 
         $where .= ")";
@@ -144,7 +178,8 @@ class ComunicadosModel extends BaseModel {
     public function obtenerTodosAdmin(int $pagina = 1, int $porPagina = 15): array {
         $baseSql = "
             SELECT c.*, COALESCE(e.nombre, 'Global') AS edificio_nombre, u.numero AS unidad_numero,
-                   usr.nombre_completo AS admin_nombre
+                   usr.nombre_completo AS admin_nombre,
+                   (SELECT COUNT(*) FROM comunicados_destinos cd WHERE cd.comunicado_id = c.id) AS destinos_count
             FROM comunicados c
             LEFT JOIN edificios e ON c.edificio_id = e.id
             LEFT JOIN unidades u ON c.unidad_id = u.id

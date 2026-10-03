@@ -57,4 +57,17 @@ class AdminComunicadosVistaTest extends TestCase {
         $this->assertStringContains('value="7" selected', $view,
             "La opción predeterminada del selector de duración debe ser 1 semana");
     }
+
+    public function testHistorialMuestraDuracionYAvanzadoDeUnidades(): void {
+        $view = $this->readView();
+
+        $this->assertStringContains('Duración', $view,
+            "El historial debe mostrar la columna Duración");
+        $this->assertStringContains('name="unidades[]"', $view,
+            "El modal debe permitir seleccionar unidades específicas");
+        $this->assertStringContains('bloqueDestinosAvanzados', $view,
+            "La sección Avanzado debe tener su panel colapsable");
+        $this->assertStringContains('Avanzado', $view,
+            "La sección de unidades específicas debe estar rotulada como Avanzado");
+    }
 }

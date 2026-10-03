@@ -192,6 +192,32 @@ LOCK TABLES `comunicados` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `comunicados_destinos`
+--
+
+DROP TABLE IF EXISTS `comunicados_destinos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `comunicados_destinos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `comunicado_id` int(11) NOT NULL,
+  `unidad_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_comdest_comunicado` (`comunicado_id`),
+  KEY `idx_comdest_unidad` (`unidad_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `comunicados_destinos`
+--
+
+LOCK TABLES `comunicados_destinos` WRITE;
+/*!40000 ALTER TABLE `comunicados_destinos` DISABLE KEYS */;
+/*!40000 ALTER TABLE `comunicados_destinos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `conciliacion_abono_pago`
 --
 

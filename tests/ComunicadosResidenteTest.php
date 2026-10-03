@@ -60,6 +60,7 @@ class ComunicadosResidenteTest extends TestCase {
     }
 
     private function limpiar(PDO $db): void {
+        $db->exec("DELETE cd FROM comunicados_destinos cd INNER JOIN comunicados c ON cd.comunicado_id = c.id WHERE c.titulo LIKE '" . self::PREFIJO . "%'");
         $db->exec("DELETE FROM comunicados WHERE titulo LIKE '" . self::PREFIJO . "%'");
     }
 
@@ -113,6 +114,27 @@ class ComunicadosResidenteTest extends TestCase {
 
             $this->assertFalse(in_array($id, $this->idsVisibles($model, null, null), true),
                 'Un comunicado de unidad no debe ser visible sin contexto de unidad');
+        } finally {
+            $this->limpiar($db);
+        }
+    }
+
+    public function testComunicadoDirigidoAUnidadesEspecificasEsVisible(): void {
+        $db = Database::getConnection();
+        $model = new ComunicadosModel();
+
+        try {
+            $id = $this->crear($db, $model);
+            $model->asignarDestinosUnidades($id, [self::UNIDAD_A]);
+
+            $this->assertTrue(in_array($id, $this->idsVisibles($model, self::EDIFICIO_B, self::UNIDAD_A), true),
+                'Un comunicado dirigido a unidades específicas debe ser visible para esa unidad aunque el edificio de contexto sea otro');
+
+            $this->assertFalse(in_array($id, $this->idsVisibles($model, self::EDIFICIO_A, self::UNIDAD_B), true),
+                'Un comunicado dirigido a unidades específicas no debe ser visible para otra unidad');
+
+            $this->assertFalse(in_array($id, $this->idsVisibles($model, null, null), true),
+                'Un comunicado dirigido a unidades específicas no debe ser visible sin contexto de unidad');
         } finally {
             $this->limpiar($db);
         }
