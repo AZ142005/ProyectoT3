@@ -434,7 +434,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 </p>
 
                 <!-- Botones de envío -->
-                <div class="flex flex-wrap gap-4 pt-4 border-t border-background">
+                <div class="flex flex-wrap justify-center items-center gap-4 pt-4 border-t border-background">
                     <button type="submit"
                             class="bg-primary hover:bg-primary-hover text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all duration-200 active:scale-95 flex items-center gap-1">
                         <span class="material-symbols-outlined">send</span>
