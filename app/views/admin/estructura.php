@@ -155,11 +155,11 @@
                                 <div class="overflow-x-auto">
                                     <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
                                         <thead>
-                                            <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                                                <th class="p-3.5" style="width: 40%;">Edificio</th>
-                                                <th class="p-3.5" style="width: 20%;">Unidades</th>
-                                                <th class="p-3.5" style="width: 20%;">Residentes</th>
-                                                <th class="p-3.5 text-right pe-4" style="width: 20%;">Detalle</th>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-3 px-4" style="width: 40%;">Edificio</th>
+                                                <th class="py-3 px-4" style="width: 20%;">Unidades</th>
+                                                <th class="py-3 px-4" style="width: 20%;">Residentes</th>
+                                                <th class="py-3 px-4 text-right pe-4" style="width: 20%;">Detalle</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-background">
@@ -174,7 +174,7 @@
                                                     data-collapse-target="#collapse-edificio-<?= e($ed['id']) ?>" 
                                                     aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
                                                     data-busqueda="<?= strtolower(e($ed['nombre'] . ' ' . ($ed['descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'numero')))) ?>">
-                                                    <td class="p-3.5 font-bold text-on-surface">
+                                                    <td class="py-4 px-4 font-semibold text-on-surface">
                                                         <div class="flex items-center gap-2.5">
                                                             <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                                                 <span class="material-symbols-outlined text-lg">domain</span>
@@ -187,19 +187,19 @@
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td class="p-3.5">
+                                                    <td class="py-4 px-4">
                                                         <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full border border-slate-200">
                                                             <span class="material-symbols-outlined text-[15px]">apartment</span>
                                                             <span><?= e($totalUnidades) ?> unidades</span>
                                                         </span>
                                                     </td>
-                                                    <td class="p-3.5">
+                                                    <td class="py-4 px-4">
                                                         <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-200">
                                                             <span class="material-symbols-outlined text-[15px]">groups</span>
                                                             <span><?= e($totalRes) ?> residentes</span>
                                                         </span>
                                                     </td>
-                                                    <td class="p-3.5 text-right pe-4">
+                                                    <td class="py-4 px-4 text-right pe-4">
                                                         <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl btn-toggle-unidades"
                                                                 data-bs-toggle="collapse" 
                                                                 data-bs-target="#collapse-edificio-<?= e($ed['id']) ?>"
@@ -292,7 +292,7 @@
                                                                                         <?php endif; ?>
                                                                                     </td>
                                                                                     <td class="py-2.5 px-3 text-center">
-                                                                                        <span class="badge bg-light text-dark border border-secondary-subtle rounded-pill px-2.5 py-1 font-bold">
+                                                                                        <span class="badge bg-light text-on-surface border border-secondary-subtle rounded-pill px-2.5 py-1 font-bold">
                                                                                             <?= count($residentes) ?> res.
                                                                                         </span>
                                                                                     </td>
@@ -437,10 +437,10 @@
                                 <div class="overflow-x-auto">
                                     <table id="tablaConfiguracionEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
                                         <thead>
-                                            <tr class="border-b border-background bg-background/50 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                                                <th class="p-3.5" style="width: 45%;">Edificio</th>
-                                                <th class="p-3.5" style="width: 25%;">Unidades Registradas</th>
-                                                <th class="p-3.5 text-right pe-4" style="width: 30%;">Acciones</th>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-3 px-4" style="width: 45%;">Edificio</th>
+                                                <th class="py-3 px-4" style="width: 25%;">Unidades Registradas</th>
+                                                <th class="py-3 px-4 text-right pe-4" style="width: 30%;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-background">
@@ -453,7 +453,7 @@
                                                     data-collapse-target="#collapse-config-edificio-<?= e($ed['id']) ?>" 
                                                     aria-expanded="false"
                                                     data-busqueda="<?= strtolower(e($ed['nombre'] . ' ' . ($ed['descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'numero')))) ?>">
-                                                    <td class="p-3.5 font-bold text-on-surface">
+                                                    <td class="py-4 px-4 font-semibold text-on-surface">
                                                         <div class="flex items-center gap-2.5">
                                                             <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                                                 <span class="material-symbols-outlined text-lg">domain</span>
@@ -466,13 +466,13 @@
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td class="p-3.5">
+                                                    <td class="py-4 px-4">
                                                         <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full border border-slate-200">
                                                             <span class="material-symbols-outlined text-[15px]">apartment</span>
                                                             <span><?= e($totalUnidades) ?> unidades</span>
                                                         </span>
                                                     </td>
-                                                    <td class="p-3.5 text-right pe-4">
+                                                    <td class="py-4 px-4 text-right pe-4">
                                                         <div class="inline-flex items-center gap-2">
                                                             <button type="button" 
                                                                     onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" 
