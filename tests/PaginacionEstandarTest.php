@@ -22,17 +22,25 @@ class PaginacionEstandarTest extends TestCase {
         $this->assertStringContains('$porPagina', $content, "Debe manejar el tamano por pagina");
     }
 
-    public function testVistaResidenteFacturasYComprobantesPaginados(): void {
+    public function testDashboardResidenteCargaComunicadosSinListasDePago(): void {
         $controller = $this->readFile('app/controllers/ResidenteController.php');
         $view = $this->readFile('app/views/residente/dashboard.php');
 
-        $this->assertStringContains('$porPagina = 25;', $controller, "ResidenteController debe fijar 25 por pagina");
-        $this->assertStringContains('paginacionFacturas', $controller, "Debe enviar paginacionFacturas");
-        $this->assertStringContains('paginacionComprobantes', $controller, "Debe enviar paginacionComprobantes");
+        $this->assertStringContains('obtenerPorResidente', $controller,
+            "ResidenteController debe cargar los comunicados del residente");
+        $this->assertStringContains("'comunicados'", $controller,
+            "ResidenteController debe enviar los comunicados a la vista");
 
-        $this->assertStringContains('components/pagination.php', $view, "La vista debe incluir el componente de paginacion");
-        $this->assertStringContains('$pageParam = \'page_facturas\'', $view, "Debe configurar page_facturas para facturas");
-        $this->assertStringContains('$pageParam = \'page_comprobantes\'', $view, "Debe configurar page_comprobantes para comprobantes");
+        $this->assertStringContains('Comunicados', $view,
+            "El dashboard del residente debe mostrar la seccion de comunicados");
+        $this->assertStringContains('overflow-y-auto', $view,
+            "La lista de comunicados debe tener scroll interno en vez de expandirse");
+        $this->assertStringContains('obtenerPorResidente($edificioId, $unidadId, 1, 10)', $controller,
+            "ResidenteController debe cargar hasta 10 comunicados para el scroll");
+        $this->assertFalse(str_contains($view, 'Facturas Pendientes'),
+            "El dashboard del residente ya no debe listar facturas pendientes");
+        $this->assertFalse(str_contains($view, 'Comprobantes Recientes'),
+            "El dashboard del residente ya no debe listar comprobantes recientes");
 
         $this->assertTrue(method_exists(FacturasModel::class, 'getPendientesByUnidad'), "FacturasModel debe tener getPendientesByUnidad");
         $this->assertTrue(method_exists(ComprobantesModel::class, 'getRecientesByResidente'), "ComprobantesModel debe tener getRecientesByResidente");

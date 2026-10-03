@@ -99,8 +99,8 @@ class ComunicadosModel extends BaseModel {
      * Obtiene los comunicados segmentados para un residente (Globales, por Edificio o por Unidad).
      */
     public function obtenerPorResidente(?int $edificioId = null, ?int $unidadId = null, int $pagina = 1, int $porPagina = 10): array {
-        $where = "WHERE c.deleted_at IS NULL AND c.fecha_publicacion <= NOW()";
-        $params = [];
+        $where = "WHERE c.deleted_at IS NULL AND c.fecha_publicacion <= :ahora";
+        $params = ['ahora' => date('Y-m-d H:i:s')];
 
         $where .= " AND (
             (c.edificio_id IS NULL AND c.unidad_id IS NULL)";

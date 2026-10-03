@@ -45,184 +45,55 @@
         </div>
     </div>
 
-    <!-- Sección: Facturas Pendientes -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
-        <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
-            <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">receipt_long</span>
-                Facturas Pendientes
-            </h3>
-            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full"><?= count($facturas_pendientes) ?></span>
-        </div>
-
-        <?php if (empty($facturas_pendientes)): ?>
-            <div class="text-center py-12 text-on-surface-variant">
-                <span class="material-symbols-outlined text-5xl text-primary/30 mb-2">check_circle</span>
-                <p class="font-semibold text-primary">No tienes facturas pendientes</p>
-                <div class="text-sm text-on-surface-variant mt-1">Su estado de deuda está al día.</div>
-            </div>
-        <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm border-collapse">
-                    <thead>
-                        <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
-                            <th class="py-3 px-4">Periodo</th>
-                            <th class="py-3 px-4">Monto</th>
-                            <th class="py-3 px-4">Saldo</th>
-                            <th class="py-3 px-4">Vencimiento</th>
-                            <th class="py-3 px-4">Estado</th>
-                            <th class="py-3 px-4">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-background">
-                        <?php foreach ($facturas_pendientes as $f): 
-                            $dias = diasHastaVencimiento($f['fecha_vencimiento']);
-                            $moroso = $dias !== null && $dias < 0;
-                        ?>
-                        <tr class="hover:bg-background/40 transition-colors">
-                            <td class="py-4 px-4 font-medium"><?= e(nombreMes($f['mes'])) ?> <?= e($f['anio']) ?></td>
-                            <td class="py-4 px-4"><?= e(formatearMoneda($f['monto_total'])) ?></td>
-                            <td class="py-4 px-4 font-bold <?= $moroso ? 'text-red-500' : 'text-yellow-600' ?>">
-                                <?= e(formatearMoneda($f['saldo'])) ?>
-                            </td>
-                            <td class="py-4 px-4">
-                                <div><?= e(date('d/m/Y', strtotime($f['fecha_vencimiento']))) ?></div>
-                                <?php if ($moroso): ?>
-                                    <span class="text-xs text-red-500 font-medium">Vencida hace <?= e(abs($dias)) ?>d</span>
-                                <?php elseif ($dias !== null && $dias <= 5 && $dias >= 0): ?>
-                                    <span class="text-xs text-yellow-600 font-medium">Vence en <?= e($dias) ?>d</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="py-4 px-4">
-                                <?php if ($moroso): ?>
-                                    <span class="bg-red-50 text-red-700 text-xs px-2.5 py-1 rounded-full font-bold">Vencida</span>
-                                <?php elseif ($f['tiene_pendiente'] > 0): ?>
-                                    <span class="bg-yellow-50 text-yellow-700 text-xs px-2.5 py-1 rounded-full font-bold">Enviado</span>
-                                <?php else: ?>
-                                    <span class="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold">Pendiente</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="py-4 px-4">
-                                <?php if (!$f['tiene_pendiente']): ?>
-                                    <a href="/residente/enviar-pago?factura=<?= e($f['id']) ?>" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95">
-                                        <span class="material-symbols-outlined text-[14px]">payments</span>
-                                        Pagar
-                                    </a>
-                                <?php else: ?>
-                                    <span class="text-xs text-on-surface-variant font-medium">Esperando aprobación</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <?php 
-            $paginacion = $paginacionFacturas;
-            $pageParam = 'page_facturas';
-            $filtros = ['page_comprobantes' => ($paginacionComprobantes['pagina'] > 1) ? $paginacionComprobantes['pagina'] : null];
-            include VIEWS_PATH . '/components/pagination.php'; 
-            ?>
-        <?php endif; ?>
-    </div>
-
-    <!-- Sección: Comprobantes Recientes -->
+    <!-- Sección: Comunicados -->
     <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-        <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
+        <div class="pb-4 border-b border-background mb-6">
             <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">history</span>
-                Comprobantes Recientes
+                <span class="material-symbols-outlined text-primary">campaign</span>
+                Comunicados
             </h3>
-            <a href="/pagos" class="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1">
-                Ver todos
-                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-            </a>
         </div>
 
-        <?php if (empty($comprobantes)): ?>
-            <div class="text-center py-12 text-on-surface-variant">
-                <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-2">payments</span>
-                <p class="font-semibold">No has enviado comprobantes de pago aún.</p>
+        <?php if (empty($comunicados)): ?>
+            <div class="py-12 text-center">
+                <span class="material-symbols-outlined text-6xl text-slate-300 mb-3 d-block">verified</span>
+                <h3 class="text-lg font-bold text-on-surface mb-1">¡Sin avisos pendientes!</h3>
+                <p class="text-sm text-slate-500">No hay comunicados recientes publicados para su edificio o comunidad.</p>
             </div>
         <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm border-collapse">
-                    <thead>
-                        <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
-                            <th class="py-3 px-4">Factura</th>
-                            <th class="py-3 px-4">Monto</th>
-                            <th class="py-3 px-4">Método</th>
-                            <th class="py-3 px-4">Fecha Pago</th>
-                            <th class="py-3 px-4">Estado</th>
-                            <th class="py-3 px-4">Comprobante</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-background">
-                        <?php foreach ($comprobantes as $c): ?>
-                        <tr class="hover:bg-background/40 transition-colors">
-                            <td class="py-4 px-4 font-medium font-mono">#<?= e($c['numero_factura']) ?></td>
-                            <td class="py-4 px-4"><?= e(formatearMoneda($c['monto'])) ?></td>
-                            <td class="py-4 px-4 text-xs font-medium uppercase"><?= e(str_replace('_', ' ', $c['metodo_pago'])) ?></td>
-                            <td class="py-4 px-4"><?= e(date('d/m/Y', strtotime($c['fecha_pago']))) ?></td>
-                            <td class="py-4 px-4">
-                                <?= badgeEstado($c['estado']) ?>
-                            </td>
-                            <td class="py-4 px-4">
-                                <?php if ($c['archivo']): ?>
-                                    <button onclick="abrirModal('/comprobante-proxy.php?file=<?= e($c['archivo']) ?>')" 
-                                            class="w-12 h-12 rounded-lg border border-outline-variant overflow-hidden hover:scale-105 transition-transform flex items-center justify-center bg-background">
-                                        <img src="/comprobante-proxy.php?file=<?= e($c['archivo']) ?>" alt="Recibo" class="w-full h-full object-cover">
-                                    </button>
-                                <?php else: ?>
-                                    <span class="text-xs text-on-surface-variant">Sin imagen</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="max-h-96 overflow-y-auto divide-y divide-background">
+                <?php foreach ($comunicados as $c): ?>
+                <div class="py-4">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <?php if ($c['nivel_urgencia'] === 'urgente'): ?>
+                                <span class="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full uppercase">Urgente</span>
+                            <?php elseif ($c['nivel_urgencia'] === 'importante'): ?>
+                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Importante</span>
+                            <?php else: ?>
+                                <span class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full uppercase">Normal</span>
+                            <?php endif; ?>
+
+                            <span class="text-xs text-on-surface-variant"><?= date('d/m/Y H:i', strtotime($c['fecha_publicacion'])) ?></span>
+                        </div>
+                        <span class="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                            <?= e($c['edificio_nombre']) ?>
+                        </span>
+                    </div>
+
+                    <h4 class="font-bold text-on-surface"><?= e($c['titulo']) ?></h4>
+
+                    <?php
+                    $textoComunicado = trim(preg_replace('/\s+/', ' ', strip_tags($c['contenido'])));
+                    $extractoComunicado = mb_substr($textoComunicado, 0, 180);
+                    if (mb_strlen($textoComunicado) > 180) {
+                        $extractoComunicado .= '...';
+                    }
+                    ?>
+                    <p class="text-sm text-on-surface-variant mt-1"><?= e($extractoComunicado) ?></p>
+                </div>
+                <?php endforeach; ?>
             </div>
-            <?php 
-            $paginacion = $paginacionComprobantes;
-            $pageParam = 'page_comprobantes';
-            $filtros = ['page_facturas' => ($paginacionFacturas['pagina'] > 1) ? $paginacionFacturas['pagina'] : null];
-            include VIEWS_PATH . '/components/pagination.php'; 
-            ?>
         <?php endif; ?>
     </div>
 </div>
-
-<!-- Modal para ver imágenes de comprobantes -->
-<div id="modalComprobante" onclick="cerrarModal(event)" class="hidden fixed inset-0 z-50 bg-black/90 items-center justify-center p-4">
-    <button onclick="cerrarModalForce()" class="absolute top-4 right-4 text-white text-4xl hover:rotate-90 transition-transform">&times;</button>
-    <img id="modalImg" src="" alt="Comprobante ampliado" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl">
-</div>
-
-<script>
-    function abrirModal(src) {
-        document.getElementById('modalImg').src = src;
-        const modal = document.getElementById('modalComprobante');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function cerrarModal(event) {
-        if (event.target === event.currentTarget) {
-            cerrarModalForce();
-        }
-    }
-
-    function cerrarModalForce() {
-        const modal = document.getElementById('modalComprobante');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.style.overflow = '';
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            cerrarModalForce();
-        }
-    });
-</script>
