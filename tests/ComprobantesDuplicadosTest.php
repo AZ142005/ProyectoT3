@@ -359,20 +359,7 @@ class ComprobantesDuplicadosTest extends TestCase {
     // =================================================================
 
     public function testControladoresTienenRateLimitingAdecuado(): void {
-        $residenteContent = file_get_contents(APP_PATH . '/controllers/ResidenteController.php');
         $pagoContent = file_get_contents(APP_PATH . '/controllers/PagoController.php');
-
-        // ResidenteController::enviarPago
-        $this->assertStringContains("RateLimiter::attempt('comprobante_' . Auth::id(), 10, 3600)", $residenteContent,
-            'ResidenteController debe limitar la subida de comprobantes por residente');
-        $this->assertStringContains("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {", $residenteContent,
-            'ResidenteController debe aplicar rate limiting solo en POST');
-
-        // Verificar que no se sobreescriba $error = '' despues de asignar el error del rate limit
-        $posRate = strpos($residenteContent, "RateLimiter::attempt('comprobante_'");
-        $sub = substr($residenteContent, $posRate, 400);
-        $this->assertFalse(str_contains($sub, "\$error = '';"),
-            'El rate limit de ResidenteController no debe ser limpiado por $error = \'\'');
 
         // PagoController::subir
         $this->assertStringContains("RateLimiter::attempt('pago_subir_' . \$residenteId, 10, 3600)", $pagoContent,

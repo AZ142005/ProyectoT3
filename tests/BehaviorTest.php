@@ -1275,39 +1275,6 @@ class BehaviorTest extends TestCase {
             'Cap must be applied before SQL LIMIT clause');
     }
 
-    // --- 4.4: Upper bound monto (3 tests) ---
-
-    // 4.4a — enviarPago has upper bound validation
-    public function testEnviarPagoHasUpperBoundValidation(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
-        preg_match('/public function enviarPago\(\)(.*?)(?=public function|\Z)/s', $content, $m);
-        $this->assertTrue(count($m) > 1, 'enviarPago() must exist');
-        $this->assertStringContains('999999', $m[1],
-            'Must validate monto upper bound');
-        $this->assertStringContains('exceder', $m[1],
-            'Must show user-friendly error for exceeding limit');
-    }
-
-    // 4.4b — Upper bound error message is in Spanish with Bs.
-    public function testEnviarPagoUpperBoundMessageIsSpanish(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
-        $this->assertStringContains('Bs.', $content,
-            'Upper bound error must mention Bs. currency');
-        $this->assertStringContains('exceder', $content,
-            'Error message must be in Spanish');
-    }
-
-    // 4.4c — Upper bound check comes AFTER the <= 0 check
-    public function testEnviarPagoUpperBoundCheckOrder(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
-        $zeroPos = strpos($content, '$monto <= 0');
-        $upperPos = strpos($content, '$monto > 999999');
-        $this->assertTrue($zeroPos !== false, 'Must have zero check');
-        $this->assertTrue($upperPos !== false, 'Must have upper bound check');
-        $this->assertTrue($zeroPos < $upperPos,
-            'Zero check must come before upper bound check');
-    }
-
     // --- 4.5: Optimizar conteo unidades (3 tests) ---
 
     // 4.5a — rendicionResidente uses COUNT query
@@ -1374,10 +1341,10 @@ class BehaviorTest extends TestCase {
         $this->assertStringContains('PHP_VERSION_ID < 80500', $content, 'comprobante-proxy must guard finfo_close for PHP 8.5+');
     }
 
-    public function testEnviarPagoFormHasBancoPagadorField(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/views/residente/enviar_pago.php');
-        $this->assertStringContains('name="banco_pagador"', $content, 'enviar_pago.php must include banco_pagador input');
-        $this->assertStringContains('data.banco_pagador', $content, 'enviar_pago.php must handle data.banco_pagador from OCR');
+    public function testPagoSubirFormHasBancoPagadorField(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/views/pagos/residente/subir.php');
+        $this->assertStringContains('name="banco_pagador"', $content, 'subir.php must include banco_pagador input');
+        $this->assertStringContains('data.banco_pagador', $content, 'subir.php must handle data.banco_pagador from OCR');
     }
 
     public function testPagoControllerResolvesGlobalDateTime(): void {

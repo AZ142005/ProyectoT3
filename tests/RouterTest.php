@@ -121,7 +121,6 @@ class RouterTest extends TestCase {
     public function testResidenteRoutesExist(): void {
         $residenteRoutes = [
             '/residente/dashboard',
-            '/residente/enviar-pago',
             '/residente/historial',
         ];
 

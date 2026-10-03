@@ -131,7 +131,6 @@ $router->get('/pago-directo/exito', [PagoDirectoController::class, 'exito']);
 
 // --- Módulo de Residente ---
 $router->get('/residente/dashboard', [ResidenteController::class, 'dashboard'], [UserRole::RESIDENTE]);
-$router->any('/residente/enviar-pago', [ResidenteController::class, 'enviarPago'], [UserRole::RESIDENTE]);
 $router->get('/residente/historial', [ResidenteController::class, 'historial'], [UserRole::RESIDENTE]);
 
 // --- Módulo de Administración ---
