@@ -148,7 +148,7 @@
                                     </p>
                                     <button type="button" onclick="document.getElementById('tab-configuracion-btn').click()" class="mt-3 inline-flex items-center gap-1.5 text-primary text-xs font-bold hover:underline bg-primary/10 px-4 py-2 rounded-xl transition-all">
                                         <span class="material-symbols-outlined text-sm">settings_suggest</span>
-                                        <span>Ir a Configuración del Sistema para registrar edificios</span>
+                                        <span>Ir a Creación de Unidades para registrar edificios</span>
                                     </button>
                                 </div>
                             <?php else: ?>
