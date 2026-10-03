@@ -40,9 +40,11 @@
 - Spot check del padre.
 - Cierre: commit work-unit en `feat/admin-comunicado-preview`; merge/push = decisión del usuario.
 
-## Evidencia (se completa al cierre)
-- T1-T5: pendiente
-- php -l: pendiente
-- Suites: pendiente
-- Verificación independiente: pendiente
-- Commit: pendiente
+## Evidencia (cierre 2026-10-03)
+- T1-T4 aplicadas: modal-xl con labels/inputs/switch a patrones de casa; footer R1 (icono send) + R2; preview en vivo `#previewComunicado` con estructura y clases literales del residente (verificadas por igualdad de string carácter a carácter); `enviar_email` sin `checked` (default OFF; `guardar` ya trata la ausencia como false); empty states del residente con tokens de casa.
+- `php -l` 4/4 sin errores; `node --check` del JS inline OK; 0 usos de innerHTML (todo `textContent`).
+- Suites (todas exit 0): run completo (muere en SecurityTest por defecto preexistente); filtros AdminComunicadosVista 3 tests/7 asserts, ComunicadosDuplicados 7, ComunicadosResidente 10, PaginacionEstandar 10, Rbac 7, Behavior 111; clases no alcanzadas por el run completo, por separado: SolicitudesRegistro 7, UsuarioAdmin 17, UsuariosSolicitudesTabs 8.
+- Verificador independiente read-only: VERIFIED CON OBSERVACIONES (comparaciones carácter a carácter, preservación del form byte a byte, falsificaciones). Observaciones atendidas: aserción R1 acotada al footer del modal y regex del switch cubriendo `checked` antes/después de `name` (tests reforzados; re-run 3 tests / 7 asserts verde). Menores aceptadas: `bg-light` del modal-footer (idioma de modales de la casa) y `p-5` de la preview (prescrito en esta tarea).
+- Spot check del padre: censo del modal (sin `checked`, ids de preview presentes), `php -l`, filtro reforzado.
+- Commit: 861bbc3. Merge/push: decisión del usuario.
+- RDD: on; assess high/unassessable (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
