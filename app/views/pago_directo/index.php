@@ -167,6 +167,81 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         </div>
                     </div>
 
+                    <!-- Cuenta oficial para el pago -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta oficial para el pago <span class="text-red-500">*</span></label>
+                            <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                            </span>
+                        </div>
+                        <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
+                                class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
+                            <option value="">-- Seleccione la cuenta oficial del condominio --</option>
+                            <?php foreach ($cuentasBancarias as $cb): ?>
+                                <option value="<?= e($cb['id']) ?>"
+                                        data-banco="<?= e($cb['banco']) ?>"
+                                        data-cuenta="<?= e($cb['numero_cuenta']) ?>"
+                                        data-titular="<?= e($cb['titular']) ?>"
+                                        data-doc="<?= e($cb['tipo_identificacion'] . '-' . $cb['identificacion']) ?>"
+                                        data-telefono="<?= e($cb['telefono_pago_movil'] ?? '') ?>"
+                                        <?= ($oldCuenta === (string)$cb['id']) ? 'selected' : '' ?>>
+                                    <?= e($cb['banco']) ?> - <?= e(chunk_split($cb['numero_cuenta'], 4, ' ')) ?> (<?= e($cb['titular']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="inconsistencia-cuenta_bancaria_id"></div>
+
+                        <!-- Datos oficiales de la cuenta seleccionada -->
+                        <div id="cardInfoCuenta" class="hidden mt-1 p-4 bg-gradient-to-br from-blue-50/95 to-slate-100/80 border border-blue-200 rounded-2xl text-xs text-blue-950">
+                            <div class="flex items-center justify-between border-b border-blue-200/70 pb-2 mb-3">
+                                <div class="font-bold text-sm text-primary flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[19px]">verified</span>
+                                    <span id="infoBanco"></span>
+                                </div>
+                                <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase">Cuenta oficial</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de cuenta</span>
+                                        <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    </div>
+                                    <button type="button" data-copiar="infoNumero" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
+                                        <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                        Copiar
+                                    </button>
+                                </div>
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular autorizado</span>
+                                        <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    </div>
+                                </div>
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
+                                        <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    </div>
+                                    <button type="button" data-copiar="infoDoc" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
+                                        <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                        Copiar
+                                    </button>
+                                </div>
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
+                                        <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
+                                    </div>
+                                    <button type="button" data-copiar="infoTelefono" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
+                                        <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                        Copiar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-white rounded-2xl p-6 transition-all text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[170px]">
                         <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
                                class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
@@ -342,81 +417,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                             </div>
                             <div id="inconsistencia-banco_pagador"></div>
                             <span class="text-[11px] text-slate-400">Banco del cual salieron los fondos de su cuenta.</span>
-                        </div>
-
-                        <!-- Cuenta oficial para el pago -->
-                        <div class="flex flex-col gap-1.5">
-                            <div class="flex items-center justify-between">
-                                <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta oficial para el pago <span class="text-red-500">*</span></label>
-                                <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
-                                    <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
-                                </span>
-                            </div>
-                            <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
-                                    class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                                <option value="">-- Seleccione la cuenta oficial del condominio --</option>
-                                <?php foreach ($cuentasBancarias as $cb): ?>
-                                    <option value="<?= e($cb['id']) ?>"
-                                            data-banco="<?= e($cb['banco']) ?>"
-                                            data-cuenta="<?= e($cb['numero_cuenta']) ?>"
-                                            data-titular="<?= e($cb['titular']) ?>"
-                                            data-doc="<?= e($cb['tipo_identificacion'] . '-' . $cb['identificacion']) ?>"
-                                            data-telefono="<?= e($cb['telefono_pago_movil'] ?? '') ?>"
-                                            <?= ($oldCuenta === (string)$cb['id']) ? 'selected' : '' ?>>
-                                        <?= e($cb['banco']) ?> - <?= e(chunk_split($cb['numero_cuenta'], 4, ' ')) ?> (<?= e($cb['titular']) ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <div id="inconsistencia-cuenta_bancaria_id"></div>
-
-                            <!-- Datos oficiales de la cuenta seleccionada -->
-                            <div id="cardInfoCuenta" class="hidden mt-1 p-4 bg-gradient-to-br from-blue-50/95 to-slate-100/80 border border-blue-200 rounded-2xl text-xs text-blue-950">
-                                <div class="flex items-center justify-between border-b border-blue-200/70 pb-2 mb-3">
-                                    <div class="font-bold text-sm text-primary flex items-center gap-1.5">
-                                        <span class="material-symbols-outlined text-[19px]">verified</span>
-                                        <span id="infoBanco"></span>
-                                    </div>
-                                    <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase">Cuenta oficial</span>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de cuenta</span>
-                                            <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
-                                        </div>
-                                        <button type="button" data-copiar="infoNumero" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
-                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                                            Copiar
-                                        </button>
-                                    </div>
-                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular autorizado</span>
-                                            <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
-                                        </div>
-                                    </div>
-                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
-                                            <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
-                                        </div>
-                                        <button type="button" data-copiar="infoDoc" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
-                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                                            Copiar
-                                        </button>
-                                    </div>
-                                    <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
-                                            <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
-                                        </div>
-                                        <button type="button" data-copiar="infoTelefono" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
-                                            <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                                            Copiar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
