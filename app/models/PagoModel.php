@@ -95,10 +95,42 @@ class PagoModel extends BaseModel {
             $estado = EstadoPago::PENDIENTE;
         }
 
+        $archivoHash = $datos['archivo_hash'] ?? null;
+
         $db = $this->db();
 
         try {
             $db->beginTransaction();
+
+            // Prevenir duplicado por hash de archivo YA REGISTRADO (mismo comprobante
+            // subido dos veces), global e independiente de la unidad.
+            if (!empty($archivoHash)) {
+                $stmtHashPago = $db->prepare("
+                    SELECT id FROM pagos
+                    WHERE archivo_hash = :hash
+                      AND estado != 'RECHAZADO'
+                      AND (deleted_at IS NULL OR estado = 'APROBADO')
+                    LIMIT 1
+                ");
+                $stmtHashPago->execute(['hash' => $archivoHash]);
+                if ($stmtHashPago->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+
+                $stmtHashComp = $db->prepare("
+                    SELECT c.id FROM comprobantes_pago c
+                    WHERE c.archivo_hash = :hash
+                      AND c.estado != 'rechazado'
+                      AND c.deleted_at IS NULL
+                    LIMIT 1
+                ");
+                $stmtHashComp->execute(['hash' => $archivoHash]);
+                if ($stmtHashComp->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+            }
 
             // Prevenir pago duplicado por identidad económica vigente.
             // El predicado se omite cuando no hay referencia normalizable y el
@@ -138,8 +170,6 @@ class PagoModel extends BaseModel {
                     return false;
                 }
             }
-
-            $archivoHash = $datos['archivo_hash'] ?? null;
 
             $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, referencia_norm, archivo, archivo_hash, observaciones, estado, banco_pagador, banco_receptor, cuenta_bancaria_id)
                     VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :referencia_norm, :archivo, :archivo_hash, :observaciones, :estado, :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";

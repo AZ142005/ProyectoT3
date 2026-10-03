@@ -51,6 +51,8 @@ class ComunicadoController extends Controller {
     public function guardar() {
         Auth::requireRole('admin');
 
+        $adminId = Auth::id() ?? 1;
+
         $titulo = preg_replace('/[\r\n]/', '', strip_tags(trim($_POST['titulo'] ?? '')));
         $contenido = trim($_POST['contenido'] ?? '');
         $urgencia = strtolower($_POST['nivel_urgencia'] ?? 'normal');
@@ -83,9 +85,23 @@ class ComunicadoController extends Controller {
             return;
         }
 
+        // Rate limit de publicaciones: máximo 10 comunicados por hora por administrador.
+        // Se evalúa tras las validaciones para que un envío inválido no consuma intentos.
+        if (!\App\Core\RateLimiter::attempt('comunicado_' . $adminId, 10, 3600)) {
+            Flash::set('danger', 'Ha excedido el límite de 10 comunicados por hora. Intente más tarde.');
+            $this->redirect('/admin/comunicados');
+            return;
+        }
+
         try {
             $comunicadosModel = new ComunicadosModel();
-            $adminId = Auth::id() ?? 1;
+
+            // Evitar doble publicación por doble envío del formulario
+            if ($comunicadosModel->existeDuplicadoReciente($titulo, $contenido, $edificioId, $unidadId, $adminId)) {
+                Flash::set('info', 'Este comunicado ya fue publicado hace instantes; se evitó un duplicado.');
+                $this->redirect('/admin/comunicados');
+                return;
+            }
 
             $comunicadoId = $comunicadosModel->crearComunicado([
                 'titulo'         => $titulo,

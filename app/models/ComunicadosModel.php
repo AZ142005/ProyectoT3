@@ -21,13 +21,7 @@ class ComunicadosModel extends BaseModel {
             throw new Exception("Nivel de urgencia no válido.");
         }
 
-        $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'p', 'br'];
-        $allowedString = '<' . implode('><', $allowedTags) . '>';
-
-        // Sanitización: solo permite HTML seguro (etiquetas de formato básico).
-        // Se excluyen explícitamente los enlaces (tag 'a') para prevenir XSS via javascript: o data: URI.
-
-        $contenido = strip_tags($datos['contenido'] ?? '', $allowedString);
+        $contenido = $this->sanitizarContenido($datos['contenido'] ?? '');
 
         $db = $this->db();
         $sql = "
@@ -48,6 +42,57 @@ class ComunicadosModel extends BaseModel {
         ]);
 
         return intval($db->lastInsertId());
+    }
+
+    /**
+     * Sanitiza el contenido permitiendo solo etiquetas de formato básico.
+     * Se excluyen explícitamente los enlaces (tag 'a') para prevenir XSS via javascript: o data: URI.
+     */
+    private function sanitizarContenido(string $contenido): string {
+        $allowedTags = ['b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'p', 'br'];
+        $allowedString = '<' . implode('><', $allowedTags) . '>';
+        return strip_tags($contenido, $allowedString);
+    }
+
+    /**
+     * Detecta un comunicado reciente idéntico (mismo admin, título, contenido y
+     * destinos) dentro de la ventana indicada, para evitar publicaciones
+     * duplicadas por doble envío. Los destinos se comparan de forma null-safe.
+     *
+     * @param string $titulo
+     * @param string $contenido Contenido tal como llega del formulario (se sanitiza igual que en crearComunicado)
+     * @param int|null $edificioId
+     * @param int|null $unidadId
+     * @param int $adminId
+     * @param int $ventanaMinutos
+     * @return bool
+     */
+    public function existeDuplicadoReciente(string $titulo, string $contenido, ?int $edificioId, ?int $unidadId, int $adminId, int $ventanaMinutos = 10): bool {
+        $contenidoSanitizado = $this->sanitizarContenido($contenido);
+        $desde = date('Y-m-d H:i:s', time() - (max(1, $ventanaMinutos) * 60));
+
+        $db = $this->db();
+        $stmt = $db->prepare("
+            SELECT id FROM comunicados
+            WHERE deleted_at IS NULL
+              AND admin_id = :admin_id
+              AND titulo = :titulo
+              AND contenido = :contenido
+              AND edificio_id <=> :edificio_id
+              AND unidad_id <=> :unidad_id
+              AND fecha_publicacion >= :desde
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'admin_id'    => $adminId,
+            'titulo'      => $titulo,
+            'contenido'   => $contenidoSanitizado,
+            'edificio_id' => $edificioId,
+            'unidad_id'   => $unidadId,
+            'desde'       => $desde
+        ]);
+
+        return (bool)$stmt->fetch();
     }
 
     /**

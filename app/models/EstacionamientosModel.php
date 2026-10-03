@@ -85,6 +85,29 @@ class EstacionamientosModel extends BaseModel {
     }
 
     /**
+     * Verifica si ya existe un puesto activo con el número indicado.
+     *
+     * @param string $numero Número o identificador del puesto
+     * @param int|null $excluirId ID a excluir (permite conservar el mismo número al editar)
+     * @return bool
+     */
+    public function numeroExists(string $numero, ?int $excluirId = null): bool {
+        $db = $this->db();
+        $sql = "SELECT id FROM estacionamientos WHERE numero = :numero AND deleted_at IS NULL";
+        $params = ['numero' => $numero];
+
+        if ($excluirId !== null && $excluirId > 0) {
+            $sql .= " AND id != :excluir_id";
+            $params['excluir_id'] = $excluirId;
+        }
+
+        $sql .= " LIMIT 1";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Asigna o desasigna un puesto de estacionamiento a una unidad habitacional con bloqueo transaccional.
      *
      * @param int $puestoId

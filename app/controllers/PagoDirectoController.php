@@ -307,7 +307,7 @@ class PagoDirectoController extends Controller {
             return;
         }
 
-        $this->renderFormulario('Ya existe un pago registrado con el mismo monto y fecha para esta unidad. Si ya lo reportó, espere la verificación de la administración.', $_POST);
+        $this->renderFormulario('Ya existe un pago registrado con la misma información para esta unidad (o el comprobante ya fue reportado). Si ya lo reportó, espere la verificación de la administración.', $_POST);
     }
 
     /**

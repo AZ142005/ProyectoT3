@@ -498,6 +498,16 @@ class PagoController extends Controller {
     public function analizarComprobante() {
         Auth::requireRole(UserRole::RESIDENTE);
 
+        // Rate limit OCR endpoint — max 20 requests/min/user (mismo patrón que extraer())
+        if (!\App\Core\RateLimiter::attempt('ocr_analisis_' . Auth::id(), 20, 60)) {
+            $this->json([
+                'success'    => false,
+                'csrf_token' => $_SESSION['csrf_token'] ?? '',
+                'error'      => 'Demasiadas solicitudes de análisis.'
+            ], 429);
+            return;
+        }
+
         $textoPegado = trim($_POST['texto_comprobante'] ?? '');
 
         // Si se envió texto directo

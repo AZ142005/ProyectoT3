@@ -122,6 +122,21 @@ class ComprobantesModel extends BaseModel {
             if ($hashHit) {
                 return ['tipo' => 'comprobante', 'id' => $hashHit['id'], 'criterio' => 'archivo_hash'];
             }
+
+            // Chequeo cruzado contra pagos por hash de archivo (misma vigencia de
+            // pagos, global por hash: el mismo archivo no puede registrarse dos veces).
+            $stmtPH = $db->prepare("
+                SELECT id FROM pagos
+                WHERE archivo_hash = :hash
+                  AND estado != 'RECHAZADO'
+                  AND (deleted_at IS NULL OR estado = 'APROBADO')
+                LIMIT 1
+            ");
+            $stmtPH->execute(['hash' => $archivoHash]);
+            $pagoHashHit = $stmtPH->fetch(PDO::FETCH_ASSOC);
+            if ($pagoHashHit) {
+                return ['tipo' => 'pago', 'id' => $pagoHashHit['id'], 'criterio' => 'archivo_hash'];
+            }
         }
 
         // 3. Chequeo fallback sin referencia: misma factura + misma fecha + mismo monto

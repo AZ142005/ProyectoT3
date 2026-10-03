@@ -94,9 +94,15 @@ class EstacionamientoController extends Controller {
         }
 
         $estacionamientosModel = new EstacionamientosModel();
+        $id = !empty($_POST['id']) ? intval($_POST['id']) : null;
 
         try {
-            $id = !empty($_POST['id']) ? intval($_POST['id']) : null;
+            // Número de puesto único entre puestos activos (excluye el propio al editar)
+            if ($estacionamientosModel->numeroExists($numero, $id)) {
+                Flash::error("Ya existe un puesto con el número '{$numero}'.");
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
 
             if ($id) {
                 $estacionamientosModel->update($id, [
