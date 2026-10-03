@@ -31,13 +31,13 @@
 - Sin endpoints nuevos; solo visualización.
 
 ## Checklist
-- [ ] T1 quitar secciones + modal + script del dashboard
-- [ ] T2 nueva sección "Comunicados" (datos reales, lenguaje de cartelera, link Ver todos)
-- [ ] T3 controller dashboard limpio + carga de comunicados
-- [ ] T4 resolución unificada (PersonasModel + carteleraResidente)
-- [ ] T5 tests actualizados + nuevo ComunicadosResidenteTest
-- [ ] T6 php -l + suite completa exit 0 + verificación independiente + commit
-- [ ] T7 fix TZ + test de regresión (falsificación verificada RED→GREEN)
+- [x] T1 quitar secciones + modal + script del dashboard
+- [x] T2 nueva sección "Comunicados" (datos reales, lenguaje de cartelera, link Ver todos)
+- [x] T3 controller dashboard limpio + carga de comunicados
+- [x] T4 resolución unificada (PersonasModel + carteleraResidente)
+- [x] T5 tests actualizados + nuevo ComunicadosResidenteTest
+- [x] T6 php -l + suite completa exit 0 + verificación independiente + commit (498fda0)
+- [x] T7 fix TZ + test de regresión (falsificación verificada RED→GREEN)
 
 ## Verificación
 - Writer: `php -l` de los archivos tocados; `php tests/run.php` → exit 0; filtros `--filter=PaginacionEstandarTest`, `--filter=ComunicadosResidenteTest`, `--filter=RbacAuthorizationTest`, `--filter=AuthTest`, `--filter=RouterTest`, `--filter=ComprobantesDuplicadosTest`, `--filter=ComunicadosDuplicadosTest`, `--filter=BehaviorTest`, `--filter=SaldoFavorTest`. Auto-auditoría del diff (alcance acotado a: dashboard.php, ResidenteController.php, ComunicadoController.php, PersonasModel.php, PaginacionEstandarTest.php, ComunicadosResidenteTest.php).
@@ -45,9 +45,13 @@
 - Spot check del padre: `php -l` + filtradas clave + revisión del diff.
 - Cierre: commit work-unit en `feat/residente-panel-comunicados`; push/PR = decisión del usuario.
 
-## Evidencia (se completa al cierre)
-- T1-T6: pendiente
-- php -l: pendiente
-- Suite completa: pendiente
-- Verificación independiente: pendiente
-- Commit: pendiente
+## Evidencia (cierre 2026-10-03)
+- T1-T7 aplicadas 7/7.
+- `php -l` 7/7: "No syntax errors detected".
+- Suites: `php tests/run.php` completo exit 0; filtros clave exit 0 (ComunicadosResidenteTest 10, PaginacionEstandarTest 10, RbacAuthorizationTest 7, AuthTest 20, RouterTest 23, ComprobantesDuplicadosTest 6, ComunicadosDuplicadosTest 7, BehaviorTest 111, SaldoFavorTest 5).
+- NOTA runner (defecto PREEXISTENTE, no de este cambio): `SecurityTest::testCsrfRejectsInvalidToken` provoca el `exit` de `Security::validateCSRF` (Security.php:52) y el run completo muere antes del RESUMEN, saltándose las últimas 4 clases con exit 0. Las 4 clases se verificaron por separado: SolicitudesRegistroTest 7, UsuarioAdminAccionesTest 7, UsuarioAdminTest 10, UsuariosSolicitudesTabsTest 8 — todas ✅ exit 0. Recomendación: ticket separado (runner/seguridad), fuera de alcance.
+- Falsificación TZ probada: código viejo → RED (exit 1, 1 failed); con fix → GREEN. El verificador independiente reprodujo empíricamente: predicado viejo 0 visibles / nuevo 1 visible (stored 18:34 vs DB 12:30).
+- Verificación independiente read-only: VERIFIED CON OBSERVACIONES. Sin hallazgos que invaliden: pedido cumplido, render saneado (sin echo crudo), `enviarPago`/`historial` intactos, resolución unificada, tests honestos, 0 filas de prueba residuales. Observaciones: runner early-exit (preexistente; arriba) + comentario `dbTime` obsoleto (corregido) + `idsVisibles` con límite 100 (teórico, sin impacto).
+- Spot check del padre: lints + 4 filtros de las clases no alcanzadas por el run completo + revisión de alcance del diff.
+- Commit work-unit: 498fda0 (8 archivos; 392 ins / 230 del). Push/PR: decisión del usuario.
+- RDD: on; assess (working tree y post-commit base dc15d49) → `risk: high`, `unassessable` (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
