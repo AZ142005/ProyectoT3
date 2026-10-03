@@ -28,7 +28,7 @@ class PerfilController extends Controller {
             $usuarioAdmin = $usuariosModel->getById((int)$user['id']);
         } elseif ($personaId) {
             $personasModel = new PersonasModel();
-            $persona = $personasModel->findById($personaId);
+            $persona = $personasModel->getActiveById($personaId);
 
             $solicitudesModel = new SolicitudesModel();
             $solicitudes = $solicitudesModel->obtenerPorPersona($personaId);

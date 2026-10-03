@@ -10,6 +10,10 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="/perfil" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">account_circle</span>
+                Mi Perfil
+            </a>
             <a href="/pagos" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">payments</span>
                 Gestionar Pagos
