@@ -141,7 +141,7 @@ class GastoController extends Controller {
 
         try {
             $gastosModel = new GastosModel();
-            $gastosModel->crearGasto([
+            $gastoId = $gastosModel->crearGasto([
                 'categoria_id'          => $categoriaId,
                 'mes'                   => $mes,
                 'anio'                  => $anio,
@@ -156,10 +156,20 @@ class GastoController extends Controller {
                 'edificio_id'           => ($tipoGasto === 'individual') ? $edificioId : null,
             ]);
 
-            Flash::set('success', 'Gasto registrado exitosamente con su soporte digital.');
+            if (!$gastoId) {
+                // Carrera detectada por la guardia única (23000/1062) durante el INSERT
+                Flash::set('danger', 'Ya existe un gasto con los mismos datos en el período (posible envío duplicado).');
+            } else {
+                Flash::set('success', 'Gasto registrado exitosamente con su soporte digital.');
+            }
         } catch (\Exception $e) {
-            error_log("[GASTO] Error registrar gasto: " . $e->getMessage());
-            Flash::set('danger', 'Error al registrar el gasto. Verifique los datos e intente de nuevo.');
+            if (str_starts_with($e->getMessage(), 'Ya existe un gasto')) {
+                // Duplicado detectado por el pre-chequeo (factura F o guarda S)
+                Flash::set('danger', 'Ya existe un gasto con los mismos datos en el período (posible envío duplicado).');
+            } else {
+                error_log("[GASTO] Error registrar gasto: " . $e->getMessage());
+                Flash::set('danger', 'Error al registrar el gasto. Verifique los datos e intente de nuevo.');
+            }
         }
 
         $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
@@ -390,6 +400,18 @@ class GastoController extends Controller {
         $gastosRaw = $_POST['gastos'] ?? [];
         $adminId = Auth::id() ?? 1;
 
+        // Hash del PDF ya almacenado (server-side) para idempotencia de re-ingesta
+        $soporteHash = null;
+        if ($archivoMaestro !== '') {
+            $rutaSoporte = UPLOADS_PATH . '/soportes/' . basename($archivoMaestro);
+            if (is_file($rutaSoporte)) {
+                $hashCalculado = @hash_file('sha256', $rutaSoporte);
+                if ($hashCalculado !== false) {
+                    $soporteHash = $hashCalculado;
+                }
+            }
+        }
+
         if (empty($gastosRaw) || !is_array($gastosRaw)) {
             Flash::set('danger', 'No hay gastos especificados para importar.');
             $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
@@ -424,9 +446,15 @@ class GastoController extends Controller {
 
         try {
             $gastosModel = new GastosModel();
-            $resultado = $gastosModel->importarGastosMaestro($itemsAImportar, $adminId, $archivoMaestro, $mes, $anio);
+            $resultado = $gastosModel->importarGastosMaestro($itemsAImportar, $adminId, $archivoMaestro, $mes, $anio, $soporteHash);
 
             unset($_SESSION['maestro_renglones_preview'], $_SESSION['maestro_archivo_preview']);
+
+            if (!empty($resultado['archivo_ya_importado'])) {
+                Flash::set('info', "Este PDF ya fue importado para el período; se omitieron {$resultado['omitidos']} renglones.");
+                $this->redirect("/admin/gastos?mes={$mes}&anio={$anio}");
+                return;
+            }
 
             $msg = "Se importaron exitosamente {$resultado['procesados']} gastos comunes desde el PDF Maestro.";
             if ($resultado['omitidos'] > 0) {

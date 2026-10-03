@@ -58,24 +58,37 @@ class ConciliacionModel extends BaseModel {
             // Los débitos se marcan automáticamente como descartados de la conciliación de cobranzas
             $estadoConciliacion = ($tipo === 'debito') ? 'descartado' : 'pendiente';
             $estado = ($tipo === 'debito') ? 'descartado' : 'disponible';
+
+            // Cierre de carrera: si otra importación insertó la misma identidad
+            // (ref, fecha, monto) entre el SELECT y el INSERT, el índice único
+            // uk_extracto_identidad lanza 23000/1062 y se cuenta como duplicado.
+            try {
+                $stmtInsert->execute([
+                    'banco'               => $banco,
+                    'fecha'               => $fecha,
+                    'ref_bancaria'        => $referencia,
+                    'referencia'          => $referencia,
+                    'desc_banco'          => $desc,
+                    'descripcion'         => $desc,
+                    'monto'               => $montoAbs,
+                    'tipo'                => $tipo,
+                    'estado_conciliacion' => $estadoConciliacion,
+                    'estado'              => $estado,
+                    'lote'                => $lote
+                ]);
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000 || ($e->errorInfo[1] ?? 0) === 1062) {
+                    $duplicados++;
+                    continue;
+                }
+                throw $e;
+            }
+
+            // Solo cuenta débitos realmente insertados: un duplicado capturado
+            // por 23000/1062 cuenta únicamente en $duplicados.
             if ($tipo === 'debito') {
                 $debitos++;
             }
-
-            $stmtInsert->execute([
-                'banco'               => $banco,
-                'fecha'               => $fecha,
-                'ref_bancaria'        => $referencia,
-                'referencia'          => $referencia,
-                'desc_banco'          => $desc,
-                'descripcion'         => $desc,
-                'monto'               => $montoAbs,
-                'tipo'                => $tipo,
-                'estado_conciliacion' => $estadoConciliacion,
-                'estado'              => $estado,
-                'lote'                => $lote
-            ]);
-
             $insertados++;
         }
 

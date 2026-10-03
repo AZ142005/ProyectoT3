@@ -13,7 +13,7 @@ class GastosModel extends BaseModel {
      * Registra un nuevo gasto común validando duplicados de factura por proveedor y período.
      *
      * @param array $datos
-     * @return int ID del gasto creado
+     * @return int ID del gasto creado, o 0 si la guardia única detecta un duplicado en carrera
      * @throws Exception
      */
     public function crearGasto(array $datos): int {
@@ -21,19 +21,20 @@ class GastosModel extends BaseModel {
         $anio = intval($datos['anio'] ?? 0);
         $nroFactura = !empty($datos['nro_factura_proveedor']) ? trim($datos['nro_factura_proveedor']) : null;
         $proveedor = trim($datos['proveedor'] ?? '');
+        $descripcion = trim($datos['descripcion'] ?? '');
 
         if ($mes < 1 || $mes > 12 || $anio < 2000) {
             throw new Exception("El período (mes/año) especificado es inválido.");
         }
 
-        if (empty($proveedor) || empty($datos['descripcion'])) {
+        if (empty($proveedor) || empty($descripcion)) {
             throw new Exception("El proveedor y la descripción del gasto son obligatorios.");
         }
 
         if (mb_strlen($proveedor) > 150) {
             throw new Exception("El nombre del proveedor no puede exceder 150 caracteres.");
         }
-        if (mb_strlen(trim($datos['descripcion'])) > 500) {
+        if (mb_strlen($descripcion) > 500) {
             throw new Exception("La descripción del gasto no puede exceder 500 caracteres.");
         }
 
@@ -70,6 +71,40 @@ class GastosModel extends BaseModel {
             if ($stmtCheck->rowCount() > 0) {
                 throw new Exception("Ya existe un gasto registrado con el Nro. de Factura '{$nroFactura}' del proveedor '{$proveedor}' para el período {$mes}/{$anio}.");
             }
+        } else {
+            // Pre-chequeo para gastos SIN N° de factura: identidad de la guarda S.
+            // El índice único uk_gasto_dup_guard cierra la carrera con la misma identidad.
+            $fechaGasto = !empty($datos['fecha_gasto']) ? $datos['fecha_gasto'] : date('Y-m-d');
+            $stmtCheckS = $db->prepare("
+                SELECT id FROM gastos_comunes
+                WHERE deleted_at IS NULL
+                  AND (nro_factura_proveedor IS NULL OR nro_factura_proveedor = '')
+                  AND mes = :mes
+                  AND anio = :anio
+                  AND categoria_id = :categoria_id
+                  AND monto_total = :monto_total
+                  AND fecha_gasto <=> :fecha_gasto
+                  AND proveedor = :proveedor
+                  AND descripcion = :descripcion
+                  AND tipo_gasto = :tipo_gasto
+                  AND edificio_id <=> :edificio_id
+                LIMIT 1
+            ");
+            $stmtCheckS->execute([
+                'mes'          => $mes,
+                'anio'         => $anio,
+                'categoria_id' => intval($datos['categoria_id']),
+                'monto_total'  => $montoTotal,
+                'fecha_gasto'  => $fechaGasto,
+                'proveedor'    => $proveedor,
+                'descripcion'  => $descripcion,
+                'tipo_gasto'   => $tipoGasto,
+                'edificio_id'  => $edificioId
+            ]);
+
+            if ($stmtCheckS->fetch()) {
+                throw new Exception("Ya existe un gasto con los mismos datos en el período (posible envío duplicado).");
+            }
         }
 
         $paginaSoporte = !empty($datos['pagina_soporte']) ? intval($datos['pagina_soporte']) : 1;
@@ -82,22 +117,31 @@ class GastosModel extends BaseModel {
         ";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute([
-            'cat_id'          => intval($datos['categoria_id']),
-            'mes'             => $mes,
-            'anio'            => $anio,
-            'desc'            => trim($datos['descripcion']),
-            'monto'           => $montoTotal,
-            'fecha'           => !empty($datos['fecha_gasto']) ? $datos['fecha_gasto'] : date('Y-m-d'),
-            'prov'            => $proveedor,
-            'nro_fac'         => $nroFactura,
-            'soporte'         => !empty($datos['soporte_digital']) ? trim($datos['soporte_digital']) : null,
-            'pagina_soporte'  => $paginaSoporte,
-            'extracto_texto'  => $extractoTexto,
-            'admin_id'        => intval($datos['admin_id']),
-            'tipo_gasto'      => $tipoGasto,
-            'edificio_id'     => $edificioId
-        ]);
+        try {
+            $stmt->execute([
+                'cat_id'          => intval($datos['categoria_id']),
+                'mes'             => $mes,
+                'anio'            => $anio,
+                'desc'            => $descripcion,
+                'monto'           => $montoTotal,
+                'fecha'           => !empty($datos['fecha_gasto']) ? $datos['fecha_gasto'] : date('Y-m-d'),
+                'prov'            => $proveedor,
+                'nro_fac'         => $nroFactura,
+                'soporte'         => !empty($datos['soporte_digital']) ? trim($datos['soporte_digital']) : null,
+                'pagina_soporte'  => $paginaSoporte,
+                'extracto_texto'  => $extractoTexto,
+                'admin_id'        => intval($datos['admin_id']),
+                'tipo_gasto'      => $tipoGasto,
+                'edificio_id'     => $edificioId
+            ]);
+        } catch (\PDOException $e) {
+            // Carrera: otra petición insertó la misma identidad entre el
+            // pre-chequeo y el INSERT (guardia unificada uk_gasto_dup_guard F/S).
+            if ($e->getCode() == 23000 || ($e->errorInfo[1] ?? 0) === 1062) {
+                return 0;
+            }
+            throw $e;
+        }
 
         $gastoId = intval($db->lastInsertId());
 
@@ -382,14 +426,36 @@ class GastosModel extends BaseModel {
      * @param string $archivoMaestro Nombre del archivo PDF maestro en uploads/soportes/
      * @param int $mes Mes del período
      * @param int $anio Año del período
-     * @return array ['procesados' => int, 'omitidos' => int, 'ids' => array]
+     * @param string|null $soporteHash SHA-256 del PDF Maestro (null si no se pudo calcular)
+     * @return array ['procesados' => int, 'omitidos' => int, 'ids' => array, 'duplicados' => int, 'archivo_ya_importado' => bool]
      */
-    public function importarGastosMaestro(array $items, int $adminId, string $archivoMaestro, int $mes, int $anio): array {
+    public function importarGastosMaestro(array $items, int $adminId, string $archivoMaestro, int $mes, int $anio, ?string $soporteHash = null): array {
         $db = $this->db();
         $procesados = 0;
         $omitidos = 0;
+        $duplicados = 0;
         $ids = [];
         $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+
+        // Idempotencia de re-ingesta: si el mismo PDF ya fue importado para el
+        // período, no se inserta nada y se reporta el motivo al controlador.
+        if (!empty($soporteHash)) {
+            $stmtHash = $db->prepare("
+                SELECT id FROM gastos_comunes
+                WHERE soporte_hash = :hash AND mes = :mes AND anio = :anio AND deleted_at IS NULL
+                LIMIT 1
+            ");
+            $stmtHash->execute(['hash' => $soporteHash, 'mes' => $mes, 'anio' => $anio]);
+            if ($stmtHash->fetch()) {
+                return [
+                    'procesados'          => 0,
+                    'omitidos'            => count($items),
+                    'ids'                 => [],
+                    'duplicados'          => count($items),
+                    'archivo_ya_importado' => true
+                ];
+            }
+        }
 
         $db->beginTransaction();
         try {
@@ -400,8 +466,8 @@ class GastosModel extends BaseModel {
 
             $sqlInsert = "
                 INSERT INTO gastos_comunes 
-                (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, pagina_soporte, extracto_texto, admin_id, tipo_gasto, edificio_id)
-                VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :pagina_soporte, :extracto_texto, :admin_id, :tipo_gasto, :edificio_id)
+                (categoria_id, mes, anio, descripcion, monto_total, fecha_gasto, proveedor, nro_factura_proveedor, soporte_digital, soporte_hash, pagina_soporte, extracto_texto, admin_id, tipo_gasto, edificio_id)
+                VALUES (:cat_id, :mes, :anio, :desc, :monto, :fecha, :prov, :nro_fac, :soporte, :soporte_hash, :pagina_soporte, :extracto_texto, :admin_id, :tipo_gasto, :edificio_id)
             ";
             $stmtInsert = $db->prepare($sqlInsert);
 
@@ -441,22 +507,34 @@ class GastosModel extends BaseModel {
                     }
                 }
 
-                $stmtInsert->execute([
-                    'cat_id'          => $categoriaId,
-                    'mes'             => $mes,
-                    'anio'            => $anio,
-                    'desc'            => mb_substr($descripcion, 0, 255),
-                    'monto'           => round($monto, 2),
-                    'fecha'           => $fechaGasto,
-                    'prov'            => mb_substr($proveedor, 0, 150),
-                    'nro_fac'         => $nroFactura ? mb_substr($nroFactura, 0, 100) : null,
-                    'soporte'         => $archivoMaestro,
-                    'pagina_soporte'  => $paginaSoporte,
-                    'extracto_texto'  => $extractoTexto,
-                    'admin_id'        => $adminId,
-                    'tipo_gasto'      => $tipoGasto,
-                    'edificio_id'     => $edificioId
-                ]);
+                try {
+                    $stmtInsert->execute([
+                        'cat_id'          => $categoriaId,
+                        'mes'             => $mes,
+                        'anio'            => $anio,
+                        'desc'            => mb_substr($descripcion, 0, 255),
+                        'monto'           => round($monto, 2),
+                        'fecha'           => $fechaGasto,
+                        'prov'            => mb_substr($proveedor, 0, 150),
+                        'nro_fac'         => $nroFactura ? mb_substr($nroFactura, 0, 100) : null,
+                        'soporte'         => $archivoMaestro,
+                        'soporte_hash'    => $soporteHash,
+                        'pagina_soporte'  => $paginaSoporte,
+                        'extracto_texto'  => $extractoTexto,
+                        'admin_id'        => $adminId,
+                        'tipo_gasto'      => $tipoGasto,
+                        'edificio_id'     => $edificioId
+                    ]);
+                } catch (\PDOException $e) {
+                    // Carrera con otra importación: la guarda única rechaza la fila
+                    // y el lote continúa (el renglón se reporta como omitido y duplicado).
+                    if ($e->getCode() == 23000 || ($e->errorInfo[1] ?? 0) === 1062) {
+                        $duplicados++;
+                        $omitidos++;
+                        continue;
+                    }
+                    throw $e;
+                }
 
                 $gastoId = intval($db->lastInsertId());
                 $ids[] = $gastoId;
@@ -475,7 +553,9 @@ class GastosModel extends BaseModel {
             return [
                 'procesados' => $procesados,
                 'omitidos'   => $omitidos,
-                'ids'        => $ids
+                'ids'        => $ids,
+                'duplicados' => $duplicados,
+                'archivo_ya_importado' => false
             ];
         } catch (\Exception $e) {
             if ($db->inTransaction()) {
