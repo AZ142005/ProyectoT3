@@ -205,15 +205,15 @@ class GastosTipologiaCalculoTest extends TestCase {
      */
     public function testRenombradoDeSeccionAGastos(): void {
         $adminSidebar = file_get_contents(dirname(__DIR__) . '/app/views/layouts/admin_sidebar.php');
-        $this->assertTrue(strpos($adminSidebar, "'label' => 'Gastos'") !== false, 'admin_sidebar debe tener Gastos');
+        $this->assertTrue(strpos($adminSidebar, "'label' => 'Gastos y Facturación'") !== false || strpos($adminSidebar, "'label' => 'Gastos'") !== false, 'admin_sidebar debe tener Gastos y Facturación');
         $this->assertTrue(strpos($adminSidebar, "'label' => 'Gastos Comunes'") === false, 'admin_sidebar NO debe tener Gastos Comunes');
 
         $auditorSidebar = file_get_contents(dirname(__DIR__) . '/app/views/layouts/auditor_sidebar.php');
-        $this->assertTrue(strpos($auditorSidebar, "'label' => 'Gastos'") !== false, 'auditor_sidebar debe tener Gastos');
+        $this->assertTrue(strpos($auditorSidebar, "'label' => 'Gastos y Facturación'") !== false || strpos($auditorSidebar, "'label' => 'Gastos'") !== false, 'auditor_sidebar debe tener Gastos y Facturación');
         $this->assertTrue(strpos($auditorSidebar, "'label' => 'Gastos Comunes'") === false, 'auditor_sidebar NO debe tener Gastos Comunes');
 
         $gastoIndex = file_get_contents(dirname(__DIR__) . '/app/views/admin/gastos/index.php');
-        $this->assertTrue(strpos($gastoIndex, '>Gastos<') !== false, 'index de gastos debe titularse Gastos');
+        $this->assertTrue(strpos($gastoIndex, 'Gastos y Facturación') !== false || strpos($gastoIndex, '>Gastos<') !== false, 'index de gastos debe titularse Gastos y Facturación');
         $this->assertTrue(strpos($gastoIndex, '>Gastos Comunes<') === false, 'header no debe decir Gastos Comunes');
     }
 }

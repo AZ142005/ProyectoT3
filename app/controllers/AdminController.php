@@ -174,22 +174,16 @@ class AdminController extends Controller {
     public function generarFacturas() {
         Auth::requireRole(UserRole::ADMIN);
 
-        $unidadesModel = new UnidadesModel();
-        $facturasModel = new FacturasModel();
-        $gastosModel = new \App\Models\GastosModel();
-
-        $unidades = $unidadesModel->getActivas();
-        $mes = date('n');
-        $anio = date('Y');
-
-        $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
-        $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
-        $totalGastosMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
-
-        $mensaje = '';
-        $error = '';
+        $mes = !empty($_POST['mes']) ? intval($_POST['mes']) : intval(date('n'));
+        $anio = !empty($_POST['anio']) ? intval($_POST['anio']) : intval(date('Y'));
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generar'])) {
+            $unidadesModel = new UnidadesModel();
+            $facturasModel = new FacturasModel();
+
+            $unidades = $unidadesModel->getActivas();
+            $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
+
             if ($facturas_existentes > 0) {
                 $error = "Ya existen facturas generadas para el mes " . nombreMes($mes) . " de " . $anio;
                 Flash::error($error);
@@ -201,26 +195,17 @@ class AdminController extends Controller {
                         $msgText .= " Se aplicó saldo a favor en {$stats['con_saldo_favor']} unidades (Total usado: " . formatearMoneda($stats['total_saldo_favor_usado']) . ").";
                     }
                     Flash::success($msgText);
-                    $mensaje = $msgText;
-                    $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
                 } else {
                     $error = "Ocurrió un error inesperado al generar las facturas masivas.";
                     Flash::error($error);
                 }
             }
+
+            $this->redirect('/admin/gastos?tab=facturacion&mes=' . $mes . '&anio=' . $anio);
+            return;
         }
 
-        $this->render('admin/generar_facturas', [
-            'unidades'            => $unidades,
-            'mes'                 => $mes,
-            'anio'                => $anio,
-            'facturas_existentes' => $facturas_existentes,
-            'distribucion'        => $distribucion,
-            'totalGastosMes'      => $totalGastosMes,
-            'mensaje'             => $mensaje,
-            'error'               => $error,
-            'showNav'             => false,
-            'title'               => 'Generar Facturas - Administrador'
-        ]);
+        // Redirección de compatibilidad: el módulo ahora está unificado bajo Gastos y Facturación
+        $this->redirect('/admin/gastos?tab=facturacion');
     }
 }

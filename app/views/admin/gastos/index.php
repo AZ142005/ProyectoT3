@@ -16,7 +16,10 @@
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <h1 class="text-xl font-bold text-on-surface">Gastos</h1>
+                <h1 class="text-xl font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">receipt_long</span>
+                    <span>Gastos y Facturación</span>
+                </h1>
             </div>
             <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
@@ -28,6 +31,68 @@
             <div class="container-fluid p-0">
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
+
+                <!-- ESTILOS ESPECÍFICOS PARA PESTAÑAS -->
+                <style>
+                .nav-pills .nav-link {
+                    color: #475569;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    transition: all 0.2s ease-in-out;
+                }
+                .nav-pills .nav-link:hover:not(.active) {
+                    background-color: #f1f5f9;
+                    color: #0f172a;
+                }
+                .nav-pills .nav-link.active {
+                    background-color: #27ae60 !important;
+                    border-color: #27ae60 !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.25);
+                }
+                </style>
+
+                <!-- NAVEGACIÓN EN DOS PESTAÑAS: REGISTRO DE GASTOS VS EMISIÓN DE FACTURAS -->
+                <div class="bg-white rounded-2xl border border-outline-variant p-2 shadow-sm mb-4">
+                    <ul class="nav nav-pills nav-fill gap-2" id="gastosTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= ($tabActual === 'gastos') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                                    id="tab-gastos-btn"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#tab-gastos"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="tab-gastos"
+                                    aria-selected="<?= ($tabActual === 'gastos') ? 'true' : 'false' ?>">
+                                <span class="material-symbols-outlined text-[20px]">receipt</span>
+                                <span>Registro de Gastos</span>
+                                <span class="badge bg-slate-200 text-slate-700 rounded-full px-2 py-0.5 text-xs"><?= e($paginacion['total']) ?></span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= ($tabActual === 'facturacion') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                                    id="tab-facturacion-btn"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#tab-facturacion"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="tab-facturacion"
+                                    aria-selected="<?= ($tabActual === 'facturacion') ? 'true' : 'false' ?>">
+                                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+                                <span>Emisión de Facturas</span>
+                                <?php if ($facturas_existentes > 0): ?>
+                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full px-2 py-0.5 text-xs"><?= e($facturas_existentes) ?> generadas</span>
+                                <?php else: ?>
+                                    <span class="badge bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5 text-xs">Pendiente</span>
+                                <?php endif; ?>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content" id="gastosTabsContent">
+                    <!-- PESTAÑA 1: REGISTRO DE GASTOS -->
+                    <div class="tab-pane fade <?= ($tabActual === 'gastos') ? 'show active' : '' ?>" id="tab-gastos" role="tabpanel" aria-labelledby="tab-gastos-btn">
 
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -56,6 +121,7 @@
             <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
         </div>
         <form method="GET" action="/admin/gastos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <input type="hidden" name="tab" value="gastos">
             <div class="flex flex-col gap-1">
                 <label for="mes" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Mes</label>
                 <select name="mes" id="mes" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
@@ -86,7 +152,7 @@
                 </select>
             </div>
             <div class="col-span-full flex justify-end gap-2">
-                <a href="/admin/gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
+                <a href="/admin/gastos?tab=gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
                     <span class="material-symbols-outlined text-[16px]">clear_all</span>
                     Limpiar Filtros
                 </a>
@@ -233,6 +299,116 @@
     </div>
 </div>
 
+                    <!-- PESTAÑA 2: EMISIÓN DE FACTURAS -->
+                    <div class="tab-pane fade <?= ($tabActual === 'facturacion') ? 'show active' : '' ?>" id="tab-facturacion" role="tabpanel" aria-labelledby="tab-facturacion-btn">
+                        <!-- Barra de Acciones del Contenido -->
+                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-on-surface mb-1">Emisión de Facturación Mensual</h4>
+                                <p class="text-xs text-on-surface-variant mb-0">Cálculo dinámico de cuotas condominales y distribución entre las unidades del conjunto</p>
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta de Generación Masiva -->
+                        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-6">
+                            <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
+                                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2 mb-0">
+                                    <span class="material-symbols-outlined text-primary">receipt_long</span>
+                                    <span>Resumen y Generación de Cuotas</span>
+                                </h3>
+                                <span class="badge bg-slate-100 text-slate-700 border px-3 py-1.5 rounded-xl font-bold text-xs">
+                                    Período: <?= nombreMes($mes) ?> <?= e($anio) ?>
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-background/50 p-6 rounded-2xl border border-outline-variant mb-6">
+                                <div class="flex flex-col gap-1 text-center md:text-left">
+                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Período</span>
+                                    <span class="text-lg font-bold text-on-surface mt-1"><?= nombreMes($mes) ?> <?= e($anio) ?></span>
+                                </div>
+
+                                <div class="flex flex-col gap-1 text-center md:text-left border-y md:border-y-0 md:border-x border-outline-variant py-4 md:py-0 md:px-4">
+                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Total Gastos Declarados</span>
+                                    <span class="text-lg font-bold text-primary mt-1"><?= formatearMoneda($totalGastosMes ?? 0) ?></span>
+                                </div>
+
+                                <div class="flex flex-col gap-1 text-center md:text-left border-b md:border-b-0 md:border-r border-outline-variant pb-4 md:pb-0 md:pr-4">
+                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Cuota Base Común</span>
+                                    <span class="text-lg font-bold text-emerald-700 mt-1"><?= formatearMoneda($distribucion['cuota_global_unidad'] ?? 0) ?></span>
+                                </div>
+
+                                <div class="flex flex-col gap-1 text-center md:text-left">
+                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Facturas Creadas</span>
+                                    <span class="text-lg font-bold mt-1 <?= $facturas_existentes > 0 ? 'text-primary' : 'text-on-surface-variant/60' ?>">
+                                        <?= $facturas_existentes > 0 ? e($facturas_existentes) . ' creadas' : 'Ninguna creada' ?>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Resumen de Cálculo Dinámico de Deudas -->
+                            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 text-xs text-slate-700">
+                                <div class="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
+                                    <span class="material-symbols-outlined text-primary text-base">calculate</span>
+                                    <span>Cálculo Dinámico de Cuotas a Facturar</span>
+                                </div>
+                                <p class="mb-2 leading-relaxed text-slate-600">
+                                    La deuda de cada unidad no es fija: se calcula automáticamente como la suma de la <strong>Fracción Global</strong> (gastos comunes divididos entre las <?= e($distribucion['total_unidades'] ?? count($unidades)) ?> unidades activas) más la <strong>Fracción Individual</strong> de su edificio (si la torre tuvo gastos específicos registrados).
+                                </p>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <span class="badge bg-white text-slate-700 border px-3 py-2 rounded-xl">
+                                        Gastos Comunes Globales: <strong><?= formatearMoneda($distribucion['total_global'] ?? 0) ?></strong> (<?= formatearMoneda($distribucion['cuota_global_unidad'] ?? 0) ?> / unidad)
+                                    </span>
+                                    <?php if (!empty($distribucion['edificios'])): ?>
+                                        <?php foreach ($distribucion['edificios'] as $ed): ?>
+                                            <?php if (($ed['total_gastos_individual'] ?? 0) > 0): ?>
+                                                <span class="badge bg-purple-50 text-purple-900 border border-purple-200 px-3 py-2 rounded-xl">
+                                                    Gastos Edificio #<?= e($ed['edificio_id']) ?>: <strong><?= formatearMoneda($ed['total_gastos_individual']) ?></strong> (+<?= formatearMoneda($ed['cuota_individual_unidad']) ?> / unidad)
+                                                </span>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- Advertencia o info de conciliación -->
+                            <?php if ($facturas_existentes > 0): ?>
+                                <div class="bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-2xl p-4 text-sm mb-6 flex items-start gap-2.5">
+                                    <span class="material-symbols-outlined text-[22px] text-yellow-700 shrink-0">warning</span>
+                                    <div>
+                                        <p class="font-bold">Facturas ya generadas</p>
+                                        <p class="mt-0.5 text-xs text-yellow-600/90 leading-relaxed">
+                                            Ya se han generado las facturas para el mes actual de <strong><?= nombreMes($mes) ?> <?= e($anio) ?></strong>. Si decides presionar el botón "Re-generar Facturas", se recalculará y duplicará la facturación mensual para los residentes. Utiliza esta acción únicamente si eliminaste las facturas anteriores.
+                                        </p>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="bg-blue-50 text-blue-700 border border-blue-200 rounded-2xl p-4 text-sm mb-6 flex items-start gap-2.5">
+                                    <span class="material-symbols-outlined text-[22px] text-blue-700 shrink-0">info</span>
+                                    <div>
+                                        <p class="font-bold">Proceso Automatizado de Conciliación</p>
+                                        <p class="mt-0.5 text-xs text-blue-600/90 leading-relaxed">
+                                            Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad condominal, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado <strong>Pagada</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
+                                <form method="POST" action="/admin/gastos/generar-facturas" class="flex justify-center items-center pt-4 border-t border-background">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="mes" value="<?= e($mes) ?>">
+                                    <input type="hidden" name="anio" value="<?= e($anio) ?>">
+                                    <button type="submit" name="generar" value="1"
+                                            class="font-bold px-8 py-3.5 rounded-xl shadow-md transition-all duration-200 active:scale-95 flex items-center gap-1.5 text-sm <?= $facturas_existentes > 0 ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-primary hover:bg-primary-hover text-white' ?>">
+                                        <span class="material-symbols-outlined">autorenew</span>
+                                        <?= $facturas_existentes > 0 ? 'Re-generar Facturas' : 'Generar Facturas del Mes' ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
 <!-- Modal para Registrar Nuevo Gasto -->
 <div class="modal fade" id="modalNuevoGasto" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -346,6 +522,16 @@ function toggleEdificioModal(tipo) {
         selectEd.value = '';
     }
 }
+
+document.querySelectorAll('#gastosTabs button[data-bs-toggle="pill"]').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', function(e) {
+        const target = e.target.getAttribute('data-bs-target');
+        const tab = target === '#tab-facturacion' ? 'facturacion' : 'gastos';
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url);
+    });
+});
 </script>
 
             </div>

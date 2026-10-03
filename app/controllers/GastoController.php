@@ -7,14 +7,17 @@ use App\Core\Flash;
 use App\Models\GastosModel;
 use App\Models\CategoriasGastosModel;
 use App\Models\UnidadesModel;
+use App\Models\FacturasModel;
 
 class GastoController extends Controller {
 
     /**
-     * Muestra el panel administrativo de gastos.
+     * Muestra el panel administrativo unificado de Gastos y Facturación.
      */
     public function index() {
         Auth::requireRole('admin');
+
+        $tabActual = ($_GET['tab'] ?? 'gastos') === 'facturacion' ? 'facturacion' : 'gastos';
 
         $pagina = max(1, intval($_GET['page'] ?? 1));
         $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
@@ -26,6 +29,8 @@ class GastoController extends Controller {
         $gastosModel = new GastosModel();
         $categoriasModel = new CategoriasGastosModel();
         $edificiosModel = new \App\Models\EdificiosModel();
+        $unidadesModel = new UnidadesModel();
+        $facturasModel = new FacturasModel();
 
         $filtros = [
             'mes'          => $mes,
@@ -40,6 +45,11 @@ class GastoController extends Controller {
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
+        // Datos para la pestaña de Emisión de Facturas
+        $unidades = $unidadesModel->getActivas();
+        $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
+        $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
+
         $paginacion = [
             'total'        => $resultado['total'],
             'pagina'       => $resultado['pagina'],
@@ -48,6 +58,7 @@ class GastoController extends Controller {
         ];
 
         $this->render('admin/gastos/index', [
+            'tabActual'           => $tabActual,
             'gastos'              => $resultado['datos'],
             'categorias'          => $categorias,
             'edificios'           => $edificios,
@@ -55,9 +66,22 @@ class GastoController extends Controller {
             'totalMes'            => $totalMes,
             'filtros'             => $filtros,
             'paginacion'          => $paginacion,
+            'unidades'            => $unidades,
+            'mes'                 => $mes,
+            'anio'                => $anio,
+            'facturas_existentes' => $facturas_existentes,
+            'distribucion'        => $distribucion,
+            'totalGastosMes'      => $totalMes,
             'layout'              => 'admin',
-            'title'               => 'Gestión de Gastos y Soportes'
+            'title'               => 'Gastos y Facturación - Administrador'
         ]);
+    }
+
+    /**
+     * Procesa la generación de facturas delegando en el controlador de facturación.
+     */
+    public function generarFacturas() {
+        (new AdminController())->generarFacturas();
     }
 
     /**

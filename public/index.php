@@ -212,6 +212,7 @@ $router->post('/admin/gastos/parsear-maestro', [\App\Controllers\GastoController
 $router->post('/admin/gastos/importar-maestro', [\App\Controllers\GastoController::class, 'importarMaestro'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/eliminar', [\App\Controllers\GastoController::class, 'eliminar'], [UserRole::ADMIN]);
+$router->post('/admin/gastos/generar-facturas', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN]);
 $router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'rendicionResidente'], [UserRole::RESIDENTE]);
 
 // --- Módulo de Estado de Cuenta y Libro Mayor (RF 18, RF 19, RF 20, RF 24) ---
