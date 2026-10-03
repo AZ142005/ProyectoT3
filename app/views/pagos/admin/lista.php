@@ -72,12 +72,12 @@
                         <span class="material-symbols-outlined text-primary">payments</span>
                         Lista General de Pagos
                     </h3>
-                    <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full"><?= e($paginacion['total']) ?> Registros</span>
+                    <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total']) ?> Registros</span>
                 </div>
 
                 <?php if (empty($pagos)): ?>
-                    <div class="text-center py-16 text-on-surface-variant">
-                        <span class="material-symbols-outlined text-5xl text-slate-300 mb-3" style="font-size: 56px;">payments</span>
+                    <div class="text-center py-12 text-on-surface-variant">
+                        <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-3" style="font-size: 56px;">payments</span>
                         <p class="font-bold text-on-surface">No se encontraron pagos.</p>
                         <p class="text-xs text-on-surface-variant mt-1">Pruebe cambiando los filtros aplicados arriba.</p>
                     </div>
@@ -100,20 +100,20 @@
                         <div class="overflow-x-auto w-full">
                             <table class="w-full text-left text-sm border-collapse whitespace-nowrap">
                                 <thead>
-                                    <tr class="text-xs uppercase text-slate-500 font-bold border-b border-outline-variant bg-slate-50">
-                                        <th class="py-4 px-4 text-center w-10">
+                                    <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                        <th class="py-3 px-4 text-center w-10">
                                             <input type="checkbox" id="checkAllPagos" class="rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onclick="toggleAllPagos(this)">
                                         </th>
-                                        <th class="py-4 px-4">Residente</th>
-                                        <th class="py-4 px-4">Unidad</th>
-                                        <th class="py-4 px-4">Monto / Ref.</th>
-                                        <th class="py-4 px-4 text-center">Estado</th>
-                                        <th class="py-4 px-4 text-right min-w-[250px]">Acciones</th>
+                                        <th class="py-3 px-4">Residente</th>
+                                        <th class="py-3 px-4">Unidad</th>
+                                        <th class="py-3 px-4">Monto / Ref.</th>
+                                        <th class="py-3 px-4 text-center">Estado</th>
+                                        <th class="py-3 px-4 text-right min-w-[250px]">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-background">
                                     <?php foreach ($pagos as $p): ?>
-                                    <tr class="hover:bg-slate-50 transition-colors">
+                                    <tr class="hover:bg-background/40 transition-colors">
                                         <td class="py-4 px-4 text-center">
                                             <?php if (in_array($p['estado'], ['PENDIENTE', 'EN REVISIÓN'])): ?>
                                                 <input type="checkbox" name="pago_ids[]" value="<?= e($p['id']) ?>" class="pago-checkbox rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onchange="actualizarBarraMasiva()">
@@ -122,16 +122,16 @@
                                             <?php endif; ?>
                                         </td>
                                         <td class="py-4 px-4">
-                                            <div class="font-bold text-on-surface"><?= e($p['residente_nombre']) ?></div>
-                                            <div class="text-xs text-slate-500"><?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?></div>
+                                            <div class="font-semibold text-on-surface"><?= e($p['residente_nombre']) ?></div>
+                                            <div class="text-xs text-on-surface-variant"><?= e(date('d/m/Y', strtotime($p['fecha_pago']))) ?></div>
                                         </td>
                                     <td class="py-4 px-4">
                                         <div class="font-semibold text-on-surface"><?= e($p['edificio_nombre']) ?></div>
-                                        <div class="text-xs text-slate-500">Unidad: <?= e($p['unidad_numero']) ?></div>
+                                        <div class="text-xs text-on-surface-variant">Unidad: <?= e($p['unidad_numero']) ?></div>
                                     </td>
                                     <td class="py-4 px-4">
                                         <div class="font-black text-primary text-base"><?= e(formatearMoneda($p['monto'])) ?></div>
-                                        <div class="text-[10px] font-mono text-slate-500"><?= e($p['referencia'] ?: 'S/R') ?></div>
+                                        <div class="text-[10px] font-mono text-on-surface-variant"><?= e($p['referencia'] ?: 'S/R') ?></div>
                                     </td>
                                     <td class="py-4 px-4 text-center">
                                         <?= badgeEstado($p['estado']) ?>

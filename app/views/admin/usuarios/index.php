@@ -163,62 +163,62 @@
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                     <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
-                            <h2 class="fs-6 fw-bold mb-0 text-dark">Listado de Usuarios Registrados</h2>
-                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-2.5">
+                            <h2 class="text-lg font-bold text-on-surface mb-0">Listado de Usuarios Registrados</h2>
+                            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant">
                                 <?= e($paginacion['total']) ?> en total
                             </span>
                         </div>
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light text-secondary small text-uppercase fw-bold">
-                                <tr>
-                                    <th class="ps-4" style="width: 140px;">Cédula</th>
-                                    <th>Usuario / Nombre</th>
-                                    <th>Contacto</th>
-                                    <th>Rol / Ubicación</th>
-                                    <th>Estado</th>
-                                    <th class="text-end pe-4" style="width: 180px;">Acciones</th>
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                    <th class="py-3 px-4" style="width: 140px;">Cédula</th>
+                                    <th class="py-3 px-4">Usuario / Nombre</th>
+                                    <th class="py-3 px-4">Contacto</th>
+                                    <th class="py-3 px-4">Rol / Ubicación</th>
+                                    <th class="py-3 px-4">Estado</th>
+                                    <th class="py-3 px-4 text-end" style="width: 180px;">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-background">
                                 <?php if (empty($usuarios)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center py-5 text-muted">
-                                            <span class="material-symbols-outlined fs-1 text-slate-400 d-block mb-2">person_search</span>
+                                        <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                            <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">person_search</span>
                                             <p class="mb-0 fw-semibold">No se encontraron usuarios registrados que coincidan con la búsqueda.</p>
                                         </td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($usuarios as $u): ?>
-                                        <tr>
-                                            <td class="ps-4 fw-bold text-dark">
-                                                <span class="badge bg-light text-dark border px-2 py-1.5 font-monospace">
+                                        <tr class="hover:bg-background/40 transition-colors">
+                                            <td class="py-4 px-4">
+                                                <span class="badge bg-light text-on-surface border px-2 py-1.5 font-mono text-xs">
                                                     <?= e($u['cedula']) ?>
                                                 </span>
                                             </td>
-                                            <td>
-                                                <div class="fw-bold text-dark"><?= e($u['nombre_completo']) ?></div>
-                                                <div class="small text-muted font-monospace"><?= e($u['tipo_entidad'] === 'usuario' ? 'Cuenta de Sistema' : 'Residente') ?></div>
+                                            <td class="py-4 px-4">
+                                                <div class="font-semibold text-on-surface"><?= e($u['nombre_completo']) ?></div>
+                                                <div class="text-xs text-on-surface-variant font-mono"><?= e($u['tipo_entidad'] === 'usuario' ? 'Cuenta de Sistema' : 'Residente') ?></div>
                                             </td>
-                                            <td>
+                                            <td class="py-4 px-4">
                                                 <?php if (!empty($u['email'])): ?>
-                                                    <div class="small text-truncate" style="max-width: 220px;" title="<?= e($u['email']) ?>">
-                                                        <span class="material-symbols-outlined fs-6 align-middle text-muted me-1">mail</span>
+                                                    <div class="text-xs text-truncate" style="max-width: 220px;" title="<?= e($u['email']) ?>">
+                                                        <span class="material-symbols-outlined fs-6 align-middle text-on-surface-variant me-1">mail</span>
                                                         <?= e($u['email']) ?>
                                                     </div>
                                                 <?php else: ?>
-                                                    <span class="text-muted small fst-italic">Sin correo</span>
+                                                    <span class="text-on-surface-variant text-xs fst-italic">Sin correo</span>
                                                 <?php endif; ?>
                                                 <?php if (!empty($u['telefono'])): ?>
-                                                    <div class="small text-muted">
-                                                        <span class="material-symbols-outlined fs-6 align-middle text-muted me-1">phone</span>
+                                                    <div class="text-xs text-on-surface-variant">
+                                                        <span class="material-symbols-outlined fs-6 align-middle text-on-surface-variant me-1">phone</span>
                                                         <?= e($u['telefono']) ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </td>
-                                            <td>
+                                            <td class="py-4 px-4">
                                                 <div>
                                                     <?php 
                                                     $rolBadgeClass = 'bg-primary-subtle text-primary-emphasis';
@@ -232,9 +232,9 @@
                                                         <?= e($u['rol_texto']) ?>
                                                     </span>
                                                 </div>
-                                                <small class="text-muted d-block mt-0.5"><?= e($u['detalle_ubicacion']) ?></small>
+                                                <small class="text-xs text-on-surface-variant d-block mt-0.5"><?= e($u['detalle_ubicacion']) ?></small>
                                             </td>
-                                            <td>
+                                            <td class="py-4 px-4">
                                                 <?php if (!empty($u['esta_bloqueado'])): ?>
                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" title="Bloqueado por 5 intentos fallidos">
                                                         <span class="material-symbols-outlined fs-6 align-middle">lock</span> Bloqueado
@@ -249,7 +249,7 @@
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-end pe-4">
+                                            <td class="py-4 px-4 text-end">
                                                 <?php 
                                                 $esAdminCuenta = ($u['rol_clave'] === 'admin');
                                                 $esMismoAdmin  = ($u['tipo_entidad'] === 'usuario' && intval($u['id']) === intval(\App\Core\Auth::id()));

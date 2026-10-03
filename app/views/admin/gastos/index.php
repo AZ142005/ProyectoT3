@@ -32,8 +32,8 @@
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Registro de Gastos</h4>
-            <p class="text-muted small mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
+            <h4 class="text-lg font-bold text-on-surface mb-1">Registro de Gastos</h4>
+            <p class="text-xs text-on-surface-variant mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
         </div>
         <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
             <div class="d-flex align-items-center gap-2">
@@ -136,42 +136,42 @@
     <!-- Tabla de Gastos -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0 fw-bold text-dark">Historial de Gastos del Período</h5>
-            <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Gastos</span>
+            <h5 class="text-lg font-bold text-on-surface mb-0">Historial de Gastos del Período</h5>
+            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total']) ?> Gastos</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4 py-3">Categoría</th>
-                            <th class="py-3">Tipo / Alcance</th>
-                            <th class="py-3">Proveedor / Nro. Factura</th>
-                            <th class="py-3">Descripción</th>
-                            <th class="py-3 text-center">Fecha Gasto</th>
-                            <th class="py-3 text-end">Monto Total</th>
-                            <th class="py-3 text-center">Soporte Digital</th>
-                            <th class="py-3 text-end pe-4">Acciones</th>
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                            <th class="py-3 px-4">Categoría</th>
+                            <th class="py-3 px-4">Tipo / Alcance</th>
+                            <th class="py-3 px-4">Proveedor / Nro. Factura</th>
+                            <th class="py-3 px-4">Descripción</th>
+                            <th class="py-3 px-4 text-center">Fecha Gasto</th>
+                            <th class="py-3 px-4 text-end">Monto Total</th>
+                            <th class="py-3 px-4 text-center">Soporte Digital</th>
+                            <th class="py-3 px-4 text-end">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-background">
                         <?php if (empty($gastos)): ?>
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">receipt_long</span>
+                                <td colspan="8" class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">receipt_long</span>
                                     No hay gastos registrados para este período.
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($gastos as $g): ?>
-                                <tr>
-                                    <td class="ps-4">
+                                <tr class="hover:bg-background/40 transition-colors">
+                                    <td class="py-4 px-4">
                                         <span class="badge rounded-pill px-3 py-1 text-white" style="background-color: <?= e($g['categoria_color']) ?>;">
                                             <span class="material-symbols-outlined align-middle fs-6 me-1"><?= e($g['categoria_icono']) ?></span>
                                             <?= e($g['categoria_nombre']) ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="py-4 px-4">
                                         <?php if (($g['tipo_gasto'] ?? 'comun') === 'individual'): ?>
                                             <span class="badge bg-purple-100 text-purple-800 border border-purple-200 rounded-pill px-2.5 py-1 text-xs font-semibold" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
                                                 <span class="material-symbols-outlined align-middle text-sm me-0.5">apartment</span>
@@ -184,18 +184,18 @@
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
-                                        <div class="fw-bold text-dark"><?= e($g['proveedor']) ?></div>
-                                        <small class="text-muted">Fac: <?= e($g['nro_factura_proveedor'] ?: 'S/N') ?></small>
+                                    <td class="py-4 px-4">
+                                        <div class="font-semibold text-on-surface"><?= e($g['proveedor']) ?></div>
+                                        <small class="text-on-surface-variant">Fac: <?= e($g['nro_factura_proveedor'] ?: 'S/N') ?></small>
                                     </td>
-                                    <td class="small text-muted" style="max-width: 250px;">
+                                    <td class="py-4 px-4 text-xs text-on-surface-variant" style="max-width: 250px;">
                                         <?= e($g['descripcion']) ?>
                                     </td>
-                                    <td class="text-center small"><?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?></td>
-                                    <td class="text-end font-monospace fw-bold text-dark fs-6">
+                                    <td class="py-4 px-4 text-center text-xs"><?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?></td>
+                                    <td class="py-4 px-4 text-end font-bold text-on-surface">
                                         <?= e(formatearMoneda($g['monto_total'])) ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="py-4 px-4 text-center">
                                         <?php if (!empty($g['soporte_digital'])): ?>
                                             <a href="/uploads/soportes/<?= e($g['soporte_digital']) ?>" target="_blank" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                                                 <span class="material-symbols-outlined fs-6">visibility</span> Ver Doc
@@ -209,7 +209,7 @@
                                             <span class="badge bg-secondary text-white">Sin Soporte</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="py-4 px-4 text-end">
                                         <form method="POST" action="/admin/gastos/eliminar" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar este gasto y su archivo físico?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="id" value="<?= e($g['id']) ?>">

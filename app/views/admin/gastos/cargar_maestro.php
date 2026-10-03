@@ -51,7 +51,7 @@
                 <!-- Tarjeta de Carga y Parseo -->
                 <div class="card border-0 shadow-sm rounded-3 mb-4">
                     <div class="card-header bg-white py-3 border-bottom">
-                        <h5 class="card-title mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <h5 class="text-lg font-bold text-on-surface mb-0 d-flex align-items-center gap-2">
                             <span class="material-symbols-outlined text-primary">upload_file</span>
                             <span>1. Seleccionar Documento Maestro o Ingresar Datos</span>
                         </h5>
@@ -137,11 +137,11 @@
                     <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-success">
                         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <h5 class="card-title mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                                <h5 class="text-lg font-bold text-on-surface mb-0 d-flex align-items-center gap-2">
                                     <span class="material-symbols-outlined text-success">fact_check</span>
                                     <span>2. Renglones Extraídos para Revisión (<?= count($renglones) ?> detectados)</span>
                                 </h5>
-                                <small class="text-muted">
+                                <small class="text-xs text-on-surface-variant">
                                     Archivo soporte vinculado: <strong><?= e($archivo ?: 'Carga manual') ?></strong> |
                                     Período: <strong><?= e($mes) ?>/<?= e($anio) ?></strong>
                                 </small>
@@ -161,28 +161,28 @@
                                 <input type="hidden" name="archivo_maestro" value="<?= e($archivo) ?>">
 
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0" id="tablaRenglones">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-3 py-3" style="width: 40px;">#</th>
-                                                <th class="py-3" style="width: 130px;">Fecha</th>
-                                                <th class="py-3" style="width: 170px;">Categoría</th>
-                                                <th class="py-3" style="width: 180px;">Proveedor</th>
-                                                <th class="py-3" style="width: 130px;">Nro. Factura</th>
-                                                <th class="py-3">Descripción</th>
-                                                <th class="py-3" style="width: 130px;">Monto (Bs.)</th>
-                                                <th class="py-3" style="width: 70px;">Pág.</th>
-                                                <th class="py-3 text-center pe-3" style="width: 50px;">Quitar</th>
+                                    <table class="w-full text-left text-sm border-collapse" id="tablaRenglones">
+                                        <thead>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-3 px-4" style="width: 40px;">#</th>
+                                                <th class="py-3 px-4" style="width: 130px;">Fecha</th>
+                                                <th class="py-3 px-4" style="width: 170px;">Categoría</th>
+                                                <th class="py-3 px-4" style="width: 180px;">Proveedor</th>
+                                                <th class="py-3 px-4" style="width: 130px;">Nro. Factura</th>
+                                                <th class="py-3 px-4">Descripción</th>
+                                                <th class="py-3 px-4" style="width: 130px;">Monto (Bs.)</th>
+                                                <th class="py-3 px-4" style="width: 70px;">Pág.</th>
+                                                <th class="py-3 px-4 text-center" style="width: 50px;">Quitar</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php foreach ($renglones as $idx => $r): ?>
                                                 <tr id="fila-<?= e($idx) ?>">
-                                                    <td class="ps-3 fw-bold text-muted small"><?= e($idx + 1) ?></td>
-                                                    <td>
+                                                    <td class="px-4 py-2 fw-bold text-on-surface-variant small"><?= e($idx + 1) ?></td>
+                                                    <td class="p-2">
                                                         <input type="date" name="gastos[<?= e($idx) ?>][fecha_gasto]" value="<?= e($r['fecha_gasto']) ?>" class="form-control form-control-sm" required>
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <select name="gastos[<?= e($idx) ?>][categoria_id]" class="form-select form-select-sm" required>
                                                             <?php foreach ($categorias as $c): ?>
                                                                 <option value="<?= e($c['id']) ?>" <?= (intval($c['id']) === intval($r['categoria_id'])) ? 'selected' : '' ?>>
@@ -191,28 +191,28 @@
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <input type="text" name="gastos[<?= e($idx) ?>][proveedor]" value="<?= e($r['proveedor']) ?>" class="form-control form-control-sm" required maxlength="150">
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <input type="text" name="gastos[<?= e($idx) ?>][nro_factura_proveedor]" value="<?= e($r['nro_factura_proveedor'] ?? '') ?>" class="form-control form-control-sm" maxlength="100" placeholder="S/N">
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <input type="text" name="gastos[<?= e($idx) ?>][descripcion]" value="<?= e($r['descripcion']) ?>" class="form-control form-control-sm" required maxlength="255">
                                                         <?php if (!empty($r['extracto_texto'])): ?>
                                                             <input type="hidden" name="gastos[<?= e($idx) ?>][extracto_texto]" value="<?= e($r['extracto_texto']) ?>">
-                                                            <small class="text-muted d-block text-truncate mt-1" style="max-width: 320px;" title="<?= e($r['extracto_texto']) ?>">
+                                                            <small class="text-on-surface-variant d-block text-truncate mt-1" style="max-width: 320px;" title="<?= e($r['extracto_texto']) ?>">
                                                                 <em>Extracto: <?= e($r['extracto_texto']) ?></em>
                                                             </small>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <input type="number" step="0.01" min="0.01" name="gastos[<?= e($idx) ?>][monto_total]" value="<?= e($r['monto_total']) ?>" class="form-control form-control-sm text-end fw-bold" required>
                                                     </td>
-                                                    <td>
+                                                    <td class="p-2">
                                                         <input type="number" min="1" name="gastos[<?= e($idx) ?>][pagina_soporte]" value="<?= e($r['pagina_soporte'] ?? 1) ?>" class="form-control form-control-sm text-center">
                                                     </td>
-                                                    <td class="text-center pe-3">
+                                                    <td class="text-center p-2">
                                                         <button type="button" class="btn btn-outline-danger btn-sm p-1 d-inline-flex align-items-center justify-center rounded-2" onclick="eliminarFila(<?= e($idx) ?>)" title="Descartar este renglón">
                                                             <span class="material-symbols-outlined fs-6">delete</span>
                                                         </button>

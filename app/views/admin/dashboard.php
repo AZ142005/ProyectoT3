@@ -355,11 +355,11 @@ $anio = intval($anio ?? date('Y'));
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-header bg-white py-3.5 px-4 d-flex justify-content-between align-items-center border-bottom">
                             <div>
-                                <h5 class="fw-bold mb-0 text-dark fs-6 d-flex align-items-center gap-2">
+                                <h5 class="text-lg font-bold text-on-surface mb-0 d-flex align-items-center gap-2">
                                     <span class="material-symbols-outlined text-primary fs-5">history</span>
                                     Últimos Movimientos Financieros
                                 </h5>
-                                <span class="text-xs text-muted">Registro de pagos verificados o procesados (solo lectura)</span>
+                                <span class="text-xs text-on-surface-variant">Registro de pagos verificados o procesados (solo lectura)</span>
                             </div>
                             <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
                                 <span>Ver Historial</span>
@@ -368,31 +368,31 @@ $anio = intval($anio ?? date('Y'));
                         </div>
                         <div class="card-body p-0">
                             <?php if (empty($ultimos_comprobantes)): ?>
-                                <div class="text-center py-8 text-muted">
-                                    <span class="material-symbols-outlined fs-1 text-slate-300 mb-2">history</span>
+                                <div class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 mb-2">history</span>
                                     <p class="small fw-semibold mb-0">No hay movimientos financieros registrados recientemente.</p>
                                 </div>
                             <?php else: ?>
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0 text-sm">
-                                        <thead class="table-light text-xs uppercase text-muted">
-                                            <tr>
-                                                <th class="py-3 px-3">Residente</th>
-                                                <th class="py-3 px-3">Monto</th>
-                                                <th class="py-3 px-3 text-end">Estado</th>
+                                    <table class="w-full text-left text-sm border-collapse">
+                                        <thead>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-3 px-4">Residente</th>
+                                                <th class="py-3 px-4">Monto</th>
+                                                <th class="py-3 px-4 text-end">Estado</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-slate-100">
+                                        <tbody class="divide-y divide-background">
                                             <?php foreach ($ultimos_comprobantes as $c): ?>
-                                                <tr>
-                                                    <td class="px-3 py-2.5">
-                                                        <div class="fw-bold text-dark text-xs"><?= e($c['residente']) ?></div>
+                                                <tr class="hover:bg-background/40 transition-colors">
+                                                    <td class="py-4 px-4">
+                                                        <div class="font-semibold text-on-surface text-xs"><?= e($c['residente']) ?></div>
                                                         <?php if (!empty($c['cedula'])): ?>
-                                                            <div class="text-[11px] text-muted"><?= e($c['cedula']) ?></div>
+                                                            <div class="text-[11px] text-on-surface-variant"><?= e($c['cedula']) ?></div>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="px-3 py-2.5 font-bold text-dark text-xs"><?= e(formatearMoneda($c['monto'])) ?></td>
-                                                    <td class="px-3 py-2.5 text-end">
+                                                    <td class="py-4 px-4 font-bold text-on-surface text-xs"><?= e(formatearMoneda($c['monto'])) ?></td>
+                                                    <td class="py-4 px-4 text-end">
                                                         <?= badgeEstado($c['estado']) ?>
                                                     </td>
                                                 </tr>
