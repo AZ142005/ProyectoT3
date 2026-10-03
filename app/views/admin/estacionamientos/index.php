@@ -180,17 +180,20 @@
                                         <!-- Modal de Asignación individual -->
                                         <div class="modal fade text-start" id="modalAsignar_<?= e($p['id']) ?>" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog">
-                                                <div class="modal-content">
+                                                <div class="modal-content rounded-3 border-0 shadow-lg">
                                                     <form action="/admin/estacionamientos/asignar" method="POST">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="puesto_id" value="<?= e($p['id']) ?>">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title fw-bold">Asignar Puesto #<?= e($p['numero']) ?></h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        <div class="modal-header bg-primary text-white py-3">
+                                                            <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                                                                <span class="material-symbols-outlined">link</span>
+                                                                Asignar Puesto #<?= e($p['numero']) ?>
+                                                            </h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
-                                                        <div class="modal-body">
-                                                            <label class="form-label fw-bold small">Seleccionar Unidad Habitacional</label>
-                                                            <select name="unidad_id" class="form-select">
+                                                        <div class="modal-body p-4">
+                                                            <label class="form-label fw-bold small text-on-surface-variant">Seleccionar Unidad Habitacional</label>
+                                                            <select name="unidad_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                                                 <option value="">-- Sin Asignar (Liberar Puesto) --</option>
                                                                 <?php foreach ($unidades as $u): ?>
                                                                     <option value="<?= e($u['id']) ?>" <?= ($p['unidad_id'] == $u['id']) ? 'selected' : '' ?>>
@@ -199,9 +202,12 @@
                                                                 <?php endforeach; ?>
                                                             </select>
                                                         </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                            <button type="submit" class="btn btn-success fw-bold">Guardar Asignación</button>
+                                                        <div class="modal-footer bg-light">
+                                                            <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                                                                <span class="material-symbols-outlined text-[16px]">save</span>
+                                                                Guardar Asignación
+                                                            </button>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -222,29 +228,32 @@
 <!-- Modal Registrar Nuevo Puesto -->
 <div class="modal fade" id="modalNuevoPuesto" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form action="/admin/estacionamientos/guardar" method="POST">
                 <?= csrf_field() ?>
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold">Nuevo Puesto de Estacionamiento</h5>
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">local_parking</span>
+                        Nuevo Puesto de Estacionamiento
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Número / Identificador de Puesto <span class="text-danger">*</span></label>
-                        <input type="text" name="numero" class="form-control" placeholder="Ej: E-101, P-05" required>
+                        <label class="form-label fw-bold small text-on-surface-variant">Número / Identificador de Puesto <span class="text-danger">*</span></label>
+                        <input type="text" name="numero" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: E-101, P-05" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Tipo de Estacionamiento <span class="text-danger">*</span></label>
-                        <select name="tipo" class="form-select" required>
+                        <label class="form-label fw-bold small text-on-surface-variant">Tipo de Estacionamiento <span class="text-danger">*</span></label>
+                        <select name="tipo" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
                             <option value="descubierto">Descubierto</option>
                             <option value="techado">Techado</option>
                             <option value="visitante">Visitante</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Edificio / Torre (Opcional)</label>
-                        <select name="edificio_id" class="form-select">
+                        <label class="form-label fw-bold small text-on-surface-variant">Edificio / Torre (Opcional)</label>
+                        <select name="edificio_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                             <option value="">-- General / Sin Especificar --</option>
                             <?php foreach ($edificios as $ed): ?>
                                 <option value="<?= e($ed['id']) ?>"><?= e($ed['nombre']) ?></option>
@@ -252,8 +261,8 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Asignar a Unidad (Opcional)</label>
-                        <select name="unidad_id" class="form-select">
+                        <label class="form-label fw-bold small text-on-surface-variant">Asignar a Unidad (Opcional)</label>
+                        <select name="unidad_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                             <option value="">-- Dejar Libre / Disponible --</option>
                             <?php foreach ($unidades as $u): ?>
                                 <option value="<?= e($u['id']) ?>">Unidad/Apto <?= e($u['numero']) ?></option>
@@ -261,9 +270,12 @@
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold">Registrar Puesto</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        Registrar Puesto
+                    </button>
                 </div>
             </form>
         </div>
@@ -273,17 +285,20 @@
 <!-- Modal Registrar Vehículo -->
 <div class="modal fade" id="modalNuevoVehiculo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form action="/admin/vehiculos/guardar" method="POST">
                 <?= csrf_field() ?>
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold">Registrar Vehículo de Residente</h5>
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">directions_car</span>
+                        Registrar Vehículo de Residente
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Unidad Habitacional <span class="text-danger">*</span></label>
-                        <select name="unidad_id" class="form-select" required>
+                        <label class="form-label fw-bold small text-on-surface-variant">Unidad Habitacional <span class="text-danger">*</span></label>
+                        <select name="unidad_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
                             <option value="">-- Seleccionar Unidad --</option>
                             <?php foreach ($unidades as $u): ?>
                                 <option value="<?= e($u['id']) ?>">Unidad/Apto <?= e($u['numero']) ?></option>
@@ -292,27 +307,27 @@
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Placa de Vehículo <span class="text-danger">*</span></label>
-                            <input type="text" name="placa" class="form-control text-uppercase" placeholder="Ej: ABC123" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Placa de Vehículo <span class="text-danger">*</span></label>
+                            <input type="text" name="placa" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors text-uppercase" placeholder="Ej: ABC123" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Marca <span class="text-danger">*</span></label>
-                            <input type="text" name="marca" class="form-control" placeholder="Ej: Toyota" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Marca <span class="text-danger">*</span></label>
+                            <input type="text" name="marca" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Toyota" required>
                         </div>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Modelo <span class="text-danger">*</span></label>
-                            <input type="text" name="modelo" class="form-control" placeholder="Ej: Corolla" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Modelo <span class="text-danger">*</span></label>
+                            <input type="text" name="modelo" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Corolla" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Color <span class="text-danger">*</span></label>
-                            <input type="text" name="color" class="form-control" placeholder="Ej: Blanco" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Color <span class="text-danger">*</span></label>
+                            <input type="text" name="color" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Blanco" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Asignar Puesto de Estacionamiento (Opcional)</label>
-                        <select name="estacionamiento_id" class="form-select">
+                        <label class="form-label fw-bold small text-on-surface-variant">Asignar Puesto de Estacionamiento (Opcional)</label>
+                        <select name="estacionamiento_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                             <option value="">-- Sin Asignación Directa --</option>
                             <?php foreach ($puestos as $p): ?>
                                 <option value="<?= e($p['id']) ?>">Puesto #<?= e($p['numero']) ?> (<?= e($p['tipo']) ?>)</option>
@@ -320,9 +335,12 @@
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold">Guardar Vehículo</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">save</span>
+                        Guardar Vehículo
+                    </button>
                 </div>
             </form>
         </div>
