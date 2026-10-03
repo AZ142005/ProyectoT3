@@ -27,7 +27,7 @@ class ResidenteController extends Controller {
         // Obtener comunicados visibles para la unidad/edificio del residente (solo visualización)
         $edificioId = !empty($residente['edificio_id']) ? intval($residente['edificio_id']) : null;
         $unidadId = !empty($residente['unidad_id']) ? intval($residente['unidad_id']) : null;
-        $resultadoComunicados = (new ComunicadosModel())->obtenerPorResidente($edificioId, $unidadId, 1, 4);
+        $resultadoComunicados = (new ComunicadosModel())->obtenerPorResidente($edificioId, $unidadId, 1, 10);
 
         // Renderizar la vista pasando los datos estructurados
         $this->render('residente/dashboard', [
@@ -35,7 +35,6 @@ class ResidenteController extends Controller {
             'total_deuda'           => $total_deuda,
             'saldo_a_favor_mostrar' => $saldo_a_favor_mostrar,
             'comunicados'           => $resultadoComunicados['datos'],
-            'totalComunicados'      => $resultadoComunicados['total'],
             'showNav'               => true,
             'title'                 => 'Estado de Deuda - Residente'
         ]);

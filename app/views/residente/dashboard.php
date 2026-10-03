@@ -47,18 +47,11 @@
 
     <!-- Sección: Comunicados -->
     <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
-        <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
+        <div class="pb-4 border-b border-background mb-6">
             <h3 class="text-lg font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">campaign</span>
                 Comunicados
             </h3>
-            <div class="flex items-center gap-3">
-                <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($totalComunicados) ?></span>
-                <a href="/residente/cartelera" class="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1">
-                    Ver todos
-                    <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-                </a>
-            </div>
         </div>
 
         <?php if (empty($comunicados)): ?>
@@ -68,7 +61,7 @@
                 <p class="text-sm text-slate-500">No hay comunicados recientes publicados para su edificio o comunidad.</p>
             </div>
         <?php else: ?>
-            <div class="divide-y divide-background">
+            <div class="max-h-96 overflow-y-auto divide-y divide-background">
                 <?php foreach ($comunicados as $c): ?>
                 <div class="py-4">
                     <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">

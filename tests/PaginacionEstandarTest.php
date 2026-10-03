@@ -33,8 +33,10 @@ class PaginacionEstandarTest extends TestCase {
 
         $this->assertStringContains('Comunicados', $view,
             "El dashboard del residente debe mostrar la seccion de comunicados");
-        $this->assertStringContains('/residente/cartelera', $view,
-            "El dashboard debe enlazar a la cartelera completa");
+        $this->assertStringContains('overflow-y-auto', $view,
+            "La lista de comunicados debe tener scroll interno en vez de expandirse");
+        $this->assertStringContains('obtenerPorResidente($edificioId, $unidadId, 1, 10)', $controller,
+            "ResidenteController debe cargar hasta 10 comunicados para el scroll");
         $this->assertFalse(str_contains($view, 'Facturas Pendientes'),
             "El dashboard del residente ya no debe listar facturas pendientes");
         $this->assertFalse(str_contains($view, 'Comprobantes Recientes'),

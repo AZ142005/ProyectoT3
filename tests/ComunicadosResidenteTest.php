@@ -228,8 +228,12 @@ class ComunicadosResidenteTest extends TestCase {
 
         $this->assertStringContains('Comunicados', $view,
             'El dashboard del residente debe mostrar el apartado de Comunicados');
-        $this->assertStringContains('/residente/cartelera', $view,
-            'El dashboard debe enlazar a la cartelera completa');
+        $this->assertStringContains('overflow-y-auto', $view,
+            'La lista de comunicados debe tener scroll interno');
+        $this->assertFalse(str_contains($view, 'Ver todos'),
+            'El panel del residente no debe tener el enlace Ver todos');
+        $this->assertFalse(str_contains($view, 'totalComunicados'),
+            'El header de Comunicados ya no debe mostrar el contador');
         $this->assertFalse(str_contains($view, 'Facturas Pendientes'),
             'El dashboard no debe contener la sección Facturas Pendientes');
         $this->assertFalse(str_contains($view, 'Comprobantes Recientes'),

@@ -55,3 +55,8 @@
 - Spot check del padre: lints + 4 filtros de las clases no alcanzadas por el run completo + revisión de alcance del diff.
 - Commit work-unit: 498fda0 (8 archivos; 392 ins / 230 del). Push/PR: decisión del usuario.
 - RDD: on; assess (working tree y post-commit base dc15d49) → `risk: high`, `unassessable` (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
+
+## Iteración post-cierre (2026-10-03 — feedback del usuario, integrada a main)
+- Se quitó del panel el enlace "Ver todos" y el badge de total del header de Comunicados.
+- La lista de comunicados tiene scroll interno (`max-h-96 overflow-y-auto`) en vez de expandir la tarjeta hacia abajo; se cargan hasta 10 comunicados (antes 4) para que el scroll tenga contenido útil sin el enlace.
+- Test de contrato actualizado (scroll presente; "Ver todos" y contador ausentes).
