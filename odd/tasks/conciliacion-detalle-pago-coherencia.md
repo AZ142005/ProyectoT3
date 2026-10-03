@@ -47,8 +47,11 @@
 - Verificador independiente read-only: región del modal, mapeo JS del badge, preservación de hooks (`span:last-child`, ids, forms), suites, adversarial.
 - Spot check del padre. Commit directo en `main`. Push: decisión del usuario.
 
-## Evidencia (se completa al cierre)
-- T1-T4: pendiente
-- php -l / suites: pendiente
-- Verificación independiente: pendiente
-- Commit: pendiente
+## Evidencia (cierre 2026-10-03)
+- T1-T4 aplicadas: header `bg-primary`; tokens de casa en todo el modal (`text-on-surface-variant`/`text-on-surface`/`font-mono`/`text-[16px]`); tabla comparativa al patrón del Historial (`border-collapse`/`divide-y`/`py-3 px-3`); botones R1/R2/verde sólido/rojo sólido; badge de estado con mapeo de clases por estado en JS (antes quedaba siempre amarillo).
+- Hallazgo del verificador (falsificación real): el doc/checklist originales propagaban `bg-warning text-dark`; el patrón de casa es `bg-warning text-on-surface` (comunicados L98 / solicitudes L91 / estacionamientos L163). Corregido en la vista (L348) y el JS (L579), doc actualizado, y el test reforzado (prohibición de `text-dark` en la región + asserts del mapeo: token warning, ausencia de `text-dark`, fallback `secondary`).
+- `php -l` 2/2; `--filter=ConciliacionDetallePagoVistaTest` exit 0 (3 tests / 18 asserts tras refuerzo); `--filter=Conciliacion` exit 0 (39 tests / 314 asserts); demás filtros verdes (Paginacion/Rbac/SolicitudesRegistro/UsuarioAdmin/UsuariosSolicitudesTabs). Early-exit preexistente del runner en SecurityTest re-confirmado (clases afectadas cubiertas por filtro).
+- Alcance: 26 hunks en la vista, TODOS dentro del modal (L344-489) + la línea JS del badge; `bg-light` de modales conservado; `bg-dark` eliminado del archivo. `text-dark` restante solo fuera de la región (header de página y modal de Rechazo — fuera de alcance).
+- Verificador independiente: veredicto inicial **NO PASA** por `text-dark` → corregido (vista/JS/test/doc) y re-chequeado por el padre (`php -l` + filtros + grep de la región: 0 `text-dark`).
+- Commit: 18cae26 (directo en main) + commit docs de cierre. Push: pendiente (decisión del usuario).
+- RDD: on; assess high/unassessable (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
