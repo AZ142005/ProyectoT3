@@ -341,11 +341,11 @@
 <div class="modal fade" id="modalDetallePago" tabindex="-1" aria-labelledby="modalDetallePagoLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-3">
-            <div class="modal-header bg-dark text-white py-3">
+            <div class="modal-header bg-primary text-white py-3">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="material-symbols-outlined fs-4 text-primary">receipt_long</span>
+                    <span class="material-symbols-outlined text-2xl text-white">receipt_long</span>
                     <h5 class="modal-title fw-bold text-white mb-0" id="modalDetallePagoLabel">Detalle del Pago #<span id="mdlPagoId"></span></h5>
-                    <span id="mdlEstadoBadge" class="badge bg-warning text-dark ms-2 fw-bold">PENDIENTE</span>
+                    <span id="mdlEstadoBadge" class="badge rounded-pill px-3 py-1 ms-2 fw-bold bg-warning text-on-surface">PENDIENTE</span>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -355,40 +355,40 @@
                     <div class="col-lg-6">
                         <!-- Comparativa Banco vs Residente -->
                         <div class="card border-0 shadow-sm rounded-3 mb-3">
-                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted border-bottom d-flex align-items-center gap-1">
-                                <span class="material-symbols-outlined fs-6 text-primary">compare_arrows</span>
-                                <span class="text-muted">Comparativa: Extracto Bancario vs Pago Reportado</span>
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-on-surface-variant border-bottom d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px] text-primary">compare_arrows</span>
+                                <span class="text-on-surface-variant">Comparativa: Extracto Bancario vs Pago Reportado</span>
                             </div>
                             <div class="card-body p-3 bg-white">
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-bordered align-middle mb-0">
-                                        <thead class="table-light small">
-                                            <tr>
-                                                <th>Campo</th>
-                                                <th class="text-primary">Extracto Bancario</th>
-                                                <th class="text-success">Pago Reportado</th>
+                                    <table class="w-full text-left text-sm border-collapse">
+                                        <thead>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-3 px-3">Campo</th>
+                                                <th class="py-3 px-3 text-primary">Extracto Bancario</th>
+                                                <th class="py-3 px-3 text-green-600">Pago Reportado</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="small">
+                                        <tbody class="divide-y divide-background">
                                             <tr>
-                                                <td class="fw-bold text-muted">Monto</td>
-                                                <td class="fw-bolder text-dark font-monospace" id="mdlExtMonto">-</td>
-                                                <td class="fw-bolder text-dark font-monospace" id="mdlPagoMonto">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface-variant">Monto</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface font-mono" id="mdlExtMonto">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface font-mono" id="mdlPagoMonto">-</td>
                                             </tr>
                                             <tr>
-                                                <td class="fw-bold text-muted">Referencia</td>
-                                                <td class="fw-bold text-dark font-monospace" id="mdlExtRef">-</td>
-                                                <td class="fw-bold text-dark font-monospace" id="mdlPagoRef">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface-variant">Referencia</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface font-mono text-xs" id="mdlExtRef">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface font-mono text-xs" id="mdlPagoRef">-</td>
                                             </tr>
                                             <tr>
-                                                <td class="fw-bold text-muted">Fecha</td>
-                                                <td class="text-dark" id="mdlExtFecha">-</td>
-                                                <td class="text-dark" id="mdlPagoFecha">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface-variant">Fecha</td>
+                                                <td class="py-3 px-3 text-sm text-on-surface" id="mdlExtFecha">-</td>
+                                                <td class="py-3 px-3 text-sm text-on-surface" id="mdlPagoFecha">-</td>
                                             </tr>
                                             <tr>
-                                                <td class="fw-bold text-muted">Banco / Canal</td>
-                                                <td class="text-dark" id="mdlExtBanco">-</td>
-                                                <td class="text-dark" id="mdlPagoBanco">-</td>
+                                                <td class="py-3 px-3 font-bold text-on-surface-variant">Banco / Canal</td>
+                                                <td class="py-3 px-3 text-sm text-on-surface" id="mdlExtBanco">-</td>
+                                                <td class="py-3 px-3 text-sm text-on-surface" id="mdlPagoBanco">-</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -398,36 +398,36 @@
 
                         <!-- Ficha de Datos del Residente e Inmueble -->
                         <div class="card border-0 shadow-sm rounded-3 mb-3">
-                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted border-bottom d-flex align-items-center gap-1">
-                                <span class="material-symbols-outlined fs-6 text-primary">person</span>
-                                <span class="text-muted">Información del Residente e Inmueble</span>
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-on-surface-variant border-bottom d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px] text-primary">person</span>
+                                <span class="text-on-surface-variant">Información del Residente e Inmueble</span>
                             </div>
                             <div class="card-body p-3 bg-white small">
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <span class="text-muted d-block fw-normal">Residente:</span>
-                                        <strong class="text-dark fw-bold" id="mdlResidente">-</strong>
+                                        <span class="text-on-surface-variant d-block fw-normal">Residente:</span>
+                                        <strong class="text-on-surface fw-bold" id="mdlResidente">-</strong>
                                     </div>
                                     <div class="col-6">
-                                        <span class="text-muted d-block fw-normal">Cédula:</span>
-                                        <strong class="text-dark fw-bold font-monospace" id="mdlCedula">-</strong>
+                                        <span class="text-on-surface-variant d-block fw-normal">Cédula:</span>
+                                        <strong class="text-on-surface fw-bold font-mono" id="mdlCedula">-</strong>
                                     </div>
                                     <div class="col-6">
-                                        <span class="text-muted d-block fw-normal">Inmueble / Unidad:</span>
-                                        <strong class="text-dark fw-bold" id="mdlUnidad">-</strong>
+                                        <span class="text-on-surface-variant d-block fw-normal">Inmueble / Unidad:</span>
+                                        <strong class="text-on-surface fw-bold" id="mdlUnidad">-</strong>
                                     </div>
                                     <div class="col-6">
-                                        <span class="text-muted d-block fw-normal">Método de Pago:</span>
-                                        <strong class="text-dark fw-bold text-uppercase" id="mdlMetodo">-</strong>
+                                        <span class="text-on-surface-variant d-block fw-normal">Método de Pago:</span>
+                                        <strong class="text-on-surface fw-bold text-uppercase" id="mdlMetodo">-</strong>
                                     </div>
                                     <div class="col-12" id="mdlFacturaWrapper" style="display: none;">
-                                        <div class="bg-primary-subtle border border-primary-subtle rounded p-2 text-primary small">
-                                            <strong class="text-primary">Factura Relacionada:</strong> #<span id="mdlFacturaNumero" class="text-dark font-monospace fw-bold">-</span>
+                                        <div class="bg-primary/10 border border-primary/20 rounded p-2 text-primary small">
+                                            <strong class="text-primary">Factura Relacionada:</strong> #<span id="mdlFacturaNumero" class="text-on-surface font-mono fw-bold">-</span>
                                         </div>
                                     </div>
                                     <div class="col-12" id="mdlObsWrapper" style="display: none;">
-                                        <span class="text-muted d-block fw-normal">Observaciones del Residente:</span>
-                                        <div class="p-2 bg-light rounded text-muted fst-italic" id="mdlObservaciones"></div>
+                                        <span class="text-on-surface-variant d-block fw-normal">Observaciones del Residente:</span>
+                                        <div class="p-2 bg-background rounded text-on-surface-variant fst-italic" id="mdlObservaciones"></div>
                                     </div>
                                 </div>
                             </div>
@@ -438,12 +438,12 @@
                     <div class="col-lg-6">
                         <div class="card border-0 shadow-sm rounded-3 h-100 d-flex flex-column">
                             <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-                                <span class="fw-bold small text-uppercase text-muted d-flex align-items-center gap-1">
-                                    <span class="material-symbols-outlined fs-6 text-primary">attach_file</span>
-                                    <span class="text-muted">Comprobante Adjunto</span>
+                                <span class="fw-bold small text-uppercase text-on-surface-variant d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px] text-primary">attach_file</span>
+                                    <span class="text-on-surface-variant">Comprobante Adjunto</span>
                                 </span>
-                                <a id="mdlBtnDescargar" href="#" download="" class="btn btn-sm btn-primary fw-bold d-inline-flex align-items-center gap-1">
-                                    <span class="material-symbols-outlined fs-6">download</span>
+                                <a id="mdlBtnDescargar" href="#" download="" class="bg-primary hover:bg-primary-hover text-white font-bold px-4 py-2 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[16px]">download</span>
                                     <span>Descargar Comprobante</span>
                                 </a>
                             </div>
@@ -457,8 +457,8 @@
                                     <iframe id="mdlPdfPreview" src="" class="w-100 h-100 rounded border" style="min-height: 400px;"></iframe>
                                 </div>
                                 <!-- Sin Archivo -->
-                                <div id="mdlSinArchivoContainer" class="text-center text-muted p-4" style="display: none;">
-                                    <span class="material-symbols-outlined display-4 text-muted mb-2">attachment</span>
+                                <div id="mdlSinArchivoContainer" class="text-center text-on-surface-variant p-4" style="display: none;">
+                                    <span class="material-symbols-outlined display-4 text-on-surface-variant mb-2">attachment</span>
                                     <p class="mb-0 fw-bold">No se adjuntó archivo de comprobante para este pago.</p>
                                 </div>
                             </div>
@@ -467,27 +467,27 @@
                 </div>
             </div>
             <div class="modal-footer bg-white border-top py-3 d-flex justify-content-between flex-wrap gap-2">
-                <a id="mdlLinkPantallaCompleta" href="#" class="btn btn-outline-secondary btn-sm fw-bold d-inline-flex align-items-center gap-1">
-                    <span class="material-symbols-outlined fs-6">open_in_new</span>
+                <a id="mdlLinkPantallaCompleta" href="#" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">open_in_new</span>
                     <span>Ver Pantalla Completa de Detalle</span>
                 </a>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-light btn-sm fw-bold border" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="bg-white hover:bg-slate-100 text-slate-700 border border-outline-variant font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cerrar</button>
                     <!-- Formulario Conciliar / Aprobar dentro del modal -->
                     <form id="mdlFormConciliar" method="POST" action="/admin/conciliacion/conciliar" class="d-inline">
                         <?= csrf_field() ?>
                         <input type="hidden" name="extracto_id" id="mdlInputExtractoId" value="">
                         <input type="hidden" name="pago_id" id="mdlInputPagoId" value="">
                         <input type="hidden" name="origen_tipo" id="mdlInputOrigenTipo" value="pago">
-                        <button type="submit" id="mdlBtnConfirmarConciliacion" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1"
+                        <button type="submit" id="mdlBtnConfirmarConciliacion" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5 shadow-sm"
                                 onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
-                            <span class="material-symbols-outlined fs-6">check</span>
+                            <span class="material-symbols-outlined text-[16px]">check</span>
                             <span>Aprobar y Conciliar</span>
                         </button>
                     </form>
                     <!-- Botón Rechazar dentro del Modal -->
-                    <button type="button" id="mdlBtnRechazarModal" class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1">
-                        <span class="material-symbols-outlined fs-6">cancel</span>
+                    <button type="button" id="mdlBtnRechazarModal" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">cancel</span>
                         <span>Rechazar Pago</span>
                     </button>
                 </div>
@@ -571,7 +571,14 @@
         const isComp = !!(pago && pago.origen_tabla === 'comprobante');
 
         document.getElementById('mdlPagoId').textContent = pago ? String(pago.id || 0).padStart(6, '0') : '—';
-        document.getElementById('mdlEstadoBadge').textContent = pago ? (pago.estado || 'PENDIENTE').toUpperCase() : 'SIN PAGO';
+        const estadoBadge = document.getElementById('mdlEstadoBadge');
+        const estadoPago = pago ? (pago.estado || 'PENDIENTE').toUpperCase() : 'SIN PAGO';
+        let estadoBadgeColor = 'bg-secondary text-white';
+        if (estadoPago === 'APROBADO' || estadoPago === 'VERIFICADO') estadoBadgeColor = 'bg-success text-white';
+        if (estadoPago === 'RECHAZADO') estadoBadgeColor = 'bg-danger text-white';
+        if (estadoPago === 'PENDIENTE') estadoBadgeColor = 'bg-warning text-on-surface';
+        estadoBadge.textContent = estadoPago;
+        estadoBadge.className = 'badge rounded-pill px-3 py-1 ms-2 fw-bold ' + estadoBadgeColor;
 
         // Comparativa: lado Extracto Bancario
         if (ext) {
