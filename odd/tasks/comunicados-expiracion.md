@@ -44,10 +44,13 @@
 - Spot check del padre.
 - Cierre: commit work-unit en `feat/comunicados-expiracion`; luego merge de TODA la sesión a main (esta rama + `feat/admin-comunicado-preview`) por instrucción explícita del usuario.
 
-## Evidencia (se completa al cierre)
-- T1-T6: pendiente
-- php -l: pendiente
-- Migración + idempotencia: pendiente
-- Suites: pendiente
-- Verificación independiente: pendiente
-- Commit + merge a main: pendiente
+## Evidencia (cierre 2026-10-03)
+- T1-T5 aplicadas: migración fase19 ejecutada 2 veces (aplicada + no-op idempotente; columna `fecha_expiracion` datetime NULL verificada en la BD); gemelo SQL ejecutado vía PDO (7 statements, rama "ya existe"); dump canónico +1 línea exacta en CREATE TABLE `comunicados`.
+- Modelo: INSERT con fecha_expiracion null-safe; filtro `(fecha_expiracion IS NULL OR > :ahora_exp)` con placeholder distinto (EMULATE_PREPARES); `eliminarExpirados()` verificada con probe transaccional (eliminó exactamente 1 vencida; futuras y NULL intactas; residuo de pruebas 0).
+- Controlador: limpieza antes de `obtenerTodosAdmin`; parseo whitelist con default 7 y 0=sin vencimiento; observación del verificador sobre `""`/`"abc"`→0 endurecida con `is_numeric` (re-run verde).
+- Vista: fila col-md-4 x3; select con 6 opciones exactas y `value="7" selected`; 3 selects del modal con clases idénticas.
+- `php -l` 6/6; run completo exit 0 (493 ✅ / 0 ❌ antes del corte por el defecto preexistente del runner); filtros todos exit 0 (ComunicadosResidente 14, AdminComunicadosVista 4, ComunicadosDuplicados 7, PaginacionEstandar 10, Rbac 7, Behavior 111, SolicitudesRegistro 7, UsuarioAdmin 17, UsuariosSolicitudesTabs 8).
+- Verificador independiente: VERIFIED CON OBSERVACIONES (falsificaciones ejecutadas: sin placeholders repetidos, soft-delete selectivo, SQL twin ejecutable, diff acotado; commit selectivo recomendado — aplicado).
+- Spot check del padre: `php -l` + filtros clave re-ejecutados tras el endurecimiento.
+- Commit: c1a2011. Merge a main de toda la sesión (admin-preview + esta rama) por instrucción del usuario — fast-forwards; push pendiente de decisión del usuario.
+- RDD: on; assess high/unassessable (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
