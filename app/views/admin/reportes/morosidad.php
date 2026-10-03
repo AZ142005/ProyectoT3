@@ -82,17 +82,18 @@
         </div>
     </div>
 
-    <!-- Barra de Filtros -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
-        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-            <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
-            <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
-        </div>
-        <form method="GET" action="/admin/reportes/morosidad" id="formFiltrosBalance" class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-            <div class="flex flex-col gap-1">
-                <label for="edificio_id" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Filtrar por Edificio / Torre</label>
-                <select name="edificio_id" id="edificio_id" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <option value="">-- Todos los Edificios --</option>
+    <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
+    <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
+        <form method="GET" action="/admin/reportes/morosidad" id="formFiltrosBalance" class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
+                <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
+            </div>
+
+            <!-- Edificio -->
+            <div class="flex-1 sm:flex-initial min-w-[200px]">
+                <select name="edificio_id" id="edificio_id" aria-label="Filtrar por Edificio / Torre" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todos los Edificios</option>
                     <?php foreach ($edificios as $ed): ?>
                         <option value="<?= e($ed['id']) ?>" <?= (($filtros['edificio_id'] ?? '') == $ed['id']) ? 'selected' : '' ?>>
                             <?= e($ed['nombre']) ?>
@@ -100,24 +101,27 @@
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="flex flex-col gap-1">
-                <label for="dias_mora" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Antigüedad de Deuda</label>
-                <select name="dias_mora" id="dias_mora" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <option value="">-- Todos los Rangos --</option>
+
+            <!-- Antigüedad de Deuda -->
+            <div class="flex-1 sm:flex-initial min-w-[180px]">
+                <select name="dias_mora" id="dias_mora" aria-label="Antigüedad de Deuda" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todos los Rangos de Mora</option>
                     <option value="30" <?= (($filtros['dias_mora'] ?? '') == '30') ? 'selected' : '' ?>>Mayor a 30 Días</option>
                     <option value="60" <?= (($filtros['dias_mora'] ?? '') == '60') ? 'selected' : '' ?>>Mayor a 60 Días</option>
-                    <option value="90" <?= (($filtros['dias_mora'] ?? '') == '90') ? 'selected' : '' ?>>Crítico (Mayor a 90 Días)</option>
+                    <option value="90" <?= (($filtros['dias_mora'] ?? '') == '90') ? 'selected' : '' ?>>Crítico (> 90 Días)</option>
                 </select>
             </div>
-            <div class="col-span-full flex justify-end gap-2">
-                <a href="/admin/reportes/morosidad" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar Filtros">
-                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
-                    Limpiar Filtros
-                </a>
-                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+
+            <!-- Botones de Acción Inline -->
+            <div class="flex items-center gap-1.5 ms-auto">
+                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
                     <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                    Aplicar Filtros
+                    Filtrar
                 </button>
+                <a href="/admin/reportes/morosidad" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar Filtros">
+                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                    Limpiar
+                </a>
             </div>
         </form>
     </div>

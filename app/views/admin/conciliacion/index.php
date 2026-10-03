@@ -111,13 +111,13 @@
                     </div>
                 </div>
 
-                <!-- Filtros de Coincidencia (fuera de la lista de la bandeja) -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-3 shadow-sm mb-4">
-                    <div class="flex items-center gap-2 mb-1.5 pb-1.5 border-b border-slate-100">
-                        <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
-                        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Coincidencia</h2>
-                    </div>
-                    <div class="flex flex-wrap gap-2" id="filtrosConciliacion" role="group" aria-label="Filtros de coincidencia de la bandeja">
+                <!-- Filtros de Coincidencia Ultra-Compactos (Toolbar Permanente) -->
+                <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
+                    <div class="flex flex-wrap items-center gap-2" id="filtrosConciliacion" role="group" aria-label="Filtros de coincidencia de la bandeja">
+                        <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
+                            <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
+                        </div>
                         <button type="button" class="filtro-pill active px-3 py-1.5 rounded-full border text-xs font-bold bg-slate-100 text-slate-700 border-slate-200 transition-colors" data-filtro-categoria="todas" id="filtro-todas">
                             Todas
                         </button>

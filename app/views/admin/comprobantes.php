@@ -24,18 +24,24 @@
             <!-- Alertas / Mensajes -->
             <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
-            <!-- Filtros de búsqueda avanzados -->
-            <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
-                <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-                    <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
-                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda Histórica</h2>
-                </div>
+            <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
+            <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
+                <form method="GET" action="/admin/comprobantes" class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
+                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
+                    </div>
 
-                <form method="GET" action="/admin/comprobantes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
+                    <!-- Buscar por Texto -->
+                    <div class="relative flex-1 min-w-[200px]">
+                        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
+                        <input type="text" name="buscar" id="buscar" placeholder="Residente, Cédula, Factura..." value="<?= e($filtros['buscar'] ?? '') ?>"
+                               aria-label="Buscar por texto" class="w-full pl-8 pr-3 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                    </div>
+
                     <!-- Edificio -->
-                    <div class="flex flex-col gap-1">
-                        <label for="edificio_id" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Edificio / Torre</label>
-                        <select name="edificio_id" id="edificio_id" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <div class="w-full sm:w-auto">
+                        <select name="edificio_id" id="edificio_id" aria-label="Edificio o Torre" class="w-full sm:w-auto px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                             <option value="">Todos los Edificios</option>
                             <?php if (!empty($edificios)): ?>
                                 <?php foreach ($edificios as $ed): ?>
@@ -48,55 +54,39 @@
                     </div>
 
                     <!-- Unidad / Apartamento -->
-                    <div class="flex flex-col gap-1">
-                        <label for="unidad" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Unidad / Apto</label>
-                        <input type="text" name="unidad" id="unidad" placeholder="Ej: 101, 2B..." value="<?= e($filtros['unidad'] ?? '') ?>"
-                               class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                    <div class="w-full sm:w-28">
+                        <input type="text" name="unidad" id="unidad" placeholder="Unidad / Apto" value="<?= e($filtros['unidad'] ?? '') ?>" aria-label="Unidad o Apartamento"
+                               class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
                     </div>
 
-                    <!-- Rango: Fecha Desde -->
-                    <div class="flex flex-col gap-1">
-                        <label for="fecha_desde" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Fecha Desde</label>
-                        <input type="date" name="fecha_desde" id="fecha_desde" value="<?= e($filtros['fecha_desde'] ?? '') ?>"
-                               class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                    <!-- Rango: Fechas -->
+                    <div class="flex items-center gap-1 w-full sm:w-auto">
+                        <input type="date" name="fecha_desde" id="fecha_desde" value="<?= e($filtros['fecha_desde'] ?? '') ?>" title="Fecha Desde" aria-label="Fecha Desde"
+                               class="px-2 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                        <span class="text-on-surface-variant text-xs font-semibold">-</span>
+                        <input type="date" name="fecha_hasta" id="fecha_hasta" value="<?= e($filtros['fecha_hasta'] ?? '') ?>" title="Fecha Hasta" aria-label="Fecha Hasta"
+                               class="px-2 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
                     </div>
 
-                    <!-- Rango: Fecha Hasta -->
-                    <div class="flex flex-col gap-1">
-                        <label for="fecha_hasta" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Fecha Hasta</label>
-                        <input type="date" name="fecha_hasta" id="fecha_hasta" value="<?= e($filtros['fecha_hasta'] ?? '') ?>"
-                               class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
-                    </div>
-
-                    <!-- Estado (solo procesados) -->
-                    <div class="flex flex-col gap-1">
-                        <label for="estado" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Estado</label>
-                        <select name="estado" id="estado" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <!-- Estado -->
+                    <div class="w-full sm:w-auto">
+                        <select name="estado" id="estado" aria-label="Estado de Pago" class="w-full sm:w-auto px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                             <option value="">Todos los Estados</option>
                             <option value="aprobado" <?= (($filtros['estado'] ?? '') === 'aprobado') ? 'selected' : '' ?>>Aprobados</option>
                             <option value="rechazado" <?= (($filtros['estado'] ?? '') === 'rechazado') ? 'selected' : '' ?>>Rechazados</option>
                         </select>
                     </div>
 
-                    <!-- Buscar por Texto -->
-                    <div class="flex flex-col gap-1">
-                        <label for="buscar" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Buscar Texto</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
-                            <input type="text" name="buscar" id="buscar" placeholder="Residente, Cédula, Factura..." value="<?= e($filtros['buscar'] ?? '') ?>"
-                                   class="w-full pl-8 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
-                        </div>
-                    </div>
-
-                    <div class="col-span-full flex justify-end gap-2">
-                        <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">clear_all</span>
-                            Limpiar Filtros
-                        </a>
-                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+                    <!-- Botones de Acción Inline -->
+                    <div class="flex items-center gap-1.5 ms-auto">
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
                             <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                            Aplicar Filtros
+                            Filtrar
                         </button>
+                        <a href="/admin/comprobantes" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar Filtros">
+                            <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                            Limpiar
+                        </a>
                     </div>
                 </form>
             </div>

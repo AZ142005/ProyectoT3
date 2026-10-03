@@ -114,52 +114,59 @@
         <?php endif; ?>
     </div>
 
-    <!-- Barra de Filtros -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
-        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-            <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
-            <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
-        </div>
-        <form method="GET" action="/admin/gastos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+    <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
+    <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
+        <form method="GET" action="/admin/gastos" class="flex flex-wrap items-center gap-2">
             <input type="hidden" name="tab" value="gastos">
-            <div class="flex flex-col gap-1">
-                <label for="mes" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Mes</label>
-                <select name="mes" id="mes" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+            <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
+                <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
+            </div>
+
+            <!-- Mes -->
+            <div class="w-full sm:w-auto">
+                <select name="mes" id="mes" aria-label="Mes" class="w-full sm:w-auto px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                     <?php for ($m = 1; $m <= 12; $m++): ?>
                         <option value="<?= e($m) ?>" <?= $m === intval($filtros['mes']) ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
                     <?php endfor; ?>
                 </select>
             </div>
-            <div class="flex flex-col gap-1">
-                <label for="anio" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Año</label>
-                <input type="number" name="anio" id="anio" value="<?= e($filtros['anio']) ?>" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+
+            <!-- Año -->
+            <div class="w-full sm:w-24">
+                <input type="number" name="anio" id="anio" value="<?= e($filtros['anio']) ?>" placeholder="Año" aria-label="Año" title="Año"
+                       class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
             </div>
-            <div class="flex flex-col gap-1">
-                <label for="categoria_id" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Categoría</label>
-                <select name="categoria_id" id="categoria_id" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <option value="">Todas</option>
+
+            <!-- Categoría -->
+            <div class="flex-1 sm:flex-initial min-w-[160px]">
+                <select name="categoria_id" id="categoria_id" aria-label="Categoría" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todas las Categorías</option>
                     <?php foreach ($categorias as $cat): ?>
                         <option value="<?= e($cat['id']) ?>" <?= (!empty($filtros['categoria_id']) && intval($filtros['categoria_id']) === intval($cat['id'])) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="flex flex-col gap-1">
-                <label for="tipo_gasto" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Tipo de Gasto</label>
-                <select name="tipo_gasto" id="tipo_gasto" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+
+            <!-- Tipo de Gasto -->
+            <div class="flex-1 sm:flex-initial min-w-[150px]">
+                <select name="tipo_gasto" id="tipo_gasto" aria-label="Tipo de Gasto" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                     <option value="">Todos los tipos</option>
                     <option value="comun" <?= ($filtros['tipo_gasto'] ?? '') === 'comun' ? 'selected' : '' ?>>Común (Global)</option>
                     <option value="individual" <?= ($filtros['tipo_gasto'] ?? '') === 'individual' ? 'selected' : '' ?>>Individual (Por Edificio)</option>
                 </select>
             </div>
-            <div class="col-span-full flex justify-end gap-2">
-                <a href="/admin/gastos?tab=gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
-                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
-                    Limpiar Filtros
-                </a>
-                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+
+            <!-- Botones de Acción Inline -->
+            <div class="flex items-center gap-1.5 ms-auto">
+                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
                     <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                    Aplicar Filtros
+                    Filtrar
                 </button>
+                <a href="/admin/gastos?tab=gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
+                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
+                    Limpiar
+                </a>
             </div>
         </form>
     </div>

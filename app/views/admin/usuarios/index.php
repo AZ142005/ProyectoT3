@@ -115,28 +115,27 @@
                     </div>
                 <?php endif; ?>
 
-                <!-- Tarjeta de Filtros y Búsqueda -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-4 shadow-sm mb-6">
-                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-                        <span class="material-symbols-outlined text-primary text-sm">filter_alt</span>
-                        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filtros de Búsqueda</h2>
-                    </div>
-
-                    <form method="GET" action="/admin/usuarios" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
+                <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
+                    <form method="GET" action="/admin/usuarios" class="flex flex-wrap items-center gap-2">
                         <input type="hidden" name="tab" value="usuarios">
-                        <div class="flex flex-col gap-1 md:col-span-2">
-                            <label for="buscar" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Buscar Usuario</label>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
-                                <input type="text" id="buscar" name="buscar" value="<?= e($buscar) ?>"
-                                       placeholder="Buscar por cédula, nombre, apellido o correo electrónico..."
-                                       class="w-full pl-8 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
-                            </div>
+                        <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
+                            <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
                         </div>
 
-                        <div class="flex flex-col gap-1">
-                            <label for="rol" class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Tipo de Cuenta</label>
-                            <select id="rol" name="rol" class="w-full px-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                        <!-- Buscar Usuario -->
+                        <div class="relative flex-1 min-w-[240px]">
+                            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
+                            <input type="text" id="buscar" name="buscar" value="<?= e($buscar) ?>"
+                                   placeholder="Buscar por cédula, nombre, apellido o correo..."
+                                   aria-label="Buscar por cédula, nombre, apellido o correo"
+                                   class="w-full pl-8 pr-3 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                        </div>
+
+                        <!-- Tipo de Cuenta / Rol -->
+                        <div class="w-full sm:w-auto min-w-[150px]">
+                            <select id="rol" name="rol" aria-label="Tipo de Cuenta" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
                                 <option value="" <?= empty($rol) ? 'selected' : '' ?>>Todos los roles</option>
                                 <option value="residente" <?= $rol === 'residente' ? 'selected' : '' ?>>Residentes</option>
                                 <option value="admin" <?= $rol === 'admin' ? 'selected' : '' ?>>Administradores</option>
@@ -144,17 +143,18 @@
                             </select>
                         </div>
 
-                        <div class="col-span-full flex justify-end gap-2">
+                        <!-- Botones de Acción Inline -->
+                        <div class="flex items-center gap-1.5 ms-auto">
+                            <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
+                                <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+                                Filtrar
+                            </button>
                             <?php if (!empty($buscar) || !empty($rol)): ?>
-                                <a href="/admin/usuarios?tab=usuarios" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
+                                <a href="/admin/usuarios?tab=usuarios" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
                                     <span class="material-symbols-outlined text-[16px]">clear_all</span>
-                                    Limpiar Filtros
+                                    Limpiar
                                 </a>
                             <?php endif; ?>
-                            <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
-                                <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                                Aplicar Filtros
-                            </button>
                         </div>
                     </form>
                 </div>

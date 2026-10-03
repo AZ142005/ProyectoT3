@@ -25,8 +25,8 @@ $anio = intval($anio ?? date('Y'));
             </div>
             
             <div class="flex items-center gap-3">
-                <!-- Selector de Período Rápido -->
-                <form method="GET" action="/admin/dashboard" class="d-none d-sm-flex align-items-center gap-2 mb-0">
+                <!-- Selector de Período Rápido Permanente -->
+                <form method="GET" action="/admin/dashboard" class="d-flex align-items-center gap-1.5 mb-0">
                     <select name="mes" class="form-select form-select-sm text-xs font-semibold rounded-lg border-outline-variant bg-white" onchange="this.form.submit()">
                         <?php for ($m = 1; $m <= 12; $m++): ?>
                             <option value="<?= e($m) ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
