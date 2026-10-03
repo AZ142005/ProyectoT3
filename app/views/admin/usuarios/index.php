@@ -91,22 +91,22 @@
                                 <span class="material-symbols-outlined text-success fs-1 shrink-0">key</span>
                                 <div class="flex-grow-1">
                                     <h5 class="fw-bold text-success mb-1">¡Contraseña Reiniciada Exitosamente!</h5>
-                                    <p class="text-muted mb-3">
+                                    <p class="text-on-surface-variant mb-3">
                                         Se ha restablecido la clave de acceso para 
                                         <strong><?= e($passwordReseteada['nombre']) ?></strong> 
                                         (Cédula: <strong><?= e($passwordReseteada['cedula']) ?></strong>).
                                         Si la cuenta estaba bloqueada por intentos fallidos, ha sido desbloqueada.
                                     </p>
-                                    <div class="d-flex flex-wrap align-items-center gap-3 bg-white p-3 rounded-2 border">
-                                        <div class="text-muted small fw-semibold">Nueva Contraseña Temporal:</div>
-                                        <code id="tempPasswordVal" class="fs-5 fw-bold text-primary px-3 py-1 bg-light rounded border"><?= e($passwordReseteada['password']) ?></code>
-                                        <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 fw-bold" onclick="copiarPassword()">
-                                            <span class="material-symbols-outlined fs-6" id="btnCopiarIcon">content_copy</span>
+                                    <div class="d-flex flex-wrap align-items-center gap-3 bg-white p-3 rounded-xl border">
+                                        <div class="text-on-surface-variant small fw-semibold">Nueva Contraseña Temporal:</div>
+                                        <code id="tempPasswordVal" class="text-lg fw-bold text-primary px-3 py-1 bg-background rounded border"><?= e($passwordReseteada['password']) ?></code>
+                                        <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" onclick="copiarPassword()">
+                                            <span class="material-symbols-outlined text-sm" id="btnCopiarIcon">content_copy</span>
                                             <span id="btnCopiarText">Copiar al portapapeles</span>
                                         </button>
                                     </div>
-                                    <small class="text-muted d-block mt-2">
-                                        <span class="material-symbols-outlined fs-6 align-middle text-amber-600">info</span>
+                                    <small class="text-on-surface-variant d-block mt-2">
+                                        <span class="material-symbols-outlined text-sm align-middle text-amber-600">info</span>
                                         Copie y entregue esta contraseña al usuario. Recomiéndele cambiarla en su perfil tras el inicio de sesión.
                                     </small>
                                 </div>
@@ -160,7 +160,7 @@
                 </div>
 
                 <!-- Tarjeta con Listado de Usuarios -->
-                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
                     <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
                             <h2 class="text-lg font-bold text-on-surface mb-0">Listado de Usuarios Registrados</h2>
@@ -194,7 +194,7 @@
                                     <?php foreach ($usuarios as $u): ?>
                                         <tr class="hover:bg-background/40 transition-colors">
                                             <td class="py-4 px-4">
-                                                <span class="badge bg-light text-on-surface border px-2 py-1.5 font-mono text-xs">
+                                                <span class="font-mono text-xs">
                                                     <?= e($u['cedula']) ?>
                                                 </span>
                                             </td>
@@ -204,7 +204,7 @@
                                             </td>
                                             <td class="py-4 px-4">
                                                 <?php if (!empty($u['email'])): ?>
-                                                    <div class="text-xs text-truncate" style="max-width: 220px;" title="<?= e($u['email']) ?>">
+                                                    <div class="text-xs text-truncate text-on-surface-variant" style="max-width: 220px;" title="<?= e($u['email']) ?>">
                                                         <span class="material-symbols-outlined fs-6 align-middle text-on-surface-variant me-1">mail</span>
                                                         <?= e($u['email']) ?>
                                                     </div>
@@ -221,11 +221,11 @@
                                             <td class="py-4 px-4">
                                                 <div>
                                                     <?php 
-                                                    $rolBadgeClass = 'bg-primary-subtle text-primary-emphasis';
+                                                    $rolBadgeClass = 'bg-primary-subtle text-primary';
                                                     if ($u['rol_clave'] === 'admin') {
-                                                        $rolBadgeClass = 'bg-danger-subtle text-danger-emphasis';
+                                                        $rolBadgeClass = 'bg-danger-subtle text-danger';
                                                     } elseif ($u['rol_clave'] === 'auditor') {
-                                                        $rolBadgeClass = 'bg-info-subtle text-info-emphasis';
+                                                        $rolBadgeClass = 'bg-info-subtle text-info';
                                                     }
                                                     ?>
                                                     <span class="badge <?= e($rolBadgeClass) ?> fw-semibold px-2 py-1">
@@ -236,15 +236,15 @@
                                             </td>
                                             <td class="py-4 px-4">
                                                 <?php if (!empty($u['esta_bloqueado'])): ?>
-                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" title="Bloqueado por 5 intentos fallidos">
+                                                    <span class="badge bg-danger rounded-pill px-3 py-1.5" title="Bloqueado por 5 intentos fallidos">
                                                         <span class="material-symbols-outlined fs-6 align-middle">lock</span> Bloqueado
                                                     </span>
                                                 <?php elseif ((int)$u['estado'] === 1): ?>
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                    <span class="badge bg-success rounded-pill px-3 py-1.5">
                                                         <span class="material-symbols-outlined fs-6 align-middle">check_circle</span> Activo
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                                                    <span class="badge bg-secondary rounded-pill px-3 py-1.5">
                                                         Inactivo
                                                     </span>
                                                 <?php endif; ?>
@@ -255,7 +255,7 @@
                                                 $esMismoAdmin  = ($u['tipo_entidad'] === 'usuario' && intval($u['id']) === intval(\App\Core\Auth::id()));
                                                 ?>
                                                 <div class="dropdown d-inline-block">
-                                                    <button class="btn btn-sm btn-light border shadow-sm rounded-circle p-1.5 d-inline-flex align-items-center justify-center text-secondary" 
+                                                    <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold p-1.5 rounded-lg inline-flex items-center justify-center transition-colors" 
                                                             type="button" 
                                                             id="dropdownMenuUser_<?= e($u['tipo_entidad']) ?>_<?= e($u['id']) ?>" 
                                                             data-bs-toggle="dropdown" 
@@ -268,15 +268,15 @@
                                                         <li>
                                                             <?php if ($esAdminCuenta || $esMismoAdmin): ?>
                                                                 <button type="button" 
-                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface-variant opacity-50" 
                                                                         disabled 
                                                                         title="<?= e($esMismoAdmin ? 'No puede reiniciar su propia contraseña desde este panel' : 'No se permite reiniciar contraseñas de cuentas de administrador') ?>">
-                                                                    <span class="material-symbols-outlined fs-6 text-muted">lock</span>
+                                                                    <span class="material-symbols-outlined fs-6 text-on-surface-variant">lock</span>
                                                                     <span>Reiniciar clave</span>
                                                                 </button>
                                                             <?php else: ?>
                                                                 <button type="button" 
-                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-dark" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface" 
                                                                         data-bs-toggle="modal" 
                                                                         data-bs-target="#modalReiniciarPassword"
                                                                         data-id="<?= e($u['id']) ?>"
@@ -295,15 +295,15 @@
                                                         <li>
                                                             <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
                                                                 <button type="button" 
-                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface-variant opacity-50" 
                                                                         disabled 
                                                                         title="No se permite modificar datos de cuentas de administrador desde este panel">
-                                                                    <span class="material-symbols-outlined fs-6 text-muted">edit_off</span>
+                                                                    <span class="material-symbols-outlined fs-6 text-on-surface-variant">edit_off</span>
                                                                     <span>Actualizar datos</span>
                                                                 </button>
                                                             <?php else: ?>
                                                                 <button type="button" 
-                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-dark" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface" 
                                                                         data-bs-toggle="modal" 
                                                                         data-bs-target="#modalActualizarDatos"
                                                                         data-id="<?= e($u['id']) ?>"
@@ -325,10 +325,10 @@
                                                         <li>
                                                             <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
                                                                 <button type="button" 
-                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-muted opacity-50" 
+                                                                        class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface-variant opacity-50" 
                                                                         disabled 
                                                                         title="No se permite eliminar cuentas administrativas del sistema">
-                                                                    <span class="material-symbols-outlined fs-6 text-muted">block</span>
+                                                                    <span class="material-symbols-outlined fs-6 text-on-surface-variant">block</span>
                                                                     <span>Eliminar</span>
                                                                 </button>
                                                             <?php else: ?>
@@ -359,7 +359,7 @@
 
                     <!-- Paginación -->
                     <?php if ($paginacion['totalPaginas'] > 1): ?>
-                        <div class="card-footer bg-white border-top py-3 px-4">
+                        <div class="p-3 border-top bg-light">
                             <?php
                             $queryParams['tab'] = 'usuarios';
                             $filtros = ['tab' => 'usuarios', 'buscar' => $buscar ?? '', 'rol' => $rol ?? ''];

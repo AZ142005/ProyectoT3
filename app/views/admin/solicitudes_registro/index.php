@@ -94,7 +94,7 @@
                                                 <td class="py-4 px-4 text-xs text-on-surface-variant">
                                                     <div><?= date('d/m/Y H:i', strtotime($s['created_at'])) ?></div>
                                                     <?php if (!empty($s['reviewed_at'])): ?>
-                                                        <div class="text-xs text-slate-500 mt-1">
+                                                        <div class="text-xs text-on-surface-variant mt-1">
                                                             Revisado: <?= date('d/m/Y H:i', strtotime($s['reviewed_at'])) ?>
                                                             <?php if (!empty($s['admin_nombre'])): ?>
                                                                 <br>por <em><?= e($s['admin_nombre']) ?></em>
@@ -112,12 +112,12 @@
                                                         <form method="POST" action="/admin/solicitudes-registro/aprobar" class="d-inline">
                                                             <?= csrf_field() ?>
                                                             <input type="hidden" name="id" value="<?= e($s['id']) ?>">
-                                                            <button type="submit" class="btn btn-success btn-sm fw-bold px-3" onclick="return confirm('¿Aprobar el registro de <?= e($s['nombre']) ?> <?= e($s['apellido']) ?> en el Apto. <?= e($s['unidad_numero']) ?>? Se activará su cuenta de residente.');">
+                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" onclick="return confirm('¿Aprobar el registro de <?= e($s['nombre']) ?> <?= e($s['apellido']) ?> en el Apto. <?= e($s['unidad_numero']) ?>? Se activará su cuenta de residente.');">
                                                                 <span class="material-symbols-outlined text-[16px] align-middle">check</span>
                                                                 Aprobar
                                                             </button>
                                                         </form>
-                                                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 ms-1" onclick="abrirModalRechazoRegistro(<?= e($s['id']) ?>, '<?= e(addslashes($s['nombre'] . ' ' . $s['apellido'])) ?>')">
+                                                        <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ms-1" onclick="abrirModalRechazoRegistro(<?= e($s['id']) ?>, '<?= e(addslashes($s['nombre'] . ' ' . $s['apellido'])) ?>')">
                                                             <span class="material-symbols-outlined text-[16px] align-middle">close</span>
                                                             Rechazar
                                                         </button>
