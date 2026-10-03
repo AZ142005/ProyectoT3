@@ -252,6 +252,7 @@ body > footer {
     border: 1px solid #E5E7EB;
     border-radius: 0.75rem;
     padding: 0 0.875rem;
+    box-sizing: border-box;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -271,7 +272,7 @@ body > footer {
     align-items: center;
     justify-content: center;
     color: #9CA3AF;
-    margin-right: 0.75rem;
+    margin-right: 0.5rem;
     flex-shrink: 0;
     transition: color 0.2s ease;
 }
@@ -282,14 +283,17 @@ body > footer {
 
 .login-input {
     flex: 1 1 auto;
+    min-width: 0;
     width: 100%;
     border: none;
     outline: none;
     background: transparent;
-    padding: 0.75rem 0;
+    padding: 0.75rem 0.625rem;
     font-size: 0.9rem;
     font-weight: 500;
+    line-height: 1.5;
     color: #111827;
+    box-sizing: border-box;
 }
 
 .login-input::placeholder {
@@ -302,6 +306,8 @@ body > footer {
     border: none;
     outline: none;
     padding: 0.25rem;
+    margin-left: 0.375rem;
+    flex-shrink: 0;
     color: #9CA3AF;
     display: flex;
     align-items: center;
