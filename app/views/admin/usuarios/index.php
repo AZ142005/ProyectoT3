@@ -168,6 +168,14 @@
                                 <?= e($paginacion['total']) ?> en total
                             </span>
                         </div>
+                        <button type="button"
+                                class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalCrearUsuario"
+                                title="Crear un nuevo usuario del sistema">
+                            <span class="material-symbols-outlined text-[16px]">person_add</span>
+                            <span>Nuevo Usuario</span>
+                        </button>
                     </div>
 
                     <div class="table-responsive">
@@ -233,6 +241,23 @@
                                                     </span>
                                                 </div>
                                                 <small class="text-xs text-on-surface-variant d-block mt-0.5"><?= e($u['detalle_ubicacion']) ?></small>
+                                                <?php if ($u['tipo_entidad'] === 'usuario'): ?>
+                                                    <form method="POST" action="/admin/usuarios/cambiar-rol" class="d-flex align-items-center gap-1 mt-2">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="id" value="<?= e($u['id']) ?>">
+                                                        <select name="nuevo_rol"
+                                                                class="form-select form-select-sm w-auto py-0.5 text-xs"
+                                                                aria-label="Cambiar rol de <?= e($u['nombre_completo']) ?>">
+                                                            <option value="admin" <?= $u['rol_clave'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                                            <option value="auditor" <?= $u['rol_clave'] === 'auditor' ? 'selected' : '' ?>>Auditor</option>
+                                                        </select>
+                                                        <button type="submit"
+                                                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold p-1 rounded-lg inline-flex items-center justify-center transition-colors"
+                                                                title="Guardar rol">
+                                                            <span class="material-symbols-outlined fs-6">save</span>
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="py-4 px-4">
                                                 <?php if (!empty($u['esta_bloqueado'])): ?>
@@ -379,6 +404,106 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear Nuevo Usuario (Admin/Auditor) -->
+<div class="modal fade" id="modalCrearUsuario" tabindex="-1" aria-labelledby="modalCrearUsuarioTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form method="POST" action="/admin/usuarios/crear">
+                <?= csrf_field() ?>
+                <div class="modal-header bg-primary text-white py-3 px-4 border-bottom">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalCrearUsuarioTitle">
+                        <span class="material-symbols-outlined text-white">person_add</span>
+                        <span>Nuevo Usuario del Sistema</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <p class="text-secondary small mb-3">
+                        Cree una cuenta de acceso al sistema con rol de Administrador o Auditor. Los campos marcados con * son obligatorios.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="crear_nombre_completo" class="form-label fw-bold small text-dark">Nombre Completo *</label>
+                            <input type="text" id="crear_nombre_completo" name="nombre_completo"
+                                   class="form-control"
+                                   maxlength="150"
+                                   required
+                                   placeholder="Ej: María Rodríguez">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_usuario" class="form-label fw-bold small text-dark">Nombre de Usuario *</label>
+                            <input type="text" id="crear_usuario" name="usuario"
+                                   class="form-control"
+                                   maxlength="50"
+                                   required
+                                   autocomplete="off"
+                                   placeholder="Ej: mrodriguez">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_email" class="form-label fw-bold small text-dark">Correo Electrónico *</label>
+                            <input type="email" id="crear_email" name="email"
+                                   class="form-control"
+                                   maxlength="100"
+                                   required
+                                   placeholder="usuario@ejemplo.com">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_cedula" class="form-label fw-bold small text-dark">Cédula (opcional)</label>
+                            <input type="text" id="crear_cedula" name="cedula"
+                                   class="form-control"
+                                   maxlength="10"
+                                   placeholder="Ej: V12345678">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_telefono" class="form-label fw-bold small text-dark">Teléfono (opcional)</label>
+                            <input type="tel" id="crear_telefono" name="telefono"
+                                   class="form-control"
+                                   maxlength="11"
+                                   placeholder="Ej: 04121234567"
+                                   pattern="^(0412|0414|0424|0416|0426)[0-9]{7}$"
+                                   title="Ingrese un número telefónico venezolano de 11 dígitos (0412, 0414, 0424, 0416, 0426)"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_password" class="form-label fw-bold small text-dark">Contraseña *</label>
+                            <input type="password" id="crear_password" name="password"
+                                   class="form-control"
+                                   minlength="8"
+                                   required
+                                   autocomplete="new-password"
+                                   placeholder="Mínimo 8 caracteres (letras y números)">
+                            <small class="text-muted d-block mt-1">Debe contener mínimo 8 caracteres, con al menos una letra y un número.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="crear_rol" class="form-label fw-bold small text-dark">Rol *</label>
+                            <select id="crear_rol" name="rol" class="form-select" required>
+                                <option value="auditor" selected>Auditor (solo lectura y fiscalización)</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-3 px-4 border-top">
+                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                        <span class="material-symbols-outlined fs-6">person_add</span>
+                        <span>Crear Usuario</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
