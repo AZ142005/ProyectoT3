@@ -19,22 +19,22 @@ Solo admin. Excluidos: vistas de impresión (`reportes/imprimir.php`), carta ind
 ## Checklist
 
 ### Lote A — sin cobertura de tests (5)
-- [ ] `admin/cuentas_bancarias/index.php`
-- [ ] `admin/estacionamientos/index.php`
-- [ ] `admin/respaldos/index.php`
-- [ ] `admin/comunicados/index.php`
-- [ ] `admin/solicitudes_registro/index.php` (partial dentro del tab de usuarios)
+- [x] `admin/cuentas_bancarias/index.php`
+- [x] `admin/estacionamientos/index.php`
+- [x] `admin/respaldos/index.php`
+- [x] `admin/comunicados/index.php`
+- [x] `admin/solicitudes_registro/index.php` (partial dentro del tab de usuarios)
 
 ### Lote B — parciales (5)
-- [ ] `pagos/admin/lista.php` (thead `bg-slate-50`/`text-slate-500`, th `py-4`, hover `hover:bg-slate-50`, badge sin borde)
-- [ ] `admin/gastos/index.php` (filtros ya en referencia; tarjeta/tabla pendientes)
-- [ ] `admin/gastos/cargar_maestro.php` (grilla editable; solo textos/encabezados, no tocar inputs)
-- [ ] `admin/usuarios/index.php` (h1 y filtros ya en referencia; tarjeta/tabla pendientes)
-- [ ] `admin/dashboard.php` (título + tabla de últimos movimientos; prohibido generar la cadena exacta `class="py-4 px-4 font-mono text-xs">` — test la prohíbe)
+- [x] `pagos/admin/lista.php` (thead `bg-slate-50`/`text-slate-500`, th `py-4`, hover `hover:bg-slate-50`, badge sin borde)
+- [x] `admin/gastos/index.php` (filtros ya en referencia; tarjeta/tabla pendientes)
+- [x] `admin/gastos/cargar_maestro.php` (grilla editable; solo textos/encabezados, no tocar inputs)
+- [x] `admin/usuarios/index.php` (h1 y filtros ya en referencia; tarjeta/tabla pendientes)
+- [x] `admin/dashboard.php` (título + tabla de últimos movimientos; prohibido generar la cadena exacta `class="py-4 px-4 font-mono text-xs">` — test la prohíbe)
 
 ### Lote C — delicadas con tests (2)
-- [ ] `admin/reportes/morosidad.php` (conservar `id="tablaBalanceUnidades"`, `class="fila-unidad ` con espacio final, paleta roja suave y botón ámbar del commit b04386b, scroll `max-h-[calc(100vh_-_33rem)]`, CSS sticky — actualizar fondo sticky a `#ffffff` si el thead deja de ser `table-light`)
-- [ ] `admin/estructura.php` (conservar ids `tablaDirectorioEdificios`/`tablaConfiguracionEdificios`, `class="fila-edificio`, atributos collapse y acciones; tablas anidadas mantienen `text-xs`)
+- [x] `admin/reportes/morosidad.php` (conservar `id="tablaBalanceUnidades"`, `class="fila-unidad ` con espacio final, paleta roja suave y botón ámbar del commit b04386b, scroll `max-h-[calc(100vh_-_33rem)]`, CSS sticky — actualizar fondo sticky a `#ffffff` si el thead deja de ser `table-light`)
+- [x] `admin/estructura.php` (conservar ids `tablaDirectorioEdificios`/`tablaConfiguracionEdificios`, `class="fila-edificio`, atributos collapse y acciones; tablas anidadas mantienen `text-xs`)
 
 ## Restricciones
 - No tocar: modales, formularios/inputs, JS, ids, rutas, data-attributes, valores de options.
@@ -46,5 +46,11 @@ Solo admin. Excluidos: vistas de impresión (`reportes/imprimir.php`), carta ind
 - Verificador independiente al final sobre todos los commits del cambio.
 - RDD: no evaluable en OpenCode (unassessable); verificación por suite + verificador.
 
-## Entrega
-DIRECTO EN MAIN (convención del repo), commits work-unit por lote, sin push.
+## Entrega y verificación
+- Lote A: commit `3969d00` (cuentas, estacionamientos, respaldos, comunicados, solicitudes).
+- Lote B: commit `aaad633` (pagos/admin/lista, gastos, cargar_maestro, usuarios, dashboard) + fix de padding en celdas de la grilla editable (`p-2`) detectado en spot check.
+- Lote C: commit `d701120` (morosidad, estructura).
+- Plan: commit `a0f56e0`.
+- Verificación independiente del rango `b04386b..HEAD`: VERIFIED (0 celdas sin padding, 0 clases Bootstrap de tabla restantes, restricciones intactas, sin cambios de texto visible).
+- Suites: BalanceAgrupado 47, EstructuraDirectorioEdificios 28, DashboardFinanciero 31, GastosTipologia 24, GastosMaestro 27, UsuariosSolicitudesTabs 34, CuentasBancarias 29, Rbac 154 — todo en verde.
+- DIRECTO EN MAIN, sin push. RDD no evaluable en OpenCode (unassessable).
