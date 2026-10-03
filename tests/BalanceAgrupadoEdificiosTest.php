@@ -128,40 +128,40 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
             "El sidebar de auditor debe etiquetar la sección como 'Carta de Deuda'");
     }
 
-    public function testVistaAgrupacionEdificiosYDrillDown(): void {
+    public function testVistaListaPlanaPorUnidades(): void {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $content = file_get_contents($viewPath);
 
-        // 1. Tabla principal de edificios y elementos de agrupación
-        $this->assertStringContains('id="tablaBalanceEdificios"', $content,
-            "Debe existir la tabla con id='tablaBalanceEdificios'");
-        $this->assertStringContains('class="fila-edificio', $content,
-            "La tabla principal debe contener filas para edificios (.fila-edificio)");
+        // 1. Tabla plana de unidades con su edificio
+        $this->assertStringContains('id="tablaBalanceUnidades"', $content,
+            "Debe existir la tabla plana con id='tablaBalanceUnidades'");
+        $this->assertStringContains('class="fila-unidad ', $content,
+            "La tabla debe contener filas de unidades (.fila-unidad)");
+        $this->assertStringContains('data-busqueda=', $content,
+            "Cada fila de unidad debe exponer data-busqueda para el filtrado en vivo");
+        $this->assertStringContains('/admin/reportes/carta-deuda/', $content,
+            "Cada unidad deudora debe enlazar a su Carta de Deuda");
 
-        // 2. Elementos de drill-down colapsables
-        $this->assertStringContains('data-bs-toggle="collapse"', $content,
-            "Las filas y botones deben contar con data-bs-toggle='collapse'");
-        $this->assertStringContains('id="collapse-edificio-', $content,
-            "Cada edificio debe tener su contenedor de unidades id='collapse-edificio-...'");
-        $this->assertStringContains('Ver Unidades', $content,
-            "Debe incluir la acción interactiva 'Ver Unidades'");
+        // 2. Sin agrupación por edificios ni drill-down colapsable
+        $this->assertFalse(str_contains($content, 'id="collapse-edificio-'),
+            "Ya no debe existir el contenedor colapsable por edificio");
+        $this->assertFalse(str_contains($content, 'Ver Unidades'),
+            "Ya no debe existir la acción 'Ver Unidades'");
+        $this->assertFalse(str_contains($content, 'data-bs-toggle="collapse"'),
+            "Ya no debe existir el toggle de colapso de Bootstrap");
     }
 
-    public function testVistaImplementaAcordeonExclusivo(): void {
+    public function testVistaSinAgrupacionPorEdificios(): void {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $content = file_get_contents($viewPath);
 
-        // 1. Acordeón exclusivo via data-bs-parent y contenedor
-        $this->assertStringContains('id="accordionBalanceEdificios"', $content,
-            "Debe existir el contenedor del acordeón id='accordionBalanceEdificios'");
-        $this->assertStringContains('data-bs-parent="#accordionBalanceEdificios"', $content,
-            "Las filas de unidades deben tener data-bs-parent='#accordionBalanceEdificios' para garantizar el acordeón exclusivo");
-
-        // 2. Controlador JavaScript que colapsa cualquier otro edificio abierto
-        $this->assertStringContains('show.bs.collapse', $content,
-            "El script debe escuchar el evento 'show.bs.collapse' para manejar la exclusividad del acordeón");
-        $this->assertStringContains('bootstrap.Collapse', $content,
-            "El script debe gestionar el colapso mediante la API de Bootstrap");
+        // Sin acordeón: ni contenedor, ni parent de colapso, ni listeners de Bootstrap
+        $this->assertFalse(str_contains($content, 'id="accordionBalanceEdificios"'),
+            "Ya no debe existir el contenedor del acordeón id='accordionBalanceEdificios'");
+        $this->assertFalse(str_contains($content, 'data-bs-parent="#accordionBalanceEdificios"'),
+            "Ya no debe existir data-bs-parent del acordeón de edificios");
+        $this->assertFalse(str_contains($content, 'show.bs.collapse'),
+            "Ya no debe existir el listener 'show.bs.collapse'");
     }
 
     public function testAdaptacionDeFiltrosYBuscador(): void {

@@ -33,7 +33,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="fw-bold text-dark mb-1">Carta de Deuda</h4>
-            <p class="text-muted small mb-0">Consolidado financiero por edificios y desglose de solvencia de unidades</p>
+            <p class="text-muted small mb-0">Listado de unidades con edificio, propietario, mora y deuda pendiente</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5">
@@ -122,20 +122,20 @@
         </form>
     </div>
 
-    <!-- Tabla del Reporte: Agrupación por Edificios -->
+    <!-- Tabla del Reporte: Lista Plana de Unidades -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h5 class="card-title mb-0 fw-bold text-dark">Carta de Deuda</h5>
-                <small class="text-muted">Vista consolidada por edificio con detalle de unidades desplegable</small>
+                <small class="text-muted">Lista de unidades con su edificio, propietario y estado de solvencia</small>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-primary rounded-pill px-3 py-1.5"><?= count($edificiosConsolidados) ?> Edificios Registrados</span>
-                <span class="badge bg-slate-100 text-slate-700 border border-slate-200 rounded-pill px-3 py-1.5"><?= count($morosos) ?> Unidades</span>
+                <span class="badge bg-primary rounded-pill px-3 py-1.5"><?= count($morosos) ?> Unidades</span>
+                <span class="badge bg-slate-100 text-slate-700 border border-slate-200 rounded-pill px-3 py-1.5"><?= count($edificiosConsolidados) ?> Edificios</span>
             </div>
         </div>
 
-        <!-- Búsqueda rápida sobre edificios y unidades -->
+        <!-- Búsqueda rápida por edificio, unidad o propietario -->
         <div class="p-3 border-bottom bg-light bg-opacity-50">
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
@@ -147,214 +147,112 @@
 
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="tablaBalanceEdificios" style="table-layout: fixed; width: 100%;">
+                <table class="table table-hover align-middle mb-0" id="tablaBalanceUnidades" style="table-layout: fixed; width: 100%;">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4 py-3" style="width: 32%;">Edificio</th>
-                            <th class="py-3" style="width: 16%;">Unidades</th>
-                            <th class="py-3" style="width: 20%;">Estado de Solvencia</th>
-                            <th class="py-3 text-end" style="width: 18%;">Deuda Total (Bs)</th>
-                            <th class="py-3 text-center pe-4" style="width: 14%; min-width: 140px;">Detalle</th>
+                            <th class="ps-4 py-3" style="width: 22%;">Edificio</th>
+                            <th class="py-3" style="width: 9%;">Unidad</th>
+                            <th class="py-3" style="width: 19%;">Propietario</th>
+                            <th class="py-3 text-center" style="width: 10%;">Estado</th>
+                            <th class="py-3 text-center" style="width: 9%;">Facturas Vencidas</th>
+                            <th class="py-3 text-center" style="width: 12%;">Días de Mora</th>
+                            <th class="py-3 text-end" style="width: 10%;">Total Deuda (Bs)</th>
+                            <th class="py-3 text-center pe-4" style="width: 9%; min-width: 140px;">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-background" id="accordionBalanceEdificios">
-                        <?php if (empty($edificiosConsolidados)): ?>
+                    <tbody class="divide-y divide-background">
+                        <?php if (empty($morosos)): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <span class="material-symbols-outlined display-4 d-block mb-2 text-primary">search_off</span>
-                                    No se encontraron edificios ni unidades para los filtros seleccionados.
+                                    No se encontraron unidades para los filtros seleccionados.
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($edificiosConsolidados as $ed): ?>
-                                <?php 
-                                $unidadesEdificio = $ed['unidades'] ?? [];
-                                $totalUnidades = count($unidadesEdificio);
-                                $filtroEdificioId = intval($filtros['edificio_id'] ?? 0);
-                                $estaAbierto = ($filtroEdificioId > 0 && $filtroEdificioId === (int)$ed['edificio_id']);
-                                $tieneDeuda = ($ed['balance_total'] > 0);
-                                $searchTerms = strtolower($ed['edificio_nombre'] . ' ' . ($ed['edificio_descripcion'] ?? '') . ' ' . implode(' ', array_column($unidadesEdificio, 'unidad_numero')) . ' ' . implode(' ', array_column($unidadesEdificio, 'propietario_nombre')));
-                                ?>
-                                <tr class="fila-edificio cursor-pointer transition-colors" 
-                                    data-collapse-target="#collapse-edificio-<?= e($ed['edificio_id']) ?>"
-                                    aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
-                                    data-busqueda="<?= e($searchTerms) ?>">
-                                    <td class="ps-4 py-3 font-bold text-on-surface">
+                            <?php foreach ($morosos as $u): ?>
+                                <?php $esSolvente = ($u['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
+                                <tr class="fila-unidad <?= $esSolvente ? 'bg-white' : 'table-danger bg-opacity-10' ?>"
+                                    data-busqueda="<?= e(strtolower($u['edificio_nombre'] . ' ' . $u['unidad_numero'] . ' ' . ($u['propietario_nombre'] ?? '') . ' ' . ($u['propietario_cedula'] ?? ''))) ?>">
+                                    <td class="ps-4 py-3">
                                         <div class="d-flex align-items-center gap-2.5">
-                                            <div class="w-10 h-10 rounded-3 <?= $tieneDeuda ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary' ?> d-flex align-items-center justify-center shrink-0">
+                                            <div class="w-10 h-10 rounded-3 <?= $esSolvente ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger' ?> d-flex align-items-center justify-content-center shrink-0">
                                                 <span class="material-symbols-outlined fs-5">domain</span>
                                             </div>
                                             <div>
-                                                <span class="text-sm font-bold text-dark d-block"><?= e($ed['edificio_nombre']) ?></span>
-                                                <?php if (!empty($ed['edificio_descripcion'])): ?>
-                                                    <span class="text-xs text-muted font-normal"><?= e($ed['edificio_descripcion']) ?></span>
+                                                <span class="text-sm font-bold text-dark d-block"><?= e($u['edificio_nombre']) ?></span>
+                                                <?php if (!empty($u['edificio_descripcion'])): ?>
+                                                    <span class="text-xs text-muted font-normal"><?= e($u['edificio_descripcion']) ?></span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3">
-                                        <span class="badge bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-1.5 rounded-pill fw-bold d-inline-flex align-items-center gap-1">
-                                            <span class="material-symbols-outlined text-[15px]">apartment</span>
-                                            <span><?= e($totalUnidades) ?> unidades</span>
-                                        </span>
+                                        <span class="font-monospace fw-bold text-dark"><?= e($u['unidad_numero']) ?></span>
                                     </td>
                                     <td class="py-3">
-                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                        <div class="fw-bold text-dark small"><?= e($u['propietario_nombre'] ?: 'Sin Propietario') ?></div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                            C.I: <?= e($u['propietario_cedula'] ?: 'N/A') ?>
+                                            <?= ($u['propietario_telefono'] && $u['propietario_telefono'] !== 'N/A') ? ' | Tel: ' . e($u['propietario_telefono']) : '' ?>
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if ($esSolvente): ?>
                                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
                                                 <span class="material-symbols-outlined fs-6">check_circle</span>
-                                                <?= e($ed['unidades_solventes']) ?> Solventes
+                                                Solvente
                                             </span>
-                                            <?php if ($ed['unidades_deudoras'] > 0): ?>
-                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
-                                                    <span class="material-symbols-outlined fs-6">warning</span>
-                                                    <?= e($ed['unidades_deudoras']) ?> Con Deuda
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-light text-muted border px-2 py-1 fw-semibold">
-                                                    0 Con Deuda
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">warning</span>
+                                                Con Deuda
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
-                                    <td class="py-3 text-end font-monospace fw-bold fs-6 <?= $tieneDeuda ? 'text-danger' : 'text-success' ?>">
-                                        <?= e(formatearMoneda($ed['balance_total'])) ?>
+                                    <td class="text-center">
+                                        <?php if ($esSolvente): ?>
+                                            <span class="badge bg-light text-muted border rounded-pill">0</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger rounded-pill"><?= e($u['facturas_vencidas']) ?></span>
+                                        <?php endif; ?>
                                     </td>
-                                    <td class="py-3 text-center pe-4">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs fw-bold rounded-pill btn-toggle-detalle"
-                                                data-bs-toggle="collapse" 
-                                                data-bs-target="#collapse-edificio-<?= e($ed['edificio_id']) ?>"
-                                                aria-expanded="<?= $estaAbierto ? 'true' : 'false' ?>"
-                                                title="Ver unidades de <?= e($ed['edificio_nombre']) ?>">
-                                            <span class="btn-text"><?= $estaAbierto ? 'Ocultar' : 'Ver Unidades' ?></span>
-                                            <span class="material-symbols-outlined fs-6 chevron-icon"><?= $estaAbierto ? 'expand_less' : 'expand_more' ?></span>
-                                        </button>
+                                    <td class="text-center">
+                                        <?php if ($esSolvente): ?>
+                                            <span class="text-success small fw-semibold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">done_all</span>
+                                                Al día
+                                            </span>
+                                        <?php elseif ($u['dias_mora_max'] >= 90): ?>
+                                            <span class="badge bg-danger rounded-pill px-2.5 py-1 fw-bold">
+                                                <span class="material-symbols-outlined align-middle fs-6 me-1">warning</span>
+                                                <?= e($u['dias_mora_max']) ?> días (Crítico)
+                                            </span>
+                                        <?php elseif ($u['dias_mora_max'] >= 60): ?>
+                                            <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">
+                                                <?= e($u['dias_mora_max']) ?> días
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-info text-dark rounded-pill px-2.5 py-1">
+                                                <?= e($u['dias_mora_max']) ?> días
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end font-monospace fw-bold small <?= $esSolvente ? 'text-muted' : 'text-danger' ?>">
+                                        <?= e(formatearMoneda($u['total_deuda'])) ?>
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <?php if (!$esSolvente): ?>
+                                            <a href="/admin/reportes/carta-deuda/<?= e($u['unidad_id']) ?>" class="btn btn-outline-warning btn-sm fw-bold d-inline-flex align-items-center gap-1 py-1 px-2" title="Ver Carta Oficial de Deuda">
+                                                <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted small d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6 text-success">verified</span> Al día
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-
-                                <!-- DESPLIEGUE DRILL-DOWN: DETALLE DE UNIDADES DEL EDIFICIO SELECCIONADO (ACORDEÓN EXCLUSIVO) -->
-                                <tr class="fila-unidades-contenedor bg-light bg-opacity-75">
-                                    <td colspan="5" class="p-0 border-0">
-                                        <div class="collapse <?= $estaAbierto ? 'show' : '' ?> fila-unidades-collapse" 
-                                             id="collapse-edificio-<?= e($ed['edificio_id']) ?>" 
-                                             data-bs-parent="#accordionBalanceEdificios">
-                                            <div class="p-3">
-                                                <div class="bg-white rounded-3 border shadow-sm p-3">
-                                            <div class="d-flex align-items-center justify-content-between border-bottom pb-2.5 mb-3 flex-wrap gap-2">
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="material-symbols-outlined text-primary fs-5">roofing</span>
-                                                    <h6 class="fw-bold uppercase tracking-wider text-dark mb-0">
-                                                        Unidades pertenecientes a <?= e($ed['edificio_nombre']) ?>
-                                                    </h6>
-                                                    <span class="badge bg-slate-100 text-slate-700 border text-xs"><?= e($totalUnidades) ?> unidades</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="text-xs text-muted">Deuda del Edificio:</span>
-                                                    <span class="fw-bold fs-6 font-monospace <?= $tieneDeuda ? 'text-danger' : 'text-success' ?>">
-                                                        <?= e(formatearMoneda($ed['balance_total'])) ?>
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <?php if (empty($unidadesEdificio)): ?>
-                                                <div class="text-center py-4 text-muted">
-                                                    <span class="material-symbols-outlined fs-2 text-muted mb-1 d-block">home</span>
-                                                    <p class="small mb-0">No hay unidades registradas o que coincidan con los filtros en este edificio.</p>
-                                                </div>
-                                            <?php else: ?>
-                                                <div class="table-responsive">
-                                                    <table class="table table-sm table-hover align-middle mb-0">
-                                                        <thead class="table-light">
-                                                            <tr class="text-muted small fw-bold text-uppercase">
-                                                                <th class="ps-3 py-2">Unidad</th>
-                                                                <th class="py-2">Propietario</th>
-                                                                <th class="py-2 text-center">Estado</th>
-                                                                <th class="py-2 text-center">Facturas Vencidas</th>
-                                                                <th class="py-2 text-center">Días de Mora</th>
-                                                                <th class="py-2 text-end">Total Deuda (Bs)</th>
-                                                                <th class="py-2 text-center pe-3">Acciones</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php foreach ($unidadesEdificio as $u): ?>
-                                                                <?php $esSolvente = ($u['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
-                                                                <tr class="<?= $esSolvente ? 'bg-white' : 'table-danger bg-opacity-10' ?>">
-                                                                    <td class="ps-3 font-monospace fw-bold text-dark">
-                                                                        Apto/Unidad <?= e($u['unidad_numero']) ?>
-                                                                    </td>
-                                                                    <td>
-                                                                        <div class="fw-bold text-dark small"><?= e($u['propietario_nombre'] ?: 'Sin Propietario') ?></div>
-                                                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
-                                                                            C.I: <?= e($u['propietario_cedula'] ?: 'N/A') ?> 
-                                                                            <?= ($u['propietario_telefono'] && $u['propietario_telefono'] !== 'N/A') ? ' | Tel: ' . e($u['propietario_telefono']) : '' ?>
-                                                                        </small>
-                                                                    </td>
-                                                                    <td class="text-center">
-                                                                        <?php if ($esSolvente): ?>
-                                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
-                                                                                <span class="material-symbols-outlined fs-6">check_circle</span>
-                                                                                Solvente
-                                                                            </span>
-                                                                        <?php else: ?>
-                                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
-                                                                                <span class="material-symbols-outlined fs-6">warning</span>
-                                                                                Con Deuda
-                                                                            </span>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="text-center">
-                                                                        <?php if ($esSolvente): ?>
-                                                                            <span class="badge bg-light text-muted border rounded-pill">0</span>
-                                                                        <?php else: ?>
-                                                                            <span class="badge bg-danger rounded-pill"><?= e($u['facturas_vencidas']) ?></span>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="text-center">
-                                                                        <?php if ($esSolvente): ?>
-                                                                            <span class="text-success small fw-semibold d-inline-flex align-items-center gap-1">
-                                                                                <span class="material-symbols-outlined fs-6">done_all</span>
-                                                                                Al día
-                                                                            </span>
-                                                                        <?php elseif ($u['dias_mora_max'] >= 90): ?>
-                                                                            <span class="badge bg-danger rounded-pill px-2.5 py-1 fw-bold">
-                                                                                <span class="material-symbols-outlined align-middle fs-6 me-1">warning</span>
-                                                                                <?= e($u['dias_mora_max']) ?> días (Crítico)
-                                                                            </span>
-                                                                        <?php elseif ($u['dias_mora_max'] >= 60): ?>
-                                                                            <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">
-                                                                                <?= e($u['dias_mora_max']) ?> días
-                                                                            </span>
-                                                                        <?php else: ?>
-                                                                            <span class="badge bg-info text-dark rounded-pill px-2.5 py-1">
-                                                                                <?= e($u['dias_mora_max']) ?> días
-                                                                            </span>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="text-end font-monospace fw-bold small <?= $esSolvente ? 'text-muted' : 'text-danger' ?>">
-                                                                        <?= e(formatearMoneda($u['total_deuda'])) ?>
-                                                                    </td>
-                                                                    <td class="text-center pe-3">
-                                                                        <?php if (!$esSolvente): ?>
-                                                                            <a href="/admin/reportes/carta-deuda/<?= e($u['unidad_id']) ?>" class="btn btn-outline-warning btn-sm fw-bold d-inline-flex align-items-center gap-1 py-1 px-2" title="Ver Carta Oficial de Deuda">
-                                                                                <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
-                                                                            </a>
-                                                                        <?php else: ?>
-                                                                            <span class="text-muted small d-inline-flex align-items-center gap-1">
-                                                                                <span class="material-symbols-outlined fs-6 text-success">verified</span> Al día
-                                                                            </span>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                </tr>
-                                                            <?php endforeach; ?>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -363,7 +261,7 @@
             <!-- Fila informativa para resultados de búsqueda en vivo vacíos -->
             <div id="sinResultadosBalance" class="text-center py-5 text-muted d-none">
                 <span class="material-symbols-outlined display-4 d-block mb-2 text-primary">search_off</span>
-                No se encontraron edificios o unidades que coincidan con la búsqueda.
+                No se encontraron unidades que coincidan con la búsqueda.
             </div>
         </div>
     </div>
@@ -373,115 +271,21 @@
         </div>
     </div>
 </div>
-
-<style>
-.fila-edificio {
-    transition: background-color 0.2s ease-in-out;
-}
-.fila-edificio:hover {
-    background-color: rgba(var(--bs-primary-rgb), 0.04);
-}
-.fila-unidades-collapse,
-.fila-unidades-collapse.collapse,
-.fila-unidades-collapse.show,
-.fila-unidades-collapse * {
-    visibility: visible !important;
-}
-tr.fila-unidades-contenedor > td {
-    padding: 0 !important;
-    border: none !important;
-}
-</style>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Manejo del clic en la fila del edificio (sin conflicto con el botón)
-    const filasEdificio = document.querySelectorAll('#tablaBalanceEdificios tbody tr.fila-edificio');
-    filasEdificio.forEach(row => {
-        row.addEventListener('click', (e) => {
-            if (e.target.closest('button, a, input, select, .btn')) {
-                return;
-            }
-            const targetSelector = row.getAttribute('data-collapse-target');
-            if (targetSelector) {
-                const targetEl = document.querySelector(targetSelector);
-                if (targetEl && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                    bootstrap.Collapse.getOrCreateInstance(targetEl).toggle();
-                }
-            }
-        });
-    });
-
-    const collapseElements = document.querySelectorAll('.fila-unidades-collapse');
-
-    collapseElements.forEach(collapseEl => {
-        // Evento show: Sincronizar texto e icono del botón activador a "Ocultar"
-        collapseEl.addEventListener('show.bs.collapse', function () {
-            const targetId = '#' + collapseEl.id;
-            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
-            triggerBtns.forEach(btn => {
-                const icon = btn.querySelector('.chevron-icon');
-                if (icon) icon.textContent = 'expand_less';
-                const textSpan = btn.querySelector('.btn-text');
-                if (textSpan) textSpan.textContent = 'Ocultar';
-                btn.setAttribute('aria-expanded', 'true');
-            });
-        });
-
-        // Evento hide: Restaurar texto e icono del botón a "Ver Unidades"
-        collapseEl.addEventListener('hide.bs.collapse', function () {
-            const targetId = '#' + collapseEl.id;
-            const triggerBtns = document.querySelectorAll(`[data-bs-target="${targetId}"], [data-collapse-target="${targetId}"]`);
-            triggerBtns.forEach(btn => {
-                const icon = btn.querySelector('.chevron-icon');
-                if (icon) icon.textContent = 'expand_more';
-                const textSpan = btn.querySelector('.btn-text');
-                if (textSpan) textSpan.textContent = 'Ver Unidades';
-                btn.setAttribute('aria-expanded', 'false');
-            });
-        });
-    });
-});
-
-// Búsqueda en vivo client-side sobre edificios y unidades
+// Búsqueda en vivo client-side sobre la lista plana de unidades
 function filtrarBalance(query) {
     const q = (query || '').toLowerCase().trim();
-    const rows = document.querySelectorAll('#tablaBalanceEdificios tbody tr.fila-edificio');
+    const rows = document.querySelectorAll('#tablaBalanceUnidades tbody tr.fila-unidad');
     let visibles = 0;
 
     rows.forEach(row => {
-        const targetId = row.getAttribute('data-collapse-target') || row.getAttribute('data-bs-target');
-        const collapseEl = targetId ? document.querySelector(targetId) : null;
-        const containerRow = collapseEl ? collapseEl.closest('tr.fila-unidades-contenedor') : null;
-        const textoEdificio = (row.dataset.busqueda || row.innerText || '').toLowerCase();
-        const textoUnidades = collapseEl ? (collapseEl.innerText || '').toLowerCase() : '';
-
-        if (!q || textoEdificio.includes(q) || textoUnidades.includes(q)) {
+        const texto = (row.dataset.busqueda || '').toLowerCase();
+        if (!q || texto.includes(q)) {
             row.style.display = '';
             visibles++;
-            if (containerRow) {
-                containerRow.style.display = '';
-            }
-            if (q && textoUnidades.includes(q) && collapseEl) {
-                // Autoexpandir si la búsqueda coincide directamente con unidades dentro del edificio
-                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
-                } else {
-                    collapseEl.classList.add('show');
-                }
-            }
         } else {
             row.style.display = 'none';
-            if (collapseEl) {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                    bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).hide();
-                } else {
-                    collapseEl.classList.remove('show');
-                }
-            }
-            if (containerRow) {
-                containerRow.style.display = 'none';
-            }
         }
     });
 
