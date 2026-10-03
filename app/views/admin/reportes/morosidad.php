@@ -180,11 +180,11 @@
                         <?php else: ?>
                             <?php foreach ($morosos as $u): ?>
                                 <?php $esSolvente = ($u['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
-                                <tr class="fila-unidad <?= $esSolvente ? 'bg-white' : 'table-danger bg-opacity-10' ?>"
+                                <tr class="fila-unidad <?= $esSolvente ? 'bg-white' : 'bg-red-50' ?>"
                                     data-busqueda="<?= e(strtolower($u['edificio_nombre'] . ' ' . $u['unidad_numero'] . ' ' . ($u['propietario_nombre'] ?? '') . ' ' . ($u['propietario_cedula'] ?? ''))) ?>">
                                     <td class="ps-4 py-3">
                                         <div class="d-flex align-items-center gap-2.5">
-                                            <div class="w-10 h-10 rounded-3 <?= $esSolvente ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger' ?> d-flex align-items-center justify-content-center shrink-0">
+                                            <div class="w-10 h-10 rounded-3 <?= $esSolvente ? 'bg-primary-subtle text-primary' : 'bg-red-50 text-red-400' ?> d-flex align-items-center justify-content-center shrink-0">
                                                 <span class="material-symbols-outlined fs-5">domain</span>
                                             </div>
                                             <div>
@@ -212,7 +212,7 @@
                                                 Solvente
                                             </span>
                                         <?php else: ?>
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                            <span class="badge bg-red-50 text-red-500 border border-red-200 px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
                                                 <span class="material-symbols-outlined fs-6">warning</span>
                                                 Con Deuda
                                             </span>
@@ -222,7 +222,7 @@
                                         <?php if ($esSolvente): ?>
                                             <span class="badge bg-light text-muted border rounded-pill">0</span>
                                         <?php else: ?>
-                                            <span class="badge bg-danger rounded-pill"><?= e($u['facturas_vencidas']) ?></span>
+                                            <span class="badge bg-red-50 text-red-500 border border-red-200 rounded-pill fw-bold"><?= e($u['facturas_vencidas']) ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
@@ -232,16 +232,16 @@
                                                 Al día
                                             </span>
                                         <?php elseif ($u['dias_mora_max'] >= 90): ?>
-                                            <span class="badge bg-danger rounded-pill px-2.5 py-1 fw-bold">
+                                            <span class="badge bg-red-100 text-red-600 border border-red-200 rounded-pill px-2.5 py-1 fw-bold">
                                                 <span class="material-symbols-outlined align-middle fs-6 me-1">warning</span>
                                                 <?= e($u['dias_mora_max']) ?> días (Crítico)
                                             </span>
                                         <?php elseif ($u['dias_mora_max'] >= 60): ?>
-                                            <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">
+                                            <span class="badge bg-amber-50 text-amber-700 border border-amber-200 rounded-pill px-2.5 py-1 fw-bold">
                                                 <?= e($u['dias_mora_max']) ?> días
                                             </span>
                                         <?php else: ?>
-                                            <span class="badge bg-info text-dark rounded-pill px-2.5 py-1">
+                                            <span class="badge bg-sky-50 text-sky-700 border border-sky-200 rounded-pill px-2.5 py-1">
                                                 <?= e($u['dias_mora_max']) ?> días
                                             </span>
                                         <?php endif; ?>
@@ -251,8 +251,9 @@
                                     </td>
                                     <td class="text-center pe-4">
                                         <?php if (!$esSolvente): ?>
-                                            <a href="/admin/reportes/carta-deuda/<?= e($u['unidad_id']) ?>" class="btn btn-outline-warning btn-sm fw-bold d-inline-flex align-items-center gap-1 py-1 px-2" title="Ver Carta Oficial de Deuda">
-                                                <span class="material-symbols-outlined fs-6">description</span> Carta Deuda
+                                            <a href="/admin/reportes/carta-deuda/<?= e($u['unidad_id']) ?>" class="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-500 text-amber-950 border border-amber-500/50 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap" title="Ver Carta Oficial de Deuda">
+                                                <span class="material-symbols-outlined text-[16px]">description</span>
+                                                <span>Carta Deuda</span>
                                             </a>
                                         <?php else: ?>
                                             <span class="text-muted small d-inline-flex align-items-center gap-1">
