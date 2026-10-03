@@ -148,24 +148,11 @@ class ComunicadoController extends Controller {
     public function carteleraResidente() {
         Auth::requireRole('residente');
 
-        $user = Auth::user();
-        $personaId = $user['persona_id'] ?? null;
+        // Resolución unificada del portal: personas.unidad_id / unidades.edificio_id
+        $residente = $this->getAuthenticatedResidente();
+        $unidadId = !empty($residente['unidad_id']) ? intval($residente['unidad_id']) : null;
+        $edificioId = !empty($residente['edificio_id']) ? intval($residente['edificio_id']) : null;
         $pagina = max(1, intval($_GET['page'] ?? 1));
-
-        $edificioId = null;
-        $unidadId = null;
-
-        // Consultar la unidad asignada al residente
-        if ($personaId) {
-            $db = \App\Core\Database::getConnection();
-            $stmt = $db->prepare("SELECT id, edificio_id FROM unidades WHERE propietario_id = :pid LIMIT 1");
-            $stmt->execute(['pid' => $personaId]);
-            $u = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($u) {
-                $unidadId = intval($u['id']);
-                $edificioId = intval($u['edificio_id']);
-            }
-        }
 
         $comunicadosModel = new ComunicadosModel();
         $resultado = $comunicadosModel->obtenerPorResidente($edificioId, $unidadId, $pagina, 10);

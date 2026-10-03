@@ -18,7 +18,7 @@ class PersonasModel extends BaseModel {
 
     public function getResidenteDetails($residente_id) {
         $sql = "
-            SELECT p.*, u.numero as unidad_numero, e.nombre as torre 
+            SELECT p.*, u.numero as unidad_numero, u.edificio_id AS edificio_id, e.nombre as torre 
             FROM personas p
             INNER JOIN unidades u ON p.unidad_id = u.id 
             LEFT JOIN edificios e ON u.edificio_id = e.id

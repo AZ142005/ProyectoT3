@@ -5,6 +5,7 @@ use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\FacturasModel;
 use App\Models\ComprobantesModel;
+use App\Models\ComunicadosModel;
 
 class ResidenteController extends Controller {
     /**
@@ -13,53 +14,30 @@ class ResidenteController extends Controller {
     public function dashboard() {
         Auth::requireRole('residente');
         $residente = $this->getAuthenticatedResidente();
-        $residente_id = Auth::id();
 
         $facturasModel = new FacturasModel();
-        $comprobantesModel = new ComprobantesModel();
 
         $unidad_id = $residente['unidad_id'];
 
-        // Paginación estandarizada a 25 registros por página
-        $porPagina = 25;
-        $pageFacturas = max(1, intval($_GET['page_facturas'] ?? 1));
-        $pageComprobantes = max(1, intval($_GET['page_comprobantes'] ?? 1));
-
         // Obtener datos financieros
-        $resultadoFacturas = $facturasModel->getPendientesByUnidad($unidad_id, $pageFacturas, $porPagina);
-        $facturas_pendientes = $resultadoFacturas['datos'];
-        $paginacionFacturas = [
-            'total'        => $resultadoFacturas['total'],
-            'pagina'       => $resultadoFacturas['pagina'],
-            'porPagina'    => $resultadoFacturas['porPagina'],
-            'totalPaginas' => $resultadoFacturas['totalPaginas'],
-        ];
-
         $total_deuda = $facturasModel->getTotalDeudaByUnidad($unidad_id);
         $saldo_a_favor = $facturasModel->getSaldoFavorByUnidad($unidad_id);
         $saldo_a_favor_mostrar = abs($saldo_a_favor);
 
-        // Obtener comprobantes de pago recientes paginados
-        $resultadoComprobantes = $comprobantesModel->getRecientesByResidente($residente_id, $pageComprobantes, $porPagina);
-        $comprobantes = $resultadoComprobantes['datos'];
-        $paginacionComprobantes = [
-            'total'        => $resultadoComprobantes['total'],
-            'pagina'       => $resultadoComprobantes['pagina'],
-            'porPagina'    => $resultadoComprobantes['porPagina'],
-            'totalPaginas' => $resultadoComprobantes['totalPaginas'],
-        ];
+        // Obtener comunicados visibles para la unidad/edificio del residente (solo visualización)
+        $edificioId = !empty($residente['edificio_id']) ? intval($residente['edificio_id']) : null;
+        $unidadId = !empty($residente['unidad_id']) ? intval($residente['unidad_id']) : null;
+        $resultadoComunicados = (new ComunicadosModel())->obtenerPorResidente($edificioId, $unidadId, 1, 4);
 
         // Renderizar la vista pasando los datos estructurados
         $this->render('residente/dashboard', [
-            'residente'              => $residente,
-            'facturas_pendientes'    => $facturas_pendientes,
-            'paginacionFacturas'     => $paginacionFacturas,
-            'total_deuda'            => $total_deuda,
-            'saldo_a_favor_mostrar'  => $saldo_a_favor_mostrar,
-            'comprobantes'           => $comprobantes,
-            'paginacionComprobantes' => $paginacionComprobantes,
-            'showNav'                => true,
-            'title'                  => 'Estado de Deuda - Residente'
+            'residente'             => $residente,
+            'total_deuda'           => $total_deuda,
+            'saldo_a_favor_mostrar' => $saldo_a_favor_mostrar,
+            'comunicados'           => $resultadoComunicados['datos'],
+            'totalComunicados'      => $resultadoComunicados['total'],
+            'showNav'               => true,
+            'title'                 => 'Estado de Deuda - Residente'
         ]);
     }
 
