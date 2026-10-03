@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Core\Flash;
+use App\Core\Database;
 use App\Core\UserRole;
 use App\Models\UsuariosModel;
 use App\Models\PersonasModel;
@@ -65,6 +66,210 @@ class UsuarioAdminController extends Controller {
             'showNav'           => false,
             'title'             => 'Usuarios y Solicitudes - Administrador'
         ]);
+    }
+
+    /**
+     * Procesa el alta de un nuevo usuario del sistema (rol admin o auditor).
+     */
+    public function crearUsuario(): void {
+        Auth::requireRole(UserRole::ADMIN);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $nombreCompleto = trim($_POST['nombre_completo'] ?? '');
+        $usuario        = trim($_POST['usuario'] ?? '');
+        $email          = strtolower(trim($_POST['email'] ?? ''));
+        $cedula         = trim($_POST['cedula'] ?? '');
+        $telefono       = trim($_POST['telefono'] ?? '');
+        $password       = (string)($_POST['password'] ?? '');
+        $rol            = trim($_POST['rol'] ?? '');
+
+        if (empty($nombreCompleto)) {
+            Flash::error('El nombre completo es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if (empty($usuario)) {
+            Flash::error('El nombre de usuario es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if (empty($email)) {
+            Flash::error('El correo electrónico es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if (!validarEmail($email)) {
+            Flash::error('El formato del correo electrónico no es válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if (!in_array($rol, ['admin', 'auditor'], true)) {
+            Flash::error('El rol seleccionado no es válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if (!validarPassword($password)) {
+            Flash::error('La contraseña debe tener al menos 8 caracteres y contener al menos una letra y un número.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Validación de Cédula (opcional, pero si se provee debe cumplir formato)
+        $cedulaNormalizada = null;
+        if ($cedula !== '') {
+            if (!validarCedula($cedula)) {
+                Flash::error('El formato del número de cédula no es válido (debe tener entre 5 y 8 dígitos).');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+            $cedulaNormalizada = normalizarCedula($cedula);
+        }
+
+        // Validación de Teléfono (opcional, pero si se provee debe cumplir formato venezolano)
+        $telefonoLimpio = null;
+        if ($telefono !== '') {
+            $telefonoLimpio = preg_replace('/[^0-9]/', '', $telefono);
+            if (!validarTelefono($telefonoLimpio)) {
+                Flash::error('El formato del teléfono no es válido (use una operadora venezolana válida: 0412, 0414, 0424, 0416 o 0426).');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+        }
+
+        $usuariosModel = new UsuariosModel();
+        $db = Database::getConnection();
+
+        // Unicidad del nombre de usuario
+        $stmtUsuario = $db->prepare("SELECT id FROM usuarios WHERE usuario = :usuario LIMIT 1");
+        $stmtUsuario->execute(['usuario' => $usuario]);
+        if ($stmtUsuario->fetchColumn()) {
+            Flash::error('El nombre de usuario ya se encuentra registrado.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Unicidad del correo electrónico
+        if ($usuariosModel->emailExists($email)) {
+            Flash::error('El correo electrónico ya se encuentra registrado por otro usuario.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Unicidad de la cédula (si fue suministrada)
+        if ($cedulaNormalizada !== null && $usuariosModel->cedulaExisteEnOtroUsuario($cedulaNormalizada, 0)) {
+            Flash::error('El número de cédula ya se encuentra registrado por otro usuario.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO usuarios (usuario, email, cedula, telefono, password, nombre_completo, rol, estado)
+                VALUES (:usuario, :email, :cedula, :telefono, :password, :nombre_completo, :rol, 1)
+            ");
+            $exito = $stmt->execute([
+                'usuario'         => $usuario,
+                'email'           => $email,
+                'cedula'          => $cedulaNormalizada,
+                'telefono'        => $telefonoLimpio,
+                'password'        => password_hash($password, PASSWORD_BCRYPT),
+                'nombre_completo' => $nombreCompleto,
+                'rol'             => $rol
+            ]);
+        } catch (\PDOException $e) {
+            error_log("[USUARIOS] Error al crear usuario: " . sanitize_exception_message($e));
+            $exito = false;
+        }
+
+        if ($exito) {
+            $rolTexto = $rol === 'admin' ? 'Administrador' : 'Auditor';
+            Flash::success("Usuario {$usuario} creado correctamente con rol {$rolTexto}.");
+        } else {
+            Flash::error('Ocurrió un error al crear el usuario en la base de datos.');
+        }
+
+        $this->redirect('/admin/usuarios');
+    }
+
+    /**
+     * Procesa el cambio de rol (admin/auditor) de un usuario del sistema.
+     * Protege la degradación del último administrador activo.
+     */
+    public function cambiarRol(): void {
+        Auth::requireRole(UserRole::ADMIN);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $id       = intval($_POST['id'] ?? 0);
+        $nuevoRol = trim($_POST['nuevo_rol'] ?? '');
+
+        if ($id <= 0 || !in_array($nuevoRol, ['admin', 'auditor'], true)) {
+            Flash::error('El usuario o el rol seleccionado no es válido.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $usuariosModel = new UsuariosModel();
+        $usuario = $usuariosModel->getById($id);
+
+        if (!$usuario) {
+            Flash::error('El usuario del sistema seleccionado no existe.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $rolActual = strtolower(trim($usuario['rol'] ?? ''));
+
+        if ($rolActual === $nuevoRol) {
+            Flash::info('El usuario ya posee el rol seleccionado.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        // Protección clave: no dejar al sistema sin administradores activos.
+        if ($rolActual === 'admin' && $nuevoRol === 'auditor' && (int)($usuario['estado'] ?? 0) === 1) {
+            $db = Database::getConnection();
+            $stmtCount = $db->prepare("SELECT COUNT(*) FROM usuarios WHERE rol = 'admin' AND estado = 1 AND id != :id");
+            $stmtCount->execute(['id' => $id]);
+
+            if ((int)$stmtCount->fetchColumn() === 0) {
+                Flash::error('No es posible degradar al último administrador activo del sistema. Asigne otro administrador activo antes de cambiar este rol.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+        }
+
+        $nombre = $usuario['nombre_completo'] ?? $usuario['usuario'] ?? 'Usuario';
+
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE usuarios SET rol = :rol WHERE id = :id");
+            $exito = $stmt->execute(['rol' => $nuevoRol, 'id' => $id]);
+        } catch (\PDOException $e) {
+            error_log("[USUARIOS] Error al cambiar rol: " . sanitize_exception_message($e));
+            $exito = false;
+        }
+
+        if ($exito) {
+            $rolTexto = $nuevoRol === 'admin' ? 'Administrador' : 'Auditor';
+            Flash::success("Rol de {$nombre} actualizado a {$rolTexto} correctamente.");
+        } else {
+            Flash::error('Ocurrió un error al actualizar el rol en la base de datos.');
+        }
+
+        $this->redirect('/admin/usuarios');
     }
 
     /**

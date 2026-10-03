@@ -189,6 +189,8 @@ $router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserR
 $router->post('/admin/usuarios/reiniciar-password', [UsuarioAdminController::class, 'reiniciarPassword'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class, 'actualizarDatos'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/eliminar', [UsuarioAdminController::class, 'eliminar'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/crear', [UsuarioAdminController::class, 'crearUsuario'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/cambiar-rol', [UsuarioAdminController::class, 'cambiarRol'], [UserRole::ADMIN]);
 
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);
