@@ -44,10 +44,19 @@
             
             <!-- Zona de Carga (Dropzone) -->
             <div>
-                <h3 class="text-sm font-bold text-on-surface mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[18px]">cloud_upload</span>
-                    Paso 1: Subir Comprobante
-                </h3>
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    <div>
+                        <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-primary text-[20px]">document_scanner</span>
+                            Paso 1: Subir Comprobante (Extracción Inteligente)
+                        </h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Al cargar el comprobante se autocompletarán los campos vacíos del pago.</p>
+                    </div>
+                    <div id="ocrStatusBadge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full items-center gap-1.5 bg-blue-100 text-blue-800 border border-blue-200">
+                        <div id="ocrSpinner" class="animate-spin rounded-full h-3 w-3 border-2 border-primary border-t-transparent"></div>
+                        <span id="ocrStatusText">Analizando...</span>
+                    </div>
+                </div>
 
                 <!-- Cuenta Oficial para el Pago -->
                 <div class="flex flex-col gap-1.5 mb-5">
@@ -58,7 +67,7 @@
                         </span>
                     </div>
                     <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
-                            class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold cursor-pointer">
+                            class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
                         <option value="">-- Seleccione la cuenta oficial del condominio --</option>
                         <?php foreach ($cuentasBancarias as $cb): ?>
                             <option value="<?= e($cb['id']) ?>" 
@@ -126,49 +135,44 @@
                     </div>
                 </div>
 
-                <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-slate-50 hover:bg-blue-50/30 rounded-2xl p-8 transition-colors text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[200px]">
+                <div id="dropzone" class="border-2 border-dashed border-outline-variant hover:border-primary bg-white rounded-2xl p-6 transition-all text-center cursor-pointer relative group flex flex-col items-center justify-center min-h-[170px]">
                     <input type="file" id="comprobante" name="comprobante" accept=".jpg,.jpeg,.png,.pdf" required
                            class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
                     
                     <!-- Estado Inicial -->
                     <div id="dropzoneInitial" class="flex flex-col items-center pointer-events-none">
-                        <div class="w-16 h-16 bg-white rounded-full shadow-sm border border-outline-variant flex items-center justify-center mb-4 group-hover:scale-110 group-hover:text-primary transition-transform">
-                            <span class="material-symbols-outlined text-4xl text-slate-400 group-hover:text-primary">upload_file</span>
+                        <div class="w-14 h-14 bg-background rounded-full border border-outline-variant flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-primary">
+                            <span class="material-symbols-outlined text-3xl">upload_file</span>
                         </div>
-                        <p class="font-bold text-on-surface text-lg">Haz clic o arrastra tu comprobante aquí</p>
-                        <p class="text-sm text-slate-500 mt-1">Soporta JPG, PNG y PDF (Máx. 5MB)</p>
+                        <p class="font-bold text-on-surface text-base">Haz clic o arrastra tu comprobante aquí</p>
+                        <p class="text-xs text-slate-500 mt-1">Soporta JPG, PNG y PDF (Máx. 5MB) • Extracción automática</p>
                     </div>
 
                     <!-- Estado con Archivo (Previsualización) -->
                     <div id="dropzonePreview" class="hidden flex-col items-center pointer-events-none w-full">
                         <!-- Imagen (JPEG/PNG) -->
-                        <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-48 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
+                        <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-44 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
                         
                         <!-- PDF -->
                         <div id="pdfPreview" class="hidden flex flex-col items-center">
-                            <span class="material-symbols-outlined text-6xl text-red-500 mb-2">picture_as_pdf</span>
-                            <span id="pdfName" class="text-sm font-bold text-on-surface text-center break-all max-w-xs"></span>
+                            <span class="material-symbols-outlined text-5xl text-rose-500 mb-1">picture_as_pdf</span>
+                            <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs"></span>
                         </div>
                         
-                        <p class="text-xs text-primary font-bold mt-4 bg-primary/10 px-3 py-1 rounded-lg">Haz clic para cambiar el archivo</p>
+                        <p class="text-[11px] text-primary font-bold mt-3 bg-primary/10 px-3 py-1 rounded-md">Haz clic para cambiar el archivo</p>
                     </div>
                 </div>
 
-                <div class="mt-4 flex flex-col items-center gap-3">
-                    <!-- Botón Extraer Datos (OCR) -->
-                    <button type="button" id="btnOCR" disabled class="bg-slate-800 hover:bg-slate-700 text-white disabled:bg-slate-200 disabled:text-slate-400 font-bold px-6 py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed w-full sm:w-auto">
-                        <span class="material-symbols-outlined text-[20px]">document_scanner</span>
-                        <span id="ocrText">Extraer datos automáticamente</span>
-                        <div id="ocrSpinner" class="hidden animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    </button>
-
-                    <!-- Resumen del resultado de extracción -->
-                    <div id="resumenExtraccion" class="hidden w-full max-w-lg p-3 rounded-xl text-xs items-center justify-between gap-3 transition-all">
-                        <div class="flex items-center gap-2">
-                            <span id="resumenIcono" class="material-symbols-outlined text-[18px]"></span>
-                            <span id="resumenMensaje" class="font-medium"></span>
-                        </div>
+                <!-- Resumen del resultado de extracción -->
+                <div id="resumenExtraccion" class="hidden mt-4 p-3 rounded-xl text-xs flex items-center justify-between gap-3 transition-all">
+                    <div class="flex items-center gap-2">
+                        <span id="resumenIcono" class="material-symbols-outlined text-[18px]"></span>
+                        <span id="resumenMensaje" class="font-medium"></span>
                     </div>
+                    <button type="button" id="btnReanalizar" class="hidden text-xs font-bold px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all active:scale-95 shrink-0 items-center gap-1 cursor-pointer">
+                        <span class="material-symbols-outlined text-[14px]">refresh</span>
+                        Reanalizar
+                    </button>
                 </div>
             </div>
 
@@ -176,25 +180,28 @@
 
             <!-- Campos del Formulario -->
             <div>
-                <h3 class="text-sm font-bold text-on-surface mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[18px]">edit_document</span>
-                    Paso 2: Verificar o completar datos
-                </h3>
+                <div class="pb-2 border-b border-background mb-4 flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-primary text-[20px]">edit_document</span>
+                        Paso 2: Datos del Pago (Verifique o complete)
+                    </h4>
+                    <span class="text-xs text-slate-400 font-medium">* Campos obligatorios</span>
+                </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     
                     <!-- Monto Pagado -->
                     <div class="flex flex-col gap-1.5 sm:col-span-2">
                         <div class="flex items-center justify-between">
-                            <label for="monto" class="text-xs font-bold text-slate-500 uppercase tracking-wide">Monto Pagado (Bs.) <span class="text-red-500">*</span></label>
+                            <label for="monto" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Monto Pagado (Bs.) <span class="text-red-500">*</span></label>
                             <span id="badge-monto" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
                         </div>
                         <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">Bs.</span>
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-base select-none">Bs.</span>
                             <input type="number" id="monto" name="monto" step="0.01" min="0.01" required placeholder="0.00"
-                                   class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg">
+                                   class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-black text-lg">
                         </div>
                         <p class="text-xs text-slate-500 mt-0.5">
                             Cualquier pago que exceda su deuda o pago anticipado se acreditará automáticamente como <strong>Saldo a Favor</strong> para sus próximas cuotas.
@@ -212,7 +219,7 @@
                         </div>
                         <div class="relative">
                             <select id="banco_pagador" name="banco_pagador" onchange="toggleBancoOtro(this)"
-                                    class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-sm cursor-pointer">
+                                    class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
                                 <option value="">-- Seleccione el banco emisor --</option>
                                 <option value="Banco de Venezuela">Banco de Venezuela (BDV)</option>
                                 <option value="Banesco">Banesco</option>
@@ -248,34 +255,34 @@
                     <!-- Fecha de Pago -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
-                            <label for="fecha_pago" class="text-xs font-bold text-slate-500 uppercase tracking-wide">Fecha de Pago <span class="text-red-500">*</span></label>
+                            <label for="fecha_pago" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Fecha de Realización <span class="text-red-500">*</span></label>
                             <span id="badge-fecha_pago" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
                         </div>
                         <input type="date" id="fecha_pago" name="fecha_pago" value="" required
-                               class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                               class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm">
                         <div id="inconsistencia-fecha_pago"></div>
                     </div>
 
                     <!-- Número de Referencia -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
-                            <label for="referencia" class="text-xs font-bold text-slate-500 uppercase tracking-wide">Número de Referencia</label>
+                            <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia</label>
                             <span id="badge-referencia" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
                         </div>
-                        <input type="text" id="referencia" name="referencia" placeholder="Nro. de confirmación u operación"
-                               class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium font-mono">
+                        <input type="text" id="referencia" name="referencia" placeholder="Ej. 12345678"
+                               class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium text-sm">
                         <div id="inconsistencia-referencia"></div>
                     </div>
 
-                    <!-- Notas Adicionales -->
+                    <!-- Observaciones -->
                     <div class="flex flex-col gap-1.5 sm:col-span-2">
-                        <label for="observaciones" class="text-xs font-bold text-slate-500 uppercase tracking-wide">Notas Adicionales</label>
-                        <textarea id="observaciones" name="observaciones" rows="2" placeholder="Cualquier información adicional (Opcional)"
-                                  class="w-full px-4 py-3 bg-slate-50 border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"></textarea>
+                        <label for="observaciones" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Observaciones Complementarias</label>
+                        <textarea id="observaciones" name="observaciones" rows="2" placeholder="Información adicional sobre el pago..."
+                                  class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"></textarea>
                     </div>
 
                 </div>
@@ -306,12 +313,13 @@
     const imagePreview = document.getElementById('imagePreview');
     const pdfPreview = document.getElementById('pdfPreview');
     const pdfName = document.getElementById('pdfName');
-    const btnOCR = document.getElementById('btnOCR');
-    const ocrText = document.getElementById('ocrText');
+    const ocrStatusBadge = document.getElementById('ocrStatusBadge');
+    const ocrStatusText = document.getElementById('ocrStatusText');
     const ocrSpinner = document.getElementById('ocrSpinner');
     const resumenExtraccion = document.getElementById('resumenExtraccion');
     const resumenIcono = document.getElementById('resumenIcono');
     const resumenMensaje = document.getElementById('resumenMensaje');
+    const btnReanalizar = document.getElementById('btnReanalizar');
 
     let currentObjectURL = null;
     let archivoActual = null;
@@ -364,7 +372,6 @@
         dropzoneInitial.classList.add('hidden');
         dropzonePreview.classList.remove('hidden');
         dropzonePreview.classList.add('flex');
-        btnOCR.disabled = false;
 
         // Liberar URL previa de memoria si existía
         if (currentObjectURL) {
@@ -429,9 +436,31 @@
         dropzoneInitial.classList.remove('hidden');
         dropzonePreview.classList.add('hidden');
         dropzonePreview.classList.remove('flex');
-        btnOCR.disabled = true;
         limpiarInconsistencias();
         if (resumenExtraccion) resumenExtraccion.classList.add('hidden');
+    }
+
+    function actualizarEstadoOCR(tipo, mensaje) {
+        if (!ocrStatusBadge) return;
+        ocrStatusBadge.classList.remove('hidden', 'bg-blue-100', 'text-blue-800', 'border-blue-200', 'bg-amber-100', 'text-amber-800', 'border-amber-200', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-200');
+        ocrStatusBadge.classList.add('flex');
+        ocrSpinner.classList.remove('hidden');
+
+        if (tipo === 'ocr') {
+            ocrStatusBadge.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-200');
+        } else if (tipo === 'analizando') {
+            ocrStatusBadge.classList.add('bg-amber-100', 'text-amber-800', 'border-amber-200');
+        }
+        ocrStatusText.textContent = mensaje;
+    }
+
+    function finalizarEstadoOCR() {
+        if (!ocrStatusBadge) return;
+        ocrSpinner.classList.add('hidden');
+        setTimeout(() => {
+            ocrStatusBadge.classList.add('hidden');
+            ocrStatusBadge.classList.remove('flex');
+        }, 1500);
     }
 
     function mostrarResumenExtraccion(tipo, mensaje) {
@@ -454,14 +483,16 @@
         }
 
         resumenMensaje.textContent = mensaje;
+        if (btnReanalizar) {
+            btnReanalizar.classList.remove('hidden');
+            btnReanalizar.classList.add('inline-flex');
+        }
     }
 
     async function ejecutarExtraccion(file) {
         if (!file) return;
 
-        btnOCR.disabled = true;
-        ocrSpinner.classList.remove('hidden');
-        ocrText.textContent = "Iniciando lectura...";
+        actualizarEstadoOCR('ocr', 'Iniciando lectura...');
         limpiarInconsistencias();
 
         try {
@@ -469,15 +500,15 @@
                 endpoint: '/pagos/extraer',
                 onEstado: (estado, valor) => {
                     if (estado === 'motor') {
-                        ocrText.textContent = "Cargando motor de visión...";
+                        actualizarEstadoOCR('ocr', 'Cargando motor de visión...');
                     } else if (estado === 'leyendo') {
-                        ocrText.textContent = `Leyendo imagen (${valor}%)...`;
+                        actualizarEstadoOCR('ocr', `Leyendo imagen (${valor}%)...`);
                     } else if (estado === 'refuerzo') {
-                        ocrText.textContent = "Refinando lectura de la captura...";
+                        actualizarEstadoOCR('analizando', 'Refinando lectura de la captura...');
                     } else if (estado === 'analizando') {
-                        ocrText.textContent = "Estructurando datos bancarios...";
+                        actualizarEstadoOCR('analizando', 'Estructurando datos bancarios...');
                     } else if (estado === 'pdf') {
-                        ocrText.textContent = "Analizando PDF...";
+                        actualizarEstadoOCR('analizando', 'Analizando PDF en el servidor...');
                     }
                 }
             });
@@ -495,9 +526,7 @@
             const detalleError = (err && err.message) ? err.message : "el motor OCR no pudo iniciarse";
             mostrarResumenExtraccion('info', "Extracción automática no completada (" + detalleError + "). Ingrese los datos manualmente.");
         } finally {
-            btnOCR.disabled = false;
-            ocrText.textContent = "Reanalizar comprobante";
-            ocrSpinner.classList.add('hidden');
+            finalizarEstadoOCR();
         }
     }
 
@@ -721,13 +750,11 @@
         return div.innerHTML;
     }
 
-    // Botón manual de reanalizar OCR
-    if (btnOCR) {
-        btnOCR.addEventListener('click', function(e) {
+    if (btnReanalizar) {
+        btnReanalizar.addEventListener('click', function(e) {
             e.preventDefault();
-            const file = fileInput.files[0];
-            if (file) {
-                ejecutarExtraccion(file);
+            if (archivoActual) {
+                ejecutarExtraccion(archivoActual);
             }
         });
     }

@@ -167,10 +167,10 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         </div>
                     </div>
 
-                    <!-- Cuenta oficial para el pago -->
+                    <!-- Cuenta Oficial para el Pago -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
-                            <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta oficial para el pago <span class="text-red-500">*</span></label>
+                            <label for="cuenta_bancaria_id" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Cuenta Oficial para el Pago <span class="text-red-500">*</span></label>
                             <span id="badge-cuenta_bancaria_id" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
@@ -193,47 +193,47 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         <div id="inconsistencia-cuenta_bancaria_id"></div>
 
                         <!-- Datos oficiales de la cuenta seleccionada -->
-                        <div id="cardInfoCuenta" class="hidden mt-1 p-4 bg-gradient-to-br from-blue-50/95 to-slate-100/80 border border-blue-200 rounded-2xl text-xs text-blue-950">
+                        <div id="cardInfoCuenta" class="hidden mt-3 p-4 bg-gradient-to-br from-blue-50/95 to-slate-100/80 border border-blue-200 rounded-2xl text-xs text-blue-950 shadow-xs">
                             <div class="flex items-center justify-between border-b border-blue-200/70 pb-2 mb-3">
                                 <div class="font-bold text-sm text-primary flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[19px]">verified</span>
                                     <span id="infoBanco"></span>
                                 </div>
-                                <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase">Cuenta oficial</span>
+                                <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase">Cuenta Oficial</span>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de cuenta</span>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de Cuenta (20 dígitos)</span>
                                         <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
-                                    <button type="button" data-copiar="infoNumero" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
+                                    <button type="button" onclick="copiarDatoCuenta('infoNumero', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
                                         Copiar
                                     </button>
                                 </div>
-                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
-                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular autorizado</span>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular Autorizado</span>
                                         <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
                                 </div>
-                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
                                         <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
                                     </div>
-                                    <button type="button" data-copiar="infoDoc" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
+                                    <button type="button" onclick="copiarDatoCuenta('infoDoc', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
                                         Copiar
                                     </button>
                                 </div>
-                                <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2">
+                                <div id="wrapperInfoTelefono" class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
                                         <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
                                     </div>
-                                    <button type="button" data-copiar="infoTelefono" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
+                                    <button type="button" onclick="copiarDatoCuenta('infoTelefono', this)" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
                                         Copiar
                                     </button>
@@ -423,9 +423,9 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
                 <!-- Observaciones -->
                 <div class="mt-5 flex flex-col gap-2">
-                    <label for="observaciones" class="text-sm font-semibold text-on-surface-variant">Observaciones (opcional)</label>
+                    <label for="observaciones" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Observaciones Complementarias</label>
                     <textarea id="observaciones" name="observaciones" rows="2" placeholder="Información adicional sobre el pago..."
-                              class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none text-sm"><?= e($old['observaciones'] ?? '') ?></textarea>
+                              class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm"><?= e($old['observaciones'] ?? '') ?></textarea>
                 </div>
 
                 <!-- Nota informativa -->
@@ -620,20 +620,42 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             return;
         }
         document.getElementById('infoBanco').textContent = opt.getAttribute('data-banco') || '';
-        document.getElementById('infoNumero').textContent = opt.getAttribute('data-cuenta') || '';
+        document.getElementById('infoNumero').textContent = (opt.getAttribute('data-cuenta') || '').replace(/(\d{4})/g, '$1 ').trim();
         document.getElementById('infoTitular').textContent = opt.getAttribute('data-titular') || '';
         document.getElementById('infoDoc').textContent = opt.getAttribute('data-doc') || '';
-        document.getElementById('infoTelefono').textContent = opt.getAttribute('data-telefono') || '';
+        var tel = opt.getAttribute('data-telefono');
+        var wrapTel = document.getElementById('wrapperInfoTelefono');
+        if (tel) {
+            document.getElementById('infoTelefono').textContent = tel;
+            wrapTel.classList.remove('hidden');
+        } else {
+            wrapTel.classList.add('hidden');
+        }
         card.classList.remove('hidden');
     }
 
-    function copiarDato(id) {
-        var elemento = document.getElementById(id);
-        if (!elemento || !elemento.textContent) { return; }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(elemento.textContent).catch(function () {});
-        }
+    function copiarDatoCuenta(elementId, btnElement) {
+        var el = document.getElementById(elementId);
+        if (!el) { return; }
+        var texto = el.textContent.trim().replace(/\s+/g, '');
+        if (!texto) { return; }
+        if (!navigator.clipboard || !navigator.clipboard.writeText) { return; }
+
+        navigator.clipboard.writeText(texto).then(function () {
+            var originalHTML = btnElement.innerHTML;
+            btnElement.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> ¡Copiado!';
+            btnElement.classList.add('bg-emerald-100', 'text-emerald-800');
+            setTimeout(function () {
+                btnElement.innerHTML = originalHTML;
+                btnElement.classList.remove('bg-emerald-100', 'text-emerald-800');
+            }, 1800);
+        }).catch(function (err) {
+            console.error('Error al copiar al portapapeles:', err);
+        });
     }
+
+    // Los handlers onclick inline se evalúan en scope global: expone la función fuera del IIFE.
+    window.copiarDatoCuenta = copiarDatoCuenta;
 
     btnCopiarMonto.addEventListener('click', function () {
         if (ultimoTotal <= 0 || !navigator.clipboard || !navigator.clipboard.writeText) { return; }
@@ -662,12 +684,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     });
     cuentaSelect.addEventListener('change', function () {
         actualizarInfoCuenta(cuentaSelect);
-    });
-
-    Array.prototype.forEach.call(document.querySelectorAll('[data-copiar]'), function (btn) {
-        btn.addEventListener('click', function () {
-            copiarDato(btn.getAttribute('data-copiar'));
-        });
     });
 
     // Estado inicial: respeta los valores repoblados tras un error de validación
@@ -1029,7 +1045,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             }
         }
 
-        // 6. Cuenta oficial para el pago
+        // 6. Cuenta Oficial para el Pago
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && (data.cuenta_bancaria_id || data.banco_receptor)) {
             let matchedIndex = -1;
