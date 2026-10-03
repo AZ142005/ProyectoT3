@@ -22,9 +22,9 @@
     <!-- Lista de Comunicados -->
     <?php if (empty($comunicados)): ?>
         <div class="bg-white rounded-2xl border border-outline-variant p-12 text-center shadow-sm">
-            <span class="material-symbols-outlined text-6xl text-slate-300 mb-3 d-block">verified</span>
+            <span class="material-symbols-outlined text-6xl text-on-surface-variant/30 mb-3 d-block">verified</span>
             <h3 class="text-lg font-bold text-on-surface mb-1">¡Sin avisos pendientes!</h3>
-            <p class="text-sm text-slate-500">No hay comunicados recientes publicados para su edificio o comunidad.</p>
+            <p class="text-sm text-on-surface-variant">No hay comunicados recientes publicados para su edificio o comunidad.</p>
         </div>
     <?php else: ?>
         <div class="flex flex-col gap-6">
