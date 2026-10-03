@@ -149,6 +149,13 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
             "Ya no debe existir la acción 'Ver Unidades'");
         $this->assertFalse(str_contains($content, 'data-bs-toggle="collapse"'),
             "Ya no debe existir el toggle de colapso de Bootstrap");
+
+        // 3. Orden por mayor deuda (sin agrupar por edificio) y scroll vertical propio
+        $controller = file_get_contents(dirname(__DIR__) . '/app/controllers/ReporteController.php');
+        $this->assertStringContains('usort($todasUnidades', $controller,
+            "El controlador debe reordenar la lista plana por mayor deuda");
+        $this->assertMatchesRegex('/max-h-\[calc\(100vh[^\]]*\)\][^>]*overflow-y-auto/', $content,
+            "La lista debe tener scroll vertical propio cuando haya muchas unidades");
     }
 
     public function testVistaSinAgrupacionPorEdificios(): void {

@@ -34,6 +34,13 @@ class ReporteController extends Controller {
             }
         }
 
+        // Lista plana orientada a unidades: mayor deuda primero, sin agrupar por edificio
+        usort($todasUnidades, static function (array $a, array $b): int {
+            return ((float)($b['total_deuda'] ?? 0) <=> (float)($a['total_deuda'] ?? 0))
+                ?: strcmp((string)($a['edificio_nombre'] ?? ''), (string)($b['edificio_nombre'] ?? ''))
+                ?: strnatcmp((string)($a['unidad_numero'] ?? ''), (string)($b['unidad_numero'] ?? ''));
+        });
+
         $paginacion = [
             'total'        => count($todasUnidades),
             'pagina'       => 1,

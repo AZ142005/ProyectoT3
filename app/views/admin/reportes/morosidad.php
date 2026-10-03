@@ -122,12 +122,21 @@
         </form>
     </div>
 
+    <style>
+        #tablaBalanceUnidades thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8f9fa;
+        }
+    </style>
+
     <!-- Tabla del Reporte: Lista Plana de Unidades -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h5 class="card-title mb-0 fw-bold text-dark">Carta de Deuda</h5>
-                <small class="text-muted">Lista de unidades con su edificio, propietario y estado de solvencia</small>
+                <small class="text-muted">Unidades con su edificio y propietario, ordenadas por mayor deuda pendiente</small>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary rounded-pill px-3 py-1.5"><?= count($morosos) ?> Unidades</span>
@@ -146,7 +155,7 @@
         </div>
 
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive max-h-[calc(100vh_-_33rem)] min-h-[16rem] overflow-y-auto">
                 <table class="table table-hover align-middle mb-0" id="tablaBalanceUnidades" style="table-layout: fixed; width: 100%;">
                     <thead class="table-light">
                         <tr>
