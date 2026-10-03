@@ -50,8 +50,10 @@
 - Verificador independiente read-only: schema aplicado; adversarial (falsificar visibilidad multi-unidad, limpieza sin huérfanos en `comunicados_destinos`, no corte de textos razonable por estructura, email JOIN); suites.
 - Spot check del padre. Commit directo en `main`. Push: decisión del usuario.
 
-## Evidencia (se completa al cierre)
-- T1-T8: pendiente
-- php -l / migración / suites: pendiente
-- Verificación independiente: pendiente
-- Commit: pendiente
+## Evidencia (cierre 2026-10-03)
+- T1-T6 aplicadas: migración fase20 (PHP + SQL gemelo + dump, +26 líneas exactas) ejecutada 2x (aplicada + no-op; `SHOW CREATE TABLE` verificado). Modelo con semántica crítica verificada por probes transaccionales: solo-destinos invisible para (null,null)/otra unidad, visible para la unidad destino; dedupe; `destinos_count`; count/datos consistentes. Controller: parseo endurecido (`is_scalar` tras observación del verificador) y correo con JOIN `personas.unidad_id` + placeholders únicos (réplica devolvió los residentes correctos, inquilino incluido). Vista renderizada con datos sintéticos (labels de duración 24 horas/3 días/1 semana/2 semanas/30 días + fallback + Sin vencimiento, badge N unidades, colspan 7) y opciones del modal byte-idénticas a HEAD (fix solo de ancho).
+- `php -l` 6/6; `git diff --check` limpio (espacio final corregido); suites: full exit 0 + filtros (ComunicadosResidente 15, AdminComunicadosVista 5, ComunicadosDuplicados 7, PaginacionEstandar 10, Rbac 7, Behavior 111, SolicitudesRegistro 7, UsuarioAdmin 17, UsuariosSolicitudesTabs 8).
+- Verificador independiente: **VERIFIED** (observaciones menores: array anidado en unidades → endurecido con `is_scalar`; duplicado en modo multi-unidad documentado como limitación conocida; tope `getActivas` 500 preexistente).
+- Spot check del padre: `php -l` + filtros clave re-ejecutados tras las micro-correcciones.
+- Commit: bc1e006 (feature, directo en main por instrucción del usuario) + commit docs de cierre. Push: pendiente (decisión del usuario).
+- RDD: on; assess high/unassessable (untracked + runtime V2 sin elegibilidad inmutable), sin `next_transition` → ruta RDD-off aplicada (writer + verificador independiente + spot check).
