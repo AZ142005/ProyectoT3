@@ -29,11 +29,11 @@
     <!-- Encabezado de la Sección -->
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
-            <h2 class="h3 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+            <h2 class="text-lg font-bold text-on-surface mb-1 d-flex align-items-center gap-2">
                 <span class="material-symbols-outlined text-primary fs-2">account_balance</span>
                 Cuentas Bancarias Autorizadas
             </h2>
-            <p class="text-muted small mb-0">
+            <p class="text-xs text-on-surface-variant mb-0">
                 Gestione las cuentas oficiales del condominio para recibir pagos por transferencia o pago móvil. Solo las cuentas activas estarán disponibles para los residentes.
             </p>
         </div>
@@ -93,49 +93,49 @@
     <!-- Tabla Principal de Cuentas -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+            <h5 class="text-lg font-bold text-on-surface mb-0 d-flex align-items-center gap-2">
                 <span class="material-symbols-outlined text-primary">view_list</span>
                 Listado de Cuentas Autorizadas
             </h5>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4 py-3">Banco e Información</th>
-                        <th class="py-3">Número de Cuenta</th>
-                        <th class="py-3">Titular y RIF</th>
-                        <th class="py-3 text-center">Canales</th>
-                        <th class="py-3 text-center">Estado</th>
-                        <th class="py-3 text-end pe-4">Acciones</th>
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                        <th class="py-3 px-4">Banco e Información</th>
+                        <th class="py-3 px-4">Número de Cuenta</th>
+                        <th class="py-3 px-4">Titular y RIF</th>
+                        <th class="py-3 px-4 text-center">Canales</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-end">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-background">
                     <?php if (empty($cuentas)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">account_balance</span>
+                            <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">account_balance</span>
                                 No hay cuentas bancarias registradas aún. Haga clic en <strong>Nueva Cuenta Bancaria</strong> para agregar la primera.
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($cuentas as $c): ?>
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
+                            <tr class="hover:bg-background/40 transition-colors">
+                                <td class="py-4 px-4">
+                                    <div class="font-bold text-on-surface d-flex align-items-center gap-2">
                                         <span class="material-symbols-outlined text-primary fs-5">account_balance</span>
                                         <?= e($c['banco']) ?>
                                     </div>
-                                    <small class="text-muted text-capitalize"><?= e($c['tipo_cuenta']) ?></small>
+                                    <small class="text-xs text-on-surface-variant text-capitalize"><?= e($c['tipo_cuenta']) ?></small>
                                 </td>
-                                <td>
-                                    <span class="font-monospace fw-semibold text-dark bg-light px-2 py-1 rounded border">
+                                <td class="py-4 px-4">
+                                    <span class="font-monospace fw-semibold text-on-surface bg-light px-2 py-1 rounded border">
                                         <?= e(chunk_split($c['numero_cuenta'], 4, ' ')) ?>
                                     </span>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-dark"><?= e($c['titular']) ?></div>
-                                    <small class="text-muted"><?= e($c['tipo_identificacion']) ?>-<?= e($c['identificacion']) ?></small>
+                                <td class="py-4 px-4">
+                                    <div class="font-semibold text-on-surface"><?= e($c['titular']) ?></div>
+                                    <small class="text-xs text-on-surface-variant"><?= e($c['tipo_identificacion']) ?>-<?= e($c['identificacion']) ?></small>
                                     <?php if (!empty($c['telefono_pago_movil'])): ?>
                                         <div class="small text-success d-flex align-items-center gap-1 mt-0.5">
                                             <span class="material-symbols-outlined fs-6">phone_iphone</span>
@@ -143,7 +143,7 @@
                                         </div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center">
+                                <td class="py-4 px-4 text-center">
                                     <div class="d-flex justify-content-center gap-1 flex-wrap">
                                         <?php if (!empty($c['permite_transferencia'])): ?>
                                             <span class="badge bg-primary text-white" title="Permite Transferencias">Transf.</span>
@@ -153,18 +153,18 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="text-center">
+                                <td class="py-4 px-4 text-center">
                                     <?php if (!empty($c['activa'])): ?>
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill fw-semibold">
                                             Activa (Visible)
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1.5 rounded-pill fw-semibold">
+                                        <span class="badge bg-secondary-subtle text-on-surface-variant border border-secondary-subtle px-2.5 py-1.5 rounded-pill fw-semibold">
                                             Inactiva (Oculta)
                                         </span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-end pe-4">
+                                <td class="py-4 px-4 text-end">
                                     <div class="d-flex justify-content-end align-items-center gap-2">
                                         <!-- Botón Editar -->
                                         <button type="button" 

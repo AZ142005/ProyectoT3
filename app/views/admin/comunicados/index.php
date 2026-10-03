@@ -26,8 +26,8 @@
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2">
-                <h5 class="card-title mb-0 fw-bold text-dark">Historial de Comunicados Emitidos</h5>
-                <span class="badge bg-primary rounded-pill"><?= e($paginacion['total']) ?> Publicados</span>
+                <h5 class="text-lg font-bold text-on-surface mb-0">Historial de Comunicados Emitidos</h5>
+                <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total']) ?> Publicados</span>
             </div>
             <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalNuevoComunicado">
                 <span class="material-symbols-outlined text-[16px]">add_comment</span>
@@ -36,38 +36,38 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4 py-3">Título</th>
-                            <th class="py-3">Alcance / Destino</th>
-                            <th class="py-3 text-center">Urgencia</th>
-                            <th class="py-3">Publicado por</th>
-                            <th class="py-3">Fecha de Emisión</th>
-                            <th class="py-3 text-end pe-4">Acciones</th>
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                            <th class="py-3 px-4">Título</th>
+                            <th class="py-3 px-4">Alcance / Destino</th>
+                            <th class="py-3 px-4 text-center">Urgencia</th>
+                            <th class="py-3 px-4">Publicado por</th>
+                            <th class="py-3 px-4">Fecha de Emisión</th>
+                            <th class="py-3 px-4 text-end">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-background">
                         <?php if (empty($comunicados)): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">campaign</span>
+                                <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">campaign</span>
                                     No se han publicado comunicados en la cartelera digital aún.
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($comunicados as $c): ?>
-                                <tr>
-                                    <td class="ps-4 fw-bold text-dark">
+                                <tr class="hover:bg-background/40 transition-colors">
+                                    <td class="py-4 px-4 font-semibold text-on-surface">
                                         <?= e($c['titulo']) ?>
                                     </td>
-                                    <td>
+                                    <td class="py-4 px-4">
                                         <?php if ($c['unidad_numero']): ?>
-                                            <span class="badge bg-light text-dark border">
+                                            <span class="badge bg-light text-on-surface border">
                                                 Apto <?= e($c['unidad_numero']) ?> (<?= e($c['edificio_nombre']) ?>)
                                             </span>
                                         <?php elseif ($c['edificio_id']): ?>
-                                            <span class="badge bg-info text-dark">
+                                            <span class="badge bg-info text-on-surface">
                                                 Edificio <?= e($c['edificio_nombre']) ?>
                                             </span>
                                         <?php else: ?>
@@ -76,18 +76,18 @@
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="py-4 px-4 text-center">
                                         <?php if ($c['nivel_urgencia'] === 'urgente'): ?>
                                             <span class="badge bg-danger rounded-pill px-3 py-1">Urgente</span>
                                         <?php elseif ($c['nivel_urgencia'] === 'importante'): ?>
-                                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1">Importante</span>
+                                            <span class="badge bg-warning text-on-surface rounded-pill px-3 py-1">Importante</span>
                                         <?php else: ?>
                                             <span class="badge bg-secondary rounded-pill px-3 py-1">Normal</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="small"><?= e($c['admin_nombre']) ?></td>
-                                    <td class="small text-muted"><?= date('d/m/Y H:i', strtotime($c['fecha_publicacion'])) ?></td>
-                                    <td class="text-end pe-4">
+                                    <td class="py-4 px-4 text-xs"><?= e($c['admin_nombre']) ?></td>
+                                    <td class="py-4 px-4 text-xs text-on-surface-variant"><?= date('d/m/Y H:i', strtotime($c['fecha_publicacion'])) ?></td>
+                                    <td class="py-4 px-4 text-end">
                                         <form method="POST" action="/admin/comunicados/eliminar" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar este comunicado de la cartelera?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="id" value="<?= e($c['id']) ?>">

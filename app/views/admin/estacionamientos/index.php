@@ -25,8 +25,8 @@
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Control de Estacionamientos</h4>
-            <p class="text-muted small mb-0">Gestión de puestos asignados, visitantes y parque vehicular</p>
+            <h4 class="text-lg font-bold text-on-surface mb-1">Control de Estacionamientos</h4>
+            <p class="text-xs text-on-surface-variant mb-0">Gestión de puestos asignados, visitantes y parque vehicular</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalNuevoPuesto">
@@ -94,44 +94,44 @@
     <!-- Tabla Principal de Puestos de Estacionamiento -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0 fw-bold text-dark">Listado de Puestos de Estacionamiento</h5>
-            <span class="badge bg-secondary rounded-pill"><?= count($puestos) ?> Puestos</span>
+            <h5 class="text-lg font-bold text-on-surface mb-0">Listado de Puestos de Estacionamiento</h5>
+            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= count($puestos) ?> Puestos</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4 py-3">Nº Puesto</th>
-                            <th class="py-3">Tipo</th>
-                            <th class="py-3">Edificio / Torre</th>
-                            <th class="py-3">Unidad Habitacional</th>
-                            <th class="py-3">Vehículo Asignado</th>
-                            <th class="py-3">Estado</th>
-                            <th class="text-end pe-4 py-3">Acciones</th>
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                            <th class="py-3 px-4">Nº Puesto</th>
+                            <th class="py-3 px-4">Tipo</th>
+                            <th class="py-3 px-4">Edificio / Torre</th>
+                            <th class="py-3 px-4">Unidad Habitacional</th>
+                            <th class="py-3 px-4">Vehículo Asignado</th>
+                            <th class="py-3 px-4">Estado</th>
+                            <th class="py-3 px-4 text-end">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-background">
                         <?php if (empty($puestos)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    <span class="material-symbols-outlined display-4 d-block mb-2 text-secondary">local_parking</span>
+                                <td colspan="7" class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">local_parking</span>
                                     No hay puestos de estacionamiento registrados en el sistema.
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($puestos as $p): ?>
-                                <tr>
-                                    <td class="ps-4 font-monospace fw-bold text-dark">
+                                <tr class="hover:bg-background/40 transition-colors">
+                                    <td class="py-4 px-4 font-mono text-xs font-bold text-on-surface">
                                         Puesto #<?= e($p['numero']) ?>
                                     </td>
-                                    <td>
+                                    <td class="py-4 px-4">
                                         <?php if ($p['tipo'] === 'techado'): ?>
                                             <span class="badge rounded-pill bg-primary">
                                                 <span class="material-symbols-outlined align-middle fs-6 me-1">roofing</span>Techado
                                             </span>
                                         <?php elseif ($p['tipo'] === 'visitante'): ?>
-                                            <span class="badge rounded-pill bg-info text-dark">
+                                            <span class="badge rounded-pill bg-info text-on-surface">
                                                 <span class="material-symbols-outlined align-middle fs-6 me-1">badge</span>Visitante
                                             </span>
                                         <?php else: ?>
@@ -140,30 +140,30 @@
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= e($p['edificio_nombre'] ?: 'General / Sin Torre') ?></td>
-                                    <td>
+                                    <td class="py-4 px-4"><?= e($p['edificio_nombre'] ?: 'General / Sin Torre') ?></td>
+                                    <td class="py-4 px-4">
                                         <?php if (!empty($p['unidad_numero'])): ?>
-                                            <span class="fw-semibold text-dark">Apto/Unidad <?= e($p['unidad_numero']) ?></span>
+                                            <span class="fw-semibold text-on-surface">Apto/Unidad <?= e($p['unidad_numero']) ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted fst-italic">Sin Asignar</span>
+                                            <span class="text-on-surface-variant fst-italic">Sin Asignar</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="py-4 px-4">
                                         <?php if (!empty($p['vehiculo_placa'])): ?>
-                                            <span class="badge bg-light text-dark border font-monospace me-1"><?= e($p['vehiculo_placa']) ?></span>
-                                            <small class="text-muted"><?= e($p['vehiculo_marca']) ?> <?= e($p['vehiculo_modelo']) ?></small>
+                                            <span class="badge bg-light text-on-surface border font-monospace me-1"><?= e($p['vehiculo_placa']) ?></span>
+                                            <small class="text-xs text-on-surface-variant"><?= e($p['vehiculo_marca']) ?> <?= e($p['vehiculo_modelo']) ?></small>
                                         <?php else: ?>
-                                            <span class="text-muted small">Ninguno</span>
+                                            <span class="text-xs text-on-surface-variant">Ninguno</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="py-4 px-4">
                                         <?php if (!empty($p['unidad_id'])): ?>
                                             <span class="badge bg-success">Asignado</span>
                                         <?php else: ?>
-                                            <span class="badge bg-warning text-dark">Disponible</span>
+                                            <span class="badge bg-warning text-on-surface">Disponible</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="py-4 px-4 text-end">
                                         <div class="btn-group btn-group-sm">
                                             <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalAsignar_<?= e($p['id']) ?>" title="Asignar a Unidad">
                                                 <span class="material-symbols-outlined fs-6">link</span>

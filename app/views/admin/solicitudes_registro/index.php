@@ -2,7 +2,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                     <div class="d-flex align-items-center gap-2">
                         <span class="material-symbols-outlined text-primary fs-4">how_to_reg</span>
-                        <h2 class="fs-6 fw-bold mb-0 text-dark">Solicitudes de Registro</h2>
+                        <h2 class="text-lg font-bold text-on-surface mb-0">Solicitudes de Registro</h2>
                     </div>
                     <div class="flex flex-wrap gap-2" role="group" aria-label="Filtros de estado">
                         <a href="/admin/usuarios?tab=solicitudes" class="<?= empty($estadoSolicitud) ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
@@ -26,72 +26,72 @@
                 <!-- Tabla de Solicitudes -->
                 <div class="card border-0 shadow-sm rounded-3">
                     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 fw-bold text-dark">Bandeja de Solicitudes de Residentes</h5>
-                        <span class="badge bg-primary rounded-pill"><?= e($paginacionSolicitudes['total']) ?> Registros</span>
+                        <h5 class="text-lg font-bold text-on-surface mb-0">Bandeja de Solicitudes de Residentes</h5>
+                        <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacionSolicitudes['total']) ?> Registros</span>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="ps-4 py-3">Solicitante</th>
-                                        <th class="py-3">Contacto</th>
-                                        <th class="py-3">Apartamento Asignado</th>
-                                        <th class="py-3 text-center">Estado</th>
-                                        <th class="py-3">Fecha / Revisión</th>
-                                        <th class="py-3 text-end pe-4">Acciones</th>
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead>
+                                    <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                        <th class="py-3 px-4">Solicitante</th>
+                                        <th class="py-3 px-4">Contacto</th>
+                                        <th class="py-3 px-4">Apartamento Asignado</th>
+                                        <th class="py-3 px-4 text-center">Estado</th>
+                                        <th class="py-3 px-4">Fecha / Revisión</th>
+                                        <th class="py-3 px-4 text-end">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="divide-y divide-background">
                                     <?php if (empty($solicitudes)): ?>
                                         <tr>
-                                            <td colspan="6" class="text-center py-5 text-muted">
-                                                <span class="material-symbols-outlined display-4 d-block mb-2 text-muted">how_to_reg</span>
+                                            <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                                <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">how_to_reg</span>
                                                 No hay solicitudes de registro <?= !empty($estadoSolicitud) ? 'con estado ' . e($estadoSolicitud) : 'pendientes o registradas' ?>.
                                             </td>
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($solicitudes as $s): ?>
-                                            <tr>
-                                                <td class="ps-4">
-                                                    <div class="fw-bold text-dark"><?= e($s['nombre']) ?> <?= e($s['apellido']) ?></div>
-                                                    <div class="small text-muted">
+                                            <tr class="hover:bg-background/40 transition-colors">
+                                                <td class="py-4 px-4">
+                                                    <div class="font-semibold text-on-surface"><?= e($s['nombre']) ?> <?= e($s['apellido']) ?></div>
+                                                    <div class="text-xs text-on-surface-variant">
                                                         <span>C.I: <strong><?= e($s['cedula']) ?></strong></span>
-                                                        <span class="ms-2 badge bg-light text-dark border">
+                                                        <span class="ms-2 badge bg-light text-on-surface border">
                                                             <?= e($s['numero_residentes'] ?? 1) ?> <?= ((int)($s['numero_residentes'] ?? 1) === 1) ? 'habitante' : 'habitantes' ?>
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td>
-                                                    <div class="small">
-                                                        <a href="mailto:<?= e($s['email']) ?>" class="text-decoration-none text-dark">
-                                                            <span class="material-symbols-outlined text-[15px] align-middle text-muted">mail</span>
+                                                <td class="py-4 px-4">
+                                                    <div class="text-xs">
+                                                        <a href="mailto:<?= e($s['email']) ?>" class="text-decoration-none text-on-surface">
+                                                            <span class="material-symbols-outlined text-[15px] align-middle text-on-surface-variant">mail</span>
                                                             <?= e($s['email']) ?>
                                                         </a>
                                                     </div>
-                                                    <div class="small text-muted mt-0.5">
-                                                        <span class="material-symbols-outlined text-[15px] align-middle text-muted">call</span>
+                                                    <div class="text-xs text-on-surface-variant mt-0.5">
+                                                        <span class="material-symbols-outlined text-[15px] align-middle text-on-surface-variant">call</span>
                                                         <?= e($s['telefono']) ?>
                                                     </div>
                                                 </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark">
+                                                <td class="py-4 px-4">
+                                                    <div class="font-semibold text-on-surface">
                                                         <?= e($s['edificio_nombre'] ?: 'Inmueble') ?> — Apto. <?= e($s['unidad_numero'] ?: 'N/A') ?>
                                                     </div>
-                                                    <div class="small text-muted">
+                                                    <div class="text-xs text-on-surface-variant">
                                                         Unidad #<?= e($s['unidad_id']) ?>
                                                     </div>
                                                 </td>
-                                                <td class="text-center">
+                                                <td class="py-4 px-4 text-center">
                                                     <?php if ($s['estado'] === 'aprobada'): ?>
                                                         <span class="badge bg-success rounded-pill px-3 py-1.5">Aprobada</span>
                                                     <?php elseif ($s['estado'] === 'rechazada'): ?>
                                                         <span class="badge bg-danger rounded-pill px-3 py-1.5">Rechazada</span>
                                                     <?php else: ?>
-                                                        <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5">Pendiente</span>
+                                                        <span class="badge bg-warning text-on-surface rounded-pill px-3 py-1.5">Pendiente</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td class="small text-muted">
+                                                <td class="py-4 px-4 text-xs text-on-surface-variant">
                                                     <div><?= date('d/m/Y H:i', strtotime($s['created_at'])) ?></div>
                                                     <?php if (!empty($s['reviewed_at'])): ?>
                                                         <div class="text-xs text-slate-500 mt-1">
@@ -107,7 +107,7 @@
                                                         </div>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td class="text-end pe-4">
+                                                <td class="py-4 px-4 text-end">
                                                     <?php if ($s['estado'] === 'pendiente'): ?>
                                                         <form method="POST" action="/admin/solicitudes-registro/aprobar" class="d-inline">
                                                             <?= csrf_field() ?>
@@ -122,7 +122,7 @@
                                                             Rechazar
                                                         </button>
                                                     <?php else: ?>
-                                                        <span class="badge bg-light text-muted border">Finalizada</span>
+                                                        <span class="badge bg-light text-on-surface-variant border">Finalizada</span>
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>
