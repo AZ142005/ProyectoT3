@@ -116,10 +116,15 @@ class ComprobanteParserService {
             'banco_pagador'          => null,
             'banco_receptor'         => null,
             'cuenta_destino_prefijo' => null,
+            'cuenta_destino_numero'  => null,
+            'telefono_destino'       => null,
+            'identificacion_destino' => null,
             'metodo_pago'            => null,
             'referencia'             => null,
             'monto'                  => null,
             'fecha'                  => null,
+            'confianza'              => [],
+            'inconsistencias'        => [],
             'detectado'              => false
         ];
 
@@ -265,16 +270,53 @@ class ComprobanteParserService {
             $resultado['detectado'] = true;
         }
 
-        // 3. Detección de Cuenta Receptora / Destino (código bancario de 4 dígitos o número de 20 dígitos)
-        if (preg_match('/(?:cuenta\s+(?:destino|beneficiario|receptora)|destino|acreditad[oa]\s+a)[:\s#]*([0-9]{4})/iu', $texto, $matchesCta)) {
-            $resultado['cuenta_destino_prefijo'] = $matchesCta[1];
-            $resultado['detectado'] = true;
-        } elseif (preg_match('/\b(0102|0105|0134|0108|0172|0191|0114|0163|0115|0138|0171|0137|0156|0151)[0-9]{16}\b/', $texto, $matchesCtaCompleta)) {
-            $resultado['cuenta_destino_prefijo'] = $matchesCtaCompleta[1];
-            $resultado['detectado'] = true;
+        // 3. Detección de Cuenta Receptora / Destino (código bancario de 4 dígitos, número de 20 dígitos, teléfono y RIF)
+        // 3.1 Detección de cuentas bancarias de 20 dígitos (con o sin espacios/guiones)
+        if (preg_match_all('/(?<!\d)(01[0-9]{2})[\s\-]?([0-9]{4})[\s\-]?([0-9]{2})[\s\-]?([0-9]{10})(?!\d)/', $texto, $matchesCuentas20, PREG_OFFSET_CAPTURE)) {
+            $mejorCuenta = null;
+            foreach ($matchesCuentas20[0] as $i => $mCta) {
+                $ctaLimpia = $matchesCuentas20[1][$i][0] . $matchesCuentas20[2][$i][0] . $matchesCuentas20[3][$i][0] . $matchesCuentas20[4][$i][0];
+                $pos = $mCta[1];
+                $entorno = substr($texto, max(0, $pos - 80), 160);
+                if (preg_match('/(?:destino|beneficiario|receptora|acreditad|hacia|abonar|para)/iu', $entorno)) {
+                    $mejorCuenta = $ctaLimpia;
+                    break;
+                }
+            }
+            if (!$mejorCuenta && !empty($matchesCuentas20[0])) {
+                $ultimoIdx = count($matchesCuentas20[0]) - 1;
+                $mejorCuenta = $matchesCuentas20[1][$ultimoIdx][0] . $matchesCuentas20[2][$ultimoIdx][0] . $matchesCuentas20[3][$ultimoIdx][0] . $matchesCuentas20[4][$ultimoIdx][0];
+            }
+            if ($mejorCuenta) {
+                $resultado['cuenta_destino_numero'] = $mejorCuenta;
+                $resultado['cuenta_destino_prefijo'] = substr($mejorCuenta, 0, 4);
+                $resultado['detectado'] = true;
+            }
         }
 
-        // Detección de mención explícita de banco destino
+        // 3.2 Suffix o prefijo explícito de cuenta si no se extrajo la completa de 20 dígitos
+        if (!$resultado['cuenta_destino_numero']) {
+            if (preg_match('/(?:cuenta(?:\s+(?:destino|beneficiario|receptora))?|destino|acreditad[oa]\s+a)[:\s#]*([0-9]{4})[\s\-]*(?:[0-9xX\*]{4,20})/iu', $texto, $mCtaMask)) {
+                $resultado['cuenta_destino_prefijo'] = $mCtaMask[1];
+                $resultado['detectado'] = true;
+            } elseif (preg_match('/(?:cuenta\s+(?:destino|beneficiario|receptora)|destino|acreditad[oa]\s+a)[:\s#]*([0-9\s\-]{4,24})/iu', $texto, $matchesCta)) {
+                $digits = preg_replace('/[^0-9]/', '', $matchesCta[1]);
+                if (strlen($digits) >= 20) {
+                    $resultado['cuenta_destino_numero'] = substr($digits, 0, 20);
+                    $resultado['cuenta_destino_prefijo'] = substr($digits, 0, 4);
+                } elseif (strlen($digits) >= 4) {
+                    $resultado['cuenta_destino_prefijo'] = substr($digits, 0, 4);
+                    $resultado['cuenta_destino_numero'] = $digits;
+                }
+                $resultado['detectado'] = true;
+            } elseif (preg_match('/\b(0102|0105|0134|0108|0172|0191|0114|0163|0115|0138|0171|0137|0156|0151)[0-9]{16}\b/', $texto, $matchesCtaCompleta)) {
+                $resultado['cuenta_destino_prefijo'] = $matchesCtaCompleta[1];
+                $resultado['cuenta_destino_numero'] = $matchesCtaCompleta[0];
+                $resultado['detectado'] = true;
+            }
+        }
+
+        // 3.3 Detección de mención explícita de banco destino
         if (preg_match('/(?:banco\s+(?:destino|receptor|beneficiario)|destino)[:\s]*([a-zA-Z\s]{4,30})/iu', $texto, $matchesBcoDestino)) {
             $posibleBco = trim($matchesBcoDestino[1]);
             foreach ($bancos as $bKey => $pats) {
@@ -289,8 +331,20 @@ class ComprobanteParserService {
             }
         }
 
-        // 4. Detección de Referencia (6 a 16 dígitos)
-        if (preg_match('/(?:ref|referencia|comprobante|nro|operaci[oó]n|transacci[oó]n|secuencia|aprobaci[oó]n)[:\s#]*([0-9]{6,16})/iu', $texto, $matchesRef)) {
+        // 3.4 Detección de Teléfono Destino (Pago Móvil)
+        if (preg_match('/(?:tel[eé]fono|celular|t[eé]l|pago\s*m[oó]vil|destino)[^0-9\n\r]{0,15}(04[12][246][\s\-]?[0-9]{7})\b/iu', $texto, $mPhone)) {
+            $resultado['telefono_destino'] = preg_replace('/[^0-9]/', '', $mPhone[1]);
+            $resultado['detectado'] = true;
+        }
+
+        // 3.5 Detección de Identificación Destino (RIF o Cédula del Beneficiario)
+        if (preg_match('/(?:beneficiario|destino|rif|c[eé]dula|identificaci[oó]n|ci)[^0-9a-zA-Z\n\r]{0,15}([JjVvGgEe][\- ]?[0-9]{7,9}[\- ]?[0-9]?)\b/iu', $texto, $mRif)) {
+            $resultado['identificacion_destino'] = strtoupper(preg_replace('/[\- ]/', '', $mRif[1]));
+            $resultado['detectado'] = true;
+        }
+
+        // 4. Detección de Referencia (2 a 16 dígitos)
+        if (preg_match('/(?:ref|referencia|comprobante|nro|operaci[oó]n|transacci[oó]n|secuencia|aprobaci[oó]n)[:\s#]*([0-9]{2,16})/iu', $texto, $matchesRef)) {
             $resultado['referencia'] = $matchesRef[1];
             $resultado['detectado'] = true;
         } elseif (preg_match('/\b([0-9]{7,14})\b/', $texto, $matchesRefIsolated)) {
@@ -356,6 +410,243 @@ class ComprobanteParserService {
             }
         }
 
+        // 7. Cálculo de niveles de confianza (0.0 a 1.0) e inconsistencias heurísticas
+        $confianza = [
+            'monto'              => 0.0,
+            'fecha_pago'         => 0.0,
+            'referencia'         => 0.0,
+            'banco_pagador'      => 0.0,
+            'cuenta_bancaria_id' => 0.0
+        ];
+        $inconsistencias = [
+            'monto'              => null,
+            'fecha_pago'         => null,
+            'referencia'         => null,
+            'banco_pagador'      => null,
+            'cuenta_bancaria_id' => null
+        ];
+
+        // Validación y confianza de Monto
+        if ($resultado['monto'] !== null && $resultado['monto'] > 0) {
+            $confianza['monto'] = 1.0;
+        } else {
+            $confianza['monto'] = 0.0;
+            $inconsistencias['monto'] = 'No se pudo leer el monto con certeza en el comprobante. Por favor ingréselo manualmente.';
+        }
+
+        // Validación y confianza de Fecha de Pago
+        if ($resultado['fecha'] !== null) {
+            $ts = strtotime($resultado['fecha']);
+            $ahora = time();
+            if ($ts > $ahora + 86400) {
+                $confianza['fecha_pago'] = 0.4;
+                $inconsistencias['fecha_pago'] = 'Atención: La fecha detectada (' . date('d/m/Y', $ts) . ') es futura o posterior a la fecha de hoy. Verifique que sea correcta.';
+            } elseif ($ts < $ahora - (180 * 86400)) {
+                $confianza['fecha_pago'] = 0.5;
+                $inconsistencias['fecha_pago'] = 'Atención: La fecha detectada (' . date('d/m/Y', $ts) . ') tiene más de 6 meses de antigüedad. Verifique si es el comprobante correcto.';
+            } else {
+                $confianza['fecha_pago'] = 1.0;
+            }
+        } else {
+            $confianza['fecha_pago'] = 0.0;
+            $inconsistencias['fecha_pago'] = 'No se detectó la fecha de pago en el comprobante. Por favor indíquela manualmente.';
+        }
+
+        // Validación y confianza de Referencia
+        if (!empty($resultado['referencia'])) {
+            if (strlen($resultado['referencia']) < 6) {
+                $confianza['referencia'] = 0.5;
+                $inconsistencias['referencia'] = 'Atención: La referencia detectada (' . $resultado['referencia'] . ') es corta o parece incompleta. Verifique el número de confirmación completo.';
+            } else {
+                $confianza['referencia'] = 1.0;
+            }
+        } else {
+            $confianza['referencia'] = 0.0;
+            $inconsistencias['referencia'] = 'No se detectó el número de referencia. Por favor ingréselo manualmente.';
+        }
+
+        // Validación y confianza de Banco Emisor (Pagador)
+        if (!empty($resultado['banco_pagador'])) {
+            $confianza['banco_pagador'] = 1.0;
+        } else {
+            $confianza['banco_pagador'] = 0.0;
+            $inconsistencias['banco_pagador'] = 'No se reconoció el banco emisor. Por favor seleccione su banco en la lista.';
+        }
+
+        $resultado['confianza'] = $confianza;
+        $resultado['inconsistencias'] = $inconsistencias;
+
+        return $resultado;
+    }
+
+    /**
+     * Valida y asocia la cuenta de destino del comprobante contra las cuentas oficiales del condominio.
+     * Genera alertas informativas (no bloqueantes) ante inconsistencias o cuentas no reconocidas.
+     *
+     * @param array $datosExtraidos Resultado de analizarTexto()
+     * @param array $cuentasBancarias Lista de cuentas (todas: activas e inactivas)
+     * @return array [
+     *     'cuenta_bancaria_id'    => ?int,
+     *     'banco_receptor'        => string,
+     *     'cuenta_destino_valida' => bool,
+     *     'confianza'             => float,
+     *     'inconsistencia'        => ?string,
+     *     'coincidencia_por'      => ?string
+     * ]
+     */
+    public function validarCuentaDestino(array $datosExtraidos, array $cuentasBancarias): array {
+        $resultado = [
+            'cuenta_bancaria_id'    => null,
+            'banco_receptor'        => '',
+            'cuenta_destino_valida' => true,
+            'confianza'             => 0.0,
+            'inconsistencia'        => null,
+            'coincidencia_por'      => null
+        ];
+
+        $ctaNumExtraida = $datosExtraidos['cuenta_destino_numero'] ?? null;
+        $ctaPrefijo = $datosExtraidos['cuenta_destino_prefijo'] ?? null;
+        $bcoReceptor = $datosExtraidos['banco_receptor'] ?? null;
+        $tlfDestino = !empty($datosExtraidos['telefono_destino']) ? preg_replace('/[^0-9]/', '', $datosExtraidos['telefono_destino']) : null;
+        $idDestino = !empty($datosExtraidos['identificacion_destino']) ? preg_replace('/[^0-9]/', '', $datosExtraidos['identificacion_destino']) : null;
+
+        $cuentasActivas = array_values(array_filter($cuentasBancarias, fn($c) => !empty($c['activa'])));
+        $cuentasInactivas = array_values(array_filter($cuentasBancarias, fn($c) => empty($c['activa'])));
+
+        $buscarCoincidencia = function(array $listaCuentas) use ($ctaNumExtraida, $ctaPrefijo, $bcoReceptor, $tlfDestino, $idDestino): ?array {
+            // 1. Coincidencia por número de cuenta completo (20 dígitos) o parcial significativo
+            if ($ctaNumExtraida) {
+                $numLimpio = preg_replace('/[^0-9]/', '', $ctaNumExtraida);
+                foreach ($listaCuentas as $c) {
+                    $cuentaOficial = preg_replace('/[^0-9]/', '', $c['numero_cuenta'] ?? '');
+                    if ($cuentaOficial !== '' && ($numLimpio === $cuentaOficial || (strlen($numLimpio) >= 8 && str_contains($cuentaOficial, $numLimpio)))) {
+                        return ['cuenta' => $c, 'criterio' => 'numero_cuenta', 'confianza' => 1.0];
+                    }
+                }
+            }
+
+            // 2. Coincidencia por teléfono de pago móvil
+            if ($tlfDestino) {
+                foreach ($listaCuentas as $c) {
+                    $tlfOficial = preg_replace('/[^0-9]/', '', $c['telefono_pago_movil'] ?? $c['telefono'] ?? '');
+                    if ($tlfOficial && $tlfDestino === $tlfOficial) {
+                        return ['cuenta' => $c, 'criterio' => 'telefono_pago_movil', 'confianza' => 0.95];
+                    }
+                }
+            }
+
+            // 3. Coincidencia por RIF / Identificación + Banco
+            if ($idDestino && $bcoReceptor) {
+                $bancoDetectado = $this->normalizarTextoBancos($bcoReceptor);
+                foreach ($listaCuentas as $c) {
+                    $idOficial = preg_replace('/[^0-9]/', '', $c['identificacion'] ?? '');
+                    $bancoOficial = $this->normalizarTextoBancos($c['banco'] ?? '');
+                    if ($idOficial && $idDestino === $idOficial && str_contains($bancoOficial, $bancoDetectado)) {
+                        return ['cuenta' => $c, 'criterio' => 'rif_banco', 'confianza' => 0.9];
+                    }
+                }
+            }
+
+            // 4. Coincidencia por prefijo bancario de 4 dígitos (código de banco)
+            if ($ctaPrefijo) {
+                $coincidenciasPrefijo = [];
+                foreach ($listaCuentas as $c) {
+                    $cuentaOficial = preg_replace('/[^0-9]/', '', $c['numero_cuenta'] ?? '');
+                    if (str_starts_with($cuentaOficial, $ctaPrefijo)) {
+                        $coincidenciasPrefijo[] = $c;
+                    }
+                }
+                if (count($coincidenciasPrefijo) === 1) {
+                    return ['cuenta' => $coincidenciasPrefijo[0], 'criterio' => 'prefijo_banco', 'confianza' => 0.85];
+                } elseif (count($coincidenciasPrefijo) > 1 && $bcoReceptor) {
+                    $bancoDetectado = $this->normalizarTextoBancos($bcoReceptor);
+                    foreach ($coincidenciasPrefijo as $c) {
+                        if (str_contains($this->normalizarTextoBancos($c['banco']), $bancoDetectado)) {
+                            return ['cuenta' => $c, 'criterio' => 'prefijo_y_nombre_banco', 'confianza' => 0.85];
+                        }
+                    }
+                }
+            }
+
+            // 5. Coincidencia por nombre de banco receptor detectado
+            if ($bcoReceptor) {
+                $bancoDetectado = $this->normalizarTextoBancos($bcoReceptor);
+                $coincidentesBanco = [];
+                foreach ($listaCuentas as $c) {
+                    $bancoOficial = $this->normalizarTextoBancos($c['banco'] ?? '');
+                    if ($bancoOficial !== '' && (str_contains($bancoOficial, $bancoDetectado) || str_contains($bancoDetectado, $bancoOficial))) {
+                        $coincidentesBanco[] = $c;
+                    }
+                }
+                if (count($coincidentesBanco) === 1) {
+                    return ['cuenta' => $coincidentesBanco[0], 'criterio' => 'nombre_banco', 'confianza' => 0.75];
+                }
+            }
+
+            return null;
+        };
+
+        // 1. Evaluar contra cuentas activas autorizadas
+        $matchActiva = $buscarCoincidencia($cuentasActivas);
+        if ($matchActiva !== null) {
+            $c = $matchActiva['cuenta'];
+            $resultado['cuenta_bancaria_id'] = (int)$c['id'];
+            $resultado['banco_receptor'] = $c['banco'];
+            $resultado['cuenta_destino_valida'] = true;
+            $resultado['confianza'] = $matchActiva['confianza'];
+            $resultado['inconsistencia'] = null;
+            $resultado['coincidencia_por'] = $matchActiva['criterio'];
+            return $resultado;
+        }
+
+        // 2. Evaluar si coincide con una cuenta INACTIVA del condominio
+        $matchInactiva = $buscarCoincidencia($cuentasInactivas);
+        if ($matchInactiva !== null) {
+            $c = $matchInactiva['cuenta'];
+            $resultado['cuenta_bancaria_id'] = null;
+            $resultado['banco_receptor'] = $c['banco'];
+            $resultado['cuenta_destino_valida'] = false;
+            $resultado['confianza'] = 0.3;
+            $resultado['inconsistencia'] = "Atención: El comprobante refleja un pago hacia la cuenta de " . ($c['banco'] ?? 'banco oficial') . " que actualmente se encuentra inactiva. Por favor verifique si realizó la transferencia a la cuenta oficial vigente.";
+            $resultado['coincidencia_por'] = 'inactiva_' . $matchInactiva['criterio'];
+            return $resultado;
+        }
+
+        // 3. Evaluar si se detectó destino en el comprobante pero NO coincide con ninguna cuenta del condominio
+        $huboDatosDestinoDetectados = ($ctaNumExtraida || $ctaPrefijo || $bcoReceptor || $tlfDestino);
+        if ($huboDatosDestinoDetectados) {
+            $detalleDestino = $bcoReceptor ? ucfirst($bcoReceptor) : ($ctaPrefijo ? "Banco {$ctaPrefijo}" : 'desconocido');
+            if ($ctaNumExtraida) {
+                $digitos = preg_replace('/[^0-9]/', '', $ctaNumExtraida);
+                if (strlen($digitos) >= 4) {
+                    $detalleDestino .= " (cuenta *" . substr($digitos, -4) . ")";
+                }
+            }
+            $resultado['cuenta_bancaria_id'] = null;
+            $resultado['banco_receptor'] = $bcoReceptor ? ucfirst($bcoReceptor) : '';
+            $resultado['cuenta_destino_valida'] = false;
+            $resultado['confianza'] = 0.1;
+            $resultado['inconsistencia'] = "Atención: El número de cuenta o banco receptor detectado en el comprobante ({$detalleDestino}) no coincide con nuestras cuentas registradas. Verifique los datos o seleccione la cuenta oficial correspondiente.";
+            return $resultado;
+        }
+
+        // 4. No se detectó cuenta de destino en el comprobante
+        if (count($cuentasActivas) === 1) {
+            $c = $cuentasActivas[0];
+            $resultado['cuenta_bancaria_id'] = (int)$c['id'];
+            $resultado['banco_receptor'] = $c['banco'];
+            $resultado['cuenta_destino_valida'] = true;
+            $resultado['confianza'] = 0.5;
+            $resultado['inconsistencia'] = "No se detectó la cuenta receptora en el comprobante. Se seleccionó la cuenta oficial por defecto ({$c['banco']}); confirme que corresponda a su pago.";
+            $resultado['coincidencia_por'] = 'cuenta_unica_default';
+            return $resultado;
+        }
+
+        $resultado['cuenta_bancaria_id'] = null;
+        $resultado['banco_receptor'] = '';
+        $resultado['cuenta_destino_valida'] = true;
+        $resultado['confianza'] = 0.0;
+        $resultado['inconsistencia'] = "No se detectó la cuenta receptora en el comprobante. Por favor seleccione la cuenta oficial a la que realizó la operación.";
         return $resultado;
     }
 

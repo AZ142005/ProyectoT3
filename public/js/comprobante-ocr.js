@@ -95,14 +95,26 @@
         Object.keys(datosBase).forEach(function (clave) {
             combinado[clave] = datosBase[clave];
         });
+        combinado.confianza = Object.assign({}, datosBase.confianza || {});
+        combinado.inconsistencias = Object.assign({}, datosBase.inconsistencias || {});
+
         claves.forEach(function (clave) {
             var actual = combinado[clave];
             var alterno = datosRefuerzo[clave];
             var vacio = actual === null || actual === undefined || actual === '';
             if (vacio && alterno !== null && alterno !== undefined && alterno !== '') {
                 combinado[clave] = alterno;
+                if (datosRefuerzo.confianza && datosRefuerzo.confianza[clave] !== undefined) {
+                    combinado.confianza[clave] = datosRefuerzo.confianza[clave];
+                }
+                if (datosRefuerzo.inconsistencias && datosRefuerzo.inconsistencias[clave] !== undefined) {
+                    combinado.inconsistencias[clave] = datosRefuerzo.inconsistencias[clave];
+                }
             }
         });
+        if (combinado.cuenta_destino_valida === undefined && datosRefuerzo.cuenta_destino_valida !== undefined) {
+            combinado.cuenta_destino_valida = datosRefuerzo.cuenta_destino_valida;
+        }
         return combinado;
     }
 

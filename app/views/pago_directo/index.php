@@ -680,6 +680,15 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         consultarDeuda(unidadSelect.value);
     }
 
+    ['monto', 'fecha_pago', 'metodo_pago', 'banco_pagador', 'banco_pagador_otro', 'referencia', 'cuenta_bancaria_id'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+            var target = id === 'banco_pagador_otro' ? 'banco_pagador' : id;
+            el.addEventListener('input', function () { limpiarInconsistenciaCampo(target); });
+            el.addEventListener('change', function () { limpiarInconsistenciaCampo(target); });
+        }
+    });
+
     // ------------------------------------------------------------------
     // Extracción inteligente del comprobante (OCR en navegador + PDF)
     // ------------------------------------------------------------------
@@ -1061,8 +1070,22 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             }
         }
 
+        // Renderizar advertencias de inconsistencias en tiempo real
+        let totalInconsistencias = 0;
+        if (data.inconsistencias && typeof data.inconsistencias === 'object') {
+            Object.keys(data.inconsistencias).forEach(function (campoId) {
+                var adv = data.inconsistencias[campoId];
+                if (adv) {
+                    renderizarInconsistencia(campoId, adv);
+                    totalInconsistencias++;
+                }
+            });
+        }
+
         // Resumen en la UI
-        if (camposLlenados > 0 && camposActualizados > 0) {
+        if (totalInconsistencias > 0) {
+            mostrarResumenExtraccion('inconsistencia', `Se autocompletaron datos del comprobante, pero se detectaron ${totalInconsistencias} observación(es). Revise los campos señalados antes de enviar.`);
+        } else if (camposLlenados > 0 && camposActualizados > 0) {
             mostrarResumenExtraccion('exito', `Se autocompletaron ${camposLlenados} campo(s) y se actualizaron ${camposActualizados} desde el comprobante.`);
         } else if (camposActualizados > 0) {
             mostrarResumenExtraccion('exito', `Se actualizaron ${camposActualizados} campo(s) con los datos del comprobante.`);
@@ -1079,11 +1102,33 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         // resumen del Paso 1 informa el resultado.
     }
 
+    function renderizarInconsistencia(campoId, mensaje) {
+        var contenedor = document.getElementById('inconsistencia-' + campoId);
+        if (!contenedor) { return; }
+        contenedor.innerHTML =
+            '<div class="mt-1.5 flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded-lg p-2 shadow-sm transition-all duration-200">' +
+                '<span class="material-symbols-outlined text-[16px] text-amber-600 mt-0.5 shrink-0">warning</span>' +
+                '<span class="leading-tight">' + escapeHtml(mensaje) + '</span>' +
+            '</div>';
+        var input = document.getElementById(campoId);
+        if (input) {
+            input.classList.add('border-amber-400', 'bg-amber-50/20');
+        }
+    }
+
+    function limpiarInconsistenciaCampo(campoId) {
+        var c = document.getElementById('inconsistencia-' + campoId);
+        if (c) { c.innerHTML = ''; }
+        var input = document.getElementById(campoId);
+        if (input) {
+            input.classList.remove('border-amber-400', 'bg-amber-50/20');
+        }
+    }
+
     function limpiarInconsistencias() {
-        ['monto', 'fecha_pago', 'metodo_pago', 'banco_pagador', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
-            const c = document.getElementById(`inconsistencia-${id}`);
-            if (c) c.innerHTML = '';
-            const b = document.getElementById(`badge-${id}`);
+        ['monto', 'fecha_pago', 'metodo_pago', 'banco_pagador', 'referencia', 'cuenta_bancaria_id'].forEach(function (id) {
+            limpiarInconsistenciaCampo(id);
+            var b = document.getElementById('badge-' + id);
             if (b) {
                 b.classList.add('hidden');
                 b.classList.remove('inline-flex');

@@ -647,8 +647,22 @@
             }
         }
 
+        // Renderizar advertencias de inconsistencias en tiempo real
+        let totalInconsistencias = 0;
+        if (data.inconsistencias && typeof data.inconsistencias === 'object') {
+            Object.keys(data.inconsistencias).forEach(campoId => {
+                const adv = data.inconsistencias[campoId];
+                if (adv) {
+                    renderizarInconsistencia(campoId, adv);
+                    totalInconsistencias++;
+                }
+            });
+        }
+
         // Mostrar resumen en UI
-        if (camposLlenados > 0 && camposActualizados > 0) {
+        if (totalInconsistencias > 0) {
+            mostrarResumenExtraccion('inconsistencia', `Se autocompletaron datos del comprobante, pero se detectaron ${totalInconsistencias} observación(es). Revise los campos señalados antes de enviar.`);
+        } else if (camposLlenados > 0 && camposActualizados > 0) {
             mostrarResumenExtraccion('exito', `Se autocompletaron ${camposLlenados} campo(s) y se actualizaron ${camposActualizados} desde el comprobante.`);
         } else if (camposActualizados > 0) {
             mostrarResumenExtraccion('exito', `Se actualizaron ${camposActualizados} campo(s) con los datos del comprobante.`);
@@ -665,10 +679,33 @@
         // resumen del Paso 1 informa el resultado.
     }
 
+    function renderizarInconsistencia(campoId, mensaje) {
+        const contenedor = document.getElementById(`inconsistencia-${campoId}`);
+        if (!contenedor) return;
+        contenedor.innerHTML = `
+            <div class="mt-1.5 flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded-lg p-2 shadow-sm transition-all duration-200">
+                <span class="material-symbols-outlined text-[16px] text-amber-600 mt-0.5 shrink-0">warning</span>
+                <span class="leading-tight">${escapeHtml(mensaje)}</span>
+            </div>
+        `;
+        const input = document.getElementById(campoId);
+        if (input) {
+            input.classList.add('border-amber-400', 'bg-amber-50/20');
+        }
+    }
+
+    function limpiarInconsistenciaCampo(campoId) {
+        const c = document.getElementById(`inconsistencia-${campoId}`);
+        if (c) c.innerHTML = '';
+        const input = document.getElementById(campoId);
+        if (input) {
+            input.classList.remove('border-amber-400', 'bg-amber-50/20');
+        }
+    }
+
     function limpiarInconsistencias() {
         ['monto', 'banco_pagador', 'fecha_pago', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
-            const c = document.getElementById(`inconsistencia-${id}`);
-            if (c) c.innerHTML = '';
+            limpiarInconsistenciaCampo(id);
             const b = document.getElementById(`badge-${id}`);
             if (b) {
                 b.classList.add('hidden');
@@ -760,6 +797,15 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        ['monto', 'banco_pagador', 'banco_pagador_otro', 'fecha_pago', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const target = id === 'banco_pagador_otro' ? 'banco_pagador' : id;
+                el.addEventListener('input', () => limpiarInconsistenciaCampo(target));
+                el.addEventListener('change', () => limpiarInconsistenciaCampo(target));
+            }
+        });
+
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && selCuenta.value) {
             actualizarInfoCuenta(selCuenta);

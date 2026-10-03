@@ -322,56 +322,42 @@ class PagoController extends Controller {
 
         $bancoPagador = $resultado['banco'] ? ($nombresBancos[$resultado['banco']] ?? ucfirst($resultado['banco'])) : '';
         
-        // Resolver dinámicamente la cuenta bancaria autorizada receptora
+        // Resolver dinámicamente y validar la cuenta bancaria autorizada receptora
         $cuentasModel = new \App\Models\CuentasBancariasModel();
-        $cuentasActivas = $cuentasModel->getActivas();
-        $cuentaSugeridaId = null;
-        $bancoReceptor = '';
+        $todasLasCuentas = $cuentasModel->getAll();
+        $validacionCuenta = $parser->validarCuentaDestino($resultado, $todasLasCuentas);
 
-        // 1. Por prefijo de 4 dígitos de cuenta destino (ej. '0102', '0105', etc.)
-        if (!empty($resultado['cuenta_destino_prefijo'])) {
-            foreach ($cuentasActivas as $ca) {
-                if (str_starts_with($ca['numero_cuenta'], $resultado['cuenta_destino_prefijo'])) {
-                    $cuentaSugeridaId = (int)$ca['id'];
-                    $bancoReceptor = $ca['banco'];
-                    break;
-                }
-            }
-        }
+        $confianza = $resultado['confianza'] ?? [];
+        $confianza['cuenta_bancaria_id'] = $validacionCuenta['confianza'];
 
-        // 2. Por coincidencia de nombre de banco receptor detectado en comprobante
-        if (!$cuentaSugeridaId && !empty($resultado['banco_receptor'])) {
-            $conciliacionService = new \App\Services\ConciliacionBancariaService();
-            $normBcoRec = $conciliacionService->normalizarNombreBanco($resultado['banco_receptor']);
-            foreach ($cuentasActivas as $ca) {
-                if ($conciliacionService->normalizarNombreBanco($ca['banco']) === $normBcoRec) {
-                    $cuentaSugeridaId = (int)$ca['id'];
-                    $bancoReceptor = $ca['banco'];
-                    break;
-                }
-            }
-        }
+        $inconsistencias = $resultado['inconsistencias'] ?? [];
+        $inconsistencias['cuenta_bancaria_id'] = $validacionCuenta['inconsistencia'];
 
-        // 3. Fallback: si existe una sola cuenta autorizada activa, asociarla por defecto
-        if (!$cuentaSugeridaId && count($cuentasActivas) === 1) {
-            $cuentaSugeridaId = (int)$cuentasActivas[0]['id'];
-            $bancoReceptor = $cuentasActivas[0]['banco'];
+        // Determinar mensaje de retroalimentación general
+        $hayInconsistencias = !empty(array_filter($inconsistencias));
+        if ($hayInconsistencias) {
+            $mensaje = 'Datos detectados con observaciones. Por favor revise las advertencias antes de enviar.';
+        } elseif ($resultado['detectado']) {
+            $mensaje = 'Datos del comprobante detectados exitosamente.';
+        } else {
+            $mensaje = 'No se pudieron detectar los datos automáticamente. Por favor ingréselos manualmente.';
         }
 
         $this->json([
-            'success'            => true,
-            'csrf_token'         => $_SESSION['csrf_token'] ?? '',
-            'detectado'          => (bool)$resultado['detectado'],
-            'banco_pagador'      => $bancoPagador,
-            'banco_receptor'     => $bancoReceptor,
-            'cuenta_bancaria_id' => $cuentaSugeridaId,
-            'metodo_pago'        => $resultado['metodo_pago'] ?? '',
-            'referencia'         => $resultado['referencia'] ?? '',
-            'monto'              => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
-            'fecha_pago'         => $resultado['fecha'] ?? '',
-            'mensaje'            => $resultado['detectado']
-                ? 'Datos del comprobante detectados exitosamente.'
-                : 'No se pudieron detectar todos los datos con certeza. Por favor verifique los campos.'
+            'success'               => true,
+            'csrf_token'            => $_SESSION['csrf_token'] ?? '',
+            'detectado'             => (bool)$resultado['detectado'],
+            'banco_pagador'         => $bancoPagador,
+            'banco_receptor'        => $validacionCuenta['banco_receptor'],
+            'cuenta_bancaria_id'    => $validacionCuenta['cuenta_bancaria_id'],
+            'cuenta_destino_valida' => $validacionCuenta['cuenta_destino_valida'],
+            'metodo_pago'           => $resultado['metodo_pago'] ?? '',
+            'referencia'            => $resultado['referencia'] ?? '',
+            'monto'                 => $resultado['monto'] !== null ? number_format($resultado['monto'], 2, '.', '') : '',
+            'fecha_pago'            => $resultado['fecha'] ?? '',
+            'confianza'             => $confianza,
+            'inconsistencias'       => $inconsistencias,
+            'mensaje'               => $mensaje
         ]);
     }
 
