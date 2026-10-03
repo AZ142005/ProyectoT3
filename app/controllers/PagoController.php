@@ -31,8 +31,8 @@ class PagoController extends Controller {
             // + comprobantes del formulario residente. Cualquier miembro activo de
             // la unidad ve todos los movimientos.
             $resultado = $unidadId > 0
-                ? $pagoModel->obtenerTodosPagos(['unidad_id' => $unidadId], $pagina, 20)
-                : ['datos' => [], 'total' => 0, 'pagina' => 1, 'porPagina' => 20, 'totalPaginas' => 1];
+                ? $pagoModel->obtenerTodosPagos(['unidad_id' => $unidadId], $pagina, 25)
+                : ['datos' => [], 'total' => 0, 'pagina' => 1, 'porPagina' => 25, 'totalPaginas' => 1];
 
             $this->render('pagos/residente/lista', [
                 'residente'  => $residente,
@@ -54,7 +54,7 @@ class PagoController extends Controller {
             ];
             
             $pagina = max(1, intval($_GET['page'] ?? 1));
-            $resultado = $pagoModel->obtenerTodosPagos($filtros, $pagina, 20);
+            $resultado = $pagoModel->obtenerTodosPagos($filtros, $pagina, 25);
             $pagos = $resultado['datos'];
             $paginacion = [
                 'total'       => $resultado['total'],

@@ -95,7 +95,7 @@
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="text-lg font-bold text-on-surface mb-0">Listado de Puestos de Estacionamiento</h5>
-            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= count($puestos) ?> Puestos</span>
+            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total'] ?? count($puestos)) ?> Puestos</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -214,6 +214,7 @@
                     </tbody>
                 </table>
             </div>
+            <?php include VIEWS_PATH . '/components/pagination.php'; ?>
         </div>
     </div>
 </div>

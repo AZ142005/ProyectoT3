@@ -117,6 +117,12 @@
                     </tbody>
                 </table>
             </div>
+            <?php 
+            $paginacion = $paginacionFacturas;
+            $pageParam = 'page_facturas';
+            $filtros = ['page_comprobantes' => ($paginacionComprobantes['pagina'] > 1) ? $paginacionComprobantes['pagina'] : null];
+            include VIEWS_PATH . '/components/pagination.php'; 
+            ?>
         <?php endif; ?>
     </div>
 
@@ -176,6 +182,12 @@
                     </tbody>
                 </table>
             </div>
+            <?php 
+            $paginacion = $paginacionComprobantes;
+            $pageParam = 'page_comprobantes';
+            $filtros = ['page_facturas' => ($paginacionFacturas['pagina'] > 1) ? $paginacionFacturas['pagina'] : null];
+            include VIEWS_PATH . '/components/pagination.php'; 
+            ?>
         <?php endif; ?>
     </div>
 </div>

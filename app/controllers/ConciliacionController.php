@@ -104,13 +104,34 @@ class ConciliacionController extends Controller {
             $conteosConciliacion[$fila['categoria']]++;
         }
 
+        // Paginación estandarizada a 25 registros por página
+        $pagina = max(1, intval($_GET['page'] ?? 1));
+        $porPagina = 25;
+        $totalFilas = count($filasConciliacion);
+        $totalPaginas = (int) ceil($totalFilas / $porPagina);
+        $offset = ($pagina - 1) * $porPagina;
+        $filasPaginadas = array_slice($filasConciliacion, $offset, $porPagina);
+
+        $paginacion = [
+            'total'        => $totalFilas,
+            'pagina'       => $pagina,
+            'porPagina'    => $porPagina,
+            'totalPaginas' => $totalPaginas,
+        ];
+
+        $filtros = [
+            'lote' => $loteSeleccionado ?? '',
+        ];
+
         $this->render('admin/conciliacion/index', [
             'lotes'                 => $lotes,
             'loteActual'            => $loteSeleccionado,
             'resultadoCruce'        => $resultadoCruce,
             'pagosPendientes'       => $pagosPendientes,
-            'filasConciliacion'     => $filasConciliacion,
+            'filasConciliacion'     => $filasPaginadas,
             'conteosConciliacion'   => $conteosConciliacion,
+            'paginacion'            => $paginacion,
+            'filtros'               => $filtros,
             'layout'                => 'admin',
             'title'                 => 'Conciliación Bancaria y Verificación de Pagos'
         ]);

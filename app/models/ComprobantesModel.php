@@ -12,7 +12,19 @@ class ComprobantesModel extends BaseModel {
      * @param int $limit
      * @return array
      */
-    public function getRecientesByResidente($residente_id, $limit = 10) {
+    public function getRecientesByResidente($residente_id, int $limitOrPagina = 10, ?int $porPagina = null): array {
+        if ($porPagina !== null) {
+            $pagina = max(1, $limitOrPagina);
+            $baseSql = "
+                SELECT c.*, f.numero_factura 
+                FROM comprobantes_pago c
+                INNER JOIN facturas f ON c.factura_id = f.id
+                WHERE c.residente_id = :residente_id
+            ";
+            $countSql = "SELECT COUNT(*) as total FROM comprobantes_pago WHERE residente_id = :residente_id";
+            return $this->paginate($baseSql, $countSql, ['residente_id' => $residente_id], $pagina, $porPagina, 'c.fecha_envio DESC');
+        }
+
         $db = $this->db();
         
         $sql = "
@@ -25,9 +37,8 @@ class ComprobantesModel extends BaseModel {
         ";
         
         $stmt = $db->prepare($sql);
-        // Usamos bindValue para pasar el límite como entero
         $stmt->bindValue(':residente_id', $residente_id, PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limitOrPagina, PDO::PARAM_INT);
         $stmt->execute();
         
         return $stmt->fetchAll();

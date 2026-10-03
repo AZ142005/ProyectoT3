@@ -6,8 +6,8 @@ use App\Models\MovimientosModel;
 class FacturasModel extends BaseModel {
     protected string $table = 'facturas';
 
-    public function getPendientesByUnidad($unidad_id) {
-        $sql = "
+    public function getPendientesByUnidad($unidad_id, ?int $pagina = null, int $porPagina = 25) {
+        $baseSql = "
             SELECT f.*,
                    EXISTS(
                        SELECT 1 FROM comprobantes_pago c 
@@ -17,11 +17,22 @@ class FacturasModel extends BaseModel {
             WHERE f.unidad_id = :unidad_id 
               AND f.saldo > 0
               AND f.deleted_at IS NULL
-            ORDER BY f.fecha_vencimiento ASC
         ";
-        $stmt = $this->db()->prepare($sql);
-        $stmt->execute(['unidad_id' => $unidad_id]);
-        return $stmt->fetchAll();
+
+        if ($pagina === null) {
+            $stmt = $this->db()->prepare($baseSql . " ORDER BY f.fecha_vencimiento ASC");
+            $stmt->execute(['unidad_id' => $unidad_id]);
+            return $stmt->fetchAll();
+        }
+
+        $countSql = "
+            SELECT COUNT(*) as total
+            FROM facturas f
+            WHERE f.unidad_id = :unidad_id 
+              AND f.saldo > 0
+              AND f.deleted_at IS NULL
+        ";
+        return $this->paginate($baseSql, $countSql, ['unidad_id' => $unidad_id], $pagina, $porPagina, 'f.fecha_vencimiento ASC');
     }
 
     public function getTotalDeudaByUnidad($unidad_id): float {

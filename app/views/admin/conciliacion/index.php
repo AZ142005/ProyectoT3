@@ -179,7 +179,7 @@
                             <p class="text-xs text-on-surface-variant">Bandeja única de pagos reportados y movimientos del extracto bancario</p>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant">Total: <?= count($filasConciliacion) ?></span>
+                            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant">Total: <?= e($paginacion['total'] ?? count($filasConciliacion)) ?></span>
                             <?php if (!empty($resultadoCruce['coincidencias_exactas'])): ?>
                                 <button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-xl shadow-sm text-xs inline-flex items-center gap-1.5 transition-all" onclick="conciliarLoteExactas()">
                                     <span class="material-symbols-outlined text-[16px]">done_all</span>
@@ -288,6 +288,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <?php include VIEWS_PATH . '/components/pagination.php'; ?>
                     <?php endif; ?>
                 </div>
 

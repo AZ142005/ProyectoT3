@@ -20,24 +20,46 @@ class ResidenteController extends Controller {
 
         $unidad_id = $residente['unidad_id'];
 
+        // Paginación estandarizada a 25 registros por página
+        $porPagina = 25;
+        $pageFacturas = max(1, intval($_GET['page_facturas'] ?? 1));
+        $pageComprobantes = max(1, intval($_GET['page_comprobantes'] ?? 1));
+
         // Obtener datos financieros
-        $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
+        $resultadoFacturas = $facturasModel->getPendientesByUnidad($unidad_id, $pageFacturas, $porPagina);
+        $facturas_pendientes = $resultadoFacturas['datos'];
+        $paginacionFacturas = [
+            'total'        => $resultadoFacturas['total'],
+            'pagina'       => $resultadoFacturas['pagina'],
+            'porPagina'    => $resultadoFacturas['porPagina'],
+            'totalPaginas' => $resultadoFacturas['totalPaginas'],
+        ];
+
         $total_deuda = $facturasModel->getTotalDeudaByUnidad($unidad_id);
         $saldo_a_favor = $facturasModel->getSaldoFavorByUnidad($unidad_id);
         $saldo_a_favor_mostrar = abs($saldo_a_favor);
 
-        // Obtener comprobantes de pago recientes (límite 10)
-        $comprobantes = $comprobantesModel->getRecientesByResidente($residente_id, 10);
+        // Obtener comprobantes de pago recientes paginados
+        $resultadoComprobantes = $comprobantesModel->getRecientesByResidente($residente_id, $pageComprobantes, $porPagina);
+        $comprobantes = $resultadoComprobantes['datos'];
+        $paginacionComprobantes = [
+            'total'        => $resultadoComprobantes['total'],
+            'pagina'       => $resultadoComprobantes['pagina'],
+            'porPagina'    => $resultadoComprobantes['porPagina'],
+            'totalPaginas' => $resultadoComprobantes['totalPaginas'],
+        ];
 
         // Renderizar la vista pasando los datos estructurados
         $this->render('residente/dashboard', [
-            'residente' => $residente,
-            'facturas_pendientes' => $facturas_pendientes,
-            'total_deuda' => $total_deuda,
-            'saldo_a_favor_mostrar' => $saldo_a_favor_mostrar,
-            'comprobantes' => $comprobantes,
-            'showNav' => true,
-            'title' => 'Estado de Deuda - Residente'
+            'residente'              => $residente,
+            'facturas_pendientes'    => $facturas_pendientes,
+            'paginacionFacturas'     => $paginacionFacturas,
+            'total_deuda'            => $total_deuda,
+            'saldo_a_favor_mostrar'  => $saldo_a_favor_mostrar,
+            'comprobantes'           => $comprobantes,
+            'paginacionComprobantes' => $paginacionComprobantes,
+            'showNav'                => true,
+            'title'                  => 'Estado de Deuda - Residente'
         ]);
     }
 

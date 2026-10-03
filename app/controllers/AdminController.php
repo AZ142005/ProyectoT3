@@ -37,8 +37,8 @@ class AdminController extends Controller {
         $cuentasBancarias = $cuentasModel->getActivas();
 
         $comprobantesModel = new ComprobantesModel();
-        // Solo lectura de últimos movimientos procesados (verificados o rechazados)
-        $procesados = $comprobantesModel->getProcesados(10) ?: [];
+        // Solo lectura de últimos movimientos procesados (máximo los últimos 4 movimientos)
+        $procesados = $comprobantesModel->getProcesados(4) ?: [];
 
         $this->render('admin/dashboard', [
             'resumen'                 => $resumenFinanciero,
@@ -76,7 +76,7 @@ class AdminController extends Controller {
             'fecha_desde' => $fechaDesde,
             'fecha_hasta' => $fechaHasta,
             'pagina'      => $pagina,
-            'porPagina'   => 20,
+            'porPagina'   => 25,
         ];
 
         $comprobantesModel = new ComprobantesModel();

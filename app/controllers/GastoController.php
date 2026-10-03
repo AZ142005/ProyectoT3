@@ -39,7 +39,7 @@ class GastoController extends Controller {
             'tipo_gasto'   => $tipoGasto,
             'edificio_id'  => $edificioId,
         ];
-        $resultado = $gastosModel->obtenerGastosAdmin($pagina, 15, $filtros);
+        $resultado = $gastosModel->obtenerGastosAdmin($pagina, 25, $filtros);
         $categorias = $categoriasModel->getActivas();
         $edificios = $edificiosModel->getAll();
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);

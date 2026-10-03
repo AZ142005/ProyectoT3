@@ -22,13 +22,13 @@ class EstacionamientoController extends Controller {
         $edificiosModel = new EdificiosModel();
         $unidadesModel = new UnidadesModel();
 
-        $puestos = $estacionamientosModel->listarConDetalles();
+        $todosPuestos = $estacionamientosModel->listarConDetalles();
         $edificios = $edificiosModel->getActivos();
         $unidades = $unidadesModel->getActivas();
 
-        // Cálculo de métricas KPI
+        // Cálculo de métricas KPI sobre la totalidad de puestos
         $kpis = [
-            'total'       => count($puestos),
+            'total'       => count($todosPuestos),
             'asignados'   => 0,
             'libres'      => 0,
             'techados'    => 0,
@@ -36,7 +36,7 @@ class EstacionamientoController extends Controller {
             'visitantes'  => 0,
         ];
 
-        foreach ($puestos as $p) {
+        foreach ($todosPuestos as $p) {
             if (!empty($p['unidad_id'])) {
                 $kpis['asignados']++;
             } else {
@@ -47,13 +47,26 @@ class EstacionamientoController extends Controller {
             if ($p['tipo'] === 'visitante') $kpis['visitantes']++;
         }
 
+        // Paginación estandarizada a 25 registros por página
+        $pagina = max(1, intval($_GET['page'] ?? 1));
+        $porPagina = 25;
+        $resultado = $estacionamientosModel->obtenerPaginados($pagina, $porPagina);
+        $puestos = $resultado['datos'];
+        $paginacion = [
+            'total'        => $resultado['total'],
+            'pagina'       => $resultado['pagina'],
+            'porPagina'    => $resultado['porPagina'],
+            'totalPaginas' => $resultado['totalPaginas'],
+        ];
+
         $this->render('admin/estacionamientos/index', [
-            'puestos'   => $puestos,
-            'edificios' => $edificios,
-            'unidades'  => $unidades,
-            'kpis'      => $kpis,
-            'layout'    => 'admin',
-            'title'     => 'Gestión de Estacionamientos y Vehículos'
+            'puestos'    => $puestos,
+            'paginacion' => $paginacion,
+            'edificios'  => $edificios,
+            'unidades'   => $unidades,
+            'kpis'       => $kpis,
+            'layout'     => 'admin',
+            'title'      => 'Gestión de Estacionamientos y Vehículos'
         ]);
     }
 

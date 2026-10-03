@@ -117,13 +117,36 @@ class EstructuraController extends Controller {
             $tabActual = 'visualizacion';
         }
 
+        // Paginación estandarizada a 25 registros por página para los edificios del conjunto
+        $pagina = max(1, intval($_GET['page'] ?? 1));
+        $porPagina = 25;
+        $totalEdificios = count($edificios);
+        $totalPaginas = (int) ceil($totalEdificios / $porPagina);
+        $offset = ($pagina - 1) * $porPagina;
+        $edificiosPaginados = array_slice($edificios, $offset, $porPagina);
+
+        $paginacion = [
+            'total'        => $totalEdificios,
+            'pagina'       => $pagina,
+            'porPagina'    => $porPagina,
+            'totalPaginas' => $totalPaginas,
+        ];
+
+        $filtros = [
+            'tab'         => $tabActual,
+            'edificio_id' => $filtroEdificio ?: '',
+        ];
+
         $this->render('admin/estructura', [
-            'edificios'      => $edificios,
-            'unidades'       => $unidades,
-            'filtroEdificio' => $filtroEdificio,
-            'tabActual'      => $tabActual,
-            'showNav'        => true,
-            'title'          => 'Estructura del Conjunto - Administrador'
+            'edificios'       => $edificiosPaginados,
+            'todosEdificios'  => $edificios,
+            'unidades'        => $unidades,
+            'filtroEdificio'  => $filtroEdificio,
+            'tabActual'       => $tabActual,
+            'paginacion'      => $paginacion,
+            'filtros'         => $filtros,
+            'showNav'         => true,
+            'title'           => 'Estructura del Conjunto - Administrador'
         ]);
     }
 

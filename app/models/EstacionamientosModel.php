@@ -46,6 +46,30 @@ class EstacionamientosModel extends BaseModel {
     }
 
     /**
+     * Listado paginado de puestos de estacionamiento con detalles.
+     */
+    public function obtenerPaginados(int $pagina = 1, int $porPagina = 25, bool $incluirEliminados = false): array {
+        $baseSql = "SELECT e.*, 
+                       ed.nombre AS edificio_nombre, 
+                       u.numero AS unidad_numero,
+                       v.id AS vehiculo_id,
+                       v.placa AS vehiculo_placa,
+                       v.marca AS vehiculo_marca,
+                       v.modelo AS vehiculo_modelo
+                FROM estacionamientos e
+                LEFT JOIN edificios ed ON e.edificio_id = ed.id
+                LEFT JOIN unidades u ON e.unidad_id = u.id
+                LEFT JOIN vehiculos v ON v.estacionamiento_id = e.id
+                       AND (v.deleted_at IS NULL OR v.deleted_at = '')";
+        $baseSql = $this->baseQuery($baseSql, $incluirEliminados);
+
+        $countSql = "SELECT COUNT(*) as total FROM estacionamientos e";
+        $countSql = $this->baseQuery($countSql, $incluirEliminados);
+
+        return $this->paginate($baseSql, $countSql, [], $pagina, $porPagina, 'e.numero ASC');
+    }
+
+    /**
      * Obtiene los puestos asignados a una unidad específica.
      */
     public function obtenerPorUnidad(int $unidadId): array {

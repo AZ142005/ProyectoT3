@@ -23,7 +23,7 @@ class UsuarioAdminController extends Controller {
         $buscar    = trim($_GET['buscar'] ?? '');
         $rol       = trim($_GET['rol'] ?? '');
         $pagina    = max(1, intval($_GET['page'] ?? 1));
-        $porPagina = 15;
+        $porPagina = 25;
 
         $usuariosModel = new UsuariosModel();
         $resultado = $usuariosModel->obtenerListadoUnificado($buscar, $rol, $pagina, $porPagina);

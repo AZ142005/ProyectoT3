@@ -124,7 +124,7 @@
                                         <label for="filtro_edificio" class="text-xs font-bold text-on-surface-variant whitespace-nowrap">Filtrar por Edificio:</label>
                                         <select id="filtro_edificio" name="edificio_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-background border border-outline-variant text-on-surface text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-primary">
                                             <option value="0">Todos los Edificios</option>
-                                            <?php foreach ($edificios as $ed): ?>
+                                            <?php foreach (($todosEdificios ?? $edificios) as $ed): ?>
                                                 <option value="<?= e($ed['id']) ?>" <?= $filtroEdificio == $ed['id'] ? 'selected' : '' ?>>
                                                     <?= e($ed['nombre']) ?>
                                                 </option>
@@ -314,6 +314,7 @@
                                         No se encontraron edificios o unidades que coincidan con la búsqueda.
                                     </div>
                                 </div>
+                                <?php include VIEWS_PATH . '/components/pagination.php'; ?>
                             <?php endif; ?>
                         </section>
                     </div>
@@ -591,6 +592,7 @@
                                         No se encontraron edificios o unidades que coincidan con la búsqueda.
                                     </div>
                                 </div>
+                                <?php include VIEWS_PATH . '/components/pagination.php'; ?>
                             <?php endif; ?>
                         </section>
                     </div>

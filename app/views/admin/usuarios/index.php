@@ -359,47 +359,12 @@
 
                     <!-- Paginación -->
                     <?php if ($paginacion['totalPaginas'] > 1): ?>
-                        <div class="card-footer bg-white border-top py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <small class="text-muted">
-                                Mostrando página <strong><?= e($paginacion['pagina']) ?></strong> de <strong><?= e($paginacion['totalPaginas']) ?></strong> (Total: <?= e($paginacion['total']) ?> registros)
-                            </small>
-                            <nav aria-label="Navegación de páginas">
-                                <ul class="pagination pagination-sm mb-0">
-                                    <?php
-                                    $queryParams = [];
-                                    $queryParams['tab'] = 'usuarios';
-                                    if (!empty($buscar)) $queryParams['buscar'] = $buscar;
-                                    if (!empty($rol)) $queryParams['rol'] = $rol;
-                                    $buildPageUrl = function($p) use ($queryParams) {
-                                        return '/admin/usuarios?' . http_build_query(array_merge($queryParams, ['page' => $p]));
-                                    };
-                                    ?>
-                                    <!-- Anterior -->
-                                    <li class="page-item <?= ($paginacion['pagina'] <= 1) ? 'disabled' : '' ?>">
-                                        <a class="page-link" href="<?= $buildPageUrl($paginacion['pagina'] - 1) ?>">
-                                            <span class="material-symbols-outlined fs-6 align-middle">chevron_left</span>
-                                        </a>
-                                    </li>
-
-                                    <!-- Páginas numéricas -->
-                                    <?php 
-                                    $startPage = max(1, $paginacion['pagina'] - 2);
-                                    $endPage = min($paginacion['totalPaginas'], $paginacion['pagina'] + 2);
-                                    for ($i = $startPage; $i <= $endPage; $i++): 
-                                    ?>
-                                        <li class="page-item <?= ($paginacion['pagina'] === $i) ? 'active font-bold' : '' ?>">
-                                            <a class="page-link" href="<?= $buildPageUrl($i) ?>"><?= e($i) ?></a>
-                                        </li>
-                                    <?php endfor; ?>
-
-                                    <!-- Siguiente -->
-                                    <li class="page-item <?= ($paginacion['pagina'] >= $paginacion['totalPaginas']) ? 'disabled' : '' ?>">
-                                        <a class="page-link" href="<?= $buildPageUrl($paginacion['pagina'] + 1) ?>">
-                                            <span class="material-symbols-outlined fs-6 align-middle">chevron_right</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
+                        <div class="card-footer bg-white border-top py-3 px-4">
+                            <?php
+                            $queryParams['tab'] = 'usuarios';
+                            $filtros = ['tab' => 'usuarios', 'buscar' => $buscar ?? '', 'rol' => $rol ?? ''];
+                            include VIEWS_PATH . '/components/pagination.php';
+                            ?>
                         </div>
                     <?php endif; ?>
                 </div>
