@@ -121,6 +121,14 @@ class PagoController extends Controller {
         if (empty($residente['unidad_id'])) {
             Flash::error("No se pudo determinar la unidad asociada a su cuenta de residente.");
             $this->redirect('/pagos/nuevo');
+            return;
+        }
+
+        // Rate limiting: máximo 10 subidas por hora por residente
+        if (!\App\Core\RateLimiter::attempt('pago_subir_' . $residenteId, 10, 3600)) {
+            Flash::error("Ha excedido el límite de subida de pagos (máximo 10 por hora). Intente de nuevo más tarde.");
+            $this->redirect('/pagos/nuevo');
+            return;
         }
         
         $unidadId = $residente['unidad_id'];
@@ -149,19 +157,23 @@ class PagoController extends Controller {
         if ($monto <= 0) {
             Flash::error("El monto del pago debe ser mayor a cero.");
             $this->redirect('/pagos/nuevo');
+            return;
         }
         if (empty($fecha_pago)) {
             Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');
+            return;
         }
         if (!\DateTime::createFromFormat('Y-m-d', $fecha_pago) || date('Y-m-d', strtotime($fecha_pago)) !== $fecha_pago) {
             Flash::error("El formato de fecha no es válido. Use AAAA-MM-DD.");
             $this->redirect('/pagos/nuevo');
+            return;
         }
         
         if (!isset($_FILES['comprobante']) || $_FILES['comprobante']['error'] !== UPLOAD_ERR_OK) {
             Flash::error("El archivo del comprobante es obligatorio y debe ser válido.");
             $this->redirect('/pagos/nuevo');
+            return;
         }
         
         $uploader = new \App\Services\FileUploader();
@@ -170,7 +182,10 @@ class PagoController extends Controller {
         if (!$uniqueName) {
             Flash::error("Formato o tamaño de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG) o PDF hasta 5MB.");
             $this->redirect('/pagos/nuevo');
+            return;
         }
+
+        $archivoHash = $uploader->getLastFileHash();
         
         $pagoModel = new PagoModel();
         $totalDeuda = $pagoModel->obtenerTotalDeuda($unidadId);
@@ -183,7 +198,8 @@ class PagoController extends Controller {
             'observaciones'      => $observaciones,
             'banco_pagador'      => $banco_pagador,
             'banco_receptor'     => $banco_receptor,
-            'cuenta_bancaria_id' => $cuenta_bancaria_id
+            'cuenta_bancaria_id' => $cuenta_bancaria_id,
+            'archivo_hash'       => $archivoHash
         ];
         
         $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);

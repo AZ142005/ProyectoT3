@@ -118,8 +118,31 @@ class PagoModel extends BaseModel {
                 }
             }
 
-            $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, referencia_norm, archivo, observaciones, estado, banco_pagador, banco_receptor, cuenta_bancaria_id)
-                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :referencia_norm, :archivo, :observaciones, :estado, :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";
+            // Prevenir duplicado contra comprobantes_pago activos de la misma unidad
+            if ($referenciaNorm !== null) {
+                $stmtCompDup = $db->prepare("
+                    SELECT c.id FROM comprobantes_pago c
+                    INNER JOIN facturas f ON c.factura_id = f.id
+                    WHERE f.unidad_id = :unidad_id
+                      AND c.referencia_norm = :referencia_norm
+                      AND c.estado != 'rechazado'
+                      AND c.deleted_at IS NULL
+                    LIMIT 1
+                ");
+                $stmtCompDup->execute([
+                    'unidad_id'       => $unidadId,
+                    'referencia_norm' => $referenciaNorm
+                ]);
+                if ($stmtCompDup->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+            }
+
+            $archivoHash = $datos['archivo_hash'] ?? null;
+
+            $sql = "INSERT INTO pagos (residente_id, unidad_id, monto, fecha_pago, metodo_pago, referencia, referencia_norm, archivo, archivo_hash, observaciones, estado, banco_pagador, banco_receptor, cuenta_bancaria_id)
+                    VALUES (:residente_id, :unidad_id, :monto, :fecha_pago, :metodo_pago, :referencia, :referencia_norm, :archivo, :archivo_hash, :observaciones, :estado, :banco_pagador, :banco_receptor, :cuenta_bancaria_id)";
             
             $stmt = $db->prepare($sql);
             $result = $stmt->execute([
@@ -131,6 +154,7 @@ class PagoModel extends BaseModel {
                 'referencia'         => $referencia,
                 'referencia_norm'    => $referenciaNorm,
                 'archivo'            => $filename,
+                'archivo_hash'       => $archivoHash,
                 'observaciones'      => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null,
                 'estado'             => $estado,
                 'banco_pagador'      => !empty($datos['banco_pagador']) ? trim($datos['banco_pagador']) : null,
@@ -420,8 +444,27 @@ class PagoModel extends BaseModel {
                     ]);
                     $twin = $stmtDup->fetch(PDO::FETCH_ASSOC);
 
+                    if (!$twin) {
+                        $stmtDupComp = $db->prepare(
+                            "SELECT c.id FROM comprobantes_pago c
+                             INNER JOIN facturas f ON c.factura_id = f.id
+                             WHERE f.unidad_id = :unidad_id 
+                               AND c.referencia_norm = :referencia_norm
+                               AND c.estado = 'aprobado' LIMIT 1"
+                        );
+                        $stmtDupComp->execute([
+                            'unidad_id'       => intval($prev['unidad_id']),
+                            'referencia_norm' => $prev['referencia_norm']
+                        ]);
+                        $twinComp = $stmtDupComp->fetch(PDO::FETCH_ASSOC);
+                        if ($twinComp) {
+                            $twin = ['id' => $twinComp['id'], 'origen' => 'comprobante'];
+                        }
+                    }
+
                     if ($twin) {
-                        $motivoBloqueo = "Duplicado económico: el pago #" . intval($twin['id']) . " ya está APROBADO para la misma unidad y referencia.";
+                        $origenTexto = ($twin['origen'] ?? 'pago') === 'comprobante' ? 'el comprobante #' : 'el pago #';
+                        $motivoBloqueo = "Duplicado económico: {$origenTexto}" . intval($twin['id']) . " ya está APROBADO para la misma unidad y referencia.";
                         $this->registrarIntentoBloqueado(
                             $db, $pagoId, $adminId, $ipAddress, $estadoAnterior, $nuevoEstado, $motivoBloqueo
                         );
@@ -694,6 +737,13 @@ class PagoModel extends BaseModel {
                               AND estado = 'APROBADO' AND id != :id LIMIT 1";
                 $stmtTwin = $db->prepare($sqlTwin);
 
+                $sqlTwinComp = "SELECT c.id FROM comprobantes_pago c
+                                INNER JOIN facturas f ON c.factura_id = f.id
+                                WHERE f.unidad_id = :unidad_id 
+                                  AND c.referencia_norm = :referencia_norm
+                                  AND c.estado = 'aprobado' LIMIT 1";
+                $stmtTwinComp = $db->prepare($sqlTwinComp);
+
                 $sqlPayInfo = "SELECT unidad_id, monto, referencia FROM pagos WHERE id = :id";
                 $stmtPayInfo = $db->prepare($sqlPayInfo);
 
@@ -713,6 +763,14 @@ class PagoModel extends BaseModel {
                                 'id'              => intval($sqlPago['id'])
                             ]);
                             $esDuplicado = (bool)$stmtTwin->fetch(PDO::FETCH_ASSOC);
+                        }
+
+                        if (!$esDuplicado) {
+                            $stmtTwinComp->execute([
+                                'unidad_id'       => intval($sqlPago['unidad_id']),
+                                'referencia_norm' => $referenciaNorm
+                            ]);
+                            $esDuplicado = (bool)$stmtTwinComp->fetch(PDO::FETCH_ASSOC);
                         }
 
                         if ($esDuplicado) {

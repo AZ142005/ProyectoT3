@@ -45,7 +45,113 @@ class ComprobantesModel extends BaseModel {
     }
 
     /**
-     * Inserta un nuevo comprobante de pago en la base de datos.
+     * Verifica si ya existe un comprobante o pago activo con la misma referencia normalizada
+     * o archivo hash para la misma unidad o factura.
+     *
+     * @return array|null Información del duplicado o null si no existe
+     */
+    public function verificarDuplicado(int $facturaId, ?string $referencia, string $fechaPago, float $monto, ?string $archivoHash = null): ?array {
+        $db = $this->db();
+        $refNorm = PagoModel::normalizarReferenciaPago($referencia);
+
+        // Obtener la unidad asociada a la factura
+        $stmtF = $db->prepare("SELECT unidad_id FROM facturas WHERE id = :factura_id");
+        $stmtF->execute(['factura_id' => $facturaId]);
+        $unidadId = $stmtF->fetchColumn();
+
+        // 1. Chequeo por referencia en comprobantes_pago para la misma unidad/factura
+        if (!empty($refNorm)) {
+            $sqlComp = "
+                SELECT c.id, c.estado, c.referencia 
+                FROM comprobantes_pago c
+                INNER JOIN facturas f ON c.factura_id = f.id
+                WHERE (c.factura_id = :factura_id " . ($unidadId ? "OR f.unidad_id = :unidad_id" : "") . ")
+                  AND c.referencia_norm = :ref_norm
+                  AND c.estado != 'rechazado'
+                  AND c.deleted_at IS NULL
+                LIMIT 1
+            ";
+            $params = ['factura_id' => $facturaId, 'ref_norm' => $refNorm];
+            if ($unidadId) {
+                $params['unidad_id'] = $unidadId;
+            }
+            $stmtC = $db->prepare($sqlComp);
+            $stmtC->execute($params);
+            $dupHit = $stmtC->fetch(PDO::FETCH_ASSOC);
+            if ($dupHit) {
+                return ['tipo' => 'comprobante', 'id' => $dupHit['id'], 'criterio' => 'referencia'];
+            }
+
+            // Chequeo cruzado contra pagos registrados para la misma unidad
+            if ($unidadId) {
+                $stmtP = $db->prepare("
+                    SELECT id, estado, referencia 
+                    FROM pagos 
+                    WHERE unidad_id = :unidad_id 
+                      AND referencia_norm = :ref_norm 
+                      AND estado != 'RECHAZADO'
+                      AND deleted_at IS NULL
+                    LIMIT 1
+                ");
+                $stmtP->execute(['unidad_id' => $unidadId, 'ref_norm' => $refNorm]);
+                $pagoHit = $stmtP->fetch(PDO::FETCH_ASSOC);
+                if ($pagoHit) {
+                    return ['tipo' => 'pago', 'id' => $pagoHit['id'], 'criterio' => 'referencia'];
+                }
+            }
+        }
+
+        // 2. Chequeo por hash de archivo si está presente (evita re-subir el mismo archivo)
+        if (!empty($archivoHash)) {
+            $stmtH = $db->prepare("
+                SELECT c.id 
+                FROM comprobantes_pago c
+                INNER JOIN facturas f ON c.factura_id = f.id
+                WHERE (c.factura_id = :factura_id " . ($unidadId ? "OR f.unidad_id = :unidad_id" : "") . ")
+                  AND c.archivo_hash = :hash
+                  AND c.estado != 'rechazado'
+                  AND c.deleted_at IS NULL
+                LIMIT 1
+            ");
+            $paramsH = ['factura_id' => $facturaId, 'hash' => $archivoHash];
+            if ($unidadId) {
+                $paramsH['unidad_id'] = $unidadId;
+            }
+            $stmtH->execute($paramsH);
+            $hashHit = $stmtH->fetch(PDO::FETCH_ASSOC);
+            if ($hashHit) {
+                return ['tipo' => 'comprobante', 'id' => $hashHit['id'], 'criterio' => 'archivo_hash'];
+            }
+        }
+
+        // 3. Chequeo fallback sin referencia: misma factura + misma fecha + mismo monto
+        if (empty($refNorm)) {
+            $stmtS = $db->prepare("
+                SELECT id 
+                FROM comprobantes_pago 
+                WHERE factura_id = :factura_id 
+                  AND fecha_pago = :fecha_pago 
+                  AND monto = :monto
+                  AND estado != 'rechazado'
+                  AND deleted_at IS NULL
+                LIMIT 1
+            ");
+            $stmtS->execute([
+                'factura_id' => $facturaId,
+                'fecha_pago' => $fechaPago,
+                'monto'      => $monto
+            ]);
+            $fallbackHit = $stmtS->fetch(PDO::FETCH_ASSOC);
+            if ($fallbackHit) {
+                return ['tipo' => 'comprobante', 'id' => $fallbackHit['id'], 'criterio' => 'monto_fecha'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Inserta un nuevo comprobante de pago en la base de datos con protección de duplicados.
      *
      * @param string|array $tableOData
      * @param array|null $data
@@ -58,29 +164,51 @@ class ComprobantesModel extends BaseModel {
             $data = $data ?? [];
         }
 
+        $facturaId = (int)($data['factura_id'] ?? 0);
+        $monto = round(floatval($data['monto'] ?? 0), 2);
+        $fechaPago = $data['fecha_pago'] ?? date('Y-m-d');
+        $referencia = !empty($data['referencia']) ? trim($data['referencia']) : null;
+        $referenciaNorm = PagoModel::normalizarReferenciaPago($referencia);
+        $archivoHash = $data['archivo_hash'] ?? null;
+
+        // Pre-chequeo indexado contra duplicados
+        $dup = $this->verificarDuplicado($facturaId, $referencia, $fechaPago, $monto, $archivoHash);
+        if ($dup !== null) {
+            return false;
+        }
+
         $db = $this->db();
         
         $sql = "
             INSERT INTO comprobantes_pago 
-            (residente_id, factura_id, monto, metodo_pago, banco_pagador, banco_receptor, cuenta_bancaria_id, referencia, fecha_pago, archivo, observaciones) 
-            VALUES (:residente_id, :factura_id, :monto, :metodo_pago, :banco_pagador, :banco_receptor, :cuenta_bancaria_id, :referencia, :fecha_pago, :archivo, :observaciones)
+            (residente_id, factura_id, monto, metodo_pago, banco_pagador, banco_receptor, cuenta_bancaria_id, referencia, referencia_norm, fecha_pago, archivo, archivo_hash, observaciones) 
+            VALUES (:residente_id, :factura_id, :monto, :metodo_pago, :banco_pagador, :banco_receptor, :cuenta_bancaria_id, :referencia, :referencia_norm, :fecha_pago, :archivo, :archivo_hash, :observaciones)
         ";
         
-        $stmt = $db->prepare($sql);
-        $ok = $stmt->execute([
-            'residente_id'       => $data['residente_id'],
-            'factura_id'         => $data['factura_id'],
-            'monto'              => $data['monto'],
-            'metodo_pago'        => $data['metodo_pago'],
-            'banco_pagador'      => !empty($data['banco_pagador']) ? trim($data['banco_pagador']) : null,
-            'banco_receptor'     => !empty($data['banco_receptor']) ? trim($data['banco_receptor']) : null,
-            'cuenta_bancaria_id' => !empty($data['cuenta_bancaria_id']) ? (int)$data['cuenta_bancaria_id'] : null,
-            'referencia'         => $data['referencia'],
-            'fecha_pago'         => $data['fecha_pago'],
-            'archivo'            => $data['archivo'],
-            'observaciones'      => $data['observaciones']
-        ]);
-        return $ok ? (string) $db->lastInsertId() : false;
+        try {
+            $stmt = $db->prepare($sql);
+            $ok = $stmt->execute([
+                'residente_id'       => $data['residente_id'],
+                'factura_id'         => $facturaId,
+                'monto'              => $monto,
+                'metodo_pago'        => $data['metodo_pago'] ?? '',
+                'banco_pagador'      => !empty($data['banco_pagador']) ? trim($data['banco_pagador']) : null,
+                'banco_receptor'     => !empty($data['banco_receptor']) ? trim($data['banco_receptor']) : null,
+                'cuenta_bancaria_id' => !empty($data['cuenta_bancaria_id']) ? (int)$data['cuenta_bancaria_id'] : null,
+                'referencia'         => $referencia,
+                'referencia_norm'    => $referenciaNorm,
+                'fecha_pago'         => $fechaPago,
+                'archivo'            => $data['archivo'] ?? null,
+                'archivo_hash'       => $archivoHash,
+                'observaciones'      => $data['observaciones'] ?? null
+            ]);
+            return $ok ? (string) $db->lastInsertId() : false;
+        } catch (\PDOException $e) {
+            if ($e->getCode() == 23000 || ($e->errorInfo[1] ?? 0) === 1062) {
+                return false;
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -336,6 +464,69 @@ class ComprobantesModel extends BaseModel {
 
             $unidadId = intval($factura['unidad_id']);
             $montoComprobante = floatval($comprobante['monto']);
+
+            // Guardia contra aprobación de gemelos (mismo pago / referencia ya aprobado)
+            $refNorm = $comprobante['referencia_norm'] ?? PagoModel::normalizarReferenciaPago($comprobante['referencia'] ?? null);
+            if (!empty($refNorm)) {
+                // 1. Chequeo de comprobante gemelo ya aprobado para la misma unidad
+                $stmtTwinComp = $db->prepare("
+                    SELECT c.id FROM comprobantes_pago c
+                    INNER JOIN facturas f ON c.factura_id = f.id
+                    WHERE f.unidad_id = :unidad_id 
+                      AND c.referencia_norm = :ref_norm 
+                      AND c.estado = 'aprobado' 
+                      AND c.id != :id
+                    LIMIT 1
+                ");
+                $stmtTwinComp->execute([
+                    'unidad_id' => $unidadId,
+                    'ref_norm'  => $refNorm,
+                    'id'        => $id
+                ]);
+                if ($stmtTwinComp->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+
+                // 2. Chequeo de pago gemelo ya aprobado en tabla pagos para la misma unidad
+                $stmtTwinPago = $db->prepare("
+                    SELECT id FROM pagos 
+                    WHERE unidad_id = :unidad_id 
+                      AND referencia_norm = :ref_norm 
+                      AND estado = 'APROBADO'
+                    LIMIT 1
+                ");
+                $stmtTwinPago->execute([
+                    'unidad_id' => $unidadId,
+                    'ref_norm'  => $refNorm
+                ]);
+                if ($stmtTwinPago->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+            } else {
+                // Fallback sin referencia: misma fecha y mismo monto ya aprobado para esta unidad
+                $stmtTwinFallback = $db->prepare("
+                    SELECT c.id FROM comprobantes_pago c
+                    INNER JOIN facturas f ON c.factura_id = f.id
+                    WHERE f.unidad_id = :unidad_id 
+                      AND c.fecha_pago = :fecha_pago 
+                      AND c.monto = :monto 
+                      AND c.estado = 'aprobado' 
+                      AND c.id != :id
+                    LIMIT 1
+                ");
+                $stmtTwinFallback->execute([
+                    'unidad_id'  => $unidadId,
+                    'fecha_pago' => $comprobante['fecha_pago'],
+                    'monto'      => $montoComprobante,
+                    'id'         => $id
+                ]);
+                if ($stmtTwinFallback->fetch()) {
+                    $db->rollBack();
+                    return false;
+                }
+            }
 
             // Liquidación en cascada y generación de saldo a favor
             $liquidacionService = new \App\Services\LiquidacionPagoService();

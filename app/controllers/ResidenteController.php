@@ -69,11 +69,6 @@ class ResidenteController extends Controller {
     public function enviarPago() {
         Auth::requireRole('residente');
 
-        // Rate limiting: máximo 10 envíos por hora
-        if (!\App\Core\RateLimiter::attempt('comprobante_' . Auth::id(), 10, 3600)) {
-            $error = "Ha excedido el límite de envíos de comprobantes. Intente de nuevo más tarde.";
-        }
-
         $residente = $this->getAuthenticatedResidente();
         $residente_id = Auth::id();
 
@@ -85,6 +80,13 @@ class ResidenteController extends Controller {
         $selected_factura_id = $_GET['factura'] ?? 0;
         $mensaje = '';
         $error = '';
+
+        // Rate limiting en POST: máximo 10 envíos por hora
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!\App\Core\RateLimiter::attempt('comprobante_' . Auth::id(), 10, 3600)) {
+                $error = "Ha excedido el límite de envíos de comprobantes (máximo 10 por hora). Intente de nuevo más tarde.";
+            }
+        }
 
         // Buscar factura seleccionada por defecto si aplica
         $factura = null;
@@ -141,32 +143,44 @@ class ResidenteController extends Controller {
                         $error = "Formato o tamaño de archivo no permitido. Solo se aceptan JPG, PNG y PDF (Máx. 5MB).";
                     } else {
                         $archivo = $uploadedName;
+                        $archivoHash = $uploader->getLastFileHash();
                     }
 
                     if (empty($error)) {
-                        // Guardar comprobante
-                        $obsCompleta = trim("Cuenta Destino: {$cuentaReceptora['banco']} ({$cuentaReceptora['numero_cuenta']}) | " . $observaciones);
-                        $result = $comprobantesModel->create([
-                            'residente_id'       => $residente_id,
-                            'factura_id'         => $factura_id,
-                            'monto'              => $monto,
-                            'metodo_pago'        => $metodo_pago,
-                            'banco_pagador'      => $banco_pagador,
-                            'banco_receptor'     => $banco_receptor,
-                            'cuenta_bancaria_id' => $cuenta_bancaria_id,
-                            'referencia'         => $referencia,
-                            'fecha_pago'         => $fecha_pago,
-                            'archivo'            => $archivo,
-                            'observaciones'      => $obsCompleta
-                        ]);
-
-                        if ($result) {
-                            $mensaje = "Comprobante enviado exitosamente. Su pago será verificado por la administración.";
-                            // Recargar las facturas pendientes para el dropdown tras guardar
-                            $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
-                            $selected_factura_id = 0;
+                        // Pre-chequeo informativo de duplicados
+                        $dupInfo = $comprobantesModel->verificarDuplicado($factura_id, $referencia, $fecha_pago, $monto, $archivoHash ?? null);
+                        if ($dupInfo !== null) {
+                            if ($dupInfo['criterio'] === 'archivo_hash') {
+                                $error = "Este archivo de comprobante ya fue subido previamente para su unidad.";
+                            } else {
+                                $error = "Ya existe un comprobante o pago registrado con esta referencia o datos de pago para su unidad.";
+                            }
                         } else {
-                            $error = "Error al registrar el comprobante en la base de datos.";
+                            // Guardar comprobante
+                            $obsCompleta = trim("Cuenta Destino: {$cuentaReceptora['banco']} ({$cuentaReceptora['numero_cuenta']}) | " . $observaciones);
+                            $result = $comprobantesModel->create([
+                                'residente_id'       => $residente_id,
+                                'factura_id'         => $factura_id,
+                                'monto'              => $monto,
+                                'metodo_pago'        => $metodo_pago,
+                                'banco_pagador'      => $banco_pagador,
+                                'banco_receptor'     => $banco_receptor,
+                                'cuenta_bancaria_id' => $cuenta_bancaria_id,
+                                'referencia'         => $referencia,
+                                'fecha_pago'         => $fecha_pago,
+                                'archivo'            => $archivo,
+                                'archivo_hash'       => $archivoHash ?? null,
+                                'observaciones'      => $obsCompleta
+                            ]);
+
+                            if ($result) {
+                                $mensaje = "Comprobante enviado exitosamente. Su pago será verificado por la administración.";
+                                // Recargar las facturas pendientes para el dropdown tras guardar
+                                $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
+                                $selected_factura_id = 0;
+                            } else {
+                                $error = "No se pudo registrar el comprobante. Verifique que no sea un pago duplicado o intente más tarde.";
+                            }
                         }
                     }
                 }

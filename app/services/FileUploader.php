@@ -39,6 +39,8 @@ class FileUploader {
         }
     }
 
+    private ?string $lastFileHash = null;
+
     /**
      * Valida y almacena un archivo subido vía $_FILES.
      *
@@ -46,6 +48,8 @@ class FileUploader {
      * @return string|false Retorna el nombre de archivo generado o false si la validación falla
      */
     public function upload(array $file) {
+        $this->lastFileHash = null;
+
         if (!isset($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
             return false;
         }
@@ -67,13 +71,26 @@ class FileUploader {
             return false;
         }
 
+        // Calcular hash SHA-256 antes de mover el archivo temporal
+        $this->lastFileHash = hash_file('sha256', $file['tmp_name']) ?: null;
+
         $uniqueName = bin2hex(random_bytes(16)) . ($ext ? ".{$ext}" : '');
         $destination = $this->uploadPath . '/' . $uniqueName;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            $this->lastFileHash = null;
             return false;
         }
 
         return $uniqueName;
+    }
+
+    /**
+     * Retorna el hash SHA-256 del último archivo procesado exitosamente.
+     *
+     * @return string|null
+     */
+    public function getLastFileHash(): ?string {
+        return $this->lastFileHash;
     }
 }

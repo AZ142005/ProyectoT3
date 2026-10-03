@@ -258,10 +258,14 @@ class PagoDirectoController extends Controller {
         }
 
         $nombreArchivo = null;
+        $archivoHash   = null;
         if ($error === '') {
-            $nombreArchivo = (new FileUploader())->upload($_FILES['comprobante']);
+            $uploader = new FileUploader();
+            $nombreArchivo = $uploader->upload($_FILES['comprobante']);
             if (!$nombreArchivo) {
                 $error = 'Formato o tamaño de archivo no permitido. Solo se aceptan JPG, PNG y PDF (Máx. 5MB).';
+            } else {
+                $archivoHash = $uploader->getLastFileHash();
             }
         }
 
@@ -292,6 +296,7 @@ class PagoDirectoController extends Controller {
             'banco_receptor'     => $cuentaReceptora['banco'],
             'cuenta_bancaria_id' => $cuentaBancariaId,
             'estado'             => EstadoPago::EN_REVISION,
+            'archivo_hash'       => $archivoHash,
         ];
 
         $resultado = (new PagoModel())->crearPago($residenteId, $unidadId, $datos, $nombreArchivo);
