@@ -156,7 +156,7 @@
 
         <div class="card-body p-0">
             <div class="table-responsive max-h-[calc(100vh_-_33rem)] min-h-[16rem] overflow-y-auto">
-                <table class="w-full text-left text-sm border-collapse" id="tablaBalanceUnidades" style="table-layout: fixed; width: 100%;">
+                <table class="w-full text-left text-sm border-collapse" id="tablaBalanceUnidades">
                     <thead>
                         <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
                             <th class="py-3 px-4" style="width: 22%;">Edificio</th>
