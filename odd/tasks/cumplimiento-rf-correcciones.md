@@ -9,20 +9,20 @@
 - Se auditaron los **34 RF evaluables** del SRS contra el código actual del repositorio (working tree, con evidencia archivo:línea).
 - Excluidos por pedido: **RF 30 y RF 31**. El SRS no define **RF 7** (salta de RF 6 a RF 8).
 - Resultado inicial: **25 CUMPLE · 8 PARCIAL · 1 NO CUMPLE**.
-- Resultado vigente: **28 aceptados/cumplidos · 6 pendientes** (RF 3 resuelto el 2026-10-03; ver bitácora).
+- Resultado vigente: **29 aceptados/cumplidos · 5 pendientes** (RF 3 y RF 8 resueltos el 2026-10-03; ver bitácora).
 
-### Cumplidos (28)
+### Cumplidos (29)
 
-RF 1, 3, 4, 5, 6, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
+RF 1, 3, 4, 5, 6, 8, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
 + RF 12 y RF 36 (obviados por decisión — ver sección 2).
 
-### Pendientes (6 activos)
+### Pendientes (5 activos)
 
 | RF | Tema | Estado |
 |----|------|--------|
 | RF 2 | Cruce de correo con padrón de propietarios (único NO CUMPLE) | ⏸ Pendiente |
 | RF 3 | Doble verificación (2FA) sin UI de activación | ✅ Resuelto |
-| RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ⏸ Pendiente |
+| RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ✅ Resuelto |
 | RF 9 | Bandeja de solicitudes de cambio de datos | ⏸ Pendiente |
 | RF 13 | Previsualización de PDF al cargar | ⏸ Pendiente |
 | RF 27 | Detección de montos discordantes en conciliación | ⏸ Pendiente |
@@ -68,13 +68,18 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
   - Vista `app/views/perfil/index.php`: tarjeta "Verificación en Dos Pasos (2FA)" al final del contenido de usuarios, con estado actual (activada/desactivada) y formulario de contraseña que envía al toggle existente.
   - Controlador `app/controllers/PerfilController.php`: `verPerfil` ahora carga también la fila de `usuarios` para el rol auditor (antes solo admin), necesaria para mostrar el estado.
   - Verificación: `php -l` limpio y suite completa de tests en verde (0 fallos). Commit: `c37c2c9`.
+  - Ampliación (2026-10-03, a pedido del usuario): la tarjeta ahora se muestra **también a residentes** (al final de su panel); se añadió acceso "Mi Perfil" en el dashboard del residente y se corrigió un bug latente (`verPerfil` llamaba a un método inexistente `findById`; ahora usa `getActiveById`, que rompía el perfil de residentes). Commit: `7e8669a`.
 
 ### RF 8 — Gestión de roles — PARCIAL
 
 - **Situación**: el RBAC funciona (Admin/Residente/Auditor) pero no hay UI/ruta para crear usuarios del sistema ni asignar rol; `usuarios.rol` es `ENUM('admin')` en el esquema versionado → un auditor no puede persistirse.
 - **Evidencia**: `public/index.php:188-191`; `database/condominio_cobranzas.sql:1041`; `app/views/admin/usuarios/index.php`.
 - **Propuesta preliminar**: migración `ENUM('admin','auditor')` + alta de usuarios del sistema con selector de rol y auditoría del cambio.
-- **Decisión**: pendiente (opciones se detallarán al abordar el pendiente).
+- **Decisión e implementación (2026-10-03)**: Opción B — alta de usuarios + cambio de rol + protección del último administrador activo.
+  - Migración `scripts/migrate_rf8_rol_auditor.php` (idempotente; ejecutada en la BD local): `usuarios.rol` → `ENUM('admin','auditor')`.
+  - `UsuarioAdminController`: `crearUsuario` (validaciones + unicidad usuario/email/cédula + bcrypt + estado 1) y `cambiarRol` (bloquea degradar al último admin activo); rutas POST `/admin/usuarios/crear` y `/admin/usuarios/cambiar-rol` (rol ADMIN; CSRF cubierto por middleware global de `public/index.php`).
+  - Vista `app/views/admin/usuarios/index.php`: botón + modal "Nuevo Usuario" y selector compacto de rol solo en filas de usuarios del sistema.
+  - Tests: `tests/UsuarioCrearRolTest.php` (4 tests) en verde. Commits: `6dfe34c`, `1cef01b`, `ab0b76e`.
 
 ### RF 9 — Solicitudes de cambio de datos — PARCIAL
 
@@ -108,6 +113,9 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 
 - **2026-10-03 — Sesión de auditoría**: auditoría de los 34 RF contra el código (informe 25/8/1 con evidencia). Decisiones: RF 12 obviado (unidad = dueño), RF 36 obviado (costo API WhatsApp). Creado este documento. Presentadas opciones de RF 3.
 - **2026-10-03 — RF 3 cerrado (✅)**: implementada Opción A para usuarios del sistema (commit `c37c2c9`); suite completa en verde. Siguiente: opciones de RF 8 presentadas.
+- **2026-10-03 — RF 3 ampliado**: 2FA también para residentes + enlace "Mi Perfil" en el dashboard del residente + fix `findById` → `getActiveById` en `verPerfil` (bug latente que rompía el perfil de residentes). Commit `7e8669a`.
+- **2026-10-03 — RF 8 cerrado (✅)**: Opción B implementada (migración rol auditor + alta y cambio de rol + protección del último admin). Commits `6dfe34c`, `1cef01b`, `ab0b76e`. Migración ejecutada en la BD local.
+- **2026-10-03 — Nota de verificación (runner)**: `php tests/run.php` termina con exit 0 pero **aborta en `SecurityTest`** (defecto preexistente documentado: `Security::validateCSRF` hace `exit` con token inválido) antes del RESUMEN, saltando las últimas clases. Desde ahora: las clases finales se verifican por separado con `--filter=`. Las áreas tocadas en los cierres (Perfil, Usuarios) se corrieron en verde con y sin filtro. Recomendación: ticket aparte para el runner/seguridad.
 
 ## 6. Evidencia clave de la auditoría
 
