@@ -84,7 +84,12 @@ class ResidenteController extends Controller {
         // Rate limiting en POST: máximo 10 envíos por hora
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!\App\Core\RateLimiter::attempt('comprobante_' . Auth::id(), 10, 3600)) {
+                http_response_code(429);
                 $error = "Ha excedido el límite de envíos de comprobantes (máximo 10 por hora). Intente de nuevo más tarde.";
+                if ($this->isAjax()) {
+                    $this->json(['error' => $error, 'codigo' => 'RATE_LIMIT_EXCEEDED'], 429);
+                    return;
+                }
             }
         }
 
@@ -150,10 +155,15 @@ class ResidenteController extends Controller {
                         // Pre-chequeo informativo de duplicados
                         $dupInfo = $comprobantesModel->verificarDuplicado($factura_id, $referencia, $fecha_pago, $monto, $archivoHash ?? null);
                         if ($dupInfo !== null) {
+                            http_response_code(409);
                             if ($dupInfo['criterio'] === 'archivo_hash') {
                                 $error = "Este archivo de comprobante ya fue subido previamente para su unidad.";
                             } else {
                                 $error = "Ya existe un comprobante o pago registrado con esta referencia o datos de pago para su unidad.";
+                            }
+                            if ($this->isAjax()) {
+                                $this->json(['error' => $error, 'codigo' => 'CONFLICTO_DUPLICADO', 'criterio' => $dupInfo['criterio']], 409);
+                                return;
                             }
                         } else {
                             // Guardar comprobante
@@ -174,12 +184,22 @@ class ResidenteController extends Controller {
                             ]);
 
                             if ($result) {
+                                http_response_code(201);
                                 $mensaje = "Comprobante enviado exitosamente. Su pago será verificado por la administración.";
+                                if ($this->isAjax()) {
+                                    $this->json(['mensaje' => $mensaje, 'id' => $result, 'codigo' => 'CREADO'], 201);
+                                    return;
+                                }
                                 // Recargar las facturas pendientes para el dropdown tras guardar
                                 $facturas_pendientes = $facturasModel->getPendientesByUnidad($unidad_id);
                                 $selected_factura_id = 0;
                             } else {
+                                http_response_code(409);
                                 $error = "No se pudo registrar el comprobante. Verifique que no sea un pago duplicado o intente más tarde.";
+                                if ($this->isAjax()) {
+                                    $this->json(['error' => $error, 'codigo' => 'CONFLICTO_DUPLICADO'], 409);
+                                    return;
+                                }
                             }
                         }
                     }

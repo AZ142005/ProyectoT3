@@ -418,8 +418,8 @@ class ConciliacionBancariaService {
 
             SELECT 'comprobante' AS origen_tabla,
                    c.id, f.unidad_id, c.monto, c.fecha_pago, c.referencia,
-                   NULL AS banco_origen, NULL AS banco_destino,
-                   NULL AS banco_pagador, NULL AS banco_receptor, c.estado,
+                   c.banco_pagador AS banco_origen, COALESCE(c.banco_receptor, cb.banco) AS banco_destino,
+                   c.banco_pagador, COALESCE(c.banco_receptor, cb.banco) AS banco_receptor, c.estado,
                    c.observaciones, c.archivo, c.metodo_pago,
                    CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre, per.cedula AS residente_cedula,
                    per.email AS residente_email, per.email, per.telefono AS residente_telefono, per.telefono,
@@ -430,6 +430,7 @@ class ConciliacionBancariaService {
             LEFT JOIN unidades u ON f.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
             LEFT JOIN personas per ON c.residente_id = per.id OR u.propietario_id = per.id
+            LEFT JOIN cuentas_bancarias cb ON c.cuenta_bancaria_id = cb.id
             WHERE c.estado IN ('pendiente', 'PENDIENTE') AND c.deleted_at IS NULL
             ORDER BY fecha_pago ASC
             LIMIT 5000
@@ -440,6 +441,22 @@ class ConciliacionBancariaService {
             $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
             if (count($pagosPendientes) >= 5000) {
                 error_log("[CONCILIACION] WARNING: 5000+ pagos pendientes — resultados truncados.");
+            }
+
+            // Referencias históricas ya conciliadas para detección de reclamos duplicados
+            $stmtHist = $db->query("
+                SELECT DISTINCT referencia_bancaria 
+                FROM extractos_bancarios 
+                WHERE (estado = 'conciliado' OR estado_conciliacion = 'conciliado')
+                  AND referencia_bancaria IS NOT NULL AND referencia_bancaria != ''
+            ");
+            if ($stmtHist) {
+                while ($r = $stmtHist->fetchColumn()) {
+                    $norm = $this->normalizarReferencia($r);
+                    if ($norm !== '0' && $norm !== '') {
+                        $setRefsHistoricas[$norm] = true;
+                    }
+                }
             }
         } catch (\Throwable $e) {
             $pagosPendientes = [];
@@ -533,6 +550,21 @@ class ConciliacionBancariaService {
             }
 
             if ($encontradoExacto) {
+                // Chequeo de gemelos: si otros pagos reclaman esta misma referencia bancaria,
+                // marcarlos en inconsistencias como "Referencia ya utilizada" para bloquear reclamos duplicados.
+                foreach ($candidatosRef as $pagoGemelo) {
+                    $gemeloKey = ($pagoGemelo['origen_tabla'] ?? 'pago') . '_' . $pagoGemelo['id'];
+                    if (!in_array($gemeloKey, $pagosEmparejadosKeys, true)) {
+                        $inconsistencias[] = [
+                            'extracto' => $mov,
+                            'pago'     => $pagoGemelo,
+                            'motivo'   => 'Referencia ya utilizada',
+                            'alerta'   => 'Referencia ya utilizada',
+                            'nivel'    => 2
+                        ];
+                        $pagosEmparejadosKeys[] = $gemeloKey;
+                    }
+                }
                 continue;
             }
 
@@ -643,6 +675,27 @@ class ConciliacionBancariaService {
                     'pago'          => null,
                     'clasificacion' => 'SIN_COINCIDENCIA'
                 ];
+            }
+        }
+
+        // Chequeo de pagos que reclaman referencias de fondos ya conciliados históricamente
+        if (!empty($setRefsHistoricas)) {
+            foreach ($pagosPendientes as $pago) {
+                $pKey = ($pago['origen_tabla'] ?? 'pago') . '_' . $pago['id'];
+                if (in_array($pKey, $pagosEmparejadosKeys, true)) {
+                    continue;
+                }
+                $refNorm = $this->normalizarReferencia($pago['referencia']);
+                if (isset($setRefsHistoricas[$refNorm])) {
+                    $inconsistencias[] = [
+                        'extracto' => null,
+                        'pago'     => $pago,
+                        'motivo'   => 'Referencia ya utilizada',
+                        'alerta'   => 'Referencia ya utilizada',
+                        'nivel'    => 2
+                    ];
+                    $pagosEmparejadosKeys[] = $pKey;
+                }
             }
         }
 

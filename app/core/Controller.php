@@ -108,4 +108,14 @@ class Controller {
         echo json_encode($data);
         exit;
     }
+
+    /**
+     * Determina si la petición actual espera una respuesta JSON o es una solicitud asíncrona (AJAX).
+     */
+    protected function isAjax(): bool {
+        return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
+            || (isset($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'application/json'))
+            || str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
+    }
 }
