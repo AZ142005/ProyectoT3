@@ -66,48 +66,48 @@
 
                 <!-- Métricas Rápidas / Indicadores Clave -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-amber-400 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Pagos por Verificar">
-                        <div class="flex justify-between items-center">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-todas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Pagos por Verificar">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Pagos por Verificar</span>
-                                <span class="text-xl font-black text-on-surface block"><?= count($pagosPendientes) ?></span>
+                                <span class="text-muted small fw-bold text-uppercase d-block">Pagos por Verificar</span>
+                                <span class="h3 fw-bold text-warning mb-0 d-block"><?= count($pagosPendientes) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-3xl text-warning opacity-75">pending_actions</span>
+                            <span class="material-symbols-outlined fs-1 text-warning opacity-50">pending_actions</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-0.5 block">Listado general en espera</small>
+                        <small class="text-muted d-block mt-1">Listado general en espera</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-green-500 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
-                        <div class="flex justify-between items-center">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Exactas</span>
-                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
+                                <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Exactas</span>
+                                <span class="h3 fw-bold text-success mb-0 d-block"><?= count($resultadoCruce['coincidencias_exactas']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-3xl text-success opacity-75">verified</span>
+                            <span class="material-symbols-outlined fs-1 text-success opacity-50">verified</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-0.5 block">Coincidencia por referencia y monto</small>
+                        <small class="text-muted d-block mt-1">Coincidencia por referencia y monto</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-sky-500 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Sugeridas">
-                        <div class="flex justify-between items-center">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sugeridas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Sugeridas">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Coincidencias Sugeridas</span>
-                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
+                                <span class="text-muted small fw-bold text-uppercase d-block">Coincidencias Sugeridas</span>
+                                <span class="h3 fw-bold text-info mb-0 d-block"><?= count($resultadoCruce['coincidencias_sugeridas']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-3xl text-info opacity-75">rule</span>
+                            <span class="material-symbols-outlined fs-1 text-info opacity-50">rule</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-0.5 block">Sugerencias por fecha y monto</small>
+                        <small class="text-muted d-block mt-1">Sugerencias por fecha y monto</small>
                     </div>
 
-                    <div class="bg-white rounded-2xl border border-outline-variant border-l-4 border-l-slate-400 p-3 shadow-sm h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Movimientos Sin Coincidencia">
-                        <div class="flex justify-between items-center">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-sin-coincidencia').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Movimientos Sin Coincidencia">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Sin Coincidencia</span>
-                                <span class="text-xl font-black text-on-surface block"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
+                                <span class="text-muted small fw-bold text-uppercase d-block">Sin Coincidencia</span>
+                                <span class="h3 fw-bold text-secondary mb-0 d-block"><?= count($resultadoCruce['sin_coincidencia']) ?></span>
                             </div>
-                            <span class="material-symbols-outlined text-3xl text-secondary opacity-75">help</span>
+                            <span class="material-symbols-outlined fs-1 text-secondary opacity-50">help</span>
                         </div>
-                        <small class="text-xs text-on-surface-variant mt-0.5 block">Movimientos sin asociar</small>
+                        <small class="text-muted d-block mt-1">Movimientos sin asociar</small>
                     </div>
                 </div>
 
