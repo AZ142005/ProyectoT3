@@ -2,6 +2,7 @@
 $role = \App\Core\Auth::role();
 $isAdmin = ($role === 'admin');
 $isAuditor = ($role === 'auditor');
+$twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? null);
 ?>
 <?php if ($isAdmin || $isAuditor): ?>
 <div class="flex flex-1 min-h-screen w-full">
@@ -207,6 +208,60 @@ $isAuditor = ($role === 'auditor');
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if ($isAdmin || $isAuditor): ?>
+        <!-- Verificación en Dos Pasos (2FA) -->
+        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div class="flex-1">
+                    <h3 class="font-bold text-on-surface text-base mb-1 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">security</span>
+                        Verificación en Dos Pasos (2FA)
+                    </h3>
+                    <p class="text-xs text-on-surface-variant max-w-xl mb-3">
+                        Añade una capa adicional de seguridad: al iniciar sesión, además de su contraseña, el sistema le pedirá un código de 6 dígitos enviado a su correo electrónico.
+                    </p>
+                    <?php if ($twoFaEnabled): ?>
+                        <span class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            2FA activada en su cuenta
+                        </span>
+                    <?php else: ?>
+                        <span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            2FA desactivada en su cuenta
+                        </span>
+                    <?php endif; ?>
+                </div>
+
+                <form method="POST" action="/perfil/2fa/toggle" class="flex flex-col gap-3 w-full lg:w-80 shrink-0">
+                    <?= csrf_field() ?>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Contraseña Actual</label>
+                        <div class="relative">
+                            <input type="password" id="perfil_2fa_password" name="password" required autocomplete="current-password" placeholder="Ingrese su contraseña"
+                                   class="w-full pl-4 pr-11 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                            <button type="button" onclick="togglePassword('perfil_2fa_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors flex items-center justify-center p-1" title="Mostrar/Ocultar contraseña">
+                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                        </div>
+                        <small class="text-slate-400 text-xs mt-1 block">Por seguridad, confirme su contraseña para cambiar esta opción.</small>
+                    </div>
+                    <?php if ($twoFaEnabled): ?>
+                        <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px]">lock_open</span>
+                            <span>Desactivar 2FA</span>
+                        </button>
+                    <?php else: ?>
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Activar 2FA</span>
+                        </button>
+                    <?php endif; ?>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if (!$isAdmin && !$isAuditor): ?>
         <!-- Historial de Solicitudes para Residentes -->

@@ -23,7 +23,7 @@ class PerfilController extends Controller {
         $usuarioAdmin = null;
         $solicitudes = [];
 
-        if (($user['role'] ?? '') === 'admin') {
+        if (in_array(($user['role'] ?? ''), ['admin', 'auditor'], true)) {
             $usuariosModel = new UsuariosModel();
             $usuarioAdmin = $usuariosModel->getById((int)$user['id']);
         } elseif ($personaId) {
