@@ -134,7 +134,7 @@
                             </div>
 
                             <div class="row g-3 mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label fw-bold small text-on-surface-variant">Dirigido a Edificio / Torre</label>
                                     <select name="edificio_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                         <option value="">-- Todos los Edificios (Global) --</option>
@@ -143,12 +143,23 @@
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label fw-bold small text-on-surface-variant">Nivel de Urgencia <span class="text-danger">*</span></label>
                                     <select name="nivel_urgencia" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                         <option value="normal">Normal (Información habitual)</option>
                                         <option value="importante">Importante (Resaltado)</option>
                                         <option value="urgente">Urgente (Notificación al instante)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-on-surface-variant">Duración en Cartelera <span class="text-danger">*</span></label>
+                                    <select name="duracion_dias" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+                                        <option value="1">24 horas</option>
+                                        <option value="3">3 días</option>
+                                        <option value="7" selected>1 semana (Predeterminado)</option>
+                                        <option value="14">2 semanas</option>
+                                        <option value="30">30 días</option>
+                                        <option value="0">Sin vencimiento</option>
                                     </select>
                                 </div>
                             </div>

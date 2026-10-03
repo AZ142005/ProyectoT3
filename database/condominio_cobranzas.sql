@@ -176,6 +176,7 @@ CREATE TABLE `comunicados` (
   `created_at` datetime DEFAULT current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
   `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_expiracion` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_comunicados_unidad` (`unidad_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

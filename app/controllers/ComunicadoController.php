@@ -24,6 +24,10 @@ class ComunicadoController extends Controller {
         $edificiosModel = new EdificiosModel();
         $unidadesModel = new UnidadesModel();
 
+        // Auto-eliminación oportunista: los comunicados vencidos se soft-deleted
+        // al abrir el módulo (no hay scheduler en el proyecto).
+        $comunicadosModel->eliminarExpirados();
+
         $resultado = $comunicadosModel->obtenerTodosAdmin($pagina, 15);
         $edificios = $edificiosModel->getActivos();
         $unidades = $unidadesModel->getActivas();
@@ -59,6 +63,15 @@ class ComunicadoController extends Controller {
         $edificioId = !empty($_POST['edificio_id']) ? intval($_POST['edificio_id']) : null;
         $unidadId = !empty($_POST['unidad_id']) ? intval($_POST['unidad_id']) : null;
         $enviarEmail = !empty($_POST['enviar_email']);
+
+        // Duración en cartelera: whitelist de días; ausente o inválida => 7 días.
+        // 0 = sin vencimiento (fecha_expiracion NULL).
+        $duracionesValidas = [0, 1, 3, 7, 14, 30];
+        $diasDuracion = (isset($_POST['duracion_dias']) && is_numeric($_POST['duracion_dias'])) ? intval($_POST['duracion_dias']) : 7;
+        if (!in_array($diasDuracion, $duracionesValidas, true)) {
+            $diasDuracion = 7;
+        }
+        $fechaExpiracion = $diasDuracion > 0 ? date('Y-m-d H:i:s', time() + ($diasDuracion * 86400)) : null;
 
         if (empty($titulo) || empty($contenido)) {
             Flash::set('danger', 'El título y el contenido son obligatorios.');
@@ -109,7 +122,8 @@ class ComunicadoController extends Controller {
                 'nivel_urgencia' => $urgencia,
                 'edificio_id'    => $edificioId,
                 'unidad_id'      => $unidadId,
-                'admin_id'       => $adminId
+                'admin_id'       => $adminId,
+                'fecha_expiracion' => $fechaExpiracion
             ]);
 
             // Si se marcó "Enviar por correo", se encola el comunicado para los residentes elegibles

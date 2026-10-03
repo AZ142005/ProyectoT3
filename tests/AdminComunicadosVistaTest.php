@@ -48,4 +48,13 @@ class AdminComunicadosVistaTest extends TestCase {
         $this->assertStringContains('hover:bg-slate-200', $footer,
             "El botón Cancelar del footer debe usar el patrón secundario (R2)");
     }
+
+    public function testSelectorDuracionConDefaultSemana(): void {
+        $view = $this->readView();
+
+        $this->assertStringContains('name="duracion_dias"', $view,
+            "El modal debe incluir el selector de duración en cartelera");
+        $this->assertStringContains('value="7" selected', $view,
+            "La opción predeterminada del selector de duración debe ser 1 semana");
+    }
 }

@@ -150,6 +150,89 @@ class ComunicadosResidenteTest extends TestCase {
     }
 
     /**
+     * La expiración se ancla SIEMPRE al reloj de PHP (el mismo que usa la
+     * lectura con `:ahora_exp`), nunca al reloj de la base de datos.
+     */
+    public function testComunicadoExpiradoNoEsVisible(): void {
+        $db = Database::getConnection();
+        $model = new ComunicadosModel();
+
+        try {
+            $id = $this->crear($db, $model, [
+                'fecha_expiracion' => date('Y-m-d H:i:s', time() - 3600),
+            ]);
+
+            $this->assertFalse(in_array($id, $this->idsVisibles($model, self::EDIFICIO_A, self::UNIDAD_A), true),
+                'Un comunicado con fecha de expiración pasada no debe ser visible');
+        } finally {
+            $this->limpiar($db);
+        }
+    }
+
+    public function testComunicadoConVencimientoFuturoEsVisible(): void {
+        $db = Database::getConnection();
+        $model = new ComunicadosModel();
+
+        try {
+            $id = $this->crear($db, $model, [
+                'fecha_expiracion' => date('Y-m-d H:i:s', time() + 86400),
+            ]);
+
+            $this->assertTrue(in_array($id, $this->idsVisibles($model, self::EDIFICIO_A, self::UNIDAD_A), true),
+                'Un comunicado con expiración futura debe ser visible');
+        } finally {
+            $this->limpiar($db);
+        }
+    }
+
+    public function testEliminarExpiradosAplicaSoftDelete(): void {
+        $db = Database::getConnection();
+        $model = new ComunicadosModel();
+
+        try {
+            $id = $this->crear($db, $model, [
+                'fecha_expiracion' => date('Y-m-d H:i:s', time() - 3600),
+            ]);
+
+            $eliminados = $model->eliminarExpirados();
+            $this->assertTrue($eliminados >= 1,
+                'eliminarExpirados debe eliminar al menos el comunicado vencido creado');
+
+            $this->assertFalse(in_array($id, $this->idsVisibles($model, self::EDIFICIO_A, self::UNIDAD_A), true),
+                'Un comunicado vencido eliminado no debe ser visible');
+
+            $stmt = $db->prepare('SELECT deleted_at FROM comunicados WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+            $deletedAt = $stmt->fetchColumn();
+            $this->assertTrue($deletedAt !== false && $deletedAt !== null,
+                'El comunicado vencido debe tener deleted_at no nulo en la base de datos');
+        } finally {
+            $this->limpiar($db);
+        }
+    }
+
+    public function testCrearComunicadoPersisteFechaExpiracion(): void {
+        $db = Database::getConnection();
+        $model = new ComunicadosModel();
+
+        try {
+            $fechaExpiracion = date('Y-m-d H:i:s', time() + (30 * 86400));
+            $id = $this->crear($db, $model, [
+                'fecha_expiracion' => $fechaExpiracion,
+            ]);
+
+            $stmt = $db->prepare('SELECT fecha_expiracion FROM comunicados WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+            $persistida = $stmt->fetchColumn();
+
+            $this->assertEquals($fechaExpiracion, $persistida,
+                'La fecha de expiración debe persistirse exactamente como se envió');
+        } finally {
+            $this->limpiar($db);
+        }
+    }
+
+    /**
      * Regresión: la lectura debe comparar contra el reloj de PHP (el mismo con
      * el que se escribe). Con desfase PHP/MySQL, comparar contra NOW() de MySQL
      * dejaba invisible un comunicado recién publicado durante horas.

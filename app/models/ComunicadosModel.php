@@ -26,8 +26,8 @@ class ComunicadosModel extends BaseModel {
         $db = $this->db();
         $sql = "
             INSERT INTO comunicados 
-            (titulo, contenido, nivel_urgencia, edificio_id, unidad_id, admin_id, fecha_publicacion) 
-            VALUES (:titulo, :contenido, :urgencia, :edificio_id, :unidad_id, :admin_id, :fecha_publicacion)
+            (titulo, contenido, nivel_urgencia, edificio_id, unidad_id, admin_id, fecha_publicacion, fecha_expiracion) 
+            VALUES (:titulo, :contenido, :urgencia, :edificio_id, :unidad_id, :admin_id, :fecha_publicacion, :fecha_expiracion)
         ";
 
         $stmt = $db->prepare($sql);
@@ -38,7 +38,8 @@ class ComunicadosModel extends BaseModel {
             'edificio_id'       => !empty($datos['edificio_id']) ? intval($datos['edificio_id']) : null,
             'unidad_id'         => !empty($datos['unidad_id']) ? intval($datos['unidad_id']) : null,
             'admin_id'          => intval($datos['admin_id']),
-            'fecha_publicacion' => !empty($datos['fecha_publicacion']) ? $datos['fecha_publicacion'] : date('Y-m-d H:i:s')
+            'fecha_publicacion' => !empty($datos['fecha_publicacion']) ? $datos['fecha_publicacion'] : date('Y-m-d H:i:s'),
+            'fecha_expiracion'  => !empty($datos['fecha_expiracion']) ? $datos['fecha_expiracion'] : null
         ]);
 
         return intval($db->lastInsertId());
@@ -102,6 +103,9 @@ class ComunicadosModel extends BaseModel {
         $where = "WHERE c.deleted_at IS NULL AND c.fecha_publicacion <= :ahora";
         $params = ['ahora' => date('Y-m-d H:i:s')];
 
+        $where .= " AND (c.fecha_expiracion IS NULL OR c.fecha_expiracion > :ahora_exp)";
+        $params['ahora_exp'] = date('Y-m-d H:i:s');
+
         $where .= " AND (
             (c.edificio_id IS NULL AND c.unidad_id IS NULL)";
 
@@ -160,5 +164,26 @@ class ComunicadosModel extends BaseModel {
         $db = $this->db();
         $stmt = $db->prepare("UPDATE comunicados SET deleted_at = NOW() WHERE id = :id AND deleted_at IS NULL");
         return $stmt->execute(['id' => $id]);
+    }
+
+    /**
+     * Elimina lógicamente (soft delete) los comunicados vencidos.
+     * "Vencido" = fecha_expiracion no nula y menor o igual al reloj de PHP
+     * (mismo reloj con el que se escriben las fechas de expiración).
+     *
+     * @return int Número de comunicados eliminados
+     */
+    public function eliminarExpirados(): int {
+        $corte = date('Y-m-d H:i:s');
+        $db = $this->db();
+        $stmt = $db->prepare("
+            UPDATE comunicados
+            SET deleted_at = :marca
+            WHERE deleted_at IS NULL
+              AND fecha_expiracion IS NOT NULL
+              AND fecha_expiracion <= :corte
+        ");
+        $stmt->execute(['marca' => $corte, 'corte' => $corte]);
+        return $stmt->rowCount();
     }
 }
