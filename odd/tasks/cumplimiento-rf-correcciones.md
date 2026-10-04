@@ -9,21 +9,21 @@
 - Se auditaron los **34 RF evaluables** del SRS contra el código actual del repositorio (working tree, con evidencia archivo:línea).
 - Excluidos por pedido: **RF 30 y RF 31**. El SRS no define **RF 7** (salta de RF 6 a RF 8).
 - Resultado inicial: **25 CUMPLE · 8 PARCIAL · 1 NO CUMPLE**.
-- Resultado vigente: **29 aceptados/cumplidos · 5 pendientes** (RF 3 y RF 8 resueltos el 2026-10-03; ver bitácora).
+- Resultado vigente: **30 aceptados/cumplidos · 4 pendientes** (RF 9 resuelto el 2026-10-04; ver bitácora).
 
-### Cumplidos (29)
+### Cumplidos (30)
 
-RF 1, 3, 4, 5, 6, 8, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
+RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
 + RF 12 y RF 36 (obviados por decisión — ver sección 2).
 
-### Pendientes (5 activos)
+### Pendientes (4 activos)
 
 | RF | Tema | Estado |
 |----|------|--------|
 | RF 2 | Cruce de correo con padrón de propietarios (único NO CUMPLE) | ⏸ Pendiente |
 | RF 3 | Doble verificación (2FA) sin UI de activación | ✅ Resuelto |
 | RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ✅ Resuelto |
-| RF 9 | Bandeja de solicitudes de cambio de datos | ⏸ Pendiente |
+| RF 9 | Bandeja de solicitudes de cambio de datos | ✅ Resuelto |
 | RF 13 | Previsualización de PDF al cargar | ⏸ Pendiente |
 | RF 27 | Detección de montos discordantes en conciliación | ⏸ Pendiente |
 | RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pendiente |
@@ -86,7 +86,11 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **Situación**: el residente crea solicitudes (quedan guardadas), pero no existe bandeja admin para aprobarlas/rechazarlas; `obtenerTodasAdmin` y `procesarSolicitud` están implementados sin llamadores.
 - **Evidencia**: `app/models/SolicitudesModel.php:81-95,110-192`; `app/controllers/UsuarioAdminController.php:36-37`.
 - **Propuesta preliminar**: exponer rutas admin (p. ej. `/admin/solicitudes-datos[...]`) + vista que use lo ya implementado.
-- **Decisión**: pendiente (opciones se detallarán al abordarlo).
+- **Decisión e implementación (2026-10-04)**: Opción B — pestaña integrada "Cambios de Datos" + comparación visual "Actual → Solicitado" (se descartó la ruta antigua por la deprecación deliberada).
+  - Modelo: `obtenerTodasAdmin` con filtro opcional por estado + `contarPendientes`.
+  - Controlador: `index` carga la pestaña `cambios`; nueva acción `procesarSolicitudCambio` (rechazo exige motivo; aplica cambios y notifica vía `procesarSolicitud`).
+  - Vista/partial: 3.ª pestaña en `app/views/admin/usuarios/index.php` (con badge) + partial nuevo `app/views/admin/solicitudes_cambio/index.php` (filtros, paginación, comparación por campo, aprobar/rechazar).
+  - Tests: `tests/SolicitudesCambioDatosTest.php` (5 tests) en verde. Commit: `a0919bf`.
 
 ### RF 13 — Previsualización de PDF al cargar — PARCIAL
 
@@ -116,6 +120,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **2026-10-03 — RF 3 ampliado**: 2FA también para residentes + enlace "Mi Perfil" en el dashboard del residente + fix `findById` → `getActiveById` en `verPerfil` (bug latente que rompía el perfil de residentes). Commit `7e8669a`.
 - **2026-10-03 — RF 8 cerrado (✅)**: Opción B implementada (migración rol auditor + alta y cambio de rol + protección del último admin). Commits `6dfe34c`, `1cef01b`, `ab0b76e`. Migración ejecutada en la BD local.
 - **2026-10-03 — Nota de verificación (runner)**: `php tests/run.php` termina con exit 0 pero **aborta en `SecurityTest`** (defecto preexistente documentado: `Security::validateCSRF` hace `exit` con token inválido) antes del RESUMEN, saltando las últimas clases. Desde ahora: las clases finales se verifican por separado con `--filter=`. Las áreas tocadas en los cierres (Perfil, Usuarios) se corrieron en verde con y sin filtro. Recomendación: ticket aparte para el runner/seguridad.
+- **2026-10-04 — RF 9 cerrado (✅)**: Opción B implementada (pestaña "Cambios de Datos" con badge, comparación visual Actual → Solicitado, filtros por estado y aprobar/rechazar con motivo). Commit `a0919bf`. Filtros re-verificados por el orquestador: SolicitudesCambioDatos 5/5, Solicitudes 20/20, Usuario 29/29 en verde.
 
 ## 6. Evidencia clave de la auditoría
 
