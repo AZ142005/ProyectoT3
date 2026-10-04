@@ -62,10 +62,20 @@
                                 <?php
                                     $duracionLabel = 'Sin vencimiento';
                                     $duracionTitle = '';
+                                    $diasRestantesTexto = '';
+                                    $comunicadoVencido = false;
                                     if (!empty($c['fecha_expiracion'])) {
                                         $diasDuracion = (int)round((strtotime($c['fecha_expiracion']) - strtotime($c['fecha_publicacion'])) / 86400);
                                         $duracionLabel = $duracionEtiquetas[$diasDuracion] ?? ($diasDuracion . ' días');
                                         $duracionTitle = 'Vence: ' . date('d/m/Y H:i', strtotime($c['fecha_expiracion']));
+                                        $segundosRestantes = strtotime($c['fecha_expiracion']) - time();
+                                        if ($segundosRestantes <= 0) {
+                                            $comunicadoVencido = true;
+                                            $diasRestantesTexto = 'Vencido';
+                                        } else {
+                                            $diasRestantes = max(1, (int)ceil($segundosRestantes / 86400));
+                                            $diasRestantesTexto = $diasRestantes === 1 ? 'Queda 1 día' : 'Quedan ' . $diasRestantes . ' días';
+                                        }
                                     }
                                 ?>
                                 <tr class="hover:bg-background/40 transition-colors">
@@ -87,7 +97,7 @@
                                             </span>
                                         <?php else: ?>
                                             <span class="badge bg-success">
-                                                🌐 Todo el Condominio
+                                                Todo el Condominio
                                             </span>
                                         <?php endif; ?>
                                     </td>
@@ -102,7 +112,12 @@
                                     </td>
                                     <td class="py-4 px-4 text-xs"><?= e($c['admin_nombre']) ?></td>
                                     <td class="py-4 px-4 text-xs text-on-surface-variant"><?= date('d/m/Y H:i', strtotime($c['fecha_publicacion'])) ?></td>
-                                    <td class="py-4 px-4 text-xs text-on-surface-variant"<?= $duracionTitle !== '' ? ' title="' . e($duracionTitle) . '"' : '' ?>><?= e($duracionLabel) ?></td>
+                                    <td class="py-4 px-4 text-xs text-on-surface-variant"<?= $duracionTitle !== '' ? ' title="' . e($duracionTitle) . '"' : '' ?>>
+                                        <div><?= e($duracionLabel) ?></div>
+                                        <?php if ($diasRestantesTexto !== ''): ?>
+                                            <div class="text-[11px] font-semibold mt-0.5 <?= $comunicadoVencido ? 'text-red-500' : 'text-primary' ?>"><?= e($diasRestantesTexto) ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="py-4 px-4 text-end">
                                         <form method="POST" action="/admin/comunicados/eliminar" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar este comunicado de la cartelera?');">
                                             <?= csrf_field() ?>
