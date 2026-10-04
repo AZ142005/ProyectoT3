@@ -1,5 +1,5 @@
 <div class="flex flex-1 min-h-screen w-full">
-    <?php $activeRoute = 'dashboard'; require VIEWS_PATH . '/layouts/auditor_sidebar.php'; ?>
+    <?php $activeRoute = 'fiscal'; require VIEWS_PATH . '/layouts/auditor_sidebar.php'; ?>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">

@@ -16,7 +16,7 @@ class EstacionamientoController extends Controller {
      * Muestra el panel principal de gestión de estacionamientos y vehículos.
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $estacionamientosModel = new EstacionamientosModel();
         $edificiosModel = new EdificiosModel();

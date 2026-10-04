@@ -15,7 +15,7 @@ class GastoController extends Controller {
      * Muestra el panel administrativo unificado de Gastos y Facturación.
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $tabActual = ($_GET['tab'] ?? 'gastos') === 'facturacion' ? 'facturacion' : 'gastos';
 
@@ -284,7 +284,7 @@ class GastoController extends Controller {
      * Muestra la interfaz de ingesta y carga del PDF Maestro de Gastos (RF 30, RF 31).
      */
     public function cargarMaestro() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
         $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));

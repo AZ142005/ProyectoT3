@@ -1,5 +1,12 @@
 <div class="flex flex-1 min-h-screen w-full">
-    <?php $activeRoute = 'comprobantes'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
+    <?php 
+    $activeRoute = 'comprobantes'; 
+    if (\App\Core\Auth::role() === 'auditor') {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
+    ?>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">

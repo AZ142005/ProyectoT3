@@ -12,7 +12,7 @@ class ReporteController extends Controller {
      * Muestra el panel interactivo del reporte de morosidad.
      */
     public function morosidad() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
@@ -65,7 +65,7 @@ class ReporteController extends Controller {
      * Muestra el reporte formateado exclusivamente para impresión o generación de PDF.
      */
     public function imprimirMorosidad() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
@@ -91,7 +91,7 @@ class ReporteController extends Controller {
      * Descarga el reporte en streaming CSV con codificación BOM UTF-8.
      */
     public function exportarCsv() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $filtros = [
             'edificio_id' => $_GET['edificio_id'] ?? '',
@@ -109,7 +109,7 @@ class ReporteController extends Controller {
      * @param int $unidadId
      */
     public function generarCartaDeuda(int $unidadId) {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $reportesModel = new ReportesModel();
         $detalle = $reportesModel->obtenerDetalleDeudaUnidad($unidadId);

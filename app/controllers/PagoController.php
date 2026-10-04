@@ -46,7 +46,7 @@ class PagoController extends Controller {
                 'showNav'    => true,
                 'title'      => 'Mis Pagos - Portal Residente'
             ]);
-        } else if ($rol === 'admin') {
+        } else if (in_array($rol, ['admin', 'auditor'], true)) {
             $filtros = [
                 'estado'   => $_GET['estado'] ?? '',
                 'edificio' => $_GET['edificio'] ?? '',

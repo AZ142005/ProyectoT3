@@ -1,5 +1,12 @@
 <div class="flex flex-grow min-h-screen w-full">
-    <?php $activeRoute = 'pagos'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
+    <?php 
+    $activeRoute = 'pagos'; 
+    if (\App\Core\Auth::role() === 'auditor') {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
+    ?>
 
     <!-- Contenido Principal -->
     <div class="flex-grow flex flex-col min-w-0">

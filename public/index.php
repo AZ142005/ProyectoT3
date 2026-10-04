@@ -134,21 +134,21 @@ $router->get('/residente/dashboard', [ResidenteController::class, 'dashboard'], 
 $router->get('/residente/historial', [ResidenteController::class, 'historial'], [UserRole::RESIDENTE]);
 
 // --- Módulo de Administración ---
-$router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [UserRole::ADMIN]);
-$router->get('/admin/comprobantes', [AdminController::class, 'listarComprobantes'], [UserRole::ADMIN]);
-$router->get('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
+$router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/comprobantes', [AdminController::class, 'listarComprobantes'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/comprobante/verificar', [AdminController::class, 'verificarComprobante'], [UserRole::ADMIN]);
 $router->any('/admin/facturas/generar', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN]);
 
 // --- Módulo de Estructura del Conjunto ---
-$router->get('/admin/estructura', [EstructuraController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/estructura', [EstructuraController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estructura/edificio/guardar', [EstructuraController::class, 'guardarEdificio'], [UserRole::ADMIN]);
 $router->post('/admin/estructura/edificio/toggle', [EstructuraController::class, 'toggleEdificio'], [UserRole::ADMIN]);
 $router->post('/admin/estructura/unidad/guardar', [EstructuraController::class, 'guardarUnidad'], [UserRole::ADMIN]);
 $router->post('/admin/estructura/unidad/toggle', [EstructuraController::class, 'toggleUnidad'], [UserRole::ADMIN]);
 
 // --- Módulo de Estacionamientos y Vehículos (RF 12) ---
-$router->get('/admin/estacionamientos', [\App\Controllers\EstacionamientoController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/estacionamientos', [\App\Controllers\EstacionamientoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estacionamientos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/estacionamientos/asignar', [\App\Controllers\EstacionamientoController::class, 'asignar'], [UserRole::ADMIN]);
 $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminar'], [UserRole::ADMIN]);
@@ -156,17 +156,17 @@ $router->post('/admin/vehiculos/guardar', [\App\Controllers\EstacionamientoContr
 $router->post('/admin/vehiculos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminarVehiculo'], [UserRole::ADMIN]);
 
 // --- Módulo de Balance / Morosidad y Cartas de Deuda (RF 23, RF 25) ---
-$router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/morosidad/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/balance', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/balance/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/balance/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN]);
-$router->get('/admin/reportes/carta-deuda/{unidadId}', [\App\Controllers\ReporteController::class, 'generarCartaDeuda'], [UserRole::ADMIN]);
+$router->get('/admin/reportes/morosidad', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/morosidad/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/morosidad/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/balance', [\App\Controllers\ReporteController::class, 'morosidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/balance/imprimir', [\App\Controllers\ReporteController::class, 'imprimirMorosidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/balance/exportar-csv', [\App\Controllers\ReporteController::class, 'exportarCsv'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/reportes/carta-deuda/{unidadId}', [\App\Controllers\ReporteController::class, 'generarCartaDeuda'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/reportes/enviar-aviso-cobro', [\App\Controllers\ReporteController::class, 'enviarAvisoCobro'], [UserRole::ADMIN]);
 
 // --- Módulo de Notificaciones y Comunicados (RF 35, RF 36, RF 37) ---
-$router->get('/admin/comunicados', [\App\Controllers\ComunicadoController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/comunicados', [\App\Controllers\ComunicadoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/comunicados/guardar', [\App\Controllers\ComunicadoController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/comunicados/eliminar', [\App\Controllers\ComunicadoController::class, 'eliminar'], [UserRole::ADMIN]);
 
@@ -180,12 +180,12 @@ $router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'],
 $router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], ['auth']);
 
 // --- Módulo de Solicitudes de Registro de Residentes ---
-$router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistroController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistroController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/solicitudes-registro/aprobar', [\App\Controllers\SolicitudesRegistroController::class, 'aprobar'], [UserRole::ADMIN]);
 $router->post('/admin/solicitudes-registro/rechazar', [\App\Controllers\SolicitudesRegistroController::class, 'rechazar'], [UserRole::ADMIN]);
 
 // --- Módulo de Gestión de Usuarios y Credenciales ---
-$router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/usuarios/reiniciar-password', [UsuarioAdminController::class, 'reiniciarPassword'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class, 'actualizarDatos'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/eliminar', [UsuarioAdminController::class, 'eliminar'], [UserRole::ADMIN]);
@@ -194,7 +194,7 @@ $router->post('/admin/usuarios/cambiar-rol', [UsuarioAdminController::class, 'ca
 $router->post('/admin/usuarios/procesar-solicitud-cambio', [UsuarioAdminController::class, 'procesarSolicitudCambio'], [UserRole::ADMIN]);
 
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
-$router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 $router->post('/admin/conciliacion/conciliar-lote', [\App\Controllers\ConciliacionController::class, 'conciliarLote'], [UserRole::ADMIN]);
@@ -202,14 +202,14 @@ $router->post('/admin/conciliacion/verificar', [\App\Controllers\ConciliacionCon
 $router->post('/admin/conciliacion/rechazar', [\App\Controllers\ConciliacionController::class, 'rechazarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Cuentas Bancarias Autorizadas ---
-$router->get('/admin/cuentas-bancarias', [\App\Controllers\CuentaBancariaController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/cuentas-bancarias', [\App\Controllers\CuentaBancariaController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/cuentas-bancarias/guardar', [\App\Controllers\CuentaBancariaController::class, 'guardar'], [UserRole::ADMIN]);
 $router->post('/admin/cuentas-bancarias/toggle', [\App\Controllers\CuentaBancariaController::class, 'toggle'], [UserRole::ADMIN]);
 $router->post('/admin/cuentas-bancarias/eliminar', [\App\Controllers\CuentaBancariaController::class, 'eliminar'], [UserRole::ADMIN]);
 
 // --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
-$router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN]);
-$router->get('/admin/gastos/maestro', [\App\Controllers\GastoController::class, 'cargarMaestro'], [UserRole::ADMIN]);
+$router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/gastos/maestro', [\App\Controllers\GastoController::class, 'cargarMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/parsear-maestro', [\App\Controllers\GastoController::class, 'parsearMaestro'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/importar-maestro', [\App\Controllers\GastoController::class, 'importarMaestro'], [UserRole::ADMIN]);
 $router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN]);
@@ -243,7 +243,7 @@ $router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class
 $router->post('/pagos/analizar-comprobante', [\App\Controllers\PagoController::class, 'analizarComprobante'], [UserRole::RESIDENTE]);
 
 // --- Gestión Administrativa de Respaldos de Base de Datos (RNF 3) ---
-$router->get('/admin/respaldos', [\App\Controllers\RespaldoController::class, 'index'], [UserRole::ADMIN]);
+$router->get('/admin/respaldos', [\App\Controllers\RespaldoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/respaldos/generar', [\App\Controllers\RespaldoController::class, 'generarManual'], [UserRole::ADMIN]);
 $router->get('/admin/respaldos/descargar/{id}', [\App\Controllers\RespaldoController::class, 'descargar'], [UserRole::ADMIN]);
 

@@ -13,7 +13,7 @@ class ConciliacionController extends Controller {
      * Muestra el panel interactivo del motor de conciliación bancaria.
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $conciliacionModel = new ConciliacionModel();
         $conciliacionService = new ConciliacionBancariaService();

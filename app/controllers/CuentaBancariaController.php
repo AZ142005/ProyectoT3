@@ -12,7 +12,7 @@ class CuentaBancariaController extends Controller {
      * Lista todas las cuentas bancarias configuradas para el condominio.
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $model = new CuentasBancariasModel();
         $cuentas = $model->getAll();

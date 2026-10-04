@@ -1,7 +1,11 @@
 <div class="flex flex-1 min-h-screen w-full">
     <?php 
     $activeRoute = 'conciliacion'; 
-    require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    if (\App\Core\Auth::role() === 'auditor') {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
 
     // Campos consumidos realmente por el JS de los modales de detalle (evita embeber PII no usada).
     $proyectarPagoDetalle = function (array $pago): array {

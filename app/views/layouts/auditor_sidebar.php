@@ -1,10 +1,17 @@
 <?php
 $navItems = [
-    ['route' => 'dashboard',    'url' => '/auditor/dashboard',         'icon' => 'policy',         'label' => 'Dashboard Fiscal'],
-    ['route' => 'logs',         'url' => '/auditor/log-transacciones', 'icon' => 'history',        'label' => 'Log Auditoría'],
-    ['route' => 'conciliacion', 'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliaciones'],
-    ['route' => 'gastos',       'url' => '/admin/gastos',              'icon' => 'receipt_long',   'label' => 'Gastos y Facturación'],
-    ['route' => 'morosidad',    'url' => '/admin/reportes/morosidad',  'icon' => 'account_balance_wallet', 'label' => 'Carta de Deuda'],
+    ['route' => 'fiscal',            'url' => '/auditor/dashboard',         'icon' => 'policy',         'label' => 'Dashboard Fiscal'],
+    ['route' => 'logs',              'url' => '/auditor/log-transacciones', 'icon' => 'history',        'label' => 'Log Auditoría'],
+    ['route' => 'dashboard',         'url' => '/admin/dashboard',           'icon' => 'dashboard',      'label' => 'Dashboard'],
+    ['route' => 'comprobantes',      'url' => '/admin/comprobantes',        'icon' => 'history',        'label' => 'Historial de Pagos'],
+    ['route' => 'conciliacion',      'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliación'],
+    ['route' => 'cuentas_bancarias', 'url' => '/admin/cuentas-bancarias',   'icon' => 'account_balance', 'label' => 'Cuentas Bancarias'],
+    ['route' => 'gastos',            'url' => '/admin/gastos',              'icon' => 'receipt_long',   'label' => 'Gastos y Facturación'],
+    ['route' => 'estructura',        'url' => '/admin/estructura',          'icon' => 'domain',         'label' => 'Estructura'],
+    ['route' => 'estacionamientos',  'url' => '/admin/estacionamientos',    'icon' => 'directions_car', 'label' => 'Estacionamientos'],
+    ['route' => 'comunicados',       'url' => '/admin/comunicados',         'icon' => 'campaign',       'label' => 'Comunicados'],
+    ['route' => 'usuarios',          'url' => '/admin/usuarios',            'icon' => 'group',          'label' => 'Usuarios'],
+    ['route' => 'morosidad',         'url' => '/admin/reportes/morosidad',  'icon' => 'account_balance_wallet', 'label' => 'Carta de Deuda'],
 ];
 ?>
 <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0 shrink-0">

@@ -280,4 +280,41 @@ class RbacAuthorizationTest extends TestCase {
             "FUGAS DE INTERFAZ DETECTADAS en vistas de residente: " . implode(', ', $leaksFound)
         );
     }
+
+    /**
+     * Verifica que toda ruta GET /admin/* sea visible para el Auditor (iteración
+     * "todo lo visible para el admin también para el auditor"), salvo las
+     * excepciones documentadas, y que ninguna mutación /admin/* habilite al Auditor.
+     */
+    public function testAdminGetRoutesAllowAuditorAndMutationsStayAdminOnly(): void {
+        $lines = explode("\n", $this->indexContent);
+        $getRegex = '/\$router->(get|any)\s*\(\s*[\'"](\/admin\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
+        $postRegex = '/\$router->(post|any)\s*\(\s*[\'"](\/admin\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
+
+        // Excepciones documentadas: descarga de respaldos y generador de facturas quedan solo admin.
+        $excepcionesGet = ['/admin/respaldos/descargar/{id}', '/admin/facturas/generar', '/admin/login', '/admin/logout'];
+
+        $checkedGet = 0;
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (preg_match($getRegex, $line, $m)) {
+                $uri = $m[2];
+                if (!in_array($uri, $excepcionesGet, true)) {
+                    $checkedGet++;
+                    $this->assertTrue(str_contains($m[4] ?? '', 'UserRole::AUDITOR'),
+                        "La ruta GET {$uri} debe ser visible para el rol Auditor (UserRole::AUDITOR).");
+                }
+            }
+            if (preg_match($postRegex, $line, $m)) {
+                $uri = $m[2];
+                if ($uri !== '/admin/facturas/generar') {
+                    $this->assertFalse(str_contains($m[4] ?? '', 'UserRole::AUDITOR'),
+                        "La mutación {$uri} no debe habilitar al rol Auditor.");
+                }
+            }
+        }
+
+        $this->assertGreaterThan(15, $checkedGet,
+            "Deben auditarse al menos 15 rutas GET administrativas para visibilidad del Auditor");
+    }
 }

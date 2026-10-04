@@ -15,7 +15,7 @@ class RespaldoController extends Controller {
      * Muestra el panel de administración de respaldos de base de datos.
      */
     public function index() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $db = Database::getConnection();
         $stmt = $db->query("

@@ -16,7 +16,7 @@ class ComunicadoController extends Controller {
      * Muestra la lista de comunicados para la administración.
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $pagina = max(1, intval($_GET['page'] ?? 1));
 

@@ -16,7 +16,7 @@ use App\Models\CuentasBancariasModel;
 class AdminController extends Controller {
 
     public function dashboard() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $mesActual = intval($_GET['mes'] ?? date('n'));
         $anioActual = intval($_GET['anio'] ?? date('Y'));
@@ -57,7 +57,7 @@ class AdminController extends Controller {
     }
 
     public function listarComprobantes() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $estado = trim($_GET['estado'] ?? '');
         $buscar = trim($_GET['buscar'] ?? '');
@@ -109,7 +109,7 @@ class AdminController extends Controller {
     }
 
     public function verificarComprobante() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $id = intval($_GET['id'] ?? 0);
         if ($id <= 0) {

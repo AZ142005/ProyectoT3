@@ -30,7 +30,7 @@ class EstructuraController extends Controller {
      * Muestra la vista principal de gestión de estructura (Edificios y Unidades).
      */
     public function index() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $edificiosModel = new EdificiosModel();
         $unidadesModel  = new UnidadesModel();

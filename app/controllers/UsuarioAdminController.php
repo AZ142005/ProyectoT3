@@ -18,7 +18,7 @@ class UsuarioAdminController extends Controller {
      * con pestañas y filtros/paginación independientes por pestaña.
      */
     public function index(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $tabActual = in_array($_GET['tab'] ?? '', ['usuarios', 'solicitudes', 'cambios'], true) ? $_GET['tab'] : 'usuarios';
 

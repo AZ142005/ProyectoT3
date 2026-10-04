@@ -1,5 +1,12 @@
 <div class="flex flex-1 min-h-screen w-full">
-    <?php $activeRoute = 'estructura'; require VIEWS_PATH . '/layouts/admin_sidebar.php'; ?>
+    <?php 
+    $activeRoute = 'estructura'; 
+    if (\App\Core\Auth::role() === 'auditor') {
+        require VIEWS_PATH . '/layouts/auditor_sidebar.php';
+    } else {
+        require VIEWS_PATH . '/layouts/admin_sidebar.php';
+    }
+    ?>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0">

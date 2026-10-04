@@ -14,7 +14,7 @@ class SolicitudesRegistroController extends Controller {
      * dentro de la sección unificada de usuarios.
      */
     public function index(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         header('Location: /admin/usuarios?tab=solicitudes');
         exit;
