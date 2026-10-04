@@ -7,13 +7,20 @@ use App\Core\Database;
 use App\Core\UserRole;
 use PDO;
 
+/**
+ * Módulo de auditoría y fiscalización de solo lectura.
+ *
+ * Módulo retirado del rol auditor: el acceso queda restringido
+ * exclusivamente a administradores.
+ */
 class AuditorController extends Controller {
 
     /**
-     * Dashboard general de fiscalización para el Auditor.
+     * Dashboard general de fiscalización.
+     * Acceso exclusivo de administradores (módulo retirado del rol auditor).
      */
     public function dashboard() {
-        Auth::requireRole([UserRole::AUDITOR, UserRole::ADMIN]);
+        Auth::requireRole(UserRole::ADMIN);
 
         $db = Database::getConnection();
 
@@ -48,7 +55,7 @@ class AuditorController extends Controller {
      * Listado detallado y paginado del log de auditoría del sistema.
      */
     public function logTransacciones() {
-        Auth::requireRole([UserRole::AUDITOR, UserRole::ADMIN]);
+        Auth::requireRole(UserRole::ADMIN);
 
         $pagina = max(1, intval($_GET['page'] ?? 1));
         $porPagina = 25;
@@ -88,7 +95,7 @@ class AuditorController extends Controller {
      * Exporta el log de auditoría en formato CSV para fiscalización externa.
      */
     public function exportarLog() {
-        Auth::requireRole([UserRole::AUDITOR, UserRole::ADMIN]);
+        Auth::requireRole(UserRole::ADMIN);
 
         $db = Database::getConnection();
 

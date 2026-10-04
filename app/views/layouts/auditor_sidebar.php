@@ -1,7 +1,5 @@
 <?php
 $navItems = [
-    ['route' => 'fiscal',            'url' => '/auditor/dashboard',         'icon' => 'policy',         'label' => 'Dashboard Fiscal'],
-    ['route' => 'logs',              'url' => '/auditor/log-transacciones', 'icon' => 'history',        'label' => 'Log Auditoría'],
     ['route' => 'dashboard',         'url' => '/admin/dashboard',           'icon' => 'dashboard',      'label' => 'Dashboard'],
     ['route' => 'comprobantes',      'url' => '/admin/comprobantes',        'icon' => 'history',        'label' => 'Historial de Pagos'],
     ['route' => 'conciliacion',      'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliación'],

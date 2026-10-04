@@ -288,8 +288,9 @@ class RbacAuthorizationTest extends TestCase {
     /**
      * Modelo de permisos del Auditor como operador funcional: toda ruta /admin/*
      * habilita a UserRole::AUDITOR, salvo las exclusiones documentadas (creación
-     * y edición de cuentas bancarias, alta de usuarios, cambio de roles y
-     * procesamiento de cambios de datos), que quedan solo-admin.
+     * y edición de cuentas bancarias, alta de usuarios, cambio de roles,
+     * actualización de datos de contacto y procesamiento de cambios de datos),
+     * que quedan solo-admin.
      */
     public function testAdminRoutesAllowAuditorExceptDocumentedExclusions(): void {
         $lines = explode("\n", $this->indexContent);
@@ -300,6 +301,7 @@ class RbacAuthorizationTest extends TestCase {
             '/admin/usuarios/crear',
             '/admin/usuarios/cambiar-rol',
             '/admin/usuarios/procesar-solicitud-cambio',
+            '/admin/usuarios/actualizar-datos',
         ];
         $sinRol = ['/admin/login', '/admin/logout'];
 
@@ -326,5 +328,28 @@ class RbacAuthorizationTest extends TestCase {
 
         $this->assertGreaterThan(45, $checked,
             "Deben auditarse al menos 45 rutas administrativas del modelo de permisos del Auditor");
+    }
+
+    /**
+     * El módulo fiscal retirado del rol auditor: sus 3 rutas quedan solo-admin.
+     */
+    public function testAuditorModuleRoutesAreAdminOnly(): void {
+        $lines = explode("\n", $this->indexContent);
+        $regex = '/\$router->(get|post|any)\s*\(\s*[\'"](\/auditor\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
+
+        $checked = 0;
+        foreach ($lines as $line) {
+            if (preg_match($regex, trim($line), $m)) {
+                $middlewares = $m[4] ?? '';
+                $checked++;
+                $this->assertTrue(str_contains($middlewares, 'UserRole::ADMIN'),
+                    "La ruta {$m[2]} debe exigir UserRole::ADMIN");
+                $this->assertFalse(str_contains($middlewares, 'UserRole::AUDITOR'),
+                    "La ruta {$m[2]} no debe habilitar al rol Auditor (módulo fiscal retirado)");
+            }
+        }
+
+        $this->assertEquals(3, $checked,
+            'Deben existir y auditarse las 3 rutas del módulo de auditoría');
     }
 }

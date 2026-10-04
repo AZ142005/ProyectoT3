@@ -4,21 +4,21 @@ namespace Tests;
 use App\Controllers\AuditorController;
 
 /**
- * Regresión del módulo Auditor (landing posterior al login):
+ * Regresión del módulo de auditoría (ahora accesible solo por administradores):
  * el dashboard consultaba gastos_comunes con una columna inexistente
- * ("activo") y lanzaba PDOException al entrar como auditor.
+ * ("activo") y lanzaba PDOException al entrar.
  */
 class AuditorDashboardTest extends TestCase {
 
     /**
-     * Renderiza una acción del AuditorController con sesión de auditor y
+     * Renderiza una acción del AuditorController con sesión de administrador y
      * devuelve el HTML; si la acción lanza, lo reporta como fallo con detalle.
      */
-    private function renderizarComoAuditor(callable $accion): string {
+    private function renderizarComoAdmin(callable $accion): string {
         $_SESSION['auth_user'] = [
             'id'    => 1,
-            'role'  => 'auditor',
-            'name'  => 'Auditor Test',
+            'role'  => 'admin',
+            'name'  => 'Administrador Test',
         ];
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
@@ -50,7 +50,7 @@ class AuditorDashboardTest extends TestCase {
     }
 
     public function testDashboardAuditorRenderizaSinErrorDeEsquema(): void {
-        $html = $this->renderizarComoAuditor(fn($ctrl) => $ctrl->dashboard());
+        $html = $this->renderizarComoAdmin(fn($ctrl) => $ctrl->dashboard());
 
         $this->assertStringContains('Panel de Fiscalización', $html,
             'El dashboard del auditor debe mostrar el panel de fiscalización');
@@ -61,7 +61,7 @@ class AuditorDashboardTest extends TestCase {
     }
 
     public function testLogTransaccionesRenderiza(): void {
-        $html = $this->renderizarComoAuditor(fn($ctrl) => $ctrl->logTransacciones());
+        $html = $this->renderizarComoAdmin(fn($ctrl) => $ctrl->logTransacciones());
 
         $this->assertStringContains('Log de Auditoría', $html,
             'La página del log debe renderizar su encabezado');

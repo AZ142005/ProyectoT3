@@ -81,6 +81,7 @@
                                 <span>Solicitudes de Registro</span>
                             </button>
                         </li>
+                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link <?= ($tabActual === 'cambios') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
                                     id="tab-cambios-btn"
@@ -97,6 +98,7 @@
                                 <?php endif; ?>
                             </button>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
@@ -342,6 +344,7 @@
                                                         </li>
 
                                                         <!-- Opción 2: Actualizar datos -->
+                                                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                                         <li>
                                                             <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
                                                                 <button type="button" 
@@ -368,6 +371,7 @@
                                                                 </button>
                                                             <?php endif; ?>
                                                         </li>
+                                                        <?php endif; ?>
 
                                                         <li><hr class="dropdown-divider my-1"></li>
 
@@ -431,9 +435,11 @@
                     <!-- PESTAÑA 3: CAMBIOS DE DATOS DE RESIDENTES                                 -->
                     <!-- URL de la pestaña: /admin/usuarios?tab=cambios                            -->
                     <!-- ========================================================================= -->
+                    <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                     <div class="tab-pane fade <?= ($tabActual === 'cambios') ? 'show active' : '' ?> space-y-6" id="tab-cambios" role="tabpanel" aria-labelledby="tab-cambios-btn">
                         <?php require VIEWS_PATH . '/admin/solicitudes_cambio/index.php'; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

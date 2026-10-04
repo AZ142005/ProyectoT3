@@ -68,7 +68,7 @@ class AuthController extends Controller {
 
                             if (($usuario['rol'] ?? '') === UserRole::AUDITOR) {
                                 Auth::loginAsAuditor($usuario);
-                                $this->redirect('/auditor/dashboard');
+                                $this->redirect('/admin/dashboard');
                             } else {
                                 Auth::loginAsAdmin($usuario);
                                 $this->redirect('/admin/dashboard');
@@ -237,7 +237,7 @@ class AuthController extends Controller {
             }
             if ($rol === UserRole::AUDITOR) {
                 Auth::loginAsAuditor($rawUser);
-                $this->redirect('/auditor/dashboard');
+                $this->redirect('/admin/dashboard');
             } else {
                 Auth::loginAsAdmin($rawUser);
                 $this->redirect('/admin/dashboard');
@@ -442,7 +442,7 @@ class AuthController extends Controller {
         if (Auth::hasRole(UserRole::ADMIN)) {
             $this->redirect('/admin/dashboard');
         } elseif (Auth::hasRole(UserRole::AUDITOR)) {
-            $this->redirect('/auditor/dashboard');
+            $this->redirect('/admin/dashboard');
         } else {
             $this->redirect('/residente/dashboard');
         }

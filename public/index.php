@@ -187,7 +187,7 @@ $router->post('/admin/solicitudes-registro/rechazar', [\App\Controllers\Solicitu
 // --- Módulo de Gestión de Usuarios y Credenciales ---
 $router->get('/admin/usuarios', [UsuarioAdminController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/usuarios/reiniciar-password', [UsuarioAdminController::class, 'reiniciarPassword'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class, 'actualizarDatos'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class, 'actualizarDatos'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/eliminar', [UsuarioAdminController::class, 'eliminar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/usuarios/crear', [UsuarioAdminController::class, 'crearUsuario'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/cambiar-rol', [UsuarioAdminController::class, 'cambiarRol'], [UserRole::ADMIN]);
@@ -235,9 +235,9 @@ $router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionContr
 $router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
 // --- Módulo de Auditoría y Fiscalización de Solo Lectura (RF 8) ---
-$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::AUDITOR, UserRole::ADMIN]);
-$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::AUDITOR, UserRole::ADMIN]);
-$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::AUDITOR, UserRole::ADMIN]);
+$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::ADMIN]);
+$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::ADMIN]);
+$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::ADMIN]);
 
 // --- Extracción Asistida de Comprobantes (RF 15) ---
 $router->post('/pagos/analizar-comprobante', [\App\Controllers\PagoController::class, 'analizarComprobante'], [UserRole::RESIDENTE]);

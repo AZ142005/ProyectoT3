@@ -22,6 +22,10 @@ class UsuarioAdminController extends Controller {
 
         $tabActual = in_array($_GET['tab'] ?? '', ['usuarios', 'solicitudes', 'cambios'], true) ? $_GET['tab'] : 'usuarios';
 
+        if (Auth::role() === UserRole::AUDITOR && $tabActual === 'cambios') {
+            $tabActual = 'usuarios';
+        }
+
         $buscar    = trim($_GET['buscar'] ?? '');
         $rol       = trim($_GET['rol'] ?? '');
         $pagina    = max(1, intval($_GET['page'] ?? 1));
@@ -466,7 +470,7 @@ class UsuarioAdminController extends Controller {
      * Restringe estrictamente la modificación de cuentas de administrador.
      */
     public function actualizarDatos(): void {
-        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
+        Auth::requireRole(UserRole::ADMIN);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');
