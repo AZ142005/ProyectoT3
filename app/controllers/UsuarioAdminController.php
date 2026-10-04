@@ -9,6 +9,7 @@ use App\Core\UserRole;
 use App\Models\UsuariosModel;
 use App\Models\PersonasModel;
 use App\Models\SolicitudesRegistroModel;
+use App\Models\SolicitudesModel;
 
 class UsuarioAdminController extends Controller {
 
@@ -19,7 +20,7 @@ class UsuarioAdminController extends Controller {
     public function index(): void {
         Auth::requireRole(UserRole::ADMIN);
 
-        $tabActual = in_array($_GET['tab'] ?? '', ['usuarios', 'solicitudes'], true) ? $_GET['tab'] : 'usuarios';
+        $tabActual = in_array($_GET['tab'] ?? '', ['usuarios', 'solicitudes', 'cambios'], true) ? $_GET['tab'] : 'usuarios';
 
         $buscar    = trim($_GET['buscar'] ?? '');
         $rol       = trim($_GET['rol'] ?? '');
@@ -37,6 +38,15 @@ class UsuarioAdminController extends Controller {
         $solicitudesModel = new SolicitudesRegistroModel();
         $resultadoSolicitudes = $solicitudesModel->obtenerListado($pagina, $porPagina, $estadoSolicitud);
         $pendientesCount = $solicitudesModel->contarPendientes();
+
+        // Datos de la pestaña de cambios de datos de residentes.
+        $estadoCambio = isset($_GET['estado']) && in_array($_GET['estado'], ['pendiente', 'aprobado', 'rechazado'], true)
+            ? $_GET['estado']
+            : null;
+
+        $solicitudesCambioModel = new SolicitudesModel();
+        $resultadoCambios = $solicitudesCambioModel->obtenerTodasAdmin($pagina, $porPagina, $estadoCambio);
+        $cambiosPendientesCount = $solicitudesCambioModel->contarPendientes();
 
         $rawReseteada = Flash::get('password_reseteada');
         $passwordReseteada = !empty($rawReseteada) ? json_decode($rawReseteada, true) : null;
@@ -58,6 +68,15 @@ class UsuarioAdminController extends Controller {
             ],
             'estadoSolicitud'   => $estadoSolicitud,
             'pendientesCount'   => $pendientesCount,
+            'solicitudesCambio' => $resultadoCambios['datos'],
+            'paginacionCambios' => [
+                'total'        => $resultadoCambios['total'],
+                'pagina'       => $resultadoCambios['pagina'],
+                'porPagina'    => $resultadoCambios['porPagina'],
+                'totalPaginas' => $resultadoCambios['totalPaginas'],
+            ],
+            'estadoCambio'      => $estadoCambio,
+            'cambiosPendientesCount' => $cambiosPendientesCount,
             'tabActual'         => $tabActual,
             'buscar'            => $buscar,
             'rol'               => $rol,
@@ -66,6 +85,50 @@ class UsuarioAdminController extends Controller {
             'showNav'           => false,
             'title'             => 'Usuarios y Solicitudes - Administrador'
         ]);
+    }
+
+    /**
+     * Procesa (aprueba/rechaza) una solicitud de cambio de datos de un residente.
+     * Al aprobar, el modelo aplica los cambios sobre personas con revalidación.
+     */
+    public function procesarSolicitudCambio(): void {
+        Auth::requireRole(UserRole::ADMIN);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/admin/usuarios?tab=cambios');
+            return;
+        }
+
+        $id     = intval($_POST['id'] ?? 0);
+        $accion = trim($_POST['accion'] ?? '');
+        $motivo = trim($_POST['motivo'] ?? '');
+
+        if ($id <= 0 || !in_array($accion, ['aprobar', 'rechazar'], true)) {
+            Flash::error('La solicitud o la acción seleccionada no es válida.');
+            $this->redirect('/admin/usuarios?tab=cambios');
+            return;
+        }
+
+        if ($accion === 'rechazar' && $motivo === '') {
+            Flash::error('Debe indicar el motivo para rechazar la solicitud de cambio de datos.');
+            $this->redirect('/admin/usuarios?tab=cambios');
+            return;
+        }
+
+        $estado = ($accion === 'aprobar') ? 'aprobado' : 'rechazado';
+
+        try {
+            $solicitudesModel = new SolicitudesModel();
+            $solicitudesModel->procesarSolicitud($id, $estado, $motivo !== '' ? $motivo : null, intval(Auth::id()));
+
+            Flash::success($accion === 'aprobar'
+                ? 'Solicitud de cambio de datos aprobada y aplicada correctamente.'
+                : 'Solicitud de cambio de datos rechazada correctamente.');
+        } catch (\Throwable $e) {
+            Flash::error('No se pudo procesar la solicitud: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/usuarios?tab=cambios');
     }
 
     /**

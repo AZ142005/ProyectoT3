@@ -191,6 +191,7 @@ $router->post('/admin/usuarios/actualizar-datos', [UsuarioAdminController::class
 $router->post('/admin/usuarios/eliminar', [UsuarioAdminController::class, 'eliminar'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/crear', [UsuarioAdminController::class, 'crearUsuario'], [UserRole::ADMIN]);
 $router->post('/admin/usuarios/cambiar-rol', [UsuarioAdminController::class, 'cambiarRol'], [UserRole::ADMIN]);
+$router->post('/admin/usuarios/procesar-solicitud-cambio', [UsuarioAdminController::class, 'procesarSolicitudCambio'], [UserRole::ADMIN]);
 
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN]);

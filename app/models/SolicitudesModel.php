@@ -77,8 +77,12 @@ class SolicitudesModel extends BaseModel {
 
     /**
      * Obtiene el listado de solicitudes para administración.
+     *
+     * @param int $pagina
+     * @param int $porPagina
+     * @param string|null $estado 'pendiente', 'aprobado', 'rechazado' o null para todas
      */
-    public function obtenerTodasAdmin(int $pagina = 1, int $porPagina = 15): array {
+    public function obtenerTodasAdmin(int $pagina = 1, int $porPagina = 15, ?string $estado = null): array {
         $baseSql = "
             SELECT s.*, CONCAT(p.nombre, ' ', p.apellido) AS residente_nombre, p.cedula AS residente_cedula,
                    p.email AS residente_email_actual, p.telefono AS residente_telefono_actual,
@@ -89,9 +93,23 @@ class SolicitudesModel extends BaseModel {
             LEFT JOIN edificios e ON u.edificio_id = e.id
         ";
 
-        $countSql = "SELECT COUNT(*) AS total FROM solicitudes_cambio_datos";
+        $countSql = "SELECT COUNT(*) AS total FROM solicitudes_cambio_datos s";
+        $params = [];
 
-        return $this->paginate($baseSql, $countSql, [], $pagina, $porPagina, 's.fecha_solicitud DESC');
+        if (!empty($estado) && in_array($estado, ['pendiente', 'aprobado', 'rechazado'], true)) {
+            $baseSql  .= " WHERE s.estado = :estado";
+            $countSql .= " WHERE s.estado = :estado";
+            $params['estado'] = $estado;
+        }
+
+        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 's.fecha_solicitud DESC');
+    }
+
+    /**
+     * Cuenta cuántas solicitudes de cambio de datos están pendientes.
+     */
+    public function contarPendientes(): int {
+        return (int)$this->db()->query("SELECT COUNT(*) FROM solicitudes_cambio_datos WHERE estado = 'pendiente'")->fetchColumn();
     }
 
     /**

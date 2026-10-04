@@ -74,6 +74,22 @@
                                 <span>Solicitudes de Registro</span>
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= ($tabActual === 'cambios') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                                    id="tab-cambios-btn"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#tab-cambios"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="tab-cambios"
+                                    aria-selected="<?= ($tabActual === 'cambios') ? 'true' : 'false' ?>">
+                                <span class="material-symbols-outlined text-[20px]">manage_accounts</span>
+                                <span>Cambios de Datos</span>
+                                <?php if (($cambiosPendientesCount ?? 0) > 0): ?>
+                                    <span class="bg-amber-300 text-amber-950 rounded-full px-1.5 text-[10px] font-bold"><?= e($cambiosPendientesCount) ?></span>
+                                <?php endif; ?>
+                            </button>
+                        </li>
                     </ul>
                 </div>
 
@@ -401,6 +417,13 @@
                     <!-- ========================================================================= -->
                     <div class="tab-pane fade <?= ($tabActual === 'solicitudes') ? 'show active' : '' ?> space-y-6" id="tab-solicitudes" role="tabpanel" aria-labelledby="tab-solicitudes-btn">
                         <?php require VIEWS_PATH . '/admin/solicitudes_registro/index.php'; ?>
+                    </div>
+                    <!-- ========================================================================= -->
+                    <!-- PESTAÑA 3: CAMBIOS DE DATOS DE RESIDENTES                                 -->
+                    <!-- URL de la pestaña: /admin/usuarios?tab=cambios                            -->
+                    <!-- ========================================================================= -->
+                    <div class="tab-pane fade <?= ($tabActual === 'cambios') ? 'show active' : '' ?> space-y-6" id="tab-cambios" role="tabpanel" aria-labelledby="tab-cambios-btn">
+                        <?php require VIEWS_PATH . '/admin/solicitudes_cambio/index.php'; ?>
                     </div>
                 </div>
             </div>
@@ -942,7 +965,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tabs.forEach(tab => {
         tab.addEventListener('shown.bs.tab', (e) => {
             const targetId = e.target.getAttribute('data-bs-target');
-            const tabName = targetId === '#tab-solicitudes' ? 'solicitudes' : 'usuarios';
+            const tabMap = { '#tab-usuarios': 'usuarios', '#tab-solicitudes': 'solicitudes', '#tab-cambios': 'cambios' };
+            const tabName = tabMap[targetId] || 'usuarios';
             const url = new URL(window.location);
             url.searchParams.set('tab', tabName);
             window.history.replaceState({}, '', url);
