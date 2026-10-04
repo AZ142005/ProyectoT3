@@ -53,7 +53,7 @@ class ComunicadoController extends Controller {
      * Guarda un nuevo comunicado y opcionalmente lo encola para envío por correo.
      */
     public function guardar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $adminId = Auth::id() ?? 1;
 
@@ -161,7 +161,7 @@ class ComunicadoController extends Controller {
      * Elimina lógicamente (Soft Delete) un comunicado.
      */
     public function eliminar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $id = intval($_POST['id'] ?? 0);
         if ($id > 0) {

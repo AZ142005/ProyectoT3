@@ -37,7 +37,7 @@ class RespaldoController extends Controller {
      * Genera un nuevo respaldo de la base de datos de forma manual.
      */
     public function generarManual() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         // La generación manual desde web fue reemplazada por automatización de servidor
         Flash::set('info', 'La generación manual ha sido deshabilitada. Los respaldos se ejecutan automáticamente a nivel de servidor (CLI / Cron).');
@@ -48,7 +48,7 @@ class RespaldoController extends Controller {
      * Descarga de forma segura un archivo de respaldo .sql.gz.
      */
     public function descargar(string $id) {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $db = Database::getConnection();
         $stmt = $db->prepare("SELECT * FROM backups_log WHERE id = :id LIMIT 1");

@@ -322,8 +322,8 @@ $origenForm = match($fromParam) {
         <!-- Columna Derecha: Flujo de Aprobación y Auditoría -->
         <div class="lg:col-span-1 flex flex-col gap-6">
             
-            <!-- TARJETA DE ACCIONES DE APROBACIÓN (ADMINISTRADOR) -->
-            <?php if ($isAdmin): ?>
+            <!-- TARJETA DE ACCIONES DE APROBACIÓN (ADMINISTRADOR / AUDITOR) -->
+            <?php if ($isAdmin || $isAuditor): ?>
                 <?php if (in_array($estado, ['PENDIENTE', 'EN REVISIÓN'])): ?>
                     <div class="bg-white rounded-2xl border-2 border-primary/20 p-6 shadow-md">
                         <div class="flex items-center gap-2 mb-4 pb-3 border-b border-background">
@@ -496,8 +496,8 @@ $origenForm = match($fromParam) {
 </div>
 <?php endif; ?>
 
-<!-- Modal para Motivo de Rechazo (Admin para Pagos Generales) -->
-<?php if ($isAdmin && $tipoOrigen === 'pago'): ?>
+<!-- Modal para Motivo de Rechazo (Admin/Auditor para Pagos Generales) -->
+<?php if (($isAdmin || $isAuditor) && $tipoOrigen === 'pago'): ?>
 <div id="modalRechazo" class="hidden fixed inset-0 bg-black/60 items-center justify-center p-4 z-50 transition-opacity">
     <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-outline-variant">
         <form method="POST" action="/pagos/cambiar-estado" id="formRechazo" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">

@@ -124,5 +124,63 @@ class EstructuraDirectorioEdificiosTest extends TestCase {
         $this->assertStringContains('action="/admin/estructura/unidad/toggle"', $content,
             "Debe mantenerse el formulario POST para cambiar estado de unidades");
     }
+
+    /**
+     * El rol auditor puede editar edificios y unidades existentes, pero el guard
+     * interno debe bloquear la creación (POST sin id) con un Flash de error y
+     * sin insertar filas nuevas.
+     */
+    public function testAuditorNoPuedeAgregarEdificioNiUnidad(): void {
+        $db = \App\Core\Database::getConnection();
+
+        $_SESSION['auth_user'] = [
+            'id'    => 1,
+            'role'  => 'auditor',
+            'name'  => 'Auditor de Prueba'
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+
+        $ctrl = new class extends \App\Controllers\EstructuraController {
+            public string $redirectUrl = '';
+            protected function redirect($url): void {
+                $this->redirectUrl = $url;
+            }
+        };
+
+        // 1. Creación de edificio bloqueada para auditor.
+        $antesEdificios = (int)$db->query("SELECT COUNT(*) FROM edificios")->fetchColumn();
+
+        $_POST = [
+            'tab'         => 'configuracion',
+            'nombre'      => 'Torre Auditor ' . time(),
+            'descripcion' => 'Intento de creación por auditor'
+        ];
+        $ctrl->guardarEdificio();
+
+        $this->assertEquals('/admin/estructura?tab=configuracion', $ctrl->redirectUrl,
+            'El auditor debe ser redirigido al intentar crear un edificio');
+        $this->assertStringContains('auditor', \App\Core\Flash::get('error'),
+            'Debe mostrarse un Flash de error indicando que el auditor no puede agregar edificios');
+        $this->assertEquals($antesEdificios, (int)$db->query("SELECT COUNT(*) FROM edificios")->fetchColumn(),
+            'No debe insertarse ningún edificio nuevo al intentar crear como auditor');
+
+        // 2. Creación de unidad bloqueada para auditor.
+        $antesUnidades = (int)$db->query("SELECT COUNT(*) FROM unidades")->fetchColumn();
+        $edificioId = (int)($db->query("SELECT id FROM edificios ORDER BY id ASC LIMIT 1")->fetchColumn() ?: 0);
+
+        $_POST = [
+            'tab'         => 'configuracion',
+            'numero'      => 'AUD-' . time(),
+            'edificio_id' => $edificioId
+        ];
+        $ctrl->guardarUnidad();
+
+        $this->assertEquals('/admin/estructura?tab=configuracion', $ctrl->redirectUrl,
+            'El auditor debe ser redirigido al intentar crear una unidad');
+        $this->assertStringContains('auditor', \App\Core\Flash::get('error'),
+            'Debe mostrarse un Flash de error indicando que el auditor no puede agregar unidades');
+        $this->assertEquals($antesUnidades, (int)$db->query("SELECT COUNT(*) FROM unidades")->fetchColumn(),
+            'No debe insertarse ninguna unidad nueva al intentar crear como auditor');
+    }
 }
 

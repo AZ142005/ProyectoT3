@@ -183,8 +183,12 @@ class RbacAuthorizationTest extends TestCase {
             $this->assertTrue($pos !== false, "PagoController::{$method} debe existir");
             if ($pos !== false) {
                 $snippet = substr($pagoContent, $pos, 400);
+                // El guard puede incluir también al auditor; el admin debe seguir presente.
+                $tieneGuardAdmin = str_contains($snippet, "Auth::requireRole('admin')")
+                    || str_contains($snippet, "Auth::requireRole(UserRole::ADMIN)")
+                    || str_contains($snippet, "Auth::requireRole(['admin', 'auditor'])");
                 $this->assertTrue(
-                    str_contains($snippet, "Auth::requireRole('admin')") || str_contains($snippet, "Auth::requireRole(UserRole::ADMIN)"),
+                    $tieneGuardAdmin,
                     "PagoController::{$method} debe requerir rol admin"
                 );
             }
@@ -282,39 +286,45 @@ class RbacAuthorizationTest extends TestCase {
     }
 
     /**
-     * Verifica que toda ruta GET /admin/* sea visible para el Auditor (iteración
-     * "todo lo visible para el admin también para el auditor"), salvo las
-     * excepciones documentadas, y que ninguna mutación /admin/* habilite al Auditor.
+     * Modelo de permisos del Auditor como operador funcional: toda ruta /admin/*
+     * habilita a UserRole::AUDITOR, salvo las exclusiones documentadas (creación
+     * y edición de cuentas bancarias, alta de usuarios, cambio de roles y
+     * procesamiento de cambios de datos), que quedan solo-admin.
      */
-    public function testAdminGetRoutesAllowAuditorAndMutationsStayAdminOnly(): void {
+    public function testAdminRoutesAllowAuditorExceptDocumentedExclusions(): void {
         $lines = explode("\n", $this->indexContent);
-        $getRegex = '/\$router->(get|any)\s*\(\s*[\'"](\/admin\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
-        $postRegex = '/\$router->(post|any)\s*\(\s*[\'"](\/admin\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
+        $routeRegex = '/\$router->(get|post|any)\s*\(\s*[\'"](\/admin\/[^\'"]+)[\'"]\s*,\s*\[([^\]]+)\]\s*(?:,\s*\[([^\]]+)\])?\s*\)/i';
 
-        // Excepciones documentadas: descarga de respaldos y generador de facturas quedan solo admin.
-        $excepcionesGet = ['/admin/respaldos/descargar/{id}', '/admin/facturas/generar', '/admin/login', '/admin/logout'];
+        $exclusiones = [
+            '/admin/cuentas-bancarias/guardar',
+            '/admin/usuarios/crear',
+            '/admin/usuarios/cambiar-rol',
+            '/admin/usuarios/procesar-solicitud-cambio',
+        ];
+        $sinRol = ['/admin/login', '/admin/logout'];
 
-        $checkedGet = 0;
+        $checked = 0;
         foreach ($lines as $line) {
-            $line = trim($line);
-            if (preg_match($getRegex, $line, $m)) {
+            if (preg_match($routeRegex, trim($line), $m)) {
                 $uri = $m[2];
-                if (!in_array($uri, $excepcionesGet, true)) {
-                    $checkedGet++;
-                    $this->assertTrue(str_contains($m[4] ?? '', 'UserRole::AUDITOR'),
-                        "La ruta GET {$uri} debe ser visible para el rol Auditor (UserRole::AUDITOR).");
+                if (in_array($uri, $sinRol, true)) {
+                    continue;
                 }
-            }
-            if (preg_match($postRegex, $line, $m)) {
-                $uri = $m[2];
-                if ($uri !== '/admin/facturas/generar') {
-                    $this->assertFalse(str_contains($m[4] ?? '', 'UserRole::AUDITOR'),
-                        "La mutación {$uri} no debe habilitar al rol Auditor.");
+                $middlewares = $m[4] ?? '';
+                $checked++;
+                if (in_array($uri, $exclusiones, true)) {
+                    $this->assertFalse(str_contains($middlewares, 'UserRole::AUDITOR'),
+                        "La ruta excluida {$uri} no debe habilitar al rol Auditor.");
+                    $this->assertTrue(str_contains($middlewares, 'UserRole::ADMIN'),
+                        "La ruta excluida {$uri} debe seguir siendo solo-admin.");
+                } else {
+                    $this->assertTrue(str_contains($middlewares, 'UserRole::AUDITOR'),
+                        "La ruta {$uri} debe habilitar al rol Auditor (operador funcional).");
                 }
             }
         }
 
-        $this->assertGreaterThan(15, $checkedGet,
-            "Deben auditarse al menos 15 rutas GET administrativas para visibilidad del Auditor");
+        $this->assertGreaterThan(45, $checked,
+            "Deben auditarse al menos 45 rutas administrativas del modelo de permisos del Auditor");
     }
 }

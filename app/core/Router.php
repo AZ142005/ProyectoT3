@@ -71,9 +71,6 @@ class Router {
                     Auth::requireRole($allowedRoles);
                 }
 
-                // Ejecutar middleware global de control de roles (bloqueo mutaciones Auditor)
-                RoleMiddleware::handle();
-
                 // Filtrar parámetros nombrados extraídos de la URL
                 $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 

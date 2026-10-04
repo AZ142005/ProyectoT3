@@ -154,12 +154,18 @@ class EstructuraController extends Controller {
      * Procesa la creación o edición de un edificio.
      */
     public function guardarEdificio() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id          = intval($_POST['id'] ?? 0);
+            // El rol auditor puede editar edificios existentes, pero no agregar nuevos.
+            if ($id <= 0 && Auth::role() === 'auditor') {
+                Flash::error('El rol de auditor no puede agregar edificios.');
+                $this->redirect('/admin/estructura?tab=' . $tab);
+                return;
+            }
             $nombre      = trim($_POST['nombre'] ?? '');
             $descripcion = trim($_POST['descripcion'] ?? '');
 
@@ -194,12 +200,18 @@ class EstructuraController extends Controller {
      * Procesa la creación o edición de una unidad (apartamento).
      */
     public function guardarUnidad() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id                      = intval($_POST['id'] ?? 0);
+            // El rol auditor puede editar unidades existentes, pero no agregar nuevas.
+            if ($id <= 0 && Auth::role() === 'auditor') {
+                Flash::error('El rol de auditor no puede agregar unidades.');
+                $this->redirect('/admin/estructura?tab=' . $tab);
+                return;
+            }
             $numero                  = trim($_POST['numero'] ?? '');
             $edificio_id             = intval($_POST['edificio_id'] ?? 0);
             $asignarEstacionamiento = !empty($_POST['asignar_estacionamiento']);
@@ -250,7 +262,7 @@ class EstructuraController extends Controller {
      * Cambia el estado de un edificio (Activar / Desactivar).
      */
     public function toggleEdificio() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
         $id = intval($_POST['id'] ?? 0);
@@ -271,7 +283,7 @@ class EstructuraController extends Controller {
      * Cambia el estado de una unidad (Activar / Desactivar).
      */
     public function toggleUnidad() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $tab = ($_POST['tab'] ?? 'visualizacion') === 'configuracion' ? 'configuracion' : 'visualizacion';
         $id = intval($_POST['id'] ?? 0);

@@ -193,4 +193,44 @@ class UsuarioCrearRolTest extends TestCase {
             }
         }
     }
+
+    /**
+     * Un administrador no puede cambiar el rol de su propio usuario.
+     */
+    public function testCambiarRolBloqueaCambiarElPropioRol(): void {
+        $db = $this->getDb();
+        $sufijo = time();
+        $usuario = 'rol_propio_' . $sufijo;
+
+        $db->beginTransaction();
+        try {
+            $db->exec("INSERT INTO usuarios (usuario, email, password, nombre_completo, rol, estado)
+                       VALUES ('{$usuario}', 'rol_propio_{$sufijo}@example.com', 'hash_dummy', 'Admin Propio', 'admin', 1)");
+            $targetId = (int)$db->lastInsertId();
+
+            $ctrl = new class extends UsuarioAdminController {
+                public string $redirectUrl = '';
+                protected function redirect($url): void {
+                    $this->redirectUrl = $url;
+                }
+            };
+            $_SESSION['auth_user'] = ['id' => $targetId, 'role' => 'admin', 'name' => 'Admin Propio'];
+            $_SERVER['REQUEST_METHOD'] = 'POST';
+            $_POST = ['id' => $targetId, 'nuevo_rol' => 'auditor'];
+
+            $ctrl->cambiarRol();
+
+            $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir al bloquear el cambio de rol propio');
+            $this->assertStringContains('propio usuario', \App\Core\Flash::get('error'),
+                'Debe bloquear el cambio de rol de su propio usuario');
+
+            $stmt = $db->prepare("SELECT rol FROM usuarios WHERE id = :id");
+            $stmt->execute(['id' => $targetId]);
+            $this->assertEquals('admin', $stmt->fetchColumn(), 'El rol propio no debe cambiar');
+        } finally {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+        }
+    }
 }

@@ -130,7 +130,7 @@
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="py-4 px-4 text-end">
-                                                    <?php if ($s['estado'] === 'pendiente'): ?>
+                                                    <?php if ($s['estado'] === 'pendiente' && \App\Core\Auth::role() !== 'auditor'): ?>
                                                         <form method="POST" action="/admin/usuarios/procesar-solicitud-cambio" class="d-flex flex-column gap-1" style="min-width: 200px;">
                                                             <?= csrf_field() ?>
                                                             <input type="hidden" name="id" value="<?= e($s['id']) ?>">
@@ -153,6 +153,8 @@
                                                                 </button>
                                                             </div>
                                                         </form>
+                                                    <?php elseif ($s['estado'] === 'pendiente'): ?>
+                                                        <span class="badge bg-warning text-on-surface rounded-pill px-3 py-1.5">Pendiente</span>
                                                     <?php else: ?>
                                                         <span class="badge bg-light text-on-surface-variant border">Finalizada</span>
                                                     <?php endif; ?>

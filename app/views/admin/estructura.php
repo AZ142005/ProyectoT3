@@ -342,17 +342,21 @@
                                     </div>
                                     <p class="text-xs text-on-surface-variant mt-1">Registra los bloques o torres que componen el condominio.</p>
                                 </div>
+                                <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                 <button onclick="openModalEdificio('configuracion')" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[16px]">add_business</span>
                                     <span>Agregar Edificio</span>
                                 </button>
+                                <?php endif; ?>
                             </div>
 
                             <?php if (empty($edificios)): ?>
                                 <div class="text-center py-10 bg-background/50 rounded-2xl border border-dashed border-outline-variant">
                                     <span class="material-symbols-outlined text-on-surface-variant/40 text-4xl mb-2">location_city</span>
                                     <p class="text-on-surface-variant font-semibold">No hay edificios registrados en el sistema.</p>
+                                    <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                     <button onclick="openModalEdificio('configuracion')" class="mt-2 text-primary text-xs font-bold hover:underline">Registrar el primer edificio</button>
+                                    <?php endif; ?>
                                 </div>
                             <?php else: ?>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -420,6 +424,7 @@
                                         <input type="text" id="buscadorConfiguracion" oninput="filtrarTablaConfiguracion(this.value)" placeholder="Buscar edificio o unidad..."
                                                class="w-full pl-9 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-xs font-medium focus:outline-none focus:border-primary focus:bg-white transition-all">
                                     </div>
+                                    <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                     <?php if (empty($edificios)): ?>
                                         <button disabled class="bg-slate-200 text-slate-400 font-bold px-5 py-2.5 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-not-allowed" title="Debes registrar al menos un edificio primero">
                                             <span class="material-symbols-outlined text-[16px]">add_home</span>
@@ -431,6 +436,7 @@
                                             <span>+ Crear Nueva Unidad</span>
                                         </button>
                                     <?php endif; ?>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -439,7 +445,9 @@
                                 <div class="text-center py-10 bg-background/50 rounded-2xl border border-dashed border-outline-variant">
                                     <span class="material-symbols-outlined text-on-surface-variant/40 text-4xl mb-2">roofing</span>
                                     <p class="text-on-surface-variant font-semibold">Primero debes registrar al menos un edificio en el Paso 1.</p>
+                                    <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                     <button onclick="openModalEdificio('configuracion')" class="mt-2 text-primary text-xs font-bold hover:underline">+ Crear primer edificio</button>
+                                    <?php endif; ?>
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
@@ -482,6 +490,7 @@
                                                     </td>
                                                     <td class="py-4 px-4 text-right pe-4">
                                                         <div class="inline-flex items-center gap-2">
+                                                            <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                                             <button type="button" 
                                                                     onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" 
                                                                     class="btn btn-sm btn-light border border-outline-variant d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl text-primary hover:bg-primary/5"
@@ -489,6 +498,7 @@
                                                                 <span class="material-symbols-outlined text-sm">add_home</span>
                                                                 <span>+ Unidad</span>
                                                             </button>
+                                                            <?php endif; ?>
                                                             <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl btn-toggle-unidades"
                                                                     data-bs-toggle="collapse" 
                                                                     data-bs-target="#collapse-config-edificio-<?= e($ed['id']) ?>" 
@@ -515,20 +525,24 @@
                                                                             </h5>
                                                                             <span class="badge bg-slate-100 text-slate-700 border border-slate-200 text-[11px]"><?= e($totalUnidades) ?> registradas</span>
                                                                         </div>
+                                                                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                                                         <button type="button" onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" class="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1">
                                                                             <span class="material-symbols-outlined text-sm">add</span>
                                                                             <span>Crear unidad en este edificio</span>
                                                                         </button>
+                                                                        <?php endif; ?>
                                                                     </div>
 
                                                                     <?php if (empty($unidadesEdificio)): ?>
                                                                         <div class="text-center py-6 text-on-surface-variant">
                                                                             <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">home</span>
                                                                             <p class="text-xs font-semibold mb-2">No hay unidades registradas en este edificio.</p>
+                                                                            <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                                                             <button type="button" onclick="openModalUnidad('configuracion', '<?= e($ed['id']) ?>')" class="inline-flex items-center gap-1 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary-hover transition-colors shadow-xs">
                                                                                 <span class="material-symbols-outlined text-sm">add_home</span>
                                                                                 <span>+ Crear primera unidad en <?= e($ed['nombre']) ?></span>
                                                                             </button>
+                                                                            <?php endif; ?>
                                                                         </div>
                                                                     <?php else: ?>
                                                                         <div class="overflow-x-auto">

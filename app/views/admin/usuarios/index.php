@@ -191,6 +191,7 @@
                                 <?= e($paginacion['total']) ?> en total
                             </span>
                         </div>
+                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                         <button type="button"
                                 class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95"
                                 data-bs-toggle="modal"
@@ -199,6 +200,7 @@
                             <span class="material-symbols-outlined text-[16px]">person_add</span>
                             <span>Nuevo Usuario</span>
                         </button>
+                        <?php endif; ?>
                     </div>
 
                     <div class="table-responsive">
@@ -264,7 +266,7 @@
                                                     </span>
                                                 </div>
                                                 <small class="text-xs text-on-surface-variant d-block mt-0.5"><?= e($u['detalle_ubicacion']) ?></small>
-                                                <?php if ($u['tipo_entidad'] === 'usuario'): ?>
+                                                <?php if ($u['tipo_entidad'] === 'usuario' && intval($u['id']) !== intval(\App\Core\Auth::id()) && \App\Core\Auth::role() !== 'auditor'): ?>
                                                     <form method="POST" action="/admin/usuarios/cambiar-rol" class="d-flex align-items-center gap-1 mt-2">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="id" value="<?= e($u['id']) ?>">
@@ -519,7 +521,7 @@
                         <div class="col-md-6">
                             <label for="crear_rol" class="form-label fw-bold small text-dark">Rol *</label>
                             <select id="crear_rol" name="rol" class="form-select" required>
-                                <option value="auditor" selected>Auditor (solo lectura y fiscalización)</option>
+                                <option value="auditor" selected>Auditor (fiscalización)</option>
                                 <option value="admin">Administrador</option>
                             </select>
                         </div>

@@ -174,7 +174,7 @@ class ReporteController extends Controller {
      * Encola el aviso de cobro por correo electrónico al residente.
      */
     public function enviarAvisoCobro() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $unidadId = intval($_POST['unidad_id'] ?? 0);
         if ($unidadId <= 0) {

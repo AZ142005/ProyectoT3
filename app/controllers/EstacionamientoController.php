@@ -74,7 +74,7 @@ class EstacionamientoController extends Controller {
      * Guarda o actualiza un puesto de estacionamiento.
      */
     public function guardar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $numero = trim($_POST['numero'] ?? '');
         $tipo = trim($_POST['tipo'] ?? 'descubierto');
@@ -134,7 +134,7 @@ class EstacionamientoController extends Controller {
      * Procesa la asignación o desasignación de un puesto a una unidad.
      */
     public function asignar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $puestoId = intval($_POST['puesto_id'] ?? 0);
         $unidadId = !empty($_POST['unidad_id']) ? intval($_POST['unidad_id']) : null;
@@ -171,7 +171,7 @@ class EstacionamientoController extends Controller {
      * Da de baja (Soft Delete) a un puesto de estacionamiento.
      */
     public function eliminar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {
@@ -193,7 +193,7 @@ class EstacionamientoController extends Controller {
      * Guarda un vehículo asociado a una unidad.
      */
     public function guardarVehiculo() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         // G3-03: Rate limit vehicle creation — max 50 per hour per admin
         if (!\App\Core\RateLimiter::attempt('vehiculo_' . Auth::id(), 50, 3600)) {
@@ -265,7 +265,7 @@ class EstacionamientoController extends Controller {
      * Elimina un vehículo registrado (Admin).
      */
     public function eliminarVehiculo() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $id = intval($_POST['id'] ?? 0);
         $vehiculosModel = new VehiculosModel();

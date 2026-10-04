@@ -172,7 +172,7 @@ class AdminController extends Controller {
     }
 
     public function generarFacturas() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $mes = !empty($_POST['mes']) ? intval($_POST['mes']) : intval(date('n'));
         $anio = !empty($_POST['anio']) ? intval($_POST['anio']) : intval(date('Y'));

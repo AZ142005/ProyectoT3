@@ -146,7 +146,7 @@ class Auth {
     }
 
     /**
-     * Inicia sesión para un auditor (fiscalizador de solo lectura).
+     * Inicia sesión para un auditor (fiscalizador).
      *
      * @param array $user Registro de la tabla `usuarios`
      * @return void

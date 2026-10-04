@@ -88,7 +88,7 @@ class GastoController extends Controller {
      * Guarda un nuevo gasto (común o individual) con soporte digital adjunto.
      */
     public function guardar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $categoriaId = intval($_POST['categoria_id'] ?? 0);
         $mes = intval($_POST['mes'] ?? date('n'));
@@ -179,7 +179,7 @@ class GastoController extends Controller {
      * Elimina un gasto común y su archivo físico de soporte.
      */
     public function eliminar() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {
@@ -310,7 +310,7 @@ class GastoController extends Controller {
      * Procesa la extracción estructurada del PDF Maestro (RF 30, RF 31, RF 32).
      */
     public function parsearMaestro() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $mes = intval($_POST['mes'] ?? date('n'));
         $anio = intval($_POST['anio'] ?? date('Y'));
@@ -392,7 +392,7 @@ class GastoController extends Controller {
      * Guarda el lote confirmado de gastos comunes desde el PDF Maestro (RF 31, RF 33, RF 34).
      */
     public function importarMaestro() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $mes = intval($_POST['mes'] ?? date('n'));
         $anio = intval($_POST['anio'] ?? date('Y'));

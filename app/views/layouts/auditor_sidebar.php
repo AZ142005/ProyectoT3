@@ -22,7 +22,7 @@ $navItems = [
             </div>
             <div>
                 <h2 class="text-white font-bold text-base leading-tight">Auditoría</h2>
-                <small class="text-xs text-slate-500 font-medium">Solo Lectura / Fiscal</small>
+                <small class="text-xs text-slate-500 font-medium">Fiscalización</small>
             </div>
         </div>
         <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">

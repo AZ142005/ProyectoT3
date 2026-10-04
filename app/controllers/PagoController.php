@@ -381,7 +381,7 @@ class PagoController extends Controller {
      * Cambia el estado del pago (Admin). CSRF ya validado globalmente en index.php.
      */
     public function cambiarEstado() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
         
         $pagoId = intval($_POST['pago_id'] ?? 0);
         $nuevoEstado = trim($_POST['nuevo_estado'] ?? '');
@@ -454,7 +454,7 @@ class PagoController extends Controller {
      * Procesa la aprobación masiva en lote de hasta 50 pagos (Admin).
      */
     public function aprobarMasivo() {
-        Auth::requireRole('admin');
+        Auth::requireRole(['admin', 'auditor']);
 
         $pagoIds = $_POST['pago_ids'] ?? [];
         if (!is_array($pagoIds) || empty($pagoIds)) {

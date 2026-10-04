@@ -24,7 +24,7 @@ class SolicitudesRegistroController extends Controller {
      * Procesa la aprobación de una solicitud de registro.
      */
     public function aprobar(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {
@@ -51,7 +51,7 @@ class SolicitudesRegistroController extends Controller {
      * Procesa el rechazo de una solicitud de registro.
      */
     public function rechazar(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $id = intval($_POST['id'] ?? 0);
         $motivo = trim($_POST['motivo_rechazo'] ?? '');

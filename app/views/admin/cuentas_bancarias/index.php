@@ -37,12 +37,14 @@
                 Gestione las cuentas oficiales del condominio para recibir pagos por transferencia o pago móvil. Solo las cuentas activas estarán disponibles para los residentes.
             </p>
         </div>
+        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
         <div>
             <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalCuenta" onclick="abrirModalCrear()">
                 <span class="material-symbols-outlined text-[16px]">add_circle</span>
                 <span>Nueva Cuenta Bancaria</span>
             </button>
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Alertas Flash -->
@@ -115,7 +117,11 @@
                         <tr>
                             <td colspan="6" class="text-center py-12 text-on-surface-variant">
                                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">account_balance</span>
-                                No hay cuentas bancarias registradas aún. Haga clic en <strong>Nueva Cuenta Bancaria</strong> para agregar la primera.
+                                <?php if (\App\Core\Auth::role() === 'auditor'): ?>
+                                    No hay cuentas bancarias registradas aún.
+                                <?php else: ?>
+                                    No hay cuentas bancarias registradas aún. Haga clic en <strong>Nueva Cuenta Bancaria</strong> para agregar la primera.
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php else: ?>
@@ -167,6 +173,7 @@
                                 <td class="py-4 px-4 text-end">
                                     <div class="d-flex justify-content-end align-items-center gap-2">
                                         <!-- Botón Editar -->
+                                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                         <button type="button" 
                                                 class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
                                                 onclick='abrirModalEditar(<?= json_encode($c) ?>)'
@@ -174,6 +181,7 @@
                                             <span class="material-symbols-outlined fs-6">edit</span>
                                             <span>Editar</span>
                                         </button>
+                                        <?php endif; ?>
 
                                         <!-- Alternar Estado -->
                                         <form method="POST" action="/admin/cuentas-bancarias/toggle" class="d-inline" onsubmit="return confirm('¿Está seguro de cambiar la visibilidad de esta cuenta para los residentes?');">

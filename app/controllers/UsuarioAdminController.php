@@ -302,6 +302,13 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
+        // Un administrador no puede cambiar el rol de su propio usuario.
+        if ($id === (int)Auth::id()) {
+            Flash::error('No es posible cambiar el rol de su propio usuario.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
         // Protección clave: no dejar al sistema sin administradores activos.
         if ($rolActual === 'admin' && $nuevoRol === 'auditor' && (int)($usuario['estado'] ?? 0) === 1) {
             $db = Database::getConnection();
@@ -340,7 +347,7 @@ class UsuarioAdminController extends Controller {
      * Procesa el reinicio de contraseña de un usuario o residente.
      */
     public function reiniciarPassword(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');
@@ -452,7 +459,7 @@ class UsuarioAdminController extends Controller {
      * Restringe estrictamente la modificación de cuentas de administrador.
      */
     public function actualizarDatos(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');
@@ -548,7 +555,7 @@ class UsuarioAdminController extends Controller {
      * Bloquea terminantemente la eliminación de cuentas administrativas.
      */
     public function eliminar(): void {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');

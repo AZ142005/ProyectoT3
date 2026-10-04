@@ -100,7 +100,6 @@
             <h4 class="text-lg font-bold text-on-surface mb-1">Registro de Gastos</h4>
             <p class="text-xs text-on-surface-variant mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
         </div>
-        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
             <div class="d-flex align-items-center gap-2">
                 <a href="/admin/gastos/maestro?mes=<?= e($filtros['mes']) ?>&anio=<?= e($filtros['anio']) ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
@@ -111,7 +110,6 @@
                     <span>Nuevo Gasto</span>
                 </button>
             </div>
-        <?php endif; ?>
     </div>
 
     <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
@@ -400,7 +398,6 @@
                                 </div>
                             <?php endif; ?>
 
-                            <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                 <form method="POST" action="/admin/gastos/generar-facturas" class="flex justify-center items-center pt-4 border-t border-background">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="mes" value="<?= e($mes) ?>">
@@ -411,7 +408,6 @@
                                         <?= $facturas_existentes > 0 ? 'Re-generar Facturas' : 'Generar Facturas del Mes' ?>
                                     </button>
                                 </form>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
