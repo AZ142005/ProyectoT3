@@ -501,6 +501,7 @@ class ConciliacionBancariaService {
             $encontradoExacto = false;
             $candidatoFuzzy = null;
             $candidatoAlerta = null;
+            $candidatoMontoDispar = null;
             $mejorSimilitud = 0.0;
 
             // Nivel 1: Búsqueda exacta O(1) por índice de referencia completa
@@ -546,6 +547,10 @@ class ConciliacionBancariaService {
                             $candidatoAlerta = implode(' | ', $alertas);
                         }
                     }
+                } elseif ($candidatoMontoDispar === null) {
+                    // Misma referencia con monto distinto: candidato a "Monto dispar" si el
+                    // movimiento no logra coincidencia exacta ni sugerida (sin recorridos extra).
+                    $candidatoMontoDispar = $pago;
                 }
             }
 
@@ -669,6 +674,19 @@ class ConciliacionBancariaService {
                 }
                 $coincidenciasSugeridas[] = $sugerencia;
                 $pagosEmparejadosKeys[] = $pagoFuzzyKey;
+            } elseif ($candidatoMontoDispar !== null) {
+                // Referencia con candidato claro pero monto disparate: se reporta para revisión
+                // manual en lugar de dejarlo pasar en silencio como "sin coincidencia".
+                $pagoDisparKey = ($candidatoMontoDispar['origen_tabla'] ?? 'pago') . '_' . $candidatoMontoDispar['id'];
+                $inconsistencias[] = [
+                    'extracto' => $mov,
+                    'pago'     => $candidatoMontoDispar,
+                    'motivo'   => 'Monto dispar',
+                    'alerta'   => 'Monto dispar (Extracto: ' . number_format($montoMov, 2, ',', '.')
+                                  . ' vs Pago: ' . number_format(floatval($candidatoMontoDispar['monto']), 2, ',', '.') . ')',
+                    'nivel'    => 1
+                ];
+                $pagosEmparejadosKeys[] = $pagoDisparKey;
             } else {
                 $sinCoincidencia[] = [
                     'extracto'      => $mov,

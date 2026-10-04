@@ -49,10 +49,11 @@ class ConciliacionController extends Controller {
         foreach ($resultadoCruce['inconsistencias'] as $match) {
             $filasConciliacion[] = [
                 'categoria' => 'inconsistencia',
-                'pago'      => null,
-                'extracto'  => $match['extracto'],
+                'pago'      => $match['pago'] ?? null,
+                'extracto'  => $match['extracto'] ?? null,
                 'motivo'    => $match['motivo'],
-                'fecha'     => $match['extracto']['fecha_movimiento'],
+                'alerta'    => $match['alerta'] ?? null,
+                'fecha'     => $match['extracto']['fecha_movimiento'] ?? $match['pago']['fecha_pago'] ?? null,
             ];
         }
 
@@ -61,17 +62,19 @@ class ConciliacionController extends Controller {
                 'categoria' => 'sin_coincidencia',
                 'pago'      => null,
                 'extracto'  => $match['extracto'],
-                'fecha'     => $match['extracto']['fecha_movimiento'],
+                'fecha'     => $match['extracto']['fecha_movimiento'] ?? null,
             ];
         }
 
         // Pagos pendientes que no quedaron emparejados en ningún cruce (evita filas duplicadas).
         // La clave incluye el origen porque pagos y comprobantes_pago tienen secuencias de id independientes.
         $pagosEmparejados = [];
-        foreach (['coincidencias_exactas', 'coincidencias_sugeridas'] as $tipoCruce) {
+        foreach (['coincidencias_exactas', 'coincidencias_sugeridas', 'inconsistencias'] as $tipoCruce) {
             foreach ($resultadoCruce[$tipoCruce] as $match) {
-                $clavePago = ($match['pago']['origen_tabla'] ?? 'pago') . '_' . $match['pago']['id'];
-                $pagosEmparejados[$clavePago] = true;
+                if (!empty($match['pago'])) {
+                    $clavePago = ($match['pago']['origen_tabla'] ?? 'pago') . '_' . $match['pago']['id'];
+                    $pagosEmparejados[$clavePago] = true;
+                }
             }
         }
 

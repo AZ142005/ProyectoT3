@@ -211,8 +211,8 @@
                                 <tbody class="divide-y divide-background">
                                     <?php foreach ($filasConciliacion as $fila): ?>
                                         <?php
-                                        $pago = $fila['pago'];
-                                        $extracto = $fila['extracto'];
+                                        $pago = $fila['pago'] ?? null;
+                                        $extracto = $fila['extracto'] ?? null;
 
                                         if ($pago !== null) {
                                             $residente  = $pago['residente_nombre'] ?: 'Residente';
@@ -228,9 +228,11 @@
                                         } else {
                                             $residente  = '—';
                                             $inmueble   = '—';
-                                            $referencia = ($extracto['referencia_bancaria'] ?: ($extracto['referencia'] ?? '')) ?: 'S/R';
-                                            $monto      = $extracto['monto'];
-                                            $detalle    = ['extracto' => $proyectarExtractoDetalle($extracto)];
+                                            $referencia = $extracto !== null
+                                                ? ((($extracto['referencia_bancaria'] ?? '') ?: ($extracto['referencia'] ?? '')) ?: 'S/R')
+                                                : 'S/R';
+                                            $monto      = $extracto['monto'] ?? null;
+                                            $detalle    = $extracto !== null ? ['extracto' => $proyectarExtractoDetalle($extracto)] : [];
                                         }
                                         ?>
                                         <tr class="hover:bg-background/40 transition-colors" data-categoria="<?= e($fila['categoria']) ?>">
@@ -242,12 +244,21 @@
                                             </td>
                                             <td class="py-2.5 px-4 font-mono text-xs">
                                                 <?= e($referencia) ?>
+                                                <?php if (($fila['categoria'] ?? '') === 'inconsistencia' && !empty($fila['motivo'])): ?>
+                                                    <div class="mt-1 flex flex-wrap items-center gap-1 font-sans">
+                                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                                                              title="<?= e($fila['alerta'] ?? $fila['motivo']) ?>"><?= e($fila['motivo']) ?></span>
+                                                        <?php if (!empty($fila['alerta']) && $fila['alerta'] !== $fila['motivo']): ?>
+                                                            <span class="text-[10px] text-on-surface-variant"><?= e($fila['alerta']) ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="py-2.5 px-4 text-end font-bold text-on-surface">
                                                 <?= e(formatearMoneda($monto)) ?>
                                             </td>
                                             <td class="py-2.5 px-4 text-xs">
-                                                <?= e(date('d/m/Y', strtotime($fila['fecha']))) ?>
+                                                <?= !empty($fila['fecha']) ? e(date('d/m/Y', strtotime($fila['fecha']))) : '—' ?>
                                             </td>
                                             <td class="py-2.5 px-4 text-end">
                                                 <div class="flex items-center justify-end gap-1.5">
