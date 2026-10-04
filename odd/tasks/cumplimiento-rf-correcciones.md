@@ -9,14 +9,14 @@
 - Se auditaron los **34 RF evaluables** del SRS contra el código actual del repositorio (working tree, con evidencia archivo:línea).
 - Excluidos por pedido: **RF 30 y RF 31**. El SRS no define **RF 7** (salta de RF 6 a RF 8).
 - Resultado inicial: **25 CUMPLE · 8 PARCIAL · 1 NO CUMPLE**.
-- Resultado vigente: **31 aceptados/cumplidos · 3 pendientes** (RF 13 resuelto el 2026-10-04; ver bitácora).
+- Resultado vigente: **32 aceptados/cumplidos · 2 pendientes** (RF 27 resuelto el 2026-10-04; ver bitácora).
 
-### Cumplidos (31)
+### Cumplidos (32)
 
-RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
+RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 32, 34, 35, 37
 + RF 12 y RF 36 (obviados por decisión — ver sección 2).
 
-### Pendientes (3 activos)
+### Pendientes (2 activos)
 
 | RF | Tema | Estado |
 |----|------|--------|
@@ -25,7 +25,7 @@ RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 
 | RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ✅ Resuelto |
 | RF 9 | Bandeja de solicitudes de cambio de datos | ✅ Resuelto |
 | RF 13 | Previsualización de PDF al cargar | ✅ Resuelto |
-| RF 27 | Detección de montos discordantes en conciliación | ⏸ Pendiente |
+| RF 27 | Detección de montos discordantes en conciliación | ✅ Resuelto |
 | RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pendiente |
 
 Leyenda de estados: ⏸ Pendiente · ⏳ Opciones presentadas · 🔧 En implementación · ✅ Resuelto.
@@ -108,7 +108,11 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **Situación**: los duplicados se detectan, pero un pago con referencia coincidente y monto distinto cae en `sin_coincidencia` sin alerta ("Monto dispar" no existe). Además la bandeja de inconsistencias pierde el pago y el motivo, y hay un bug con extracto null (filas con fecha 01/01/1970).
 - **Evidencia**: `app/services/ConciliacionBancariaService.php:552-568,681-700`; `app/controllers/ConciliacionController.php:49-57`.
 - **Propuesta preliminar**: marcar "Monto dispar" al detectar referencia coincidente con monto distinto; conservar `$match['pago']` y el motivo; proteger extracto null.
-- **Decisión**: pendiente (opciones se detallarán al abordarlo).
+- **Decisión e implementación (2026-10-04)**: Opción A — detección + saneo completo de la bandeja.
+  - Servicio: candidato "Monto dispar" capturado dentro del loop de Nivel 1 existente (**sin recorridos ni consultas nuevas**); se emite como inconsistencia (extracto + pago + motivo + alerta formateada) solo cuando no hay coincidencia exacta ni sugerida; el pago queda marcado como emparejado.
+  - Controlador: conserva pago/alerta de las inconsistencias, fecha null-safe (extracto → pago → null) y dedupe que incluye `inconsistencias` (el pago señalado no se duplica como `sin_extracto`).
+  - Vista: badge de motivo + alerta en inconsistencias; accesos null-safe; fechas vacías muestran '—' (adiós 01/01/1970).
+  - Tests: `tests/ConciliacionMontoDisparTest.php` (4 tests, incluye render real del controlador sin HTTP). Commit: `f4fb957`.
 
 ### RF 33 — Servido de soportes de gastos — PARCIAL
 
@@ -126,6 +130,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **2026-10-03 — Nota de verificación (runner)**: `php tests/run.php` termina con exit 0 pero **aborta en `SecurityTest`** (defecto preexistente documentado: `Security::validateCSRF` hace `exit` con token inválido) antes del RESUMEN, saltando las últimas clases. Desde ahora: las clases finales se verifican por separado con `--filter=`. Las áreas tocadas en los cierres (Perfil, Usuarios) se corrieron en verde con y sin filtro. Recomendación: ticket aparte para el runner/seguridad.
 - **2026-10-04 — RF 9 cerrado (✅)**: Opción B implementada (pestaña "Cambios de Datos" con badge, comparación visual Actual → Solicitado, filtros por estado y aprobar/rechazar con motivo). Commit `a0919bf`. Filtros re-verificados por el orquestador: SolicitudesCambioDatos 5/5, Solicitudes 20/20, Usuario 29/29 en verde.
 - **2026-10-04 — RF 13 cerrado (✅)**: previsualización de PDF (embed + enlace de respaldo) en las 2 vistas de carga de comprobantes; sin impacto de procesamiento (reutiliza el objectURL ya existente). Commit `c168fd8`. Filtros Pago 32/32 y Comprobante 21/21 en verde.
+- **2026-10-04 — RF 27 cerrado (✅)**: detección "Monto dispar" + saneo de bandeja (pago/alerta conservados, dedupe, fechas '—'). Commit `f4fb957`. Filtros re-verificados por el orquestador: ConciliacionMontoDispar 4/4, Conciliacion 43/43, Pago 32/32.
 
 ## 6. Evidencia clave de la auditoría
 
