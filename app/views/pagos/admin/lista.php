@@ -94,6 +94,8 @@
                         <p class="text-xs text-on-surface-variant mt-1">Pruebe cambiando los filtros aplicados arriba.</p>
                     </div>
                 <?php else: ?>
+                    <!-- Formulario de aprobación masiva: envuelve solo la barra flotante.
+                         Los checkboxes de la tabla se asocian con el atributo form para evitar formularios anidados. -->
                     <form id="formAprobacionMasiva" action="/admin/pagos/aprobar-masivo" method="POST" onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true);">
                         <?= csrf_field() ?>
 
@@ -108,8 +110,9 @@
                                 Aprobar Seleccionados
                             </button>
                         </div>
+                    </form>
 
-                        <div class="overflow-x-auto w-full">
+                    <div class="overflow-x-auto w-full">
                             <table class="w-full text-left text-sm border-collapse whitespace-nowrap">
                                 <thead>
                                     <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
@@ -128,7 +131,7 @@
                                     <tr class="hover:bg-background/40 transition-colors">
                                         <td class="py-4 px-4 text-center">
                                             <?php if (in_array($p['estado'], ['PENDIENTE', 'EN REVISIÓN'])): ?>
-                                                <input type="checkbox" name="pago_ids[]" value="<?= e($p['id']) ?>" class="pago-checkbox rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onchange="actualizarBarraMasiva()">
+                                                <input type="checkbox" form="formAprobacionMasiva" name="pago_ids[]" value="<?= e($p['id']) ?>" class="pago-checkbox rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" onchange="actualizarBarraMasiva()">
                                             <?php else: ?>
                                                 <span class="text-slate-300 material-symbols-outlined text-sm">block</span>
                                             <?php endif; ?>
@@ -204,7 +207,6 @@
                             </tbody>
                         </table>
                     </div>
-                    </form>
                 <?php endif; ?>
                 
                 <?php include VIEWS_PATH . '/components/pagination.php'; ?>

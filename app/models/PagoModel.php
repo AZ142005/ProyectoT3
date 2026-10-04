@@ -714,8 +714,12 @@ class PagoModel extends BaseModel {
      * @throws \Exception Si el lote excede el límite de 50 o falla la transacción
      */
     public function aprobarLote(array $pagoIds, int $adminId, $ipAddress = null): array {
-        // Filtrar y validar IDs
-        $ids = array_filter(array_map('intval', $pagoIds), fn($id) => $id > 0);
+        // Filtrar y validar IDs: solo escalares numéricos > 0
+        // (intval(['x']) coacciona a 1 y colaría un id inválido)
+        $ids = array_filter(
+            array_map(fn($pagoIdRaw) => (is_scalar($pagoIdRaw) && is_numeric($pagoIdRaw)) ? intval($pagoIdRaw) : 0, $pagoIds),
+            fn($id) => $id > 0
+        );
         $totalOriginal = count($ids);
 
         if ($totalOriginal === 0) {
