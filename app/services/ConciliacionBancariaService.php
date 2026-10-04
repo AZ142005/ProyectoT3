@@ -1103,9 +1103,17 @@ class ConciliacionBancariaService {
         $errores = [];
 
         foreach ($items as $item) {
-            $extractoId = intval($item['extracto_id'] ?? 0);
-            $pagoId = intval($item['pago_id'] ?? 0);
-            $origenTipo = strval($item['origen_tipo'] ?? 'auto');
+            if (!is_array($item)) {
+                $omitidos++;
+                continue;
+            }
+
+            // T6d: solo ids escalares numéricos (intval(['x']) coaccionaría a 1)
+            $extractoRaw = $item['extracto_id'] ?? 0;
+            $pagoRaw = $item['pago_id'] ?? 0;
+            $extractoId = (is_scalar($extractoRaw) && is_numeric($extractoRaw)) ? intval($extractoRaw) : 0;
+            $pagoId = (is_scalar($pagoRaw) && is_numeric($pagoRaw)) ? intval($pagoRaw) : 0;
+            $origenTipo = (isset($item['origen_tipo']) && is_scalar($item['origen_tipo'])) ? strval($item['origen_tipo']) : 'auto';
 
             if ($extractoId <= 0 || $pagoId <= 0) {
                 $omitidos++;

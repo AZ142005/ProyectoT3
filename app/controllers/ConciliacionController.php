@@ -221,10 +221,26 @@ class ConciliacionController extends Controller {
                || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
 
-        $extractoId     = intval($_POST['extracto_id'] ?? ($_POST['movimiento_id'] ?? 0));
-        $pagoId         = intval($_POST['pago_id'] ?? 0);
-        $origenTipo     = trim($_POST['origen_tipo'] ?? 'auto');
-        $idempotencyKey = trim($_POST['idempotency_key'] ?? ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? ''));
+        // T6a: aceptar cuerpo JSON cuando los ids no llegan por $_POST (el path form-encoded no cambia)
+        $entrada = $_POST;
+        if (!isset($_POST['extracto_id']) && !isset($_POST['movimiento_id']) && !isset($_POST['pago_id'])
+            && !empty($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'application/json')) {
+            $cuerpoJson = json_decode(file_get_contents('php://input'), true);
+            if (is_array($cuerpoJson)) {
+                $entrada = $cuerpoJson;
+            }
+        }
+
+        // Solo escalares numéricos: evita que intval(['x']) coaccione un id array a 1
+        $idValido = static function ($valor): int {
+            return (is_scalar($valor) && is_numeric($valor)) ? intval($valor) : 0;
+        };
+
+        $extractoId     = $idValido($entrada['extracto_id'] ?? ($entrada['movimiento_id'] ?? 0));
+        $pagoId         = $idValido($entrada['pago_id'] ?? 0);
+        $origenTipo     = (isset($entrada['origen_tipo']) && is_string($entrada['origen_tipo'])) ? trim($entrada['origen_tipo']) : 'auto';
+        $idempotencyRaw = $entrada['idempotency_key'] ?? ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? '');
+        $idempotencyKey = is_string($idempotencyRaw) ? trim($idempotencyRaw) : '';
         $adminId        = intval(Auth::id() ?? 1);
 
         if ($extractoId <= 0 || $pagoId <= 0) {
@@ -310,8 +326,11 @@ class ConciliacionController extends Controller {
         $items = array_slice($items, 0, 100);
         $adminId = Auth::id() ?? 1;
 
-        // Validate items have required keys
-        $validItems = array_filter($items, fn($it) => !empty($it['extracto_id']) && !empty($it['pago_id']));
+        // T6d: solo ids escalares numéricos > 0 (intval(array) coaccionaría a 1)
+        $idValido = static function ($valor): bool {
+            return is_scalar($valor) && is_numeric($valor) && intval($valor) > 0;
+        };
+        $validItems = array_filter($items, fn($it) => is_array($it) && $idValido($it['extracto_id'] ?? 0) && $idValido($it['pago_id'] ?? 0));
         if (empty($validItems)) {
             Flash::set('danger', 'No se seleccionaron elementos válidos para conciliar.');
             $this->redirect('/admin/conciliacion');
