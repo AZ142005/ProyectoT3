@@ -12,7 +12,7 @@ class ArreglosAuditoriaTest extends TestCase {
      */
     private function extraerMetodo(string $rutaArchivo, string $metodo): string {
         $contenido = file_get_contents($rutaArchivo);
-        preg_match('/public function ' . preg_quote($metodo, '/') . '\(.*?\)(.*?)(?=public function|\Z)/s', $contenido, $m);
+        preg_match('/public function ' . preg_quote($metodo, '/') . '\(.*?\)(.*?)(?=public function|private function|protected function|\Z)/s', $contenido, $m);
         return $m[1] ?? '';
     }
 
@@ -200,7 +200,7 @@ class ArreglosAuditoriaTest extends TestCase {
     public function testConciliarPagoDevuelveCsrfTokenEnRespuestasJson(): void {
         $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'conciliarPago');
 
-        $this->assertStringContains("'csrf_token'", $metodo,
-            'Las respuestas JSON deben exponer el token CSRF rotado para el siguiente llamado');
+        $this->assertTrue(substr_count($metodo, "'csrf_token'") >= 4,
+            'Las 4 respuestas JSON deben exponer el token CSRF rotado para el siguiente llamado');
     }
 }
