@@ -183,6 +183,7 @@
                                         </button>
                                         <?php endif; ?>
 
+                                        <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                         <!-- Alternar Estado -->
                                         <form method="POST" action="/admin/cuentas-bancarias/toggle" class="d-inline" onsubmit="return confirm('¿Está seguro de cambiar la visibilidad de esta cuenta para los residentes?');">
                                             <?= csrf_field() ?>
@@ -206,6 +207,7 @@
                                                 <span class="material-symbols-outlined fs-6">delete</span>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

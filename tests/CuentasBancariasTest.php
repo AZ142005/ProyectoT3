@@ -88,4 +88,28 @@ class CuentasBancariasTest extends TestCase {
         $this->assertTrue(str_contains($indexContent, '/admin/cuentas-bancarias/toggle'), "Ruta /admin/cuentas-bancarias/toggle debe estar en index.php");
         $this->assertTrue(str_contains($indexContent, '/admin/cuentas-bancarias/eliminar'), "Ruta /admin/cuentas-bancarias/eliminar debe estar en index.php");
     }
+
+    /**
+     * El auditor no puede activar/desactivar ni eliminar cuentas bancarias:
+     * guards internos solo-admin y acciones ocultas en la vista.
+     */
+    public function testAuditorSinToggleNiEliminarDeCuentas(): void {
+        $ctrl = file_get_contents(BASE_PATH . '/app/controllers/CuentaBancariaController.php');
+
+        foreach (['toggle', 'eliminar'] as $metodo) {
+            preg_match('/public function ' . $metodo . '\(\)(.*?)(?=public function|\Z)/s', $ctrl, $m);
+            $this->assertTrue(count($m) > 1, "El método {$metodo} debe existir");
+            $this->assertStringContains("Auth::requireRole('admin');", $m[1],
+                "El guard de {$metodo} debe ser solo-admin");
+            $this->assertFalse(str_contains($m[1], "'auditor'"),
+                "El guard de {$metodo} no debe habilitar al rol auditor");
+        }
+
+        $vista = file_get_contents(BASE_PATH . '/app/views/admin/cuentas_bancarias/index.php');
+        $this->assertMatchesRegex(
+            "/role\(\) !== 'auditor'\): \?>\s*<!-- Alternar Estado -->\s*<form[^>]*\/admin\/cuentas-bancarias\/toggle.*?<\/form>\s*<!-- Eliminar \/ Desactivar -->\s*<form[^>]*\/admin\/cuentas-bancarias\/eliminar.*?<\/form>\s*<\?php endif; \?>/s",
+            $vista,
+            'Las acciones de toggle y eliminar deben estar ocultas para el auditor'
+        );
+    }
 }

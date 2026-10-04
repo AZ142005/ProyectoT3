@@ -298,6 +298,8 @@ class RbacAuthorizationTest extends TestCase {
 
         $exclusiones = [
             '/admin/cuentas-bancarias/guardar',
+            '/admin/cuentas-bancarias/toggle',
+            '/admin/cuentas-bancarias/eliminar',
             '/admin/usuarios/crear',
             '/admin/usuarios/cambiar-rol',
             '/admin/usuarios/procesar-solicitud-cambio',

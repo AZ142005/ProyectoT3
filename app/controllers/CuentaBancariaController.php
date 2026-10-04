@@ -120,7 +120,7 @@ class CuentaBancariaController extends Controller {
      * Alterna el estado activo / inactivo de una cuenta.
      */
     public function toggle() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {
@@ -145,7 +145,7 @@ class CuentaBancariaController extends Controller {
      * Elimina o desactiva una cuenta bancaria según su historial.
      */
     public function eliminar() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $id = intval($_POST['id'] ?? 0);
         if ($id <= 0) {

@@ -204,8 +204,8 @@ $router->post('/admin/conciliacion/rechazar', [\App\Controllers\ConciliacionCont
 // --- Módulo de Cuentas Bancarias Autorizadas ---
 $router->get('/admin/cuentas-bancarias', [\App\Controllers\CuentaBancariaController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/cuentas-bancarias/guardar', [\App\Controllers\CuentaBancariaController::class, 'guardar'], [UserRole::ADMIN]);
-$router->post('/admin/cuentas-bancarias/toggle', [\App\Controllers\CuentaBancariaController::class, 'toggle'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->post('/admin/cuentas-bancarias/eliminar', [\App\Controllers\CuentaBancariaController::class, 'eliminar'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/cuentas-bancarias/toggle', [\App\Controllers\CuentaBancariaController::class, 'toggle'], [UserRole::ADMIN]);
+$router->post('/admin/cuentas-bancarias/eliminar', [\App\Controllers\CuentaBancariaController::class, 'eliminar'], [UserRole::ADMIN]);
 
 // --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
 $router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
