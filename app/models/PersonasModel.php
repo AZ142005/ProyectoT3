@@ -60,6 +60,17 @@ class PersonasModel extends BaseModel {
     }
 
     /**
+     * Retorna el ID del primer residente activo de una unidad (orden por ID ascendente).
+     * Null si la unidad no tiene residentes activos.
+     */
+    public function obtenerPrimerResidenteActivo(int $unidadId): ?int {
+        $stmt = $this->db()->prepare("SELECT id FROM personas WHERE unidad_id = :unidad_id AND estado = 1 ORDER BY id ASC LIMIT 1");
+        $stmt->execute(['unidad_id' => $unidadId]);
+        $id = $stmt->fetchColumn();
+        return $id !== false ? intval($id) : null;
+    }
+
+    /**
      * Inserta un nuevo residente validando tipo y unidad activa.
      */
     public function createResidente(array $data): int|false {

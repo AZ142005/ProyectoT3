@@ -8,6 +8,7 @@ use App\Models\EstacionamientosModel;
 use App\Models\VehiculosModel;
 use App\Models\EdificiosModel;
 use App\Models\UnidadesModel;
+use App\Models\PersonasModel;
 use Exception;
 
 class EstacionamientoController extends Controller {
@@ -88,7 +89,6 @@ class EstacionamientoController extends Controller {
 
         // Validación estricta del tipo ENUM
         if (!in_array($tipo, EstacionamientosModel::TIPOS_VALIDOS, true)) {
-            http_response_code(400);
             Flash::error("El tipo de estacionamiento seleccionado no es válido.");
             $this->redirect('/admin/estacionamientos');
         }
@@ -207,15 +207,23 @@ class EstacionamientoController extends Controller {
 
         try {
             $unidadId = intval($_POST['unidad_id'] ?? 0);
-            $personaId = Auth::id();
-
-            if (!empty($_POST['persona_id'])) {
-                $personaId = intval($_POST['persona_id']);
-            }
+            $unidad = $unidadId > 0 ? $unidadesModel->getById($unidadId) : false;
 
             // FK validation: unidad debe existir
-            if ($unidadId <= 0 || !$unidadesModel->getById($unidadId)) {
+            if (!$unidad) {
                 Flash::error('La unidad especificada no existe.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
+
+            // T3: la persona SIEMPRE se resuelve desde la unidad; se ignoran datos de persona del cliente
+            $personasModel = new PersonasModel();
+            $personaId = $personasModel->obtenerPrimerResidenteActivo($unidadId);
+            if (!$personaId) {
+                $personaId = !empty($unidad['propietario_id']) ? intval($unidad['propietario_id']) : 0;
+            }
+            if ($personaId <= 0) {
+                Flash::error('La unidad seleccionada no tiene propietario ni residente activo. Asigne uno antes de registrar el vehículo.');
                 $this->redirect('/admin/estacionamientos');
                 return;
             }
@@ -265,7 +273,7 @@ class EstacionamientoController extends Controller {
      * Elimina un vehículo registrado (Admin).
      */
     public function eliminarVehiculo() {
-        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
+        Auth::requireRole(['admin', 'auditor']);
 
         $id = intval($_POST['id'] ?? 0);
         $vehiculosModel = new VehiculosModel();
