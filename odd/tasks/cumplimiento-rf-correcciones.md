@@ -20,13 +20,13 @@ RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 
 
 | RF | Tema | Estado |
 |----|------|--------|
-| RF 2 | Cruce de correo con padrón de propietarios (único NO CUMPLE) | ⏸ Pendiente |
+| RF 2 | Validación de identidad cruzando DATOS con el padrón (SRS dice "correo" por error) | ⏸ Pendiente |
 | RF 3 | Doble verificación (2FA) sin UI de activación | ✅ Resuelto |
 | RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ✅ Resuelto |
 | RF 9 | Bandeja de solicitudes de cambio de datos | ✅ Resuelto |
 | RF 13 | Previsualización de PDF al cargar | ✅ Resuelto |
 | RF 27 | Detección de montos discordantes en conciliación | ✅ Resuelto |
-| RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pendiente |
+| RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pausado (espera PDF maestro de ejemplo) |
 
 Leyenda de estados: ⏸ Pendiente · ⏳ Opciones presentadas · 🔧 En implementación · ✅ Resuelto.
 
@@ -45,12 +45,13 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 
 ## 4. Detalle por pendiente
 
-### RF 2 — Validación de identidad (cruce correo ↔ padrón de propietarios) — NO CUMPLE
+### RF 2 — Validación de identidad (cruce de datos ↔ padrón de propietarios) — NO CUMPLE
 
 - **Situación**: el registro solo valida formato y duplicados de cédula/email; no cruza el correo contra el padrón de propietarios. La aprobación del admin empareja por email **o** cédula sin exigir coincidencia entre ambos.
 - **Evidencia**: `app/controllers/AuthController.php:367-375`; `app/models/SolicitudesRegistroModel.php:327-329`.
-- **Propuesta preliminar**: validar el email contra `personas.email` (tipo propietario) de la unidad elegida; definir flujo cuando no coincide (revisión manual) y registrar el resultado en auditoría.
+- **Propuesta preliminar (actualizada 2026-10-04)**: validar los **datos registrados** (cédula/nombre) contra la base de propietarios (`personas` tipo propietario / `unidades.propietario_id`) de la unidad elegida; definir flujo cuando no coincide (revisión manual) y registrar el resultado en auditoría.
 - **Decisión**: pendiente.
+- **Aclaración del usuario (2026-10-04)**: el texto del SRS dice "correo" por error de redacción; debe leerse "**datos**". La brecha se mantiene bajo esta lectura (no existe cruce de identidad contra el padrón); se implementará validando datos, no correo.
 
 ### RF 3 — Doble verificación (2FA) — PARCIAL
 
@@ -119,7 +120,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **Situación**: los soportes se guardan en `uploads/soportes` (raíz del proyecto) pero los enlaces apuntan a `/uploads/soportes/...`, que con docroot en `public/` resuelve a `public/uploads/soportes` → 404 sin proxy. Afecta la visual de RF 22 y RF 34.
 - **Evidencia**: `app/config/config.php:6`; `app/views/residente/gastos.php:122`; `app/views/admin/gastos/index.php:273`; `public/comprobante-proxy.php` (patrón existente para comprobantes).
 - **Propuesta preliminar**: proxy autenticado para soportes (patrón `comprobante-proxy.php`, validando rol/unidad) o alinear almacenamiento y URL.
-- **Decisión**: pendiente (opciones se detallarán al abordarlo).
+- **Decisión (2026-10-04)**: **Pausado** a pedido del usuario — está ligado al **PDF maestro de ejemplo**, que aún no está disponible. No tocar el área de gastos por ahora; las opciones A (proxy autenticado) y B (alinear almacenamiento) quedan documentadas para cuando se retome.
 
 ## 5. Bitácora
 
@@ -131,6 +132,8 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **2026-10-04 — RF 9 cerrado (✅)**: Opción B implementada (pestaña "Cambios de Datos" con badge, comparación visual Actual → Solicitado, filtros por estado y aprobar/rechazar con motivo). Commit `a0919bf`. Filtros re-verificados por el orquestador: SolicitudesCambioDatos 5/5, Solicitudes 20/20, Usuario 29/29 en verde.
 - **2026-10-04 — RF 13 cerrado (✅)**: previsualización de PDF (embed + enlace de respaldo) en las 2 vistas de carga de comprobantes; sin impacto de procesamiento (reutiliza el objectURL ya existente). Commit `c168fd8`. Filtros Pago 32/32 y Comprobante 21/21 en verde.
 - **2026-10-04 — RF 27 cerrado (✅)**: detección "Monto dispar" + saneo de bandeja (pago/alerta conservados, dedupe, fechas '—'). Commit `f4fb957`. Filtros re-verificados por el orquestador: ConciliacionMontoDispar 4/4, Conciliacion 43/43, Pago 32/32.
+- **2026-10-04 — Ajustes de plan (sesión de revisión)**: RF 33 pausado hasta contar con el PDF maestro de ejemplo; RF 2 reinterpretado por aclaración del usuario (el SRS debe leerse "datos" en lugar de "correo"). Sin cambios de código funcional.
+- **2026-10-04 — Ajuste estético**: badge de motivo en conciliación ("Monto dispar") corregido a clases Tailwind válidas (`bg-amber-100 text-amber-800 border-amber-200`; las anteriores `bg-warning/10`/`border-warning/20` no existen en el tema y dejaban el fondo transparente). Commit `0bddd64`.
 
 ## 6. Evidencia clave de la auditoría
 
