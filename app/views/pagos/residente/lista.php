@@ -6,13 +6,20 @@
             <p class="text-sm opacity-90 mt-1">Unidad <?= e($residente['unidad_numero'] ?? 'N/A') ?> (<?= e($residente['torre'] ?? 'N/A') ?>) — todos los movimientos de la unidad</p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="/residente/dashboard" class="bg-white/15 hover:bg-white/25 border border-white/20 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-transform active:scale-95 flex items-center gap-1">
+            <a href="/perfil" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">account_circle</span>
+                Mi Perfil
+            </a>
+            <a href="/residente/dashboard" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">dashboard</span>
                 Panel Residente
             </a>
             <a href="/pagos/nuevo" class="bg-white text-primary hover:bg-slate-50 font-bold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[18px]">add_circle</span>
                 Registrar Nuevo Pago
+            </a>
+            <a href="/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-rose-600/80 hover:bg-rose-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center" title="Cerrar Sesión">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
             </a>
         </div>
     </div>
