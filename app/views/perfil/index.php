@@ -163,7 +163,12 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
                     <span class="material-symbols-outlined text-primary">edit_note</span>
                     Solicitar Actualización de Datos
                 </h3>
-                <p class="text-xs text-on-surface-variant mb-6">Los cambios serán revisados y aprobados por la administración antes de ser aplicados.</p>
+                <p class="text-xs text-on-surface-variant mb-3">Los cambios serán revisados y aprobados por la administración antes de ser aplicados.</p>
+
+                <div class="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl px-3 py-2.5 mb-6">
+                    <span class="material-symbols-outlined text-[16px]">schedule</span>
+                    <span>Solo se conservan las solicitudes aprobadas: las pendientes se eliminan 24 horas después de su envío y las rechazadas 24 horas después del rechazo.</span>
+                </div>
 
                 <form method="POST" action="/perfil/solicitar-cambio" class="flex flex-col gap-4">
                     <?= csrf_field() ?>

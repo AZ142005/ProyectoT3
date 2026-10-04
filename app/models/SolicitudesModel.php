@@ -123,6 +123,32 @@ class SolicitudesModel extends BaseModel {
     }
 
     /**
+     * Elimina las solicitudes vencidas: pendientes con más de 24 horas desde su
+     * envío, y rechazadas con más de 24 horas desde su respuesta (o desde su
+     * envío si no hay fecha de respuesta). Las aprobadas se conservan siempre.
+     * Usa el reloj de MySQL porque ambas fechas las escribe MySQL.
+     *
+     * @param int|null $personaId Si se indica, limita la limpieza a esa persona
+     * @return int Número de solicitudes eliminadas
+     */
+    public function eliminarExpiradas(?int $personaId = null): int {
+        $sql = "DELETE FROM solicitudes_cambio_datos
+                WHERE (
+                    (estado = 'pendiente' AND fecha_solicitud <= DATE_SUB(NOW(), INTERVAL 1 DAY))
+                    OR
+                    (estado = 'rechazado' AND COALESCE(fecha_respuesta, fecha_solicitud) <= DATE_SUB(NOW(), INTERVAL 1 DAY))
+                )";
+        $params = [];
+        if ($personaId !== null) {
+            $sql .= " AND persona_id = :pid";
+            $params['pid'] = $personaId;
+        }
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
+
+    /**
      * Procesa (Aprobar/Rechazar) una solicitud con revalidación estricta de formato y unicidad.
      */
     public function procesarSolicitud(int $solicitudId, string $nuevoEstado, ?string $motivoAdmin, int $adminId): bool {

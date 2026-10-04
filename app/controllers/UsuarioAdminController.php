@@ -45,6 +45,7 @@ class UsuarioAdminController extends Controller {
             : null;
 
         $solicitudesCambioModel = new SolicitudesModel();
+        $solicitudesCambioModel->eliminarExpiradas();
         $resultadoCambios = $solicitudesCambioModel->obtenerTodasAdmin($pagina, $porPagina, $estadoCambio);
         $cambiosPendientesCount = $solicitudesCambioModel->contarPendientes();
 

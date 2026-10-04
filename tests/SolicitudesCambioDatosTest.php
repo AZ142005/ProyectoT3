@@ -253,4 +253,57 @@ class SolicitudesCambioDatosTest extends TestCase {
         $this->assertStringContains("'cambios'", $controlador, "El controlador debe aceptar la pestaña cambios");
         $this->assertStringContains('/admin/usuarios/procesar-solicitud-cambio', $rutas, "La ruta POST de procesamiento debe estar registrada");
     }
+
+    public function testEliminarExpiradasBorraPendientesYRechazadasAntiguas(): void {
+        $db = $this->getDb();
+        $modelo = new SolicitudesModel();
+
+        $personaId = $this->crearPersonaTemporal($db, 'E');
+        $otraPersonaId = $this->crearPersonaTemporal($db, 'X');
+
+        try {
+            $idPendienteVieja = $modelo->crearSolicitud($personaId, ['telefono' => '04121110001']);
+            $idPendienteNueva = $modelo->crearSolicitud($personaId, ['telefono' => '04121110002']);
+            $idRechazadaVieja = $modelo->crearSolicitud($personaId, ['telefono' => '04121110003']);
+            $idRechazadaNueva = $modelo->crearSolicitud($personaId, ['telefono' => '04121110004']);
+            $idAprobadaVieja  = $modelo->crearSolicitud($personaId, ['telefono' => '04121110005']);
+            $idOtraPersona    = $modelo->crearSolicitud($otraPersonaId, ['telefono' => '04121110006']);
+
+            $db->exec("UPDATE solicitudes_cambio_datos SET fecha_solicitud = DATE_SUB(NOW(), INTERVAL 25 HOUR) WHERE id = {$idPendienteVieja}");
+            $db->exec("UPDATE solicitudes_cambio_datos SET estado = 'rechazado', fecha_solicitud = DATE_SUB(NOW(), INTERVAL 3 DAY), fecha_respuesta = DATE_SUB(NOW(), INTERVAL 25 HOUR), motivo_admin = 'Prueba' WHERE id = {$idRechazadaVieja}");
+            $db->exec("UPDATE solicitudes_cambio_datos SET estado = 'rechazado', fecha_solicitud = DATE_SUB(NOW(), INTERVAL 2 DAY), fecha_respuesta = DATE_SUB(NOW(), INTERVAL 23 HOUR), motivo_admin = 'Prueba' WHERE id = {$idRechazadaNueva}");
+            $db->exec("UPDATE solicitudes_cambio_datos SET estado = 'aprobado', fecha_solicitud = DATE_SUB(NOW(), INTERVAL 10 DAY), fecha_respuesta = DATE_SUB(NOW(), INTERVAL 9 DAY) WHERE id = {$idAprobadaVieja}");
+            $db->exec("UPDATE solicitudes_cambio_datos SET fecha_solicitud = DATE_SUB(NOW(), INTERVAL 25 HOUR) WHERE id = {$idOtraPersona}");
+
+            $borradas = $modelo->eliminarExpiradas($personaId);
+            $this->assertEquals(2, $borradas, "Deben eliminarse la pendiente vencida y la rechazada con respuesta vencida");
+
+            $restantes = $db->query("SELECT id FROM solicitudes_cambio_datos WHERE persona_id = {$personaId}")->fetchAll(PDO::FETCH_COLUMN);
+            $this->assertFalse(in_array($idPendienteVieja, $restantes), "La pendiente de más de 24 h debe eliminarse");
+            $this->assertFalse(in_array($idRechazadaVieja, $restantes), "La rechazada con más de 24 h desde la respuesta debe eliminarse");
+            $this->assertTrue(in_array($idPendienteNueva, $restantes), "La pendiente reciente debe conservarse");
+            $this->assertTrue(in_array($idRechazadaNueva, $restantes), "La rechazada reciente debe conservarse");
+            $this->assertTrue(in_array($idAprobadaVieja, $restantes), "La aprobada antigua debe conservarse");
+
+            $restanteOtra = (int)$db->query("SELECT COUNT(*) FROM solicitudes_cambio_datos WHERE id = {$idOtraPersona}")->fetchColumn();
+            $this->assertEquals(1, $restanteOtra, "La limpieza acotada no debe tocar solicitudes de otras personas");
+        } finally {
+            $db->exec("DELETE FROM solicitudes_cambio_datos WHERE persona_id IN ({$personaId}, {$otraPersonaId})");
+            $db->exec("DELETE FROM personas WHERE id IN ({$personaId}, {$otraPersonaId})");
+        }
+    }
+
+    public function testPerfilIncluyeNotaDeVencimientoYControladoresLimpian(): void {
+        $vistaPerfil = file_get_contents(dirname(__DIR__) . '/app/views/perfil/index.php');
+        $modelo = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
+        $ctrlPerfil = file_get_contents(dirname(__DIR__) . '/app/controllers/PerfilController.php');
+        $ctrlAdmin = file_get_contents(dirname(__DIR__) . '/app/controllers/UsuarioAdminController.php');
+
+        $this->assertStringContains('Solo se conservan las solicitudes aprobadas', $vistaPerfil, "El perfil del residente debe advertir el vencimiento de solicitudes");
+        $this->assertStringContains('public function eliminarExpiradas', $modelo, "El modelo debe exponer la limpieza de solicitudes vencidas");
+        $this->assertStringContains('INTERVAL 1 DAY', $modelo, "La limpieza debe usar el umbral de 1 día");
+        $this->assertStringContains('eliminarExpiradas((int)$personaId)', $ctrlPerfil, "verPerfil debe limpiar acotado a la persona antes de listar");
+        $this->assertStringContains('eliminarExpiradas($personaId)', $ctrlPerfil, "solicitarCambio debe limpiar acotado a la persona antes de crear");
+        $this->assertStringContains('$solicitudesCambioModel->eliminarExpiradas();', $ctrlAdmin, "index debe limpiar solicitudes vencidas globalmente antes de listar");
+    }
 }

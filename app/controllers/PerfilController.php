@@ -31,6 +31,7 @@ class PerfilController extends Controller {
             $persona = $personasModel->getActiveById($personaId);
 
             $solicitudesModel = new SolicitudesModel();
+            $solicitudesModel->eliminarExpiradas((int)$personaId);
             $solicitudes = $solicitudesModel->obtenerPorPersona($personaId);
         }
 
@@ -195,6 +196,7 @@ class PerfilController extends Controller {
 
         try {
             $solicitudesModel = new SolicitudesModel();
+            $solicitudesModel->eliminarExpiradas($personaId);
             $solicitudesModel->crearSolicitud($personaId, [
                 'telefono'  => $telefono,
                 'email'     => $email,
