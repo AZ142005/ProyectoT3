@@ -67,15 +67,15 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
             <div class="flex flex-col gap-4 text-sm">
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Cédula de Identidad</span>
-                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['cedula']) ? $usuarioAdmin['cedula'] : 'No registrada') : (!empty($persona['cedula']) ? $persona['cedula'] : 'N/A')) ?></span>
+                    <span class="font-semibold text-on-surface"><?= e(($isAdmin || $isAuditor) ? (!empty($usuarioAdmin['cedula']) ? $usuarioAdmin['cedula'] : 'No registrada') : (!empty($persona['cedula']) ? $persona['cedula'] : 'N/A')) ?></span>
                 </div>
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Correo Electrónico</span>
-                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['email']) ? $usuarioAdmin['email'] : ($user['email'] ?? '')) : (!empty($persona['email']) ? $persona['email'] : ($user['email'] ?? ''))) ?></span>
+                    <span class="font-semibold text-on-surface"><?= e(($isAdmin || $isAuditor) ? (!empty($usuarioAdmin['email']) ? $usuarioAdmin['email'] : ($user['email'] ?? '')) : (!empty($persona['email']) ? $persona['email'] : ($user['email'] ?? ''))) ?></span>
                 </div>
                 <div>
                     <span class="text-xs font-bold text-slate-400 uppercase d-block">Teléfono Móvil</span>
-                    <span class="font-semibold text-on-surface"><?= e($isAdmin ? (!empty($usuarioAdmin['telefono']) ? $usuarioAdmin['telefono'] : 'No registrado') : (!empty($persona['telefono']) ? $persona['telefono'] : 'No registrado')) ?></span>
+                    <span class="font-semibold text-on-surface"><?= e(($isAdmin || $isAuditor) ? (!empty($usuarioAdmin['telefono']) ? $usuarioAdmin['telefono'] : 'No registrado') : (!empty($persona['telefono']) ? $persona['telefono'] : 'No registrado')) ?></span>
                 </div>
             </div>
         </div>

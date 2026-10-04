@@ -106,10 +106,17 @@ class ReporteController extends Controller {
     /**
      * Genera la vista formal de la carta de deuda para una unidad habitacional.
      *
-     * @param int $unidadId
+     * @param mixed $unidadId
      */
-    public function generarCartaDeuda(int $unidadId) {
+    public function generarCartaDeuda($unidadId) {
         Auth::requireRole(['admin', 'auditor']);
+
+        // T5: entradas no numéricas (p. ej. "abc") deben dar 404, no un 500 por TypeError
+        $unidadId = intval($unidadId);
+        if ($unidadId <= 0) {
+            $this->render('errors/404', ['title' => 'Unidad no encontrada']);
+            return;
+        }
 
         $reportesModel = new ReportesModel();
         $detalle = $reportesModel->obtenerDetalleDeudaUnidad($unidadId);
