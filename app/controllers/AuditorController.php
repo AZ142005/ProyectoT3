@@ -21,7 +21,7 @@ class AuditorController extends Controller {
         $totalLogs = (int)$db->query("SELECT COUNT(*) FROM log_auditoria")->fetchColumn();
         $totalMovimientos = (int)$db->query("SELECT COUNT(*) FROM movimientos_cuenta")->fetchColumn();
         $totalConciliados = (int)$db->query("SELECT COUNT(*) FROM extractos_bancarios WHERE estado_conciliacion = 'conciliado'")->fetchColumn();
-        $totalGastosMonto = (float)$db->query("SELECT COALESCE(SUM(monto_total), 0) FROM gastos_comunes WHERE activo = 1")->fetchColumn();
+        $totalGastosMonto = (float)$db->query("SELECT COALESCE(SUM(monto_total), 0) FROM gastos_comunes WHERE deleted_at IS NULL")->fetchColumn();
 
         // 2. Últimos 10 eventos críticos de auditoría
         $stmtLogs = $db->query("
