@@ -122,24 +122,34 @@ class GastoController extends Controller {
 
         $nombreArchivoSoporte = null;
 
-        // Procesar subida de soporte digital con MIME validation real
-        if (!empty($_FILES['soporte_digital']) && $_FILES['soporte_digital']['error'] === UPLOAD_ERR_OK) {
-            $uploader = new \App\Services\FileUploader(
-                UPLOADS_PATH . '/soportes',
-                ['image/jpeg', 'image/png', 'application/pdf'],
-                ['jpg', 'jpeg', 'png', 'pdf'],
-                5242880
-            );
-            $nombreArchivoSoporte = $uploader->upload($_FILES['soporte_digital']);
-
-            if (!$nombreArchivoSoporte) {
-                Flash::set('danger', 'Formato o tamaño de soporte no permitido. Solo se aceptan archivos PDF, JPG o PNG hasta 5MB.');
-                $this->redirect('/admin/gastos');
-                return;
-            }
+        // T6e: si se adjuntó un soporte y la subida falló, no guardar el gasto sin soporte.
+        // UPLOAD_ERR_NO_FILE se exceptúa porque el soporte es opcional en el formulario.
+        if (isset($_FILES['soporte_digital']) && $_FILES['soporte_digital']['error'] !== UPLOAD_ERR_NO_FILE
+            && $_FILES['soporte_digital']['error'] !== UPLOAD_ERR_OK) {
+            Flash::error('No se pudo recibir el archivo de soporte. Verifique el tamaño máximo de 5MB e intente de nuevo.');
+            $this->redirect('/admin/gastos');
+            return;
         }
 
         try {
+            // Procesar subida de soporte digital con MIME validation real.
+            // Dentro del try: una RuntimeException del uploader se reporta con flash, no como 500.
+            if (isset($_FILES['soporte_digital']) && $_FILES['soporte_digital']['error'] === UPLOAD_ERR_OK) {
+                $uploader = new \App\Services\FileUploader(
+                    UPLOADS_PATH . '/soportes',
+                    ['image/jpeg', 'image/png', 'application/pdf'],
+                    ['jpg', 'jpeg', 'png', 'pdf'],
+                    5242880
+                );
+                $nombreArchivoSoporte = $uploader->upload($_FILES['soporte_digital']);
+
+                if (!$nombreArchivoSoporte) {
+                    Flash::set('danger', 'Formato o tamaño de soporte no permitido. Solo se aceptan archivos PDF, JPG o PNG hasta 5MB.');
+                    $this->redirect('/admin/gastos');
+                    return;
+                }
+            }
+
             $gastosModel = new GastosModel();
             $gastoId = $gastosModel->crearGasto([
                 'categoria_id'          => $categoriaId,
@@ -328,13 +338,18 @@ class GastoController extends Controller {
 
         // 1. Carga de archivo PDF Maestro
         if (!empty($_FILES['pdf_maestro']) && $_FILES['pdf_maestro']['error'] === UPLOAD_ERR_OK) {
-            $uploader = new \App\Services\FileUploader(
-                UPLOADS_PATH . '/soportes',
-                ['application/pdf'],
-                ['pdf'],
-                10485760 // 10MB
-            );
-            $nombreArchivoSoporte = $uploader->upload($_FILES['pdf_maestro']);
+            try {
+                $uploader = new \App\Services\FileUploader(
+                    UPLOADS_PATH . '/soportes',
+                    ['application/pdf'],
+                    ['pdf'],
+                    10485760 // 10MB
+                );
+                $nombreArchivoSoporte = $uploader->upload($_FILES['pdf_maestro']);
+            } catch (\Throwable $e) {
+                error_log('[GASTO] Error al procesar PDF maestro: ' . $e->getMessage());
+                $nombreArchivoSoporte = null;
+            }
 
             if (!$nombreArchivoSoporte) {
                 if ($isAjax) {
@@ -396,7 +411,12 @@ class GastoController extends Controller {
 
         $mes = intval($_POST['mes'] ?? date('n'));
         $anio = intval($_POST['anio'] ?? date('Y'));
-        $archivoMaestro = trim($_POST['archivo_maestro'] ?? '');
+        // T2: saneamiento estricto del nombre del archivo maestro (anti path traversal)
+        $archivoMaestroRaw = $_POST['archivo_maestro'] ?? '';
+        $archivoMaestro = is_string($archivoMaestroRaw) ? trim($archivoMaestroRaw) : '';
+        $archivoMaestro = str_replace("\0", '', $archivoMaestro);
+        $archivoMaestro = str_replace('\\', '/', $archivoMaestro);
+        $archivoMaestro = basename($archivoMaestro);
         $gastosRaw = $_POST['gastos'] ?? [];
         $adminId = Auth::id() ?? 1;
 
@@ -420,20 +440,32 @@ class GastoController extends Controller {
 
         $itemsAImportar = [];
         foreach ($gastosRaw as $g) {
-            $monto = floatval($g['monto_total'] ?? 0);
-            $proveedor = trim($g['proveedor'] ?? '');
-            $descripcion = trim($g['descripcion'] ?? '');
+            if (!is_array($g)) {
+                continue;
+            }
+
+            // T6d: guardas de tipo antes de trim/floatval/intval (un array provocaría TypeError o coerción a 1)
+            $montoRaw = $g['monto_total'] ?? 0;
+            $monto = (is_scalar($montoRaw) && is_numeric($montoRaw)) ? floatval($montoRaw) : 0.0;
+            $proveedor = (isset($g['proveedor']) && is_string($g['proveedor'])) ? trim($g['proveedor']) : '';
+            $descripcion = (isset($g['descripcion']) && is_string($g['descripcion'])) ? trim($g['descripcion']) : '';
 
             if ($monto > 0 && !empty($proveedor) && !empty($descripcion)) {
+                $categoriaRaw = $g['categoria_id'] ?? 1;
+                $fechaRaw = $g['fecha_gasto'] ?? '';
+                $nroFacturaRaw = $g['nro_factura_proveedor'] ?? '';
+                $paginaRaw = $g['pagina_soporte'] ?? 1;
+                $extractoRaw = $g['extracto_texto'] ?? '';
+
                 $itemsAImportar[] = [
-                    'categoria_id'          => intval($g['categoria_id'] ?? 1),
+                    'categoria_id'          => (is_scalar($categoriaRaw) && is_numeric($categoriaRaw)) ? intval($categoriaRaw) : 1,
                     'descripcion'           => $descripcion,
                     'monto_total'           => $monto,
-                    'fecha_gasto'           => !empty($g['fecha_gasto']) ? trim($g['fecha_gasto']) : sprintf('%04d-%02d-01', $anio, $mes),
+                    'fecha_gasto'           => (is_string($fechaRaw) && trim($fechaRaw) !== '') ? trim($fechaRaw) : sprintf('%04d-%02d-01', $anio, $mes),
                     'proveedor'             => $proveedor,
-                    'nro_factura_proveedor' => !empty($g['nro_factura_proveedor']) ? trim($g['nro_factura_proveedor']) : null,
-                    'pagina_soporte'        => max(1, intval($g['pagina_soporte'] ?? 1)),
-                    'extracto_texto'        => !empty($g['extracto_texto']) ? trim($g['extracto_texto']) : null
+                    'nro_factura_proveedor' => (is_string($nroFacturaRaw) && trim($nroFacturaRaw) !== '') ? trim($nroFacturaRaw) : null,
+                    'pagina_soporte'        => (is_scalar($paginaRaw) && is_numeric($paginaRaw)) ? max(1, intval($paginaRaw)) : 1,
+                    'extracto_texto'        => (is_string($extractoRaw) && trim($extractoRaw) !== '') ? trim($extractoRaw) : null
                 ];
             }
         }

@@ -404,7 +404,9 @@ class GastosModel extends BaseModel {
 
         // Limpieza física segura del archivo adjunto
         if ($actualizado && !empty($gasto['soporte_digital'])) {
-            $archivoRuta = UPLOADS_PATH . '/soportes/' . $gasto['soporte_digital'];
+            // T2: el borrado físico nunca debe escapar de uploads/soportes
+            $soporteSaneado = basename(str_replace('\\', '/', str_replace("\0", '', trim((string)$gasto['soporte_digital']))));
+            $archivoRuta = UPLOADS_PATH . '/soportes/' . $soporteSaneado;
             if (file_exists($archivoRuta) && is_file($archivoRuta)) {
                 try {
                     unlink($archivoRuta);
@@ -430,6 +432,9 @@ class GastosModel extends BaseModel {
      * @return array ['procesados' => int, 'omitidos' => int, 'ids' => array, 'duplicados' => int, 'archivo_ya_importado' => bool]
      */
     public function importarGastosMaestro(array $items, int $adminId, string $archivoMaestro, int $mes, int $anio, ?string $soporteHash = null): array {
+        // T2: defensa en profundidad — el nombre almacenado nunca debe contener rutas
+        $archivoMaestro = basename(str_replace('\\', '/', str_replace("\0", '', trim($archivoMaestro))));
+
         $db = $this->db();
         $procesados = 0;
         $omitidos = 0;
