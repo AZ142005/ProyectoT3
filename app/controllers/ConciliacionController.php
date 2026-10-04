@@ -248,7 +248,8 @@ class ConciliacionController extends Controller {
                 $this->json([
                     'success' => false,
                     'codigo'  => 'PARAMETROS_INVALIDOS',
-                    'error'   => 'Parámetros de conciliación inválidos.'
+                    'error'   => 'Parámetros de conciliación inválidos.',
+                    'csrf_token' => $_SESSION['csrf_token'] ?? ''
                 ], 400);
                 return;
             }
@@ -272,7 +273,8 @@ class ConciliacionController extends Controller {
                     'success'     => true,
                     'codigo'      => $resultado['codigo'] ?? 'CONCILIACION_EXITOSA',
                     'idempotente' => !empty($resultado['idempotente']),
-                    'mensaje'     => $resultado['mensaje']
+                    'mensaje'     => $resultado['mensaje'],
+                    'csrf_token'  => $_SESSION['csrf_token'] ?? ''
                 ], 200);
                 return;
             }
@@ -283,7 +285,8 @@ class ConciliacionController extends Controller {
                 $this->json([
                     'success' => false,
                     'codigo'  => $ce->getCodigoNegocio(),
-                    'error'   => $ce->getMessage()
+                    'error'   => $ce->getMessage(),
+                    'csrf_token' => $_SESSION['csrf_token'] ?? ''
                 ], $ce->getStatusHttp());
                 return;
             }
@@ -294,7 +297,8 @@ class ConciliacionController extends Controller {
                 $this->json([
                     'success' => false,
                     'codigo'  => 'ERROR_INTERNO',
-                    'error'   => 'Error al procesar la conciliación del pago.'
+                    'error'   => 'Error al procesar la conciliación del pago.',
+                    'csrf_token' => $_SESSION['csrf_token'] ?? ''
                 ], 500);
                 return;
             }
