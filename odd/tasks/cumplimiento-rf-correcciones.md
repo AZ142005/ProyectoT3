@@ -9,14 +9,14 @@
 - Se auditaron los **34 RF evaluables** del SRS contra el código actual del repositorio (working tree, con evidencia archivo:línea).
 - Excluidos por pedido: **RF 30 y RF 31**. El SRS no define **RF 7** (salta de RF 6 a RF 8).
 - Resultado inicial: **25 CUMPLE · 8 PARCIAL · 1 NO CUMPLE**.
-- Resultado vigente: **30 aceptados/cumplidos · 4 pendientes** (RF 9 resuelto el 2026-10-04; ver bitácora).
+- Resultado vigente: **31 aceptados/cumplidos · 3 pendientes** (RF 13 resuelto el 2026-10-04; ver bitácora).
 
-### Cumplidos (30)
+### Cumplidos (31)
 
-RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
+RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 32, 34, 35, 37
 + RF 12 y RF 36 (obviados por decisión — ver sección 2).
 
-### Pendientes (4 activos)
+### Pendientes (3 activos)
 
 | RF | Tema | Estado |
 |----|------|--------|
@@ -24,7 +24,7 @@ RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 
 | RF 3 | Doble verificación (2FA) sin UI de activación | ✅ Resuelto |
 | RF 8 | Gestión de roles (alta/asignación + ENUM de BD) | ✅ Resuelto |
 | RF 9 | Bandeja de solicitudes de cambio de datos | ✅ Resuelto |
-| RF 13 | Previsualización de PDF al cargar | ⏸ Pendiente |
+| RF 13 | Previsualización de PDF al cargar | ✅ Resuelto |
 | RF 27 | Detección de montos discordantes en conciliación | ⏸ Pendiente |
 | RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pendiente |
 
@@ -97,7 +97,11 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **Situación**: las imágenes tienen previsualización inmediata; el PDF solo muestra icono y nombre.
 - **Evidencia**: `app/views/pagos/residente/subir.php:157-160,382-393`.
 - **Propuesta preliminar**: usar `<iframe>`/`<embed>` con el objectURL que ya se genera.
-- **Decisión**: pendiente (opciones se detallarán al abordarlo).
+- **Decisión e implementación (2026-10-04)**: Opción B — embed nativo + enlace de respaldo "Abrir en pestaña nueva".
+  - Solo 2 vistas aplican (la 3.ª, `residente/enviar_pago.php`, ya no existe): `app/views/pagos/residente/subir.php` y `app/views/pago_directo/index.php`.
+  - El objectURL ya se creaba para todos los archivos (también PDF); ahora se asigna a un `<iframe>` de vista previa y al enlace de respaldo. Sin lecturas/parseo nuevos y sin costo de servidor.
+  - Higiene: limpieza del iframe (`about:blank`) y del enlace al reemplazar por imagen o resetear, sumado al `revokeObjectURL` existente.
+  - Nota: NO se tocó nada del apartado "PDF maestro" (a pedido del usuario). Commit: `c168fd8`.
 
 ### RF 27 — Detección de montos discordantes (conciliación) — PARCIAL
 
@@ -121,6 +125,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **2026-10-03 — RF 8 cerrado (✅)**: Opción B implementada (migración rol auditor + alta y cambio de rol + protección del último admin). Commits `6dfe34c`, `1cef01b`, `ab0b76e`. Migración ejecutada en la BD local.
 - **2026-10-03 — Nota de verificación (runner)**: `php tests/run.php` termina con exit 0 pero **aborta en `SecurityTest`** (defecto preexistente documentado: `Security::validateCSRF` hace `exit` con token inválido) antes del RESUMEN, saltando las últimas clases. Desde ahora: las clases finales se verifican por separado con `--filter=`. Las áreas tocadas en los cierres (Perfil, Usuarios) se corrieron en verde con y sin filtro. Recomendación: ticket aparte para el runner/seguridad.
 - **2026-10-04 — RF 9 cerrado (✅)**: Opción B implementada (pestaña "Cambios de Datos" con badge, comparación visual Actual → Solicitado, filtros por estado y aprobar/rechazar con motivo). Commit `a0919bf`. Filtros re-verificados por el orquestador: SolicitudesCambioDatos 5/5, Solicitudes 20/20, Usuario 29/29 en verde.
+- **2026-10-04 — RF 13 cerrado (✅)**: previsualización de PDF (embed + enlace de respaldo) en las 2 vistas de carga de comprobantes; sin impacto de procesamiento (reutiliza el objectURL ya existente). Commit `c168fd8`. Filtros Pago 32/32 y Comprobante 21/21 en verde.
 
 ## 6. Evidencia clave de la auditoría
 
