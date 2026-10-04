@@ -154,9 +154,10 @@
                         <img id="imagePreview" src="" alt="Vista previa" class="hidden max-h-44 max-w-full rounded-lg object-contain shadow-sm border border-outline-variant bg-white">
                         
                         <!-- PDF -->
-                        <div id="pdfPreview" class="hidden flex flex-col items-center">
-                            <span class="material-symbols-outlined text-5xl text-rose-500 mb-1">picture_as_pdf</span>
-                            <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs"></span>
+                        <div id="pdfPreview" class="hidden flex flex-col items-center w-full">
+                            <iframe id="pdfPreviewFrame" src="" title="Vista previa del comprobante PDF" class="w-full max-w-md rounded-lg border border-outline-variant bg-white" style="height: 280px;"></iframe>
+                            <span id="pdfName" class="text-xs font-bold text-on-surface text-center break-all max-w-xs mt-2"></span>
+                            <a id="pdfPreviewLink" href="#" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="pointer-events-auto text-[11px] font-bold text-primary underline mt-1">Abrir en pestaña nueva</a>
                         </div>
                         
                         <p class="text-[11px] text-primary font-bold mt-3 bg-primary/10 px-3 py-1 rounded-md">Haz clic para cambiar el archivo</p>
@@ -313,6 +314,8 @@
     const imagePreview = document.getElementById('imagePreview');
     const pdfPreview = document.getElementById('pdfPreview');
     const pdfName = document.getElementById('pdfName');
+    const pdfPreviewFrame = document.getElementById('pdfPreviewFrame');
+    const pdfPreviewLink = document.getElementById('pdfPreviewLink');
     const ocrStatusBadge = document.getElementById('ocrStatusBadge');
     const ocrStatusText = document.getElementById('ocrStatusText');
     const ocrSpinner = document.getElementById('ocrSpinner');
@@ -386,9 +389,13 @@
             pdfPreview.classList.remove('hidden');
             pdfPreview.classList.add('flex');
             pdfName.textContent = file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)';
+            if (pdfPreviewFrame) pdfPreviewFrame.src = currentObjectURL;
+            if (pdfPreviewLink) pdfPreviewLink.href = currentObjectURL;
         } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
             pdfPreview.classList.add('hidden');
             pdfPreview.classList.remove('flex');
+            if (pdfPreviewFrame) pdfPreviewFrame.src = 'about:blank';
+            if (pdfPreviewLink) pdfPreviewLink.href = '#';
             imagePreview.classList.remove('hidden');
             imagePreview.src = currentObjectURL;
         } else {
@@ -432,6 +439,8 @@
             URL.revokeObjectURL(currentObjectURL);
             currentObjectURL = null;
         }
+        if (pdfPreviewFrame) pdfPreviewFrame.src = 'about:blank';
+        if (pdfPreviewLink) pdfPreviewLink.href = '#';
         archivoActual = null;
         dropzoneInitial.classList.remove('hidden');
         dropzonePreview.classList.add('hidden');
