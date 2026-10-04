@@ -233,4 +233,33 @@ class UsuarioCrearRolTest extends TestCase {
             }
         }
     }
+
+    /**
+     * El alta de usuarios está limitada al rol Auditor: enviar "admin" debe rechazarse sin insertar.
+     */
+    public function testCrearUsuarioRechazaRolAdmin(): void {
+        $db = $this->getDb();
+        $sufijo = time();
+        $usuario = 'rol_admin_' . $sufijo;
+
+        $db->exec("DELETE FROM usuarios WHERE usuario = '{$usuario}'");
+
+        $ctrl = $this->crearControlador();
+        $_POST = [
+            'nombre_completo' => 'Intento Admin',
+            'usuario'         => $usuario,
+            'email'           => $usuario . '@example.com',
+            'password'        => 'Clave12345',
+            'rol'             => 'admin'
+        ];
+        $ctrl->crearUsuario();
+
+        $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir al rechazar el rol admin');
+        $this->assertStringContains('limitada al rol Auditor', \App\Core\Flash::get('error'),
+            'Debe indicar que el alta está limitada al rol Auditor');
+
+        $stmt = $db->prepare("SELECT COUNT(*) FROM usuarios WHERE usuario = :u");
+        $stmt->execute(['u' => $usuario]);
+        $this->assertEquals(0, (int)$stmt->fetchColumn(), 'No debe insertarse el usuario con rol admin');
+    }
 }

@@ -54,7 +54,7 @@ class PerfilController extends Controller {
         $role = Auth::role();
 
         if ($role === 'auditor') {
-            Flash::set('danger', 'El rol de auditor es de solo lectura y fiscalización.');
+            Flash::set('danger', 'El rol de auditor no envía solicitudes de cambio de datos desde este perfil.');
             $this->redirect('/perfil');
             return;
         }

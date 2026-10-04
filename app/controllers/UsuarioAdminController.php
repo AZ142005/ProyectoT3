@@ -133,7 +133,7 @@ class UsuarioAdminController extends Controller {
     }
 
     /**
-     * Procesa el alta de un nuevo usuario del sistema (rol admin o auditor).
+     * Procesa el alta de un nuevo usuario del sistema (rol auditor).
      */
     public function crearUsuario(): void {
         Auth::requireRole(UserRole::ADMIN);
@@ -175,8 +175,8 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        if (!in_array($rol, ['admin', 'auditor'], true)) {
-            Flash::error('El rol seleccionado no es válido.');
+        if ($rol !== 'auditor') {
+            Flash::error('El alta de usuarios está limitada al rol Auditor.');
             $this->redirect('/admin/usuarios');
             return;
         }
@@ -255,7 +255,7 @@ class UsuarioAdminController extends Controller {
         }
 
         if ($exito) {
-            $rolTexto = $rol === 'admin' ? 'Administrador' : 'Auditor';
+            $rolTexto = 'Auditor';
             Flash::success("Usuario {$usuario} creado correctamente con rol {$rolTexto}.");
         } else {
             Flash::error('Ocurrió un error al crear el usuario en la base de datos.');

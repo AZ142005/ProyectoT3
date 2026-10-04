@@ -10,7 +10,7 @@ use PDO;
 class AuditorController extends Controller {
 
     /**
-     * Dashboard general de fiscalización y solo lectura para el Auditor.
+     * Dashboard general de fiscalización para el Auditor.
      */
     public function dashboard() {
         Auth::requireRole([UserRole::AUDITOR, UserRole::ADMIN]);

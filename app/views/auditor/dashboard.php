@@ -34,11 +34,11 @@
                     </a>
                 </div>
 
-                <!-- Banner Informativo de Solo Lectura -->
+                <!-- Banner Informativo de Fiscalización -->
                 <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 mb-4">
                     <span class="material-symbols-outlined fs-2 text-info">verified_user</span>
                     <div>
-                        <strong>Perfil de Fiscalización Activo:</strong> Este rol cuenta con permisos de solo consulta (lectura inmutable) sobre todos los libros contables, eventos de seguridad y comprobantes del condominio.
+                        <strong>Perfil de Fiscalización Activo:</strong> Cuenta con acceso de consulta y gestión sobre todos los módulos del sistema, con trazabilidad inmutable de cada acción registrada.
                     </div>
                 </div>
 

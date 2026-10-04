@@ -440,14 +440,14 @@
     </div>
 </div>
 
-<!-- Modal para Crear Nuevo Usuario (Admin/Auditor) -->
+<!-- Modal para Crear Nuevo Usuario (Auditor) -->
 <div class="modal fade" id="modalCrearUsuario" tabindex="-1" aria-labelledby="modalCrearUsuarioTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/usuarios/crear">
                 <?= csrf_field() ?>
-                <div class="modal-header bg-primary text-white py-3 px-4 border-bottom">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalCrearUsuarioTitle">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalCrearUsuarioTitle">
                         <span class="material-symbols-outlined text-white">person_add</span>
                         <span>Nuevo Usuario del Sistema</span>
                     </h5>
@@ -455,24 +455,24 @@
                 </div>
 
                 <div class="modal-body p-4">
-                    <p class="text-secondary small mb-3">
-                        Cree una cuenta de acceso al sistema con rol de Administrador o Auditor. Los campos marcados con * son obligatorios.
+                    <p class="text-xs text-on-surface-variant mb-4">
+                        Se creará una cuenta de acceso con rol de Auditor. Los campos marcados con <span class="text-danger">*</span> son obligatorios.
                     </p>
 
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="crear_nombre_completo" class="form-label fw-bold small text-dark">Nombre Completo *</label>
+                            <label for="crear_nombre_completo" class="form-label fw-bold small text-on-surface-variant">Nombre Completo <span class="text-danger">*</span></label>
                             <input type="text" id="crear_nombre_completo" name="nombre_completo"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    maxlength="150"
                                    required
                                    placeholder="Ej: María Rodríguez">
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_usuario" class="form-label fw-bold small text-dark">Nombre de Usuario *</label>
+                            <label for="crear_usuario" class="form-label fw-bold small text-on-surface-variant">Nombre de Usuario <span class="text-danger">*</span></label>
                             <input type="text" id="crear_usuario" name="usuario"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    maxlength="50"
                                    required
                                    autocomplete="off"
@@ -480,26 +480,26 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_email" class="form-label fw-bold small text-dark">Correo Electrónico *</label>
+                            <label for="crear_email" class="form-label fw-bold small text-on-surface-variant">Correo Electrónico <span class="text-danger">*</span></label>
                             <input type="email" id="crear_email" name="email"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    maxlength="100"
                                    required
                                    placeholder="usuario@ejemplo.com">
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_cedula" class="form-label fw-bold small text-dark">Cédula (opcional)</label>
+                            <label for="crear_cedula" class="form-label fw-bold small text-on-surface-variant">Cédula (opcional)</label>
                             <input type="text" id="crear_cedula" name="cedula"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    maxlength="10"
                                    placeholder="Ej: V12345678">
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_telefono" class="form-label fw-bold small text-dark">Teléfono (opcional)</label>
+                            <label for="crear_telefono" class="form-label fw-bold small text-on-surface-variant">Teléfono (opcional)</label>
                             <input type="tel" id="crear_telefono" name="telefono"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    maxlength="11"
                                    placeholder="Ej: 04121234567"
                                    pattern="^(0412|0414|0424|0416|0426)[0-9]{7}$"
@@ -508,29 +508,28 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_password" class="form-label fw-bold small text-dark">Contraseña *</label>
+                            <label for="crear_password" class="form-label fw-bold small text-on-surface-variant">Contraseña <span class="text-danger">*</span></label>
                             <input type="password" id="crear_password" name="password"
-                                   class="form-control"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
                                    minlength="8"
                                    required
                                    autocomplete="new-password"
                                    placeholder="Mínimo 8 caracteres (letras y números)">
-                            <small class="text-muted d-block mt-1">Debe contener mínimo 8 caracteres, con al menos una letra y un número.</small>
+                            <small class="text-xs text-on-surface-variant d-block mt-1">Debe contener mínimo 8 caracteres, con al menos una letra y un número.</small>
                         </div>
 
                         <div class="col-md-6">
-                            <label for="crear_rol" class="form-label fw-bold small text-dark">Rol *</label>
-                            <select id="crear_rol" name="rol" class="form-select" required>
+                            <label for="crear_rol" class="form-label fw-bold small text-on-surface-variant">Rol <span class="text-danger">*</span></label>
+                            <select id="crear_rol" name="rol" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
                                 <option value="auditor" selected>Auditor (fiscalización)</option>
-                                <option value="admin">Administrador</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 px-4 border-top">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
                         <span class="material-symbols-outlined fs-6">person_add</span>
                         <span>Crear Usuario</span>
                     </button>
