@@ -132,6 +132,8 @@ class ArreglosAuditoriaTest extends TestCase {
             'generarFacturas debe validar el año en 2000..2100');
         $this->assertStringContains('Período inválido.', $metodo,
             'Debe informar el período inválido con flash');
+        $this->assertStringContains('is_scalar', $metodo,
+            'Debe validar escalares antes de intval (un array no debe coaccionar a 1)');
     }
 
     // T6c — Sin http_response_code(400) previo al redirect
@@ -175,5 +177,30 @@ class ArreglosAuditoriaTest extends TestCase {
         $this->assertTrue(count($m) > 1, 'La tarjeta de datos del perfil debe existir');
         $this->assertStringContains('$isAdmin || $isAuditor', $m[1],
             'La tarjeta debe usar usuarioAdmin también para el rol auditor');
+    }
+
+    // Coerción — período escalar en el módulo de gastos
+    public function testGastoControllerNormalizaPeriodoScalar(): void {
+        foreach (['guardar', 'parsearMaestro', 'importarMaestro'] as $metodoNombre) {
+            $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', $metodoNombre);
+            $this->assertStringContains('periodoDesdePost', $metodo,
+                "{$metodoNombre} debe normalizar mes/año con periodoDesdePost (solo escalares numéricos)");
+        }
+    }
+
+    public function testImportarMaestroValidaRangoDePeriodo(): void {
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'importarMaestro');
+
+        $this->assertStringContains('$mes < 1 || $mes > 12', $metodo,
+            'importarMaestro debe validar el mes en 1..12');
+        $this->assertStringContains('$anio < 2000 || $anio > 2100', $metodo,
+            'importarMaestro debe validar el año en 2000..2100');
+    }
+
+    public function testConciliarPagoDevuelveCsrfTokenEnRespuestasJson(): void {
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'conciliarPago');
+
+        $this->assertStringContains("'csrf_token'", $metodo,
+            'Las respuestas JSON deben exponer el token CSRF rotado para el siguiente llamado');
     }
 }
