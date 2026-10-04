@@ -150,7 +150,7 @@ class UsuarioAdminAccionesTest extends TestCase {
     }
 
     /**
-     * Prueba que el backend restringe eliminar administradores o usuarios del sistema.
+     * Prueba que el backend restringe eliminar a administradores.
      */
     public function testBackendRestringeEliminarAdministradores(): void {
         $ctrl = new class extends UsuarioAdminController {
@@ -257,5 +257,48 @@ class UsuarioAdminAccionesTest extends TestCase {
         $this->assertStringContains('contadorCooldown', $content, "El modal debe incluir el elemento contadorCooldown");
         $this->assertStringContains('10s', $content, "El temporizador debe inicializarse con 10s");
         $this->assertStringContains('/admin/usuarios/eliminar', $content, "El modal debe apuntar al endpoint /admin/usuarios/eliminar");
+    }
+
+    /**
+     * Un administrador puede eliminar una cuenta de auditor (soft-delete),
+     * y nadie puede eliminar su propia cuenta.
+     */
+    public function testEliminarUsuarioAuditorDesactivaCuenta(): void {
+        $db = $this->getDb();
+        $sufijo = time();
+        $usuario = 'del_aud_' . $sufijo;
+
+        $db->exec("DELETE FROM usuarios WHERE usuario = '{$usuario}'");
+        $db->exec("INSERT INTO usuarios (usuario, email, password, nombre_completo, rol, estado)
+                   VALUES ('{$usuario}', 'del_aud_{$sufijo}@example.com', 'hash_dummy', 'Auditor Borrar', 'auditor', 1)");
+        $targetId = (int)$db->lastInsertId();
+
+        $ctrl = new class extends UsuarioAdminController {
+            public string $redirectUrl = '';
+            protected function redirect($url): void {
+                $this->redirectUrl = $url;
+            }
+        };
+
+        // 1) Auto-eliminación bloqueada (sesión del propio auditor)
+        $_SESSION['auth_user'] = ['id' => $targetId, 'role' => 'auditor', 'name' => 'Auditor Borrar'];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST = ['tipo_entidad' => 'usuario', 'id' => $targetId];
+        $ctrl->eliminar();
+        $this->assertStringContains('propia cuenta', \App\Core\Flash::get('error'),
+            'No debe poder eliminarse a sí mismo');
+
+        // 2) Un administrador la elimina correctamente (soft-delete)
+        $_SESSION['auth_user'] = ['id' => 1, 'role' => 'admin', 'name' => 'Administrador Principal'];
+        $ctrl->eliminar();
+        $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir tras eliminar');
+        $this->assertStringContains('eliminado', \App\Core\Flash::get('success'),
+            'Debe confirmar la eliminación del usuario');
+
+        $stmt = $db->prepare("SELECT estado FROM usuarios WHERE id = :id");
+        $stmt->execute(['id' => $targetId]);
+        $this->assertEquals(0, (int)$stmt->fetchColumn(), 'La cuenta debe quedar desactivada (soft-delete)');
+
+        $db->exec("DELETE FROM usuarios WHERE id = {$targetId}");
     }
 }

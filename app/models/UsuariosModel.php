@@ -290,4 +290,33 @@ class UsuariosModel extends BaseModel {
         $stmt->execute($params);
         return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Elimina lógicamente una cuenta del sistema (soft-delete): desactiva el
+     * acceso y revoca sus sesiones API, preservando el historial de auditoría.
+     */
+    public function eliminarUsuario(int $userId): bool {
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("
+                UPDATE usuarios
+                SET estado = 0, intentos_fallidos = 0, bloqueado_hasta = NULL
+                WHERE id = :id
+            ");
+            $stmt->execute(['id' => $userId]);
+
+            $stmtTokens = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = :id AND revocado = 0");
+            $stmtTokens->execute(['id' => $userId]);
+
+            $db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("[UsuariosModel::eliminarUsuario] Error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

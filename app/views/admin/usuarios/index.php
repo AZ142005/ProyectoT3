@@ -266,7 +266,7 @@
                                                     </span>
                                                 </div>
                                                 <small class="text-xs text-on-surface-variant d-block mt-0.5"><?= e($u['detalle_ubicacion']) ?></small>
-                                                <?php if ($u['tipo_entidad'] === 'usuario' && intval($u['id']) !== intval(\App\Core\Auth::id()) && \App\Core\Auth::role() !== 'auditor'): ?>
+                                                <?php if ($u['tipo_entidad'] === 'usuario' && intval($u['id']) !== intval(\App\Core\Auth::id()) && \App\Core\Auth::role() !== 'auditor' && $u['rol_clave'] !== 'auditor'): ?>
                                                     <form method="POST" action="/admin/usuarios/cambiar-rol" class="d-flex align-items-center gap-1 mt-2">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="id" value="<?= e($u['id']) ?>">
@@ -373,11 +373,11 @@
 
                                                         <!-- Opción 3: Eliminar -->
                                                         <li>
-                                                            <?php if ($esAdminCuenta || $u['tipo_entidad'] === 'usuario'): ?>
+                                                            <?php if ($esAdminCuenta): ?>
                                                                 <button type="button" 
                                                                         class="dropdown-item d-flex align-items-center gap-2 py-2 text-on-surface-variant opacity-50" 
                                                                         disabled 
-                                                                        title="No se permite eliminar cuentas administrativas del sistema">
+                                                                        title="No se permite eliminar cuentas de administrador">
                                                                     <span class="material-symbols-outlined fs-6 text-on-surface-variant">block</span>
                                                                     <span>Eliminar</span>
                                                                 </button>
@@ -696,7 +696,7 @@
                 <div id="headerEliminarPaso1" class="modal-header bg-danger-subtle text-danger-emphasis py-3 px-4 border-bottom">
                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalEliminarUsuarioTitle">
                         <span class="material-symbols-outlined text-danger">warning</span>
-                        <span>Confirmar Eliminación de Residente (1/2)</span>
+                        <span>Confirmar Eliminación de <span id="tituloEliminarEntidad">Residente</span> (1/2)</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" onclick="cancelarEliminacion()"></button>
                 </div>
@@ -713,7 +713,7 @@
                 <div class="modal-body p-4">
                     <!-- Resumen del Residente a Eliminar -->
                     <div class="bg-light p-3 rounded-3 border mb-3">
-                        <div class="small text-muted mb-1">Residente a eliminar:</div>
+                        <div class="small text-muted mb-1">Cuenta a eliminar:</div>
                         <div class="fw-bold fs-6 text-dark" id="modalElimNombreUsuario">-</div>
                         <div class="small text-muted">
                             Cédula: <span class="fw-semibold text-dark" id="modalElimCedulaUsuario">-</span> | 
@@ -723,16 +723,30 @@
 
                     <!-- Contenido Paso 1 -->
                     <div id="cuerpoEliminarPaso1">
-                        <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
-                            <span class="material-symbols-outlined text-warning shrink-0 mt-0.5">info</span>
-                            <div class="small">
-                                <strong>¿Está seguro de que desea eliminar la cuenta de este residente?</strong><br>
-                                Esta opción se utiliza en casos de venta del inmueble o cambio de propietario. La unidad quedará disponible para el registro del nuevo propietario.
+                        <div id="textoEliminarResidente">
+                            <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
+                                <span class="material-symbols-outlined text-warning shrink-0 mt-0.5">info</span>
+                                <div class="small">
+                                    <strong>¿Está seguro de que desea eliminar la cuenta de este residente?</strong><br>
+                                    Esta opción se utiliza en casos de venta del inmueble o cambio de propietario. La unidad quedará disponible para el registro del nuevo propietario.
+                                </div>
                             </div>
+                            <p class="text-secondary small mb-0">
+                                Por integridad legal y contable, los registros históricos de pagos y facturas se conservarán intactos en el historial contable, pero el residente quedará totalmente desligado de la unidad y su acceso revocado.
+                            </p>
                         </div>
-                        <p class="text-secondary small mb-0">
-                            Por integridad legal y contable, los registros históricos de pagos y facturas se conservarán intactos en el historial contable, pero el residente quedará totalmente desligado de la unidad y su acceso revocado.
-                        </p>
+                        <div id="textoEliminarUsuario" class="d-none">
+                            <div class="alert alert-warning border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
+                                <span class="material-symbols-outlined text-warning shrink-0 mt-0.5">info</span>
+                                <div class="small">
+                                    <strong>¿Está seguro de que desea eliminar esta cuenta del sistema?</strong><br>
+                                    El acceso del usuario será revocado de inmediato y dejará de aparecer en el listado de usuarios.
+                                </div>
+                            </div>
+                            <p class="text-secondary small mb-0">
+                                Por integridad de la auditoría, el historial de acciones del usuario se conservará intacto, pero su acceso quedará revocado.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Contenido Paso 2 (Segunda confirmación con temporizador de 10s) -->
@@ -741,7 +755,7 @@
                             <span class="material-symbols-outlined text-danger shrink-0 mt-0.5">gpp_bad</span>
                             <div class="small">
                                 <strong>¡CONFIRMACIÓN FINAL IRREVERSIBLE!</strong><br>
-                                Está a punto de ejecutar la eliminación y desvinculación definitiva de este residente. Para evitar accidentes o eliminaciones involuntarias, debe esperar el tiempo de enfriamiento de 10 segundos.
+                                Está a punto de ejecutar la eliminación definitiva de esta cuenta. Para evitar accidentes o eliminaciones involuntarias, debe esperar el tiempo de enfriamiento de 10 segundos.
                             </div>
                         </div>
 
@@ -872,6 +886,11 @@ function configurarModalEliminar(btn) {
     document.getElementById('modalElimNombreUsuario').textContent = nombre;
     document.getElementById('modalElimCedulaUsuario').textContent = cedula;
     document.getElementById('modalElimUbicacionUsuario').textContent = ubicacion;
+
+    const esUsuario = (tipo === 'usuario');
+    document.getElementById('tituloEliminarEntidad').textContent = esUsuario ? 'Usuario' : 'Residente';
+    document.getElementById('textoEliminarResidente').classList.toggle('d-none', esUsuario);
+    document.getElementById('textoEliminarUsuario').classList.toggle('d-none', !esUsuario);
 }
 
 function avanzarEliminarPaso2() {

@@ -131,6 +131,8 @@ class UsuarioCrearRolTest extends TestCase {
 
     /**
      * El cambio de rol debe actualizar la fila del usuario destino.
+     * Se usa la transición permitida admin → auditor: el ascenso
+     * auditor → admin está bloqueado para cualquier administrador.
      */
     public function testCambiarRolActualizaRol(): void {
         $db = $this->getDb();
@@ -139,20 +141,20 @@ class UsuarioCrearRolTest extends TestCase {
 
         $db->exec("DELETE FROM usuarios WHERE usuario = '{$usuario}'");
         $db->exec("INSERT INTO usuarios (usuario, email, password, nombre_completo, rol, estado)
-                   VALUES ('{$usuario}', 'rol_test_{$sufijo}@example.com', 'hash_dummy', 'Cambio Rol Test', 'auditor', 1)");
+                   VALUES ('{$usuario}', 'rol_test_{$sufijo}@example.com', 'hash_dummy', 'Cambio Rol Test', 'admin', 1)");
         $targetId = (int)$db->lastInsertId();
 
         $ctrl = $this->crearControlador();
-        $_POST = ['id' => $targetId, 'nuevo_rol' => 'admin'];
+        $_POST = ['id' => $targetId, 'nuevo_rol' => 'auditor'];
         $ctrl->cambiarRol();
 
         $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir a /admin/usuarios tras cambiar el rol');
-        $this->assertStringContains('actualizado a Administrador', \App\Core\Flash::get('success'),
+        $this->assertStringContains('actualizado a Auditor', \App\Core\Flash::get('success'),
             'Debe emitir un flash de éxito al cambiar el rol');
 
         $stmt = $db->prepare("SELECT rol FROM usuarios WHERE id = :id");
         $stmt->execute(['id' => $targetId]);
-        $this->assertEquals('admin', $stmt->fetchColumn(), 'El rol debe actualizarse a admin en la base de datos');
+        $this->assertEquals('auditor', $stmt->fetchColumn(), 'El rol debe actualizarse a auditor en la base de datos');
 
         $db->exec("DELETE FROM usuarios WHERE id = {$targetId}");
     }
@@ -261,5 +263,37 @@ class UsuarioCrearRolTest extends TestCase {
         $stmt = $db->prepare("SELECT COUNT(*) FROM usuarios WHERE usuario = :u");
         $stmt->execute(['u' => $usuario]);
         $this->assertEquals(0, (int)$stmt->fetchColumn(), 'No debe insertarse el usuario con rol admin');
+    }
+
+    /**
+     * Un auditor no puede ser ascendido al rol de Administrador.
+     */
+    public function testCambiarRolBloqueaAscenderAuditor(): void {
+        $db = $this->getDb();
+        $sufijo = time();
+        $usuario = 'rol_asc_' . $sufijo;
+
+        $db->beginTransaction();
+        try {
+            $db->exec("INSERT INTO usuarios (usuario, email, password, nombre_completo, rol, estado)
+                       VALUES ('{$usuario}', 'rol_asc_{$sufijo}@example.com', 'hash_dummy', 'Auditor Ascenso', 'auditor', 1)");
+            $targetId = (int)$db->lastInsertId();
+
+            $ctrl = $this->crearControlador();
+            $_POST = ['id' => $targetId, 'nuevo_rol' => 'admin'];
+            $ctrl->cambiarRol();
+
+            $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir al bloquear el ascenso');
+            $this->assertStringContains('ascender', \App\Core\Flash::get('error'),
+                'Debe bloquear el ascenso de un auditor a administrador');
+
+            $stmt = $db->prepare("SELECT rol FROM usuarios WHERE id = :id");
+            $stmt->execute(['id' => $targetId]);
+            $this->assertEquals('auditor', $stmt->fetchColumn(), 'El rol del auditor no debe cambiar');
+        } finally {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+        }
     }
 }

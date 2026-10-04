@@ -309,6 +309,13 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
+        // No se puede ascender a un auditor al rol de Administrador.
+        if ($rolActual === 'auditor' && $nuevoRol === 'admin') {
+            Flash::error('No es posible ascender a un auditor al rol de Administrador.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
         // Protección clave: no dejar al sistema sin administradores activos.
         if ($rolActual === 'admin' && $nuevoRol === 'auditor' && (int)($usuario['estado'] ?? 0) === 1) {
             $db = Database::getConnection();
@@ -550,9 +557,9 @@ class UsuarioAdminController extends Controller {
     }
 
     /**
-     * Procesa la eliminación (soft-delete) de una cuenta de residente.
-     * Desvincula la unidad y conserva el historial contable.
-     * Bloquea terminantemente la eliminación de cuentas administrativas.
+     * Procesa la eliminación lógica de una cuenta: residentes (desvincula la
+     * unidad) o usuarios del sistema con rol auditor (revoca el acceso).
+     * Bloquea la eliminación de administradores.
      */
     public function eliminar(): void {
         Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
@@ -571,29 +578,56 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        // Restricción estricta de Backend: No se permite eliminar administradores ni usuarios del sistema
-        if ($tipoEntidad !== 'persona') {
-            Flash::error('No está permitido eliminar cuentas administrativas ni usuarios del sistema.');
-            $this->redirect('/admin/usuarios');
-            return;
-        }
+        if ($tipoEntidad === 'persona') {
+            $personasModel = new PersonasModel();
+            $persona = $personasModel->getById($id);
 
-        $personasModel = new PersonasModel();
-        $persona = $personasModel->getById($id);
+            if (!$persona) {
+                Flash::error('El residente seleccionado no existe.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
 
-        if (!$persona) {
-            Flash::error('El residente seleccionado no existe.');
-            $this->redirect('/admin/usuarios');
-            return;
-        }
+            $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
+            $exito = $personasModel->eliminarResidente($id);
 
-        $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
-        $exito = $personasModel->eliminarResidente($id);
+            if ($exito) {
+                Flash::success("El residente {$nombre} ha sido eliminado y desvinculado de la unidad correctamente.");
+            } else {
+                Flash::error('Ocurrió un error al procesar la eliminación del residente.');
+            }
+        } elseif ($tipoEntidad === 'usuario') {
+            $usuariosModel = new UsuariosModel();
+            $usuario = $usuariosModel->getById($id);
 
-        if ($exito) {
-            Flash::success("El residente {$nombre} ha sido eliminado y desvinculado de la unidad correctamente.");
+            if (!$usuario) {
+                Flash::error('El usuario del sistema seleccionado no existe.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
+            // Restricción estricta de Backend: no se permite eliminar cuentas administrativas.
+            if (strtolower(trim($usuario['rol'] ?? '')) === 'admin') {
+                Flash::error('No está permitido eliminar cuentas administrativas del sistema.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
+            if ($id === (int)Auth::id()) {
+                Flash::error('No es posible eliminar su propia cuenta.');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
+
+            $nombre = $usuario['nombre_completo'] ?? $usuario['usuario'] ?? 'Usuario';
+
+            if ($usuariosModel->eliminarUsuario($id)) {
+                Flash::success("El usuario {$nombre} ha sido eliminado correctamente.");
+            } else {
+                Flash::error('Ocurrió un error al procesar la eliminación del usuario.');
+            }
         } else {
-            Flash::error('Ocurrió un error al procesar la eliminación del residente.');
+            Flash::error('Identificador o tipo de cuenta no válido.');
         }
 
         $this->redirect('/admin/usuarios');
