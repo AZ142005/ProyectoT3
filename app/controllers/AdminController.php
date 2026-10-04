@@ -174,12 +174,16 @@ class AdminController extends Controller {
     public function generarFacturas() {
         Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
-        $mesRaw  = $_POST['mes'] ?? null;
-        $anioRaw = $_POST['anio'] ?? null;
-
-        // is_scalar/is_numeric: evita la coerción intval(array) === 1
-        $mes  = (is_scalar($mesRaw) && is_numeric($mesRaw)) ? intval($mesRaw) : (empty($mesRaw) ? intval(date('n')) : 0);
-        $anio = (is_scalar($anioRaw) && is_numeric($anioRaw)) ? intval($anioRaw) : (empty($anioRaw) ? intval(date('Y')) : 0);
+        // Período: ausente o vacío => default; array o texto inválido => 0 (rango inválido).
+        // is_scalar/is_numeric evitan la coerción intval(array) === 1.
+        $periodo = static function ($raw, int $default): int {
+            if ($raw === null || $raw === '') {
+                return $default;
+            }
+            return (is_scalar($raw) && is_numeric($raw)) ? intval($raw) : 0;
+        };
+        $mes  = $periodo($_POST['mes'] ?? null, intval(date('n')));
+        $anio = $periodo($_POST['anio'] ?? null, intval(date('Y')));
 
         // T6b: período fuera de rango no debe llegar a la generación masiva
         if ($mes < 1 || $mes > 12 || $anio < 2000 || $anio > 2100) {

@@ -91,8 +91,8 @@ class GastoController extends Controller {
         Auth::requireRole(['admin', 'auditor']);
 
         $categoriaId = intval($_POST['categoria_id'] ?? 0);
-        $mes = intval($_POST['mes'] ?? date('n'));
-        $anio = intval($_POST['anio'] ?? date('Y'));
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
         $descripcion = trim($_POST['descripcion'] ?? '');
         $montoTotal = floatval($_POST['monto_total'] ?? 0);
         $fechaGasto = trim($_POST['fecha_gasto'] ?? date('Y-m-d'));
@@ -322,8 +322,8 @@ class GastoController extends Controller {
     public function parsearMaestro() {
         Auth::requireRole(['admin', 'auditor']);
 
-        $mes = intval($_POST['mes'] ?? date('n'));
-        $anio = intval($_POST['anio'] ?? date('Y'));
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
         $textoManual = trim($_POST['texto_manual'] ?? '');
         $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
                || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
@@ -409,8 +409,15 @@ class GastoController extends Controller {
     public function importarMaestro() {
         Auth::requireRole(['admin', 'auditor']);
 
-        $mes = intval($_POST['mes'] ?? date('n'));
-        $anio = intval($_POST['anio'] ?? date('Y'));
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
+        // Período inválido (incluye coerción de arrays) no debe llegar a la importación
+        if ($mes < 1 || $mes > 12 || $anio < 2000 || $anio > 2100) {
+            Flash::set('danger', 'Período inválido.');
+            $this->redirect('/admin/gastos/maestro');
+            return;
+        }
+
         // T2: saneamiento estricto del nombre del archivo maestro (anti path traversal)
         $archivoMaestroRaw = $_POST['archivo_maestro'] ?? '';
         $archivoMaestro = is_string($archivoMaestroRaw) ? trim($archivoMaestroRaw) : '';
@@ -499,5 +506,17 @@ class GastoController extends Controller {
             Flash::set('danger', 'Ocurrió un error al guardar los gastos en la base de datos.');
             $this->redirect("/admin/gastos/maestro?mes={$mes}&anio={$anio}");
         }
+    }
+
+    /**
+     * Normaliza un período (mes/año) recibido por POST: solo escalares numéricos.
+     * Ausente o vacío => valor por defecto; array o texto inválido => 0 (será rechazado).
+     */
+    private function periodoDesdePost(string $clave, int $default): int {
+        $raw = $_POST[$clave] ?? null;
+        if ($raw === null || $raw === '') {
+            return $default;
+        }
+        return (is_scalar($raw) && is_numeric($raw)) ? intval($raw) : 0;
     }
 }
