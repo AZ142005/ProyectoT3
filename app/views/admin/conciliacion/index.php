@@ -246,7 +246,7 @@
                                                 <?= e($referencia) ?>
                                                 <?php if (($fila['categoria'] ?? '') === 'inconsistencia' && !empty($fila['motivo'])): ?>
                                                     <div class="mt-1 flex flex-wrap items-center gap-1 font-sans">
-                                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200"
                                                               title="<?= e($fila['alerta'] ?? $fila['motivo']) ?>"><?= e($fila['motivo']) ?></span>
                                                         <?php if (!empty($fila['alerta']) && $fila['alerta'] !== $fila['motivo']): ?>
                                                             <span class="text-[10px] text-on-surface-variant"><?= e($fila['alerta']) ?></span>
