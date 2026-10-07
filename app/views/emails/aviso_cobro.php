@@ -29,7 +29,7 @@
     <div class="container">
         <div class="header">
             <h3>CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h3>
-            <p>Junta de Condominio & Administración General</p>
+            <p>Junta de Conjunto & Administración General</p>
             <p>RIF: J-30948572-0 | Morón, Estado Trujillo</p>
             <div class="aviso-badge">
                 AVISO OFICIAL: COB-<?= date('Ym') ?>-<?= e($numeroUnidad ?? '') ?>
@@ -39,7 +39,7 @@
         <div class="content">
             <div class="title-carta">
                 <h4>CARTA DE COBRO / RECORDATORIO DE MOROSIDAD</h4>
-                <span>Documento Formal de Cobranzas del Condominio</span>
+                <span>Documento Formal de Cobranzas del Conjunto</span>
             </div>
 
             <div class="info-card">
@@ -63,7 +63,7 @@
                     <?php if (!empty($facturas)): ?>
                         <?php foreach ($facturas as $f): ?>
                             <tr>
-                                <td><?= e($f['descripcion'] ?? 'Cuota de Condominio') ?></td>
+                                <td><?= e($f['descripcion'] ?? 'Cuota de Conjunto') ?></td>
                                 <td><?= e($f['fecha_vencimiento'] ?? '') ?></td>
                                 <td style="text-align:center;"><?= e($f['dias_vencido'] ?? 0) ?> días</td>
                                 <td style="text-align:right; font-weight:bold; color:#dc2626;"><?= e(formatearMoneda($f['saldo'] ?? 0)) ?></td>
@@ -89,7 +89,7 @@
                 </div>
                 <div class="firmas-col">
                     ____________________________________<br>
-                    <strong>JUNTA DE CONDOMINIO</strong><br>
+                    <strong>JUNTA DE CONJUNTO</strong><br>
                     <span style="color:#64748b;">Firma Autorizada</span>
                 </div>
             </div>

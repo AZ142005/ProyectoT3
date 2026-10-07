@@ -12,7 +12,7 @@
                     <!-- Header -->
                     <tr>
                         <td style="background-color: #27ae60; padding: 25px; text-align: center; color: #ffffff;">
-                            <h1 style="margin: 0; font-size: 22px; font-weight: bold;">Condominio Las Mesetas de Morón</h1>
+                            <h1 style="margin: 0; font-size: 22px; font-weight: bold;">Conjunto Las Mesetas de Morón</h1>
                             <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Seguridad y Autenticación en Dos Pasos (2FA)</p>
                         </td>
                     </tr>
@@ -38,7 +38,7 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eeeeee;">
-                            Condominio Digital &copy; <?= date('Y') ?> — Todos los derechos reservados.
+                            Conjunto Digital &copy; <?= date('Y') ?> — Todos los derechos reservados.
                         </td>
                     </tr>
                 </table>

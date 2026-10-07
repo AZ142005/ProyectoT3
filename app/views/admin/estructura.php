@@ -340,7 +340,7 @@
                                         <h3 class="text-base font-bold text-on-surface">Paso 1: Edificios / Torres</h3>
                                         <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($edificios) ?></span>
                                     </div>
-                                    <p class="text-xs text-on-surface-variant mt-1">Registra los bloques o torres que componen el condominio.</p>
+                                    <p class="text-xs text-on-surface-variant mt-1">Registra los bloques o torres que componen el conjunto.</p>
                                 </div>
                                 <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
                                 <button onclick="openModalEdificio('configuracion')" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">

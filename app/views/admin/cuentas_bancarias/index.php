@@ -34,7 +34,7 @@
                 Cuentas Bancarias Autorizadas
             </h2>
             <p class="text-xs text-on-surface-variant mb-0">
-                Gestione las cuentas oficiales del condominio para recibir pagos por transferencia o pago móvil. Solo las cuentas activas estarán disponibles para los residentes.
+                Gestione las cuentas oficiales del conjunto para recibir pagos por transferencia o pago móvil. Solo las cuentas activas estarán disponibles para los residentes.
             </p>
         </div>
         <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
@@ -257,7 +257,7 @@
 
                         <div class="col-md-7">
                             <label class="form-label fw-bold small text-muted">Titular de la Cuenta <span class="text-danger">*</span></label>
-                            <input type="text" name="titular" id="campoTitular" class="form-control" required placeholder="Ej. Condominio Residencias El Ávila">
+                            <input type="text" name="titular" id="campoTitular" class="form-control" required placeholder="Ej. Conjunto Residencias El Ávila">
                         </div>
 
                         <div class="col-md-2">

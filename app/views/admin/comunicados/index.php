@@ -104,7 +104,7 @@
                                             </span>
                                         <?php else: ?>
                                             <span class="badge bg-success">
-                                                Todo el Condominio
+                                                Todo el Conjunto
                                             </span>
                                         <?php endif; ?>
                                     </td>

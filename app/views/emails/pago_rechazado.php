@@ -17,7 +17,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2 style="margin:0;">Condominio Digital</h2>
+            <h2 style="margin:0;">Conjunto Digital</h2>
             <p style="margin:4px 0 0 0; font-size:14px; opacity:0.9;">Las Mesetas de Morón</p>
         </div>
         <div class="content">

@@ -4,7 +4,7 @@
         <div>
             <h2 class="text-2xl font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">campaign</span>
-                Cartelera Digital del Condominio
+                Cartelera Digital del Conjunto
             </h2>
             <p class="text-sm text-on-surface-variant mt-1">Avisos oficiales y comunicaciones dirigidas a su residencia.</p>
         </div>

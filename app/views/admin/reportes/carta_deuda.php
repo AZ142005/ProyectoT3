@@ -66,7 +66,7 @@
             <div class="row border-bottom pb-4 mb-4 align-items-center">
                 <div class="col-8">
                     <h3 class="fw-bold text-success mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h3>
-                    <p class="small text-muted mb-0">Junta de Condominio & Administración General</p>
+                    <p class="small text-muted mb-0">Junta de Conjunto & Administración General</p>
                     <p class="small text-muted mb-0">RIF: J-30948572-0 | Morón, Estado Trujillo</p>
                 </div>
                 <div class="col-4 text-end">
@@ -87,7 +87,7 @@
 
             <!-- Cuerpo de la Carta -->
             <div class="mb-4 text-justify" style="line-height: 1.8;">
-                <p>Por medio de la presente, la Administración del Conjunto Residencial <strong>"Las Mesetas de Morón"</strong> se dirige a usted para presentarle la relación detallada del estado de deuda actualizado de su inmueble. A la presente fecha, se registran cuotas de condominio vencidas acumuladas, por lo que le solicitamos formalmente proceder con la regularización del pago:</p>
+                <p>Por medio de la presente, la Administración del Conjunto Residencial <strong>"Las Mesetas de Morón"</strong> se dirige a usted para presentarle la relación detallada del estado de deuda actualizado de su inmueble. A la presente fecha, se registran cuotas del conjunto vencidas acumuladas, por lo que le solicitamos formalmente proceder con la regularización del pago:</p>
             </div>
 
             <!-- Desglose de Facturas -->
@@ -140,7 +140,7 @@
                 </div>
                 <div class="col-6">
                     ____________________________________<br>
-                    <small class="fw-bold text-dark d-block mt-1">JUNTA DE CONDOMINIO</small>
+                    <small class="fw-bold text-dark d-block mt-1">JUNTA DE CONJUNTO</small>
                     <small class="text-muted">Firma Autorizada</small>
                 </div>
             </div>

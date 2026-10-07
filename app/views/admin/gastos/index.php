@@ -310,7 +310,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                             <div>
                                 <h4 class="text-lg font-bold text-on-surface mb-1">Emisión de Facturación Mensual</h4>
-                                <p class="text-xs text-on-surface-variant mb-0">Cálculo dinámico de cuotas condominales y distribución entre las unidades del conjunto</p>
+                                <p class="text-xs text-on-surface-variant mb-0">Cálculo dinámico de cuotas del conjunto y distribución entre las unidades del conjunto</p>
                             </div>
                         </div>
 
@@ -392,7 +392,7 @@
                                     <div>
                                         <p class="font-bold">Proceso Automatizado de Conciliación</p>
                                         <p class="mt-0.5 text-xs text-blue-600/90 leading-relaxed">
-                                            Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad condominal, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado <strong>Pagada</strong>.
+                                            Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad del conjunto, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado <strong>Pagada</strong>.
                                         </p>
                                     </div>
                                 </div>
@@ -421,7 +421,7 @@
                 <div class="modal-header bg-primary text-white py-3">
                     <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
                         <span class="material-symbols-outlined">receipt</span>
-                        Registrar Gasto del Condominio
+                        Registrar Gasto del Conjunto
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -431,7 +431,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-dark">Tipo / Alcance del Gasto <span class="text-danger">*</span></label>
                             <select name="tipo_gasto" id="modal_tipo_gasto" required class="form-select" onchange="toggleEdificioModal(this.value)">
-                                <option value="comun">Gasto Común (Global - Todo el Condominio)</option>
+                                <option value="comun">Gasto Común (Global - Todo el Conjunto)</option>
                                 <option value="individual">Gasto Individual (Afecta a un solo Edificio)</option>
                             </select>
                             <div class="form-text small text-muted">Los comunes se dividen entre todas las unidades; los individuales solo entre las del edificio.</div>

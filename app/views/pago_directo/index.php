@@ -18,7 +18,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" class="h-10 w-auto object-contain block">
             </div>
             <div>
-                <h2 class="text-2xl font-bold">Pago de Condominio</h2>
+                <h2 class="text-2xl font-bold">Pago de Conjunto</h2>
                 <p class="text-sm opacity-90 mt-1">Reporta tu pago sin iniciar sesión</p>
             </div>
         </div>
@@ -177,7 +177,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         </div>
                         <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
                                 class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                            <option value="">-- Seleccione la cuenta oficial del condominio --</option>
+                            <option value="">-- Seleccione la cuenta oficial del conjunto --</option>
                             <?php foreach ($cuentasBancarias as $cb): ?>
                                 <option value="<?= e($cb['id']) ?>"
                                         data-banco="<?= e($cb['banco']) ?>"

@@ -137,7 +137,7 @@
                                         <div class="text-xs text-on-surface-variant font-normal"><?= e($c['cedula']) ?></div>
                                     </td>
                                     <td class="py-4 px-4 text-xs font-medium text-slate-700">
-                                        <?= e($c['edificio'] ?? 'Condominio') ?>
+                                        <?= e($c['edificio'] ?? 'Conjunto') ?>
                                     </td>
                                     <td class="py-4 px-4 font-semibold text-xs"><?= e($c['unidad']) ?></td>
                                     <td class="py-4 px-4 font-mono text-xs">#<?= e($c['numero_factura']) ?></td>

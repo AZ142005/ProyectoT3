@@ -27,7 +27,7 @@ $anio = intval($anio ?? date('Y'));
                 </button>
                 <div>
                     <h1 class="text-xl font-bold text-on-surface mb-0">Panel de Control Financiero</h1>
-                    <span class="text-xs text-on-surface-variant font-medium">Resumen general y estado económico del condominio</span>
+                    <span class="text-xs text-on-surface-variant font-medium">Resumen general y estado económico del conjunto</span>
                 </div>
             </div>
             

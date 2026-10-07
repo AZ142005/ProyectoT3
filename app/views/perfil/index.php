@@ -153,7 +153,7 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
                 <div class="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center">
                     <span class="material-symbols-outlined text-4xl text-slate-400 mb-2">policy</span>
                     <h4 class="font-bold text-dark text-base mb-1">Perfil de Auditoría y Fiscalización</h4>
-                    <p class="text-xs text-slate-500 max-w-md mx-auto">Este perfil cuenta con facultades de fiscalización y gestión sobre los libros y transacciones del condominio.</p>
+                    <p class="text-xs text-slate-500 max-w-md mx-auto">Este perfil cuenta con facultades de fiscalización y gestión sobre los libros y transacciones del conjunto.</p>
                 </div>
             </div>
         <?php else: ?>

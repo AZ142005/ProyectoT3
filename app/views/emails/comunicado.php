@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= e($tituloComunicado ?? 'Comunicado del Condominio') ?></title>
+    <title><?= e($tituloComunicado ?? 'Comunicado del Conjunto') ?></title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f0f7f0; color: #2c3e50; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -15,11 +15,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2 style="margin:0;">Condominio Digital</h2>
+            <h2 style="margin:0;">Conjunto Digital</h2>
             <p style="margin:4px 0 0 0; font-size:14px; opacity:0.9;">Las Mesetas de Morón</p>
         </div>
         <div class="content">
-            <span class="badge-info">📢 Comunicado Oficial del Condominio</span>
+            <span class="badge-info">📢 Comunicado Oficial del Conjunto</span>
             <h3 style="margin-top:12px; color:#2c3e50;"><?= e($tituloComunicado ?? '') ?></h3>
             
             <div style="margin:20px 0; text-align:justify; color:#34495e;">

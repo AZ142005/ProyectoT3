@@ -68,7 +68,7 @@
                     </div>
                     <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
                             class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                        <option value="">-- Seleccione la cuenta oficial del condominio --</option>
+                        <option value="">-- Seleccione la cuenta oficial del conjunto --</option>
                         <?php foreach ($cuentasBancarias as $cb): ?>
                             <option value="<?= e($cb['id']) ?>" 
                                     data-banco="<?= e($cb['banco']) ?>"

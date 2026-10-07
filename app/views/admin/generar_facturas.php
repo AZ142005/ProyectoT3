@@ -96,7 +96,7 @@
                         <div>
                             <p class="font-bold">Proceso Automatizado de Conciliación</p>
                             <p class="mt-0.5 text-xs text-blue-600/90 leading-relaxed">
-                                Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad condominal, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado **Pagada**.
+                                Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad del conjunto, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado **Pagada**.
                             </p>
                         </div>
                     </div>

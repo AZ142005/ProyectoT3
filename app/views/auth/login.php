@@ -131,7 +131,7 @@
                 <a href="#" class="login-footer-link">Términos y Condiciones</a>
             </div>
             <div class="login-footer-copy">
-                &copy; <?= date('Y') ?> Condominio Digital. Todos los derechos reservados.
+                &copy; <?= date('Y') ?> Conjunto Digital. Todos los derechos reservados.
             </div>
         </div>
     </div>

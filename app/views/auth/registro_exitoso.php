@@ -10,7 +10,7 @@
             <h1 class="h3 fw-bold text-dark mb-3">¡Solicitud Enviada con Éxito!</h1>
 
             <p class="text-secondary fs-6 mb-4" style="line-height: 1.6;">
-                Su solicitud de registro ha sido procesada exitosamente. Su cuenta se encuentra en estado <strong class="text-dark">PENDIENTE</strong> y está sujeta a verificación administrativa por parte de la junta del condominio.
+                Su solicitud de registro ha sido procesada exitosamente. Su cuenta se encuentra en estado <strong class="text-dark">PENDIENTE</strong> y está sujeta a verificación administrativa por parte de la junta del conjunto.
             </p>
 
             <div class="alert alert-warning border-0 rounded-3 text-start p-3 mb-4 d-flex align-items-start gap-2" style="background-color: #fef3c7; color: #92400e;">
