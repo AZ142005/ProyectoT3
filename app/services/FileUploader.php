@@ -104,10 +104,10 @@ class FileUploader {
      * reduce el lado mayor a 1600 px y la recomprime a JPEG (calidad 82),
      * aplanando la transparencia sobre fondo blanco.
      *
-     * El reemplazo es seguro: se codifica a un temporal hermano `*.conv` y solo
-     * si todo el proceso tiene éxito se sustituye el original (unlink + rename).
-     * Cualquier fallo (o ausencia de GD) deja el archivo original byte-idéntico
-     * y sin residuos temporales.
+     * El reemplazo es seguro: se codifica a un temporal hermano `*.conv` y el
+     * original se aparta a `*.bak` hasta que la versión comprimida quede en su
+     * lugar (con restauración si algo falla). Cualquier fallo (o ausencia de GD)
+     * deja el archivo original byte-idéntico y sin residuos temporales.
      *
      * @param string $ruta Ruta absoluta del archivo a comprimir (se modifica in-place)
      * @return bool true solo si el archivo fue reemplazado por la versión comprimida
@@ -192,16 +192,27 @@ class FileUploader {
             return false; // El original queda byte-idéntico
         }
 
-        if (!@unlink($ruta)) {
+        // Reemplazo con respaldo: el original se aparta a `*.bak` hasta que la
+        // versión comprimida quede en su lugar; si algo falla se restaura. El
+        // respaldo se elimina al final (solo permanecería si la restauración
+        // también fallara, preservando los datos).
+        $respaldo = $ruta . '.bak';
+        if (file_exists($respaldo)) {
+            @unlink($respaldo); // Respaldo huérfano de una ejecución interrumpida
+        }
+
+        if (!@rename($ruta, $respaldo)) {
             @unlink($tmpConv);
-            return false; // No se pudo reemplazar: se conserva el original
+            return false; // No se pudo apartar el original: queda intacto
         }
 
         if (!@rename($tmpConv, $ruta)) {
+            @rename($respaldo, $ruta); // Restaurar el original
             @unlink($tmpConv);
             return false;
         }
 
+        @unlink($respaldo);
         return true;
     }
 

@@ -337,6 +337,8 @@ class FileUploaderCompresionTest extends TestCase {
 
             $this->assertEquals([], (array)glob($dir . '/*.conv'),
                 'Nunca debe quedar un archivo *.conv en el directorio');
+            $this->assertEquals([], (array)glob($dir . '/*.bak'),
+                'Nunca debe quedar un archivo *.bak en el directorio');
         } finally {
             $this->limpiarDir($dir);
         }
