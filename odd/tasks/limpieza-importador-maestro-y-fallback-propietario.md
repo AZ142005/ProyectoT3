@@ -1,6 +1,6 @@
 # ODD task: Limpieza del importador PDF Maestro + fallback "Sin Propietario"
 
-**Estado**: COMPLETADO
+**Estado**: COMPLETADO Y VERIFICADO (2026-10-10) — verificación independiente APROBADA CON OBSERVACIONES; commits locales en `main`, sin push.
 **Fecha**: 2026-10-10
 **Ruta**: delegated-direct — un writer (borrado multi-archivo + fix SQL + tests). Commit por unidad de trabajo.
 
@@ -14,7 +14,7 @@
 - El botón de `app/views/admin/gastos/index.php` YA apunta a `/admin/cartelera` (feature nueva, verificada). El flujo maestro quedó sin entrada UI.
 - Referencias conocidas al flujo maestro: `public/index.php` L212-214 (3 rutas); `GastoController` (`cargarMaestro`, `parsearMaestro`, `importarMaestro`, helper `periodoDesdePost`); vista `admin/gastos/cargar_maestro.php`; `app/services/GastoParserService.php`; `GastosModel::importarGastosMaestro`; `tests/GastosMaestroTest.php`; `tests/ArreglosAuditoriaTest.php` (lee el fuente de esos métodos: ajustar SOLO esos bloques).
 - NO tocar artefactos históricos: `.sdd/*`, `odd/tasks/*` (docs), `docs/*`, `scripts/migrate_*` (p.ej. `migrate_gastos_maestro.php` es migración de esquema).
-- Fallback propietario: `ReportesModel.php` L39/L115/L249 (`CONCAT(COALESCE(...))`) y L519 (`CONCAT(p.nombre,' ',p.apellido)`); consumidores: `morosidad.php` L206 (fallback ya presente — funcionará con NULL), `imprimir.php` L106 (sin fallback → agregarlo), CSV `exportarCsvStreaming` (~L492, decidir y documentar).
+- Fallback propietario: `ReportesModel.php` L39/L115/L249 (`CONCAT(COALESCE(...))`) y L520 (`CONCAT(p.nombre,' ',p.apellido)`; era L519 antes del fix del CSV); consumidores: `morosidad.php` L206 (fallback ya presente — funcionará con NULL), `imprimir.php` L106 (sin fallback → agregarlo), CSV `exportarCsvStreaming` (~L492, decidir y documentar).
 - Repo: commits locales en `main`, **sin push**; convencionales en español; sin atribución IA.
 
 ## Tareas
@@ -119,3 +119,16 @@ WHERE u.numero = '1-01';
 1. `tests/GastosDuplicadosTest.php` referenciaba `importarGastosMaestro` (hallazgo del barrido no listado en la spec): se eliminaron SOLO sus 2 tests maestro, conservando esquema y dedupe de `crearGasto`. Alternativa rechazada: conservar el método solo para sus tests (código muerto).
 2. `--filter=Reporte` no coincide con ninguna clase; se corrió `--filter=Balance` (ejercita el SQL de L115 contra BD viva) como regresión adicional de T2.
 3. `app/views/residente/gastos.php` conserva textos "PDF Maestro" (visor histórico de extractos); sin dependencia del código eliminado.
+
+## Verificación independiente (orquestador, 2026-10-10)
+
+- **Spot-check del orquestador**: commits `ca46f46`/`cd567da`/`d9d9f83` (solo archivos esperados); `tests/run.php --filter=Arreglos|Gastos|Cartelera|Balance|Router` → todos exit 0; **HTTP en vivo** (server localhost:8000, sesión admin real): `/admin/reportes/morosidad` → 200 con **219× "Sin Propietario"** (antes: celda en blanco), `/admin/reportes/morosidad/exportar-csv` → contiene "Sin Propietario", `/admin/gastos` → 200 con botón "Cargar Reporte de Cartelera", `/admin/gastos/maestro` → **404** (ruta eliminada).
+- **Riesgo del diff** (`gentle-ai review assess --base-ref b9b8466 --committed-only`): `risk: high` / `unassessable` (OpenCode no elegible para revisión inmutable; esperado) → verificador independiente por el gate.
+- **Verificador independiente (agente fresco, read-only): APROBADO CON OBSERVACIONES — 6/6 PASS**:
+  1. Diff íntegro: solo funciones `cargarMaestro/parsearMaestro/importarMaestro/importarGastosMaestro` eliminadas; `guardar/eliminar/index/rendicionResidente`, CRUD de `GastosModel` y `AdminController::generarFacturas` intactos; `periodoDesdePost` conservado con uso válido.
+  2. Cero referencias colgantes en runtime (`app/`, `public/`, `resources/`, `tests/`); solo históricos esperados (`.sdd/`, `odd/`, `docs/`, `scripts/migrate_*`).
+  3. Lint OK; suites: Arreglos 13/13, Gastos 18/18, Router 23/23, Cartelera 3/3, Balance 9/9 (todas exit 0).
+  4. Fallback: 4× `NULLIF` en `ReportesModel`; SQL en vivo `1-01`: antes `' '` (truthy) → ahora `NULL`; consumidores toleran NULL (cableado verificado).
+  5. Rutas: viejas ausentes (404 real); `/admin/cartelera*` presentes [ADMIN, AUDITOR].
+  6. Tests ajustados: solo bloques maestro eliminados, sin sobre-borrado.
+- **Observaciones (menores, no bloqueantes)**: (a) L519→L520 cosmético (corregido arriba); (b) `obtenerReporteMorosidad` (L39) no tiene callers — código muerto preexistente, candidato a limpieza futura; (c) atribución cosmética en el barrido sobre `scripts/report_*.py` (prosa histórica).
