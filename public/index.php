@@ -146,6 +146,7 @@ $router->post('/admin/estructura/edificio/guardar', [EstructuraController::class
 $router->post('/admin/estructura/edificio/toggle', [EstructuraController::class, 'toggleEdificio'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estructura/unidad/guardar', [EstructuraController::class, 'guardarUnidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estructura/unidad/toggle', [EstructuraController::class, 'toggleUnidad'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/estructura/eliminar-edificio', [EstructuraController::class, 'eliminarEdificio'], [UserRole::ADMIN]);
 
 // --- Módulo de Estacionamientos y Vehículos (RF 12) ---
 $router->get('/admin/estacionamientos', [\App\Controllers\EstacionamientoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);

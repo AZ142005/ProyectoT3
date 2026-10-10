@@ -299,4 +299,37 @@ class EstructuraController extends Controller {
 
         $this->redirect('/admin/estructura?tab=' . $tab);
     }
+
+    /**
+     * Elimina un edificio con sus unidades limpias (sin propietario ni deudas).
+     * Exclusivo del rol admin: la vista oculta la acción al auditor y el router
+     * restringe la ruta a UserRole::ADMIN.
+     */
+    public function eliminarEdificio() {
+        Auth::requireRole(['admin']);
+
+        $tab = ($_POST['tab'] ?? 'configuracion') === 'visualizacion' ? 'visualizacion' : 'configuracion';
+        $id = intval($_POST['id'] ?? 0);
+
+        $edificiosModel = new EdificiosModel();
+        $edificio = $edificiosModel->getById($id);
+
+        if (!$edificio) {
+            Flash::error('Edificio no encontrado.');
+            $this->redirect('/admin/estructura?tab=' . $tab);
+            return;
+        }
+
+        $resultado = $edificiosModel->eliminarSiLimpio($id);
+
+        if (!empty($resultado['ok'])) {
+            $this->invalidarCacheEstructura();
+            Flash::success('Edificio eliminado.');
+        } else {
+            $motivo = $resultado['motivo'] ?: 'tiene unidades con propietario o deudas asociadas.';
+            Flash::error('No se puede eliminar «' . $edificio['nombre'] . '»: ' . $motivo);
+        }
+
+        $this->redirect('/admin/estructura?tab=' . $tab);
+    }
 }

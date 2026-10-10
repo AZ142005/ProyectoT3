@@ -399,6 +399,22 @@
                                                             <span class="material-symbols-outlined text-lg">power_settings_new</span>
                                                         </button>
                                                     </form>
+                                                    <?php if (\App\Core\Auth::role() !== 'auditor'): ?>
+                                                    <?php
+                                                    // Nombre escapado para HTML (atributo) y para el string JS de confirm():
+                                                    // \\ → \\\\, ' → \\' y se eliminan saltos de línea.
+                                                    $nombreEliminar = e(str_replace(['\\', "'", "\r", "\n"], ['\\\\', "\\'", '', ''], (string)$edificio['nombre']));
+                                                    ?>
+                                                    <form method="POST" action="/admin/estructura/eliminar-edificio" style="display:inline" onsubmit="return confirm('¿Seguro que deseas eliminar el edificio «<?= $nombreEliminar ?>»? Se eliminarán también sus unidades sin propietario ni deudas. Esta acción no se puede deshacer.');">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="tab" value="configuracion">
+                                                        <input type="hidden" name="id" value="<?= e($edificio['id']) ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 text-xs font-bold rounded-xl" title="Eliminar Edificio">
+                                                            <span class="material-symbols-outlined fs-6">delete</span>
+                                                            <span>Eliminar</span>
+                                                        </button>
+                                                    </form>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>

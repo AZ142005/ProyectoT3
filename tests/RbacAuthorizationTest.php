@@ -289,8 +289,8 @@ class RbacAuthorizationTest extends TestCase {
      * Modelo de permisos del Auditor como operador funcional: toda ruta /admin/*
      * habilita a UserRole::AUDITOR, salvo las exclusiones documentadas (creación
      * y edición de cuentas bancarias, alta de usuarios, cambio de roles,
-     * actualización de datos de contacto y procesamiento de cambios de datos),
-     * que quedan solo-admin.
+     * actualización de datos de contacto, procesamiento de cambios de datos y
+     * eliminación de edificios), que quedan solo-admin.
      */
     public function testAdminRoutesAllowAuditorExceptDocumentedExclusions(): void {
         $lines = explode("\n", $this->indexContent);
@@ -304,6 +304,7 @@ class RbacAuthorizationTest extends TestCase {
             '/admin/usuarios/cambiar-rol',
             '/admin/usuarios/procesar-solicitud-cambio',
             '/admin/usuarios/actualizar-datos',
+            '/admin/estructura/eliminar-edificio',
         ];
         $sinRol = ['/admin/login', '/admin/logout'];
 

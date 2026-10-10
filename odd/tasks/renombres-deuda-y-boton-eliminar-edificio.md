@@ -24,7 +24,7 @@
 ## Tareas
 
 - [x] **T1 — Renombres visuales**: aplicar los 6 cambios de texto + actualizar aserciones de tests afectadas. Grep de verificación: 0 ocurrencias visibles de "Gastos y Facturación"/"Emisión de Facturas" en `app/views/` (excepto comentarios si el writer decide dejarlos; preferible actualizarlos también para evitar confusiones, sin efecto visual).
-- [ ] **T2 — Botón eliminar edificio (solo admin)**:
+- [x] **T2 — Botón eliminar edificio (solo admin)**:
   - Vista `admin/estructura.php`: botón "Eliminar" (danger outline, icono delete) por edificio en la pestaña Configuración, **visible solo para admin** (patrón de rol ya usado en la vista; el auditor no lo ve). Form POST a `/admin/estructura/eliminar-edificio` con `id`, `tab` y CSRF; confirmación JS: `confirm('¿Seguro que deseas eliminar el edificio «{NOMBRE}»? Se eliminarán también sus unidades sin propietario ni deudas. Esta acción no se puede deshacer.')`.
   - Controlador `EstructuraController::eliminarEdificio()`: `Auth::requireRole(['admin'])` (SOLO admin). Reglas: **rechazar** (Flash::error) si el edificio tiene unidades con propietario asignado (`unidades.propietario_id` NOT NULL o `personas.unidad_id` en sus unidades) o registros financieros (facturas / movimientos_cuenta / pagos de sus unidades): "No se puede eliminar «X»: tiene unidades con propietario o deudas asociadas." Si está limpio: transacción que elimina sus registros no financieros (estacionamientos, solicitudes_registro) y sus unidades, luego el edificio; registrar en `log_auditoria` (`accion='eliminar_edificio'`); `invalidarCacheEstructura()`; Flash::success; redirect al tab.
   - Modelo: método de eliminación transaccional en `EdificiosModel` (p.ej. `eliminarSiLimpio(int $id): array` devolviendo `['ok'=>bool,'motivo'=>?string]`) usando `Database::getConnection()`; sin FK colgantes.
@@ -51,3 +51,21 @@
   - `php -l` de todos los archivos tocados → sin errores.
   - `php tests/run.php --filter=Gastos` → 18 tests, 83 asserts, 0 fallos.
   - `php tests/run.php --filter=Filtros` → 6 tests, 39 asserts, 0 fallos.
+
+### T2 — Botón "Eliminar edificio" solo admin (COMPLETADO)
+- **Vista** `app/views/admin/estructura.php`: en la pestaña Configuración, junto a Editar/toggle de cada tarjeta de edificio, se agregó un form POST a `/admin/estructura/eliminar-edificio` con `csrf_field()`, `tab` e `id`, botón danger outline + icono delete ("Eliminar"), y `onsubmit="return confirm(...)"` con el nombre interpolado y doblemente escapado (HTML + JS: se duplican `\`, se escapan `'` y se quitan saltos de línea). El form queda bajo el guard de rol existente (`Auth::role() !== 'auditor'`), por lo que el auditor no lo ve.
+- **Controlador** `EstructuraController::eliminarEdificio()`: `Auth::requireRole(['admin'])` (solo admin), sanea `id`/`tab` como los métodos existentes, rechaza con `Flash::error('No se puede eliminar «X»: <motivo>')` y redirige al tab; en éxito invalida caché, `Flash::success('Edificio eliminado.')` y redirige.
+- **Modelo** `EdificiosModel::eliminarSiLimpio(int $id): array` (`['ok'=>bool,'motivo'=>?string]`): valida y elimina dentro de una única transacción, registra en `log_auditoria` (`accion='eliminar_edificio'`, `tabla_afectada='edificios'`, `registro_id`, `estado_nuevo='eliminado'`, `detalles`, `ip_address`) y hace rollback ante cualquier excepción.
+- **Ruta** `public/index.php`: `POST /admin/estructura/eliminar-edificio` con `[UserRole::ADMIN]`.
+- **Rechazo**: unidades con propietario o personas (residentes) vinculadas; registros financieros de sus unidades (facturas, movimientos_cuenta, pagos, incluyendo soft-deleted porque el FK igual apunta); además gastos del condominio imputados al edificio (FK `gastos_comunes.edificio_id` es SET NULL y los desvincularía en silencio).
+- **Limpieza**: elimina hijos no financieros de sus unidades (estacionamientos y solicitudes_registro según spec, más vehículos y comunicados_destinos por ser registros hijos sin FK), luego las unidades y el edificio. Los `comunicados` con `unidad_id`/`edificio_id` NO se tocan (contenido publicado sin FK).
+- **Tests** `tests/EstructuraEliminarEdificioTest.php` (nuevo): ruta solo-admin; vista con form/confirm/guard de rol; método del controlador con `requireRole(['admin'])`; regla de rechazo y transacción en el modelo; rechazo de id inexistente; rechazo de edificio con dependencias (modelo y controlador, no destructivo); y eliminación real de un edificio temporal con sus registros hijos + auditoría (con limpieza defensiva).
+- Desviación controlada: `tests/RbacAuthorizationTest.php` documentaba que toda ruta admin permite auditor salvo exclusiones; se agregó esta ruta a la lista de exclusiones documentadas (es solo-admin por requerimiento).
+- Verificación:
+  - `php tests/run.php --filter=Estructura` → 13 tests, 81 asserts, 0 fallos.
+  - `php tests/run.php --filter=Rbac` → 9 tests, 234 asserts, 0 fallos.
+  - `php tests/run.php --filter=Router` → 23 tests, 44 asserts, 0 fallos.
+  - Render CLI real (admin vs auditor): admin ve el form con el confirm exacto; auditor NO ve el form; csrf/tab/id presentes.
+  - Escapado JS del nombre verificado empíricamente con nombres que contienen `'`, `\`, `"`, saltos de línea y `&`/`<`.
+  - `php -l` de todos los archivos tocados → sin errores.
+  - Suite completa: 0 fallos de aserción; solo persiste la salida preexistente de `SecurityTest` (no tocado).
