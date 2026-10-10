@@ -32,7 +32,7 @@
 ## Tareas
 
 - [x] **T1 — Textos**: aplicar los cambios listados + actualizar aserciones de tests afectadas. Grep de verificación: sin textos viejos en la pestaña Emisión (`Generar Facturas del Mes|Re-generar Facturas|Facturas Creadas`).
-- [ ] **T2 — Upsert**: modificar `CarteleraModel::importarLote` (resultado con `facturas_actualizadas`), flash del controlador, y **test nuevo `tests/CarteleraUpsertTest.php`** (live-DB, patrón del repo, con restauración defensiva):
+- [x] **T2 — Upsert**: modificar `CarteleraModel::importarLote` (resultado con `facturas_actualizadas`), flash del controlador, y **test nuevo `tests/CarteleraUpsertTest.php`** (live-DB, patrón del repo, con restauración defensiva):
   - Parsear el fixture real; modificar el mes 10 de `1-01` (25.152,28 → 25.252,28); `importarLote` → assert `facturas_actualizadas >= 1`, valor en BD actualizado, `SUM(CART)` = 8.891.232,51 (no acumulado).
   - Re-importar las filas originales → assert valor restaurado y `SUM(CART)` = 8.891.132,51.
   - Limpiar filas de auditoría del test (`detalles LIKE '%test-upsert%'`, archivo marcador `test-upsert.pdf`).
@@ -51,3 +51,11 @@
 - `app/controllers/AdminController.php` (generarFacturas): L203 `Ya existen deudas emitidas para el mes …`; L208 `Se enviaron N deudas calculadas para el mes …`.
 - `tests/GastosFacturacionTabsTest.php`: aserciones actualizadas a `Deudas Creadas` y `Cálculo Dinámico de Cuotas a Emitir` (única aserción de texto adicional detectada por grep).
 - Verificación: `php -l` OK en los 3 archivos; grep de textos viejos en la vista → sin coincidencias; `php tests/run.php --filter=Gastos` → 18 tests, 83 asserts passed, 0 failed, 0 errors.
+- Commit: `fe3af55` — `feat(ui): botones enviar/re-enviar deuda y textos de emision`.
+
+### T2 — Upsert de importación (completado)
+
+- `app/models/CarteleraModel.php` (`importarLote`): el SELECT previo trae `id, deleted_at, monto_pagado`; soft-deleted → `facturas_omitidas++`; activa → `UPDATE` (`saldo` = valor del reporte, `monto_total` = saldo + `monto_pagado`, `fecha_emision` = `fecha_vencimiento` = fecha del reporte, estado `vencida`/`pagada`) y `facturas_actualizadas++` (nueva clave del resultado, default 0). Las deudas que desaparecen del reporte no se borran (limitación documentada en el docblock, junto al modo upsert). Auditoría: fila por factura creada + UNA fila resumen por lote si hubo actualizadas (`accion='actualizar_cartelera'`, `tabla_afectada='facturas'`, `registro_id=NULL`, `estado_nuevo='actualizada'`, detalles con conteo + archivo + hash-ref).
+- `app/controllers/CarteleraController.php`: flash → `Reporte de Cartelera importado: {N} creadas, {M} actualizadas, {K} omitidas. Edificios creados: {X}; unidades creadas: {Y}.` El tipo de flash conserva la lógica previa (success solo si `creadas > 0`; una reimportación pura muestra info).
+- `tests/CarteleraUpsertTest.php` (nuevo, live-DB, patrón del repo): fixture real → snapshot `CART-1-01-202610` = 25.152,28 y `SUM(CART)` = 8.891.132,51; mes 10 de 1-01 → 25.252,28 → `importarLote` → 362 actualizadas (assert `>= 1`), 0 creadas, BD = 25.252,28, `SUM` = 8.891.232,51 (no acumulado); reimport de filas originales → 25.152,28 / 8.891.132,51; limpieza `DELETE FROM log_auditoria WHERE detalles LIKE '%test-upsert%'` y restauración defensiva en `finally`.
+- Verificación: `php -l` OK en modelo/controlador/test; `--filter=CarteleraUpsert` ✅ 1 test / 11 asserts; `--filter=Cartelera` ✅ 4 tests / 55 asserts; `--filter=Gastos` ✅ 18 / 83; `--filter=Filtros` ✅ 6 / 39; `--filter=Router` ✅ 23 / 44. Estado BD post-test comprobado: `CART-1-01-202610` = 25.152,28; `SUM(CART)` = 8.891.132,51; 0 filas de auditoría del test. Fila resumen comprobada en corrida manual de 1 fila (accion/tabla/registro_id/estado_nuevo/detalles con archivo y hash-ref).

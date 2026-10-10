@@ -6,20 +6,28 @@ namespace App\Models;
  *
  * Convierte las filas parseadas (saldo anterior + cuotas por mes) en facturas
  * del sistema, asegurando previamente los edificios ("Torre N") y las unidades
- * ("N-NN") que falten. Es idempotente por `numero_factura` y audita cada factura
- * creada en `log_auditoria`.
+ * ("N-NN") que falten. Es idempotente por `numero_factura` en modo upsert: las
+ * deudas ya existentes se actualizan con los valores del reporte en lugar de
+ * duplicarse, respetando el soft-delete. Audita cada factura creada y agrega una
+ * fila resumen por lote cuando hubo actualizaciones.
  */
 class CarteleraModel extends BaseModel
 {
     /**
      * Importa un lote de filas del Reporte de Cartelera dentro de una transacción.
      *
+     * Upsert por `numero_factura` (CART-…): si la deuda ya existe activa se actualiza
+     * (`saldo` = valor del reporte, `monto_total` = saldo + lo ya pagado, fechas = fecha
+     * del reporte, estado `vencida`/`pagada` según el saldo); si está soft-deleted se
+     * omite. Las deudas que desaparecen del reporte NO se eliminan (se protege el
+     * historial de pagos); el total refleja el reporte para las unidades presentes.
+     *
      * @param array  $filas         Filas del parser: [['unidad','saldo_anterior','meses'=>[mes=>monto],'total'], ...]
      * @param string $fechaEmision  Fecha de emisión del reporte (Y-m-d); se usa como emisión y vencimiento.
      * @param int    $adminId       Usuario que ejecuta la importación.
      * @param string $archivo       Nombre del PDF soporte almacenado en uploads/soportes/.
      * @param string|null $hash     SHA-256 del PDF (trazabilidad en auditoría).
-     * @return array{edificios_creados: int, unidades_creadas: int, facturas_creadas: int, facturas_omitidas: int, total_importado: int}
+     * @return array{edificios_creados: int, unidades_creadas: int, facturas_creadas: int, facturas_actualizadas: int, facturas_omitidas: int, total_importado: int}
      */
     public function importarLote(array $filas, string $fechaEmision, int $adminId, string $archivo, ?string $hash): array
     {
@@ -36,6 +44,7 @@ class CarteleraModel extends BaseModel
             'edificios_creados' => 0,
             'unidades_creadas' => 0,
             'facturas_creadas' => 0,
+            'facturas_actualizadas' => 0,
             'facturas_omitidas' => 0,
             'total_importado' => 0,
         ];
@@ -50,15 +59,24 @@ class CarteleraModel extends BaseModel
         $stmtEdificioCrear = $db->prepare("INSERT INTO edificios (nombre, descripcion, estado) VALUES (:nombre, :descripcion, 1)");
         $stmtUnidadBuscar = $db->prepare("SELECT id FROM unidades WHERE numero = :numero LIMIT 1");
         $stmtUnidadCrear = $db->prepare("INSERT INTO unidades (edificio_id, propietario_id, numero, cuota_mensual, estado) VALUES (:edificio_id, NULL, :numero, 0, 1)");
-        $stmtFacturaBuscar = $db->prepare("SELECT id FROM facturas WHERE numero_factura = :numero LIMIT 1");
+        $stmtFacturaBuscar = $db->prepare("SELECT id, deleted_at, monto_pagado FROM facturas WHERE numero_factura = :numero LIMIT 1");
         $stmtFacturaCrear = $db->prepare("
             INSERT INTO facturas
             (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado, observaciones)
             VALUES (:numero, :unidad_id, :mes, :anio, :fecha_emision, :fecha_vencimiento, :monto_total, 0, :saldo, 'vencida', :observaciones)
         ");
+        $stmtFacturaActualizar = $db->prepare("
+            UPDATE facturas
+            SET monto_total = :total, saldo = :saldo, fecha_emision = :fe, fecha_vencimiento = :fv, estado = :estado
+            WHERE id = :id
+        ");
         $stmtLog = $db->prepare("
             INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_nuevo, detalles, ip_address)
             VALUES (:usuario_id, :admin_id, 'importar_cartelera', 'facturas', :registro_id, 'activa', :detalles, :ip)
+        ");
+        $stmtLogResumen = $db->prepare("
+            INSERT INTO log_auditoria (usuario_id, admin_id, accion, tabla_afectada, registro_id, estado_nuevo, detalles, ip_address)
+            VALUES (:usuario_id, :admin_id, 'actualizar_cartelera', 'facturas', NULL, 'actualizada', :detalles, :ip)
         ");
 
         $cacheEdificios = []; // prefijo => id
@@ -148,8 +166,25 @@ class CarteleraModel extends BaseModel
                     $numeroFactura = sprintf('CART-%s-%04d%02d', $unidad, $anio, $item['mes']);
 
                     $stmtFacturaBuscar->execute(['numero' => $numeroFactura]);
-                    if ($stmtFacturaBuscar->fetchColumn() !== false) {
-                        $resultado['facturas_omitidas']++;
+                    $existente = $stmtFacturaBuscar->fetch();
+                    if ($existente !== false) {
+                        // Soft-deleted: se respeta la baja lógica y no se resucita la deuda
+                        if ($existente['deleted_at'] !== null) {
+                            $resultado['facturas_omitidas']++;
+                            continue;
+                        }
+
+                        // Upsert: el saldo refleja el reporte (no acumula); se conserva lo ya pagado
+                        $saldo = round((float)$item['monto'], 2);
+                        $stmtFacturaActualizar->execute([
+                            'total' => round($saldo + (float)$existente['monto_pagado'], 2),
+                            'saldo' => $saldo,
+                            'fe' => $fechaEmision,
+                            'fv' => $fechaEmision,
+                            'estado' => $saldo > 0 ? 'vencida' : 'pagada',
+                            'id' => (int)$existente['id'],
+                        ]);
+                        $resultado['facturas_actualizadas']++;
                         continue;
                     }
 
@@ -192,6 +227,20 @@ class CarteleraModel extends BaseModel
                         'ip' => $ip,
                     ]);
                 }
+            }
+
+            if ($resultado['facturas_actualizadas'] > 0) {
+                $stmtLogResumen->execute([
+                    'usuario_id' => $adminId,
+                    'admin_id' => $adminId,
+                    'detalles' => sprintf(
+                        'Reporte de Cartelera: %s | %d deudas actualizadas (upsert sin acumulacion) | PDF %s',
+                        $archivo,
+                        $resultado['facturas_actualizadas'],
+                        $hashReferencia
+                    ),
+                    'ip' => $ip,
+                ]);
             }
 
             $db->commit();

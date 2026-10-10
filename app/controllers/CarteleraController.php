@@ -126,8 +126,9 @@ class CarteleraController extends Controller
             unset($_SESSION['cartelera_preview'], $_SESSION['cartelera_meta']);
 
             $mensaje = sprintf(
-                'Reporte de Cartelera importado: %d facturas creadas, %d omitidas por duplicidad. Edificios creados: %d; unidades creadas: %d.',
+                'Reporte de Cartelera importado: %d creadas, %d actualizadas, %d omitidas. Edificios creados: %d; unidades creadas: %d.',
                 $resultado['facturas_creadas'],
+                $resultado['facturas_actualizadas'],
                 $resultado['facturas_omitidas'],
                 $resultado['edificios_creados'],
                 $resultado['unidades_creadas']
