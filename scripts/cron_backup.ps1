@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Script de Automatización de Respaldos de Base de Datos para Servidor Windows.
 .DESCRIPTION
@@ -18,7 +18,11 @@ $LogFile = Join-Path $LogDir "cron_backup.log"
 $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 "[$Timestamp] Iniciando tarea automatizada de respaldo de base de datos en servidor Windows..." | Out-File -FilePath $LogFile -Append -Encoding utf8
 
-$PhpBin = "php"
+# Resolver el binario PHP (PATH primero, fallback XAMPP)
+$PhpBin = (Get-Command php -ErrorAction SilentlyContinue).Source
+if (-not $PhpBin) {
+    $PhpBin = "C:\xampp\php\php.exe"
+}
 $BackupScript = Join-Path $ProjectRoot "scripts\backup_database.php"
 
 try {

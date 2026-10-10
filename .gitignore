@@ -18,6 +18,9 @@ composer.lock
 # Respaldos de base de datos generados por la aplicación
 /storage/backups/
 
+# Logs de rutinas programadas (respaldos, limpiezas)
+/storage/logs/
+
 # Sistema operativo
 Thumbs.db
 .DS_Store
