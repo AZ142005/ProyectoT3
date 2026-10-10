@@ -769,6 +769,66 @@ class BehaviorTest extends TestCase {
         $this->assertFileExists($path, 'cleanup_uploads.php script must exist');
     }
 
+    // 1.2b-2 — T2 (ODD compresion-retencion-comprobantes): retención de 6 meses
+    public function testCleanupUploadsAplicaRetencionDeSeisMeses(): void {
+        $path = dirname(__DIR__) . '/scripts/cleanup_uploads.php';
+        $this->assertFileExists($path, 'cleanup_uploads.php script must exist');
+        $content = file_get_contents($path);
+
+        $this->assertStringContains('fecha_registro', $content,
+            'Debe consultar pagos.fecha_registro como fecha de referencia');
+        $this->assertStringContains('fecha_envio', $content,
+            'Debe consultar comprobantes_pago.fecha_envio como fecha de referencia');
+        $this->assertStringContains('$fechasReferencia', $content,
+            'Debe construir el mapa basename => fecha de referencia más reciente');
+        $this->assertStringContains("modify('-6 months')", $content,
+            'El límite de retención debe ser hoy - 6 meses');
+        $this->assertStringContains('retención 6 meses', $content,
+            'El motivo de eliminación debe indicar "retención 6 meses"');
+        $this->assertStringContains('gastos_comunes', $content,
+            'Debe conservar la referencia permanente de gastos_comunes.soporte_digital');
+
+        preg_match('/\$detalleComprobantes = (.*?);/s', $content, $m);
+        $bloqueDetalle = $m[1] ?? '';
+        $this->assertStringContains('$candidatosRetencion', $bloqueDetalle,
+            'El resumen dry-run debe incluir el conteo por retención');
+        $this->assertStringContains('$eliminadosRetencion', $bloqueDetalle,
+            'El resumen real debe incluir el conteo por retención');
+    }
+
+    // 1.2b-3 — T2: orden de evaluación y fecha más reciente por basename
+    public function testRetencionSeEvaluaAntesQueLaReglaDeHuerfanos(): void {
+        $path = dirname(__DIR__) . '/scripts/cleanup_uploads.php';
+        $content = file_get_contents($path);
+
+        $posFechas = strpos($content, '$fechasReferencia');
+        $posLimite = strpos($content, '$limiteRetencion');
+        $posBucle = strpos($content, 'foreach (scandir($dirComprobantes)');
+        $posRetencion = strpos($content, 'retención 6 meses');
+        $posHuerfano = strpos($content, 'huérfano >7 días');
+
+        $this->assertTrue($posFechas !== false && $posLimite !== false && $posBucle !== false
+            && $posRetencion !== false && $posHuerfano !== false,
+            'La lógica de retención (fechas, límite y motivos) debe existir');
+
+        if ($posFechas !== false && $posLimite !== false && $posBucle !== false
+            && $posRetencion !== false && $posHuerfano !== false) {
+            $this->assertTrue($posFechas < $posBucle,
+                'El mapa de fechas de referencia debe construirse antes de recorrer comprobantes');
+            $this->assertTrue($posLimite < $posBucle,
+                'El límite de 6 meses debe calcularse antes de recorrer comprobantes');
+            $this->assertTrue($posRetencion < $posHuerfano,
+                'La retención debe evaluarse antes de la regla de huérfanos');
+        }
+
+        // Varias filas con fecha: gana la más reciente, así cualquier referencia
+        // reciente conserva el archivo.
+        $this->assertStringContains('!isset($fechasReferencia[$nombre])', $content,
+            'Debe existir la comparación para conservar la fecha más reciente');
+        $this->assertStringContains('$fecha > $fechasReferencia[$nombre]', $content,
+            'La fecha más reciente debe ganar sobre las anteriores');
+    }
+
     // 1.2c — Scheduled tasks setup script exists
     public function testSetupScheduledTasksScriptExists(): void {
         $path = dirname(__DIR__) . '/scripts/setup_scheduled_tasks.ps1';
