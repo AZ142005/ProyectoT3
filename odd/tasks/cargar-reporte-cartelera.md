@@ -1,6 +1,6 @@
 # ODD task: Cargar Reporte de Cartelera (Dotwood) — importación de deuda por unidades
 
-**Estado**: COMPLETADO (2026-10-10) — implementación T1–T7 + verificación E2E; commits locales en `main`, sin push.
+**Estado**: COMPLETADO Y VERIFICADO (2026-10-10) — implementación T1–T7 + E2E + verificación independiente APROBADA; commits locales en `main`, sin push.
 **Fecha**: 2026-10-10
 **Ruta**: delegated-direct — un writer para toda la feature (trigger: writer rule, 5+ archivos no triviales). Commit por unidad de trabajo.
 
@@ -47,7 +47,7 @@
 
 ## Progreso y evidencia
 
-- Mirror Engram: **omitido por instrucción explícita de la tarea** (no usar Engram en esta ejecución).
+- Mirror Engram: **PENDIENTE** — el orquestador intentó `mem_save` (topic `odd/cargar-reporte-cartelera/tasks`) y falla con «could not confirm Engram session registration»; reintentar cuando Engram registre la sesión.
 
 ### T1 — Botón ✅ (2026-10-10)
 
@@ -102,6 +102,44 @@
 - `log_auditoria`: 362 registros `importar_cartelera` (uno por factura creada; la reimportación no generó registros nuevos).
 - Estado final de la BD local: datos del reporte cargados (el usuario quería los datos en la BD).
 
+## Verificación independiente (orquestador, 2026-10-10)
+
+- **Spot-check del orquestador**: 5 commits en `main` (ahead 5, sin push) con SOLO archivos de la feature; `tests/run.php --filter=Cartelera` → 3/44 ✓; BD: CART = 8.891.132,51 (362 facturas / 216 unidades), morosidad general 8.892.022,51; botón renombrado apuntando a `/admin/cartelera`.
+- **Riesgo del diff** (`gentle-ai review assess --base-ref da96e31 --committed-only`): `risk: high` / `unassessable` — OpenCode no es runtime elegible para revisión inmutable por recibo (soportados: claude-code, codex); esperado/preexistente. Por el gate de verificación delegada (tier high/unassessable) se ejecutó un verificador independiente.
+- **Verificador independiente (agente fresco, read-only): APROBADO — 7/7 checks PASS**:
+  1. Commits: solo archivos de la feature; convencionales; sin atribución IA.
+  2. Código: sin hallazgos críticos — SQL parametrizado; CSRF global + tokens en formularios/AJAX; roles admin/auditor (rutas + guards); subida segura (FileUploader: MIME real, nombre aleatorio); transacción con rollback y manejo de carrera 1062; parser fail-closed (filas, columnas, totales, fecha).
+  3. Sintaxis + tests: `php -l` limpio en 6 archivos; `--filter=Cartelera` → 3 tests / 44 passed.
+  4. Parseo fresco del PDF real: ok=true, 216 filas, fecha 2026-10-09, totales exactos al centavo, 30/39/33/38/38/38.
+  5. BD + idempotencia empírica: CART = 8.891.132,51 (362); desglose 07→18/488.257,99 · 08→40/889.225,85 · 09→88/2.057.568,00 · 10→216/5.456.080,67; re-import → 0 creadas / 362 omitidas, agregados sin cambio; auditoría 362 sin duplicados.
+  6. Rutas y botón: ✓ (roles [ADMIN, AUDITOR]).
+  7. No regresión: flujo PDF Maestro de Gastos intacto (diff de `public/index.php` solo aditivo).
+- **Observaciones menores del verificador**: (a) PDFs que fallan el parseo quedan en `uploads/soportes` sin limpieza (impacto bajo; carpeta no servida por web); (b) fixture no versionado → skip del test principal en clones; (c) parser calibrado al layout Crystal/Dotwood (falla cerrado ante variantes); (d) `ini_set('upload_max_filesize')` no-op preexistente (ajeno a esta feature).
+
+## Informe: áreas de la interfaz admin sin rellenar (objetivo 3)
+
+Importando únicamente edificios + unidades + facturas de deuda (sin propietarios, gastos, pagos, movimientos ni cuotas):
+
+**Se llenan**
+- Dashboard admin: "Total por Cobrar" y KPIs de cartera (las facturas importadas quedan vencidas a la fecha del reporte).
+- Reportes → Morosidad: tabla completa (Edificio, Unidad, Facturas Vencidas, Días Mora, Total Deuda) + KPIs.
+- Reportes → Impresión de deuda y Carta de Deuda por unidad: montos y detalle de facturas.
+- Estructura: nuevas torres y unidades listadas.
+
+**Quedan vacíos**
+- Dashboard: Ingresos/Egresos (Bs 0,00), Balance, "Últimos Movimientos", "Cuentas bancarias" ("No hay cuentas activas"), históricos.
+- Gastos Comunes: "No hay gastos registrados para este período"; Facturación: cuota base Bs 0,00 / "Ninguna creada".
+- Pagos y Comprobantes: "No se encontraron pagos".
+- Conciliación: KPIs en 0; "No hay movimientos pendientes…".
+- Estacionamientos: "No hay puestos…"; Comunicados: envío por correo no-op sin personas; Respaldos: sin efecto.
+
+**Parcial / con fallback**
+- Estructura por unidad: Propietario "Sin habitante asignado"; Cédula/Contacto "—"; "Cuota Mensual Bs. 0,00".
+- Carta de deuda: "Propietario"/"N/A"; envío de email bloqueado ("La unidad no posee un propietario con email registrado"); WhatsApp "Incompatible".
+- **Hallazgo**: en Morosidad/Impresión la celda Propietario queda **en blanco** (no "Sin Propietario"): `ReportesModel.php:39` devuelve `' '` (verdadero en PHP) y el fallback `?:` no dispara. Candidato a pulido.
+- Residente: sin persona/usuario no hay login; la unidad queda "disponible" para solicitud de registro (`/auth/register`); al aprobarse, el estado de cuenta mostraría los cargos importados.
+- Sin errores 500 detectados con datos parciales (todas las vistas usan fallbacks).
+
 ## Cierre
 
 - Commits (locales en `main`, sin push, sin atribución IA):
@@ -116,5 +154,5 @@
 
 - Criterios de aceptación: botón renombrado y funcional ✓; parser 216 filas y totales exactos ✓; import crea estructura + facturas, morosidad suma 8.891.132,51 y reimportar no duplica ✓; tests nuevos en verde y flujo del PDF Maestro de Gastos intacto (rutas y vista sin cambios; solo se repuntó el botón) ✓.
 - Desviaciones del diseño original (documentadas arriba): fuentes/CMaps/Widths dinámicos en vez de objetos fijos; sin descarte de clusters (fail closed); la vista recarga para renderizar la preview tras el AJAX; `total_importado` = facturas creadas; el hash del PDF solo se usa en auditoría (la idempotencia es por `numero_factura`).
-- Pendientes: el objetivo 3 ("analizar qué áreas de la interfaz admin quedan sin rellenar con los datos del reporte") queda como informe/exploración aparte; no forma parte de T1–T7. El fixture real no se versiona: en clones sin `tests/fixtures/cartelera_dotwood.pdf` el test principal hace skip.
+- Pendientes: objetivo 3 cubierto por el informe de arriba (sección "Informe: áreas de la interfaz admin sin rellenar"). El fixture real no se versiona: en clones sin `tests/fixtures/cartelera_dotwood.pdf` el test principal hace skip. Mirror Engram pendiente (registro de sesión).
 - Riesgos: el parser está calibrado al formato Crystal/Dotwood (ante variantes de layout fallará cerrado con errores y no importará nada); el PDF subido queda en `uploads/soportes` (directorio gitignored).
