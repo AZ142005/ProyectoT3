@@ -203,7 +203,7 @@ class ReporteController extends Controller {
         $notifService = new \App\Services\NotificationService();
 
         $cuerpoHtml = $emailService->renderTemplate('aviso_cobro', [
-            'nombrePropietario' => $detalle['unidad']['propietario_nombre'],
+            'nombrePropietario' => $detalle['unidad']['propietario_nombre'] ?: 'Propietario',
             'cedulaPropietario' => $detalle['unidad']['propietario_cedula'] ?? '',
             'numeroUnidad'      => $detalle['unidad']['unidad_numero'],
             'nombreEdificio'    => $detalle['unidad']['edificio_nombre'],

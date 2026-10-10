@@ -103,7 +103,7 @@
                         <td class="text-center"><?= $i++ ?></td>
                         <td><?= e($m['edificio_nombre']) ?></td>
                         <td class="fw-bold">Unidad <?= e($m['unidad_numero']) ?></td>
-                        <td><?= e($m['propietario_nombre']) ?></td>
+                        <td><?= e($m['propietario_nombre'] ?: 'Sin Propietario') ?></td>
                         <td><?= e($m['propietario_cedula']) ?></td>
                         <td><?= e($m['propietario_telefono']) ?></td>
                         <td class="text-center fw-bold <?= $esSolvente ? 'text-success' : 'text-danger' ?>">

@@ -36,7 +36,7 @@ class ReportesModel extends BaseModel {
                 u.numero AS unidad_numero,
                 COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                 e.id AS edificio_id,
-                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
+                NULLIF(TRIM(CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, ''))), '') AS propietario_nombre,
                 COALESCE(p.cedula, 'N/A') AS propietario_cedula,
                 COALESCE(p.telefono, 'N/A') AS propietario_telefono,
                 COALESCE(p.email, 'N/A') AS propietario_email,
@@ -112,7 +112,7 @@ class ReportesModel extends BaseModel {
                 COALESCE(e.id, 0) AS edificio_id,
                 COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                 e.descripcion AS edificio_descripcion,
-                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
+                NULLIF(TRIM(CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, ''))), '') AS propietario_nombre,
                 COALESCE(p.cedula, 'N/A') AS propietario_cedula,
                 COALESCE(p.telefono, 'N/A') AS propietario_telefono,
                 COALESCE(p.email, 'N/A') AS propietario_email,
@@ -246,7 +246,7 @@ class ReportesModel extends BaseModel {
             SELECT 
                 u.numero AS unidad_numero,
                 COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
-                CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) AS propietario_nombre,
+                NULLIF(TRIM(CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, ''))), '') AS propietario_nombre,
                 COALESCE(p.cedula, 'N/A') AS propietario_cedula,
                 COALESCE(p.telefono, 'N/A') AS propietario_telefono,
                 COALESCE(p.email, 'N/A') AS propietario_email,
@@ -489,7 +489,8 @@ class ReportesModel extends BaseModel {
             fputcsv($output, [
                 self::sanitizeCsvField($row['edificio_nombre']),
                 self::sanitizeCsvField($row['unidad_numero']),
-                self::sanitizeCsvField($row['propietario_nombre']),
+                // Consistencia con la UI: unidad sin propietario => 'Sin Propietario'
+                self::sanitizeCsvField($row['propietario_nombre'] ?: 'Sin Propietario'),
                 self::sanitizeCsvField($row['propietario_cedula']),
                 self::sanitizeCsvField($row['propietario_telefono']),
                 self::sanitizeCsvField($row['propietario_email']),
@@ -516,7 +517,7 @@ class ReportesModel extends BaseModel {
                 u.numero AS unidad_numero,
                 COALESCE(e.nombre, 'Sin Torre') AS edificio_nombre,
                 p.id AS propietario_id,
-                CONCAT(p.nombre, ' ', p.apellido) AS propietario_nombre,
+                NULLIF(TRIM(CONCAT(p.nombre, ' ', p.apellido)), '') AS propietario_nombre,
                 p.cedula AS propietario_cedula,
                 p.telefono AS propietario_telefono,
                 p.email AS propietario_email
