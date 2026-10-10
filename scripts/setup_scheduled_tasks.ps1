@@ -7,6 +7,8 @@
       - Condominio-Tokens   02:00  -> scripts\cleanup_tokens.php (tokens expirados y notificaciones)
       - Condominio-Logs     02:15  -> scripts\cleanup_logs.php (purga y rotación de logs)
       - Condominio-Uploads  02:30  -> scripts\cleanup_uploads.php (uploads huérfanos)
+    Tras registrarlas activa StartWhenAvailable: si la PC estaba apagada o suspendida
+    a la hora programada, la tarea se ejecuta apenas vuelva a estar disponible.
     Uso:
       powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_scheduled_tasks.ps1 [-WhatIf]
 .PARAMETER WhatIf
@@ -81,6 +83,19 @@ foreach ($tarea in $tareas) {
     & schtasks /Create /F /TN $tarea.Nombre /SC DAILY /ST $tarea.Hora /TR $trArgs
     if ($LASTEXITCODE -ne 0) {
         throw "schtasks /Create falló para $($tarea.Nombre) (código de salida $LASTEXITCODE)."
+    }
+}
+
+# Ajustes post-registro: ejecutar corridas omitidas (PC apagada/suspendida) y con batería
+foreach ($tarea in $tareas) {
+    try {
+        $st = Get-ScheduledTask -TaskName $tarea.Nombre -ErrorAction Stop
+        $st.Settings.StartWhenAvailable = $true
+        $st.Settings.AllowStartIfOnBatteries = $true
+        $st.Settings.DontStopIfGoingOnBatteries = $true
+        Set-ScheduledTask -TaskName $tarea.Nombre -Settings $st.Settings | Out-Null
+    } catch {
+        Write-Warning "No se pudieron ajustar los settings de $($tarea.Nombre): $($_.Exception.Message)"
     }
 }
 
