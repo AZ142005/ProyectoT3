@@ -60,9 +60,9 @@ class GastosFacturacionTabsTest extends TestCase {
             "Debe mostrar el KPI de Total Gastos Declarados");
         $this->assertStringContains('Cuota Base Común', $content,
             "Debe mostrar el KPI de Cuota Base Común");
-        $this->assertStringContains('Facturas Creadas', $content,
-            "Debe mostrar el contador de Facturas Creadas");
-        $this->assertStringContains('Cálculo Dinámico de Cuotas a Facturar', $content,
+        $this->assertStringContains('Deudas Creadas', $content,
+            "Debe mostrar el contador de Deudas Creadas");
+        $this->assertStringContains('Cálculo Dinámico de Cuotas a Emitir', $content,
             "Debe detallar el desglose de cálculo global e individual");
         $this->assertStringContains('csrf_field()', $content,
             "El formulario de generación debe incluir token CSRF");

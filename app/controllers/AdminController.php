@@ -200,12 +200,12 @@ class AdminController extends Controller {
             $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
 
             if ($facturas_existentes > 0) {
-                $error = "Ya existen facturas generadas para el mes " . nombreMes($mes) . " de " . $anio;
+                $error = "Ya existen deudas emitidas para el mes " . nombreMes($mes) . " de " . $anio;
                 Flash::error($error);
             } else {
                 $stats = $facturasModel->crearFacturasMasivas($unidades, $mes, $anio);
                 if ($stats !== false) {
-                    $msgText = "Se generaron {$stats['generadas']} facturas calculadas para el mes " . nombreMes($mes) . " de {$anio}.";
+                    $msgText = "Se enviaron {$stats['generadas']} deudas calculadas para el mes " . nombreMes($mes) . " de {$anio}.";
                     if ($stats['con_saldo_favor'] > 0) {
                         $msgText .= " Se aplicó saldo a favor en {$stats['con_saldo_favor']} unidades (Total usado: " . formatearMoneda($stats['total_saldo_favor_usado']) . ").";
                     }

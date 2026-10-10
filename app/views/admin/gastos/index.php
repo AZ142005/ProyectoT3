@@ -81,7 +81,7 @@
                                 <span class="material-symbols-outlined text-[20px]">receipt_long</span>
                                 <span>Emisión de Deuda</span>
                                 <?php if ($facturas_existentes > 0): ?>
-                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full px-2 py-0.5 text-xs"><?= e($facturas_existentes) ?> generadas</span>
+                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full px-2 py-0.5 text-xs"><?= e($facturas_existentes) ?> emitidas</span>
                                 <?php else: ?>
                                     <span class="badge bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5 text-xs">Pendiente</span>
                                 <?php endif; ?>
@@ -98,7 +98,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="text-lg font-bold text-on-surface mb-1">Registro de Gastos</h4>
-            <p class="text-xs text-on-surface-variant mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
+            <p class="text-xs text-on-surface-variant mb-0">Control de egresos (comunes/individuales) y soporte digital</p>
         </div>
             <div class="d-flex align-items-center gap-2">
                 <a href="/admin/cartelera" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
@@ -314,7 +314,7 @@
                             </div>
                         </div>
 
-                        <!-- Tarjeta de Generación Masiva -->
+                        <!-- Tarjeta de Emisión Masiva -->
                         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-6">
                             <div class="flex justify-between items-center pb-4 border-b border-background mb-6">
                                 <h3 class="text-lg font-bold text-on-surface flex items-center gap-2 mb-0">
@@ -343,7 +343,7 @@
                                 </div>
 
                                 <div class="flex flex-col gap-1 text-center md:text-left">
-                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Facturas Creadas</span>
+                                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Deudas Creadas</span>
                                     <span class="text-lg font-bold mt-1 <?= $facturas_existentes > 0 ? 'text-primary' : 'text-on-surface-variant/60' ?>">
                                         <?= $facturas_existentes > 0 ? e($facturas_existentes) . ' creadas' : 'Ninguna creada' ?>
                                     </span>
@@ -354,7 +354,7 @@
                             <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 text-xs text-slate-700">
                                 <div class="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
                                     <span class="material-symbols-outlined text-primary text-base">calculate</span>
-                                    <span>Cálculo Dinámico de Cuotas a Facturar</span>
+                                    <span>Cálculo Dinámico de Cuotas a Emitir</span>
                                 </div>
                                 <p class="mb-2 leading-relaxed text-slate-600">
                                     La deuda de cada unidad no es fija: se calcula automáticamente como la suma de la <strong>Fracción Global</strong> (gastos comunes divididos entre las <?= e($distribucion['total_unidades'] ?? count($unidades)) ?> unidades activas) más la <strong>Fracción Individual</strong> de su edificio (si la torre tuvo gastos específicos registrados).
@@ -380,9 +380,9 @@
                                 <div class="bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-2xl p-4 text-sm mb-6 flex items-start gap-2.5">
                                     <span class="material-symbols-outlined text-[22px] text-yellow-700 shrink-0">warning</span>
                                     <div>
-                                        <p class="font-bold">Facturas ya generadas</p>
+                                        <p class="font-bold">Deudas ya enviadas</p>
                                         <p class="mt-0.5 text-xs text-yellow-600/90 leading-relaxed">
-                                            Ya se han generado las facturas para el mes actual de <strong><?= nombreMes($mes) ?> <?= e($anio) ?></strong>. Si decides presionar el botón "Re-generar Facturas", se recalculará y duplicará la facturación mensual para los residentes. Utiliza esta acción únicamente si eliminaste las facturas anteriores.
+                                            Ya se han enviado las deudas del mes actual de <strong><?= nombreMes($mes) ?> <?= e($anio) ?></strong>. Si decides presionar el botón «Re-enviar Deuda», se recalculará y duplicará la deuda mensual para los residentes. Utiliza esta acción únicamente si eliminaste las deudas anteriores.
                                         </p>
                                     </div>
                                 </div>
@@ -392,7 +392,7 @@
                                     <div>
                                         <p class="font-bold">Proceso Automatizado de Conciliación</p>
                                         <p class="mt-0.5 text-xs text-blue-600/90 leading-relaxed">
-                                            Al generar las facturas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (facturas con saldos negativos) para cada unidad del conjunto, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva factura nacerá marcada en estado <strong>Pagada</strong>.
+                                            Al enviar las deudas, el sistema buscará de manera automática cualquier saldo a favor de meses anteriores (saldos negativos) para cada unidad del conjunto, y lo aplicará como abono a la cuota del presente mes. Si el saldo a favor cubre el total de la cuota, la nueva deuda nacerá marcada en estado <strong>Pagada</strong>.
                                         </p>
                                     </div>
                                 </div>
@@ -405,7 +405,7 @@
                                     <button type="submit" name="generar" value="1"
                                             class="font-bold px-8 py-3.5 rounded-xl shadow-md transition-all duration-200 active:scale-95 flex items-center gap-1.5 text-sm <?= $facturas_existentes > 0 ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-primary hover:bg-primary-hover text-white' ?>">
                                         <span class="material-symbols-outlined">autorenew</span>
-                                        <?= $facturas_existentes > 0 ? 'Re-generar Facturas' : 'Generar Facturas del Mes' ?>
+                                        <?= $facturas_existentes > 0 ? 'Re-enviar Deuda' : 'Enviar Deuda' ?>
                                     </button>
                                 </form>
                         </div>
