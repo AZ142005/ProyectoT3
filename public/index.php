@@ -212,6 +212,11 @@ $router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index']
 $router->get('/admin/gastos/maestro', [\App\Controllers\GastoController::class, 'cargarMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/parsear-maestro', [\App\Controllers\GastoController::class, 'parsearMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/importar-maestro', [\App\Controllers\GastoController::class, 'importarMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
+
+// --- Reporte de Cartelera: importación de deuda por unidades ---
+$router->get('/admin/cartelera', [\App\Controllers\CarteleraController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/cartelera/parsear', [\App\Controllers\CarteleraController::class, 'parsear'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/cartelera/importar', [\App\Controllers\CarteleraController::class, 'importar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/eliminar', [\App\Controllers\GastoController::class, 'eliminar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/generar-facturas', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN, UserRole::AUDITOR]);
