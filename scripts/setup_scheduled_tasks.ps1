@@ -86,14 +86,21 @@ foreach ($tarea in $tareas) {
     }
 }
 
-# Ajustes post-registro: ejecutar corridas omitidas (PC apagada/suspendida) y con batería
+# Ajustes post-registro: ejecutar corridas omitidas (PC apagada/suspendida) y con batería.
+# Nota: el objeto de settings CIM expone las propiedades invertidas
+# (DisallowStartIfOnBatteries / StopIfGoingOnBatteries); se asignan solo si existen.
 foreach ($tarea in $tareas) {
     try {
         $st = Get-ScheduledTask -TaskName $tarea.Nombre -ErrorAction Stop
-        $st.Settings.StartWhenAvailable = $true
-        $st.Settings.AllowStartIfOnBatteries = $true
-        $st.Settings.DontStopIfGoingOnBatteries = $true
-        Set-ScheduledTask -TaskName $tarea.Nombre -Settings $st.Settings | Out-Null
+        $settings = $st.Settings
+        $settings.StartWhenAvailable = $true
+        if ($settings.PSObject.Properties.Name -contains 'DisallowStartIfOnBatteries') {
+            $settings.DisallowStartIfOnBatteries = $false
+        }
+        if ($settings.PSObject.Properties.Name -contains 'StopIfGoingOnBatteries') {
+            $settings.StopIfGoingOnBatteries = $false
+        }
+        Set-ScheduledTask -TaskName $tarea.Nombre -Settings $settings | Out-Null
     } catch {
         Write-Warning "No se pudieron ajustar los settings de $($tarea.Nombre): $($_.Exception.Message)"
     }
