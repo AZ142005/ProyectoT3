@@ -25,6 +25,16 @@ class ConciliacionController extends Controller {
         $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractosPendientes);
         $pagosPendientes = $conciliacionModel->obtenerTodosPagosPendientes();
 
+        // T3: la lista de pendientes solo muestra los pagos del mes actual (los cruces no se filtran).
+        // El corte de mes se evalúa en la zona horaria de la app (America/Caracas), no en la del php.ini.
+        $fechaMesActual = new \DateTimeImmutable('now', new \DateTimeZone('America/Caracas'));
+        $prefijoMesActual = $fechaMesActual->format('Y-m');
+        $pagosPendientes = array_values(array_filter(
+            $pagosPendientes,
+            static fn(array $pago): bool => !empty($pago['fecha_pago'])
+                && str_starts_with((string) $pago['fecha_pago'], $prefijoMesActual)
+        ));
+
         // Bandeja unificada: una fila por movimiento (pago y/o extracto) para el filtrado por categoría.
         $filasConciliacion = [];
 
@@ -131,6 +141,7 @@ class ConciliacionController extends Controller {
             'loteActual'            => $loteSeleccionado,
             'resultadoCruce'        => $resultadoCruce,
             'pagosPendientes'       => $pagosPendientes,
+            'mesPagosActual'        => $fechaMesActual->format('m/Y'),
             'filasConciliacion'     => $filasPaginadas,
             'conteosConciliacion'   => $conteosConciliacion,
             'paginacion'            => $paginacion,

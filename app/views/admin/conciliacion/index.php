@@ -78,7 +78,7 @@
                             </div>
                             <span class="material-symbols-outlined fs-1 text-warning opacity-50">pending_actions</span>
                         </div>
-                        <small class="text-muted d-block mt-1">Listado general en espera</small>
+                        <small class="text-muted d-block mt-1">Solo se muestran los pagos del mes actual (<?= e($mesPagosActual) ?>)</small>
                     </div>
 
                     <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-full cursor-pointer" role="button" onclick="document.getElementById('filtro-exactas').click(); document.getElementById('seccionConciliacion').scrollIntoView({behavior: 'smooth'});" title="Ver Coincidencias Exactas">
