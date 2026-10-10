@@ -763,6 +763,18 @@ class BehaviorTest extends TestCase {
             'Must clean ALL expired OTP tokens, not just used ones');
     }
 
+    // 1.2b — Cleanup uploads script exists
+    public function testCleanupUploadsScriptExists(): void {
+        $path = dirname(__DIR__) . '/scripts/cleanup_uploads.php';
+        $this->assertFileExists($path, 'cleanup_uploads.php script must exist');
+    }
+
+    // 1.2c — Scheduled tasks setup script exists
+    public function testSetupScheduledTasksScriptExists(): void {
+        $path = dirname(__DIR__) . '/scripts/setup_scheduled_tasks.ps1';
+        $this->assertFileExists($path, 'setup_scheduled_tasks.ps1 script must exist');
+    }
+
     // 1.3a — procesar2fa has rate limiting
     public function testProcesar2faHasRateLimiting(): void {
         $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
