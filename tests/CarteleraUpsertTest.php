@@ -11,7 +11,7 @@ use App\Services\CarteleraParserService;
  * Reimportar un reporte no acumula: las deudas existentes (mismo numero_factura
  * CART-*) se actualizan con el saldo del reporte. El test modifica el mes 10 de
  * la unidad 1-01 (25.152,28 -> 25.252,28), importa, verifica el upsert y restaura
- * las filas originales incluso si un assert falla (try/finally).
+ * montos, fechas y auditoría incluso si un assert falla (try/finally).
  *
  * Usa el fixture real `tests/fixtures/cartelera_dotwood.pdf` (dato no versionado).
  * Si el fixture no está presente, el test se marca como skipped.
@@ -46,6 +46,8 @@ class CarteleraUpsertTest extends TestCase {
         $modelo = new CarteleraModel();
         $db = Database::getConnection();
         $restaurado = false;
+        // Snapshot de fechas antes de importar: el import usa la fecha del reporte
+        $fechasOriginales = $this->fechasCartelera($db);
 
         try {
             // Snapshot inicial (estado esperado del reporte real ya importado)
@@ -85,6 +87,19 @@ class CarteleraUpsertTest extends TestCase {
                     error_log('[CarteleraUpsertTest] No se pudo restaurar el lote original: ' . $e->getMessage());
                 }
             }
+            // Restauración de fechas: las importaciones pisan emisión/vencimiento con la fecha del reporte
+            if ($fechasOriginales[0] !== null) {
+                try {
+                    $stmtFechas = $db->prepare("
+                        UPDATE facturas
+                        SET fecha_emision = :fe, fecha_vencimiento = :fv
+                        WHERE numero_factura LIKE 'CART-%' AND deleted_at IS NULL
+                    ");
+                    $stmtFechas->execute(['fe' => $fechasOriginales[0], 'fv' => $fechasOriginales[1]]);
+                } catch (\Throwable $e) {
+                    error_log('[CarteleraUpsertTest] No se pudieron restaurar las fechas: ' . $e->getMessage());
+                }
+            }
             // Limpieza de la auditoría generada por el test
             try {
                 $db->exec("DELETE FROM log_auditoria WHERE detalles LIKE '%test-upsert%'");
@@ -114,6 +129,29 @@ class CarteleraUpsertTest extends TestCase {
             }
         }
         return null;
+    }
+
+    /**
+     * Par (emisión, vencimiento) dominante en las deudas CART activas.
+     *
+     * El estado real del reporte tiene un único par; si hubiera varios, se toma el
+     * más frecuente (desempate determinista por fecha) para poder restaurarlo.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function fechasCartelera(\PDO $db): array {
+        $fila = $db->query("
+            SELECT fecha_emision, fecha_vencimiento, COUNT(*) AS total
+            FROM facturas
+            WHERE numero_factura LIKE 'CART-%' AND deleted_at IS NULL
+            GROUP BY fecha_emision, fecha_vencimiento
+            ORDER BY total DESC, fecha_emision ASC, fecha_vencimiento ASC
+            LIMIT 1
+        ")->fetch();
+        if ($fila === false) {
+            return [null, null];
+        }
+        return [(string)$fila['fecha_emision'], (string)$fila['fecha_vencimiento']];
     }
 
     private function saldoDe(\PDO $db, string $numero): float {
