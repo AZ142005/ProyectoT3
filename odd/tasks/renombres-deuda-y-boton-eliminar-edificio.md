@@ -69,3 +69,10 @@
   - Escapado JS del nombre verificado empíricamente con nombres que contienen `'`, `\`, `"`, saltos de línea y `&`/`<`.
   - `php -l` de todos los archivos tocados → sin errores.
   - Suite completa: 0 fallos de aserción; solo persiste la salida preexistente de `SecurityTest` (no tocado).
+
+## Verificación independiente (orquestador, 2026-10-10)
+
+- **Spot-check del orquestador (HTTP en vivo, sesión admin real)**: `/admin/gastos` → sidebar "Carga y Emisión de Deuda" ✓ y pestaña "Emisión de Deuda" ✓; `/admin/estructura` → botón + confirm presentes; `POST eliminar-edificio id=234 (Torre 1)` → rechazo correcto ("No se puede eliminar «Torre 1»: tiene unidades con propietario o deudas asociadas."); edificio temporal vacío → "Edificio eliminado" + auditoría + limpieza del artefacto de prueba.
+- **Riesgo del diff** (`gentle-ai review assess`): `high`/`unassessable` (OpenCode no elegible; esperado) → verificador independiente por el gate.
+- **Verificador independiente: APROBADO CON OBSERVACIONES — 5/5 PASS**: diff íntegro (solo textos visibles + feature; rutas/ids/claves intactos); renombres 0 pendientes en código; seguridad triple del botón (ruta ADMIN → controlador `requireRole(['admin'])` → vista con guard auditor) + rechazo por propietarios/deudas/gastos + transacción con auditoría y SQL preparado; tests (Estructura 13/13, Gastos 18/18, Filtros 6/6, Router 23/23, Rbac 9/9); HTTP de rechazo verificado end-to-end (Torre 1 intacta tras el POST).
+- **Observaciones (informativas)**: (a) `gastos/index.php:385` conserva "…duplicará la facturación mensual…" (no es una de las frases pedidas; candidato a micro-pulido); (b) auditor no verificable por HTTP (sin credenciales; cubierto por guard estático + test); (c) refs lógicas sin FK (`comunicados.unidad_id`) quedan apuntando a entidades borradas (intencional, sin FK).
