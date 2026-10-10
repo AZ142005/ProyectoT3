@@ -307,6 +307,14 @@ class PagoDirectoController extends Controller {
             return;
         }
 
+        // El registro falló definitivamente (duplicado o comprobante ya reportado).
+        // Eliminar únicamente el comprobante persistido por esta solicitud para
+        // no dejar huérfanos en uploads/comprobantes.
+        $rutaComprobante = UPLOADS_PATH . '/comprobantes/' . $nombreArchivo;
+        if ($nombreArchivo && file_exists($rutaComprobante)) {
+            @unlink($rutaComprobante);
+        }
+
         $this->renderFormulario('Ya existe un pago registrado con la misma información para esta unidad (o el comprobante ya fue reportado). Si ya lo reportó, espere la verificación de la administración.', $_POST);
     }
 

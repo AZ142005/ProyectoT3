@@ -212,6 +212,14 @@ class PagoController extends Controller {
             }
             $this->redirect('/pagos');
         } else {
+            // El registro del pago falló definitivamente (duplicado o error de datos).
+            // Eliminar únicamente el comprobante persistido por esta solicitud para
+            // no dejar huérfanos en uploads/comprobantes.
+            $rutaComprobante = UPLOADS_PATH . '/comprobantes/' . $uniqueName;
+            if ($uniqueName && file_exists($rutaComprobante)) {
+                @unlink($rutaComprobante);
+            }
+
             Flash::error("No se pudo registrar el pago: es un duplicado o hubo un error de datos.");
             $this->redirect('/pagos/nuevo');
         }
