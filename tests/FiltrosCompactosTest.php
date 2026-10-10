@@ -69,7 +69,7 @@ class FiltrosCompactosTest extends TestCase {
     }
 
     /**
-     * Verifica que Gastos y Facturación preserve los selectores y tab.
+     * Verifica que Carga y Emisión de Deuda preserve los selectores y tab.
      */
     public function testGastosFiltrosCampos(): void {
         $content = $this->readFile('app/views/admin/gastos/index.php');

@@ -18,7 +18,7 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">receipt_long</span>
-                    <span>Gastos y Facturación</span>
+                    <span>Carga y Emisión de Deuda</span>
                 </h1>
             </div>
             <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
@@ -52,7 +52,7 @@
                 }
                 </style>
 
-                <!-- NAVEGACIÓN EN DOS PESTAÑAS: REGISTRO DE GASTOS VS EMISIÓN DE FACTURAS -->
+                <!-- NAVEGACIÓN EN DOS PESTAÑAS: REGISTRO DE GASTOS VS EMISIÓN DE DEUDA -->
                 <div class="bg-white rounded-2xl border border-outline-variant p-2 shadow-sm mb-4">
                     <ul class="nav nav-pills nav-fill gap-2" id="gastosTabs" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -79,7 +79,7 @@
                                     aria-controls="tab-facturacion"
                                     aria-selected="<?= ($tabActual === 'facturacion') ? 'true' : 'false' ?>">
                                 <span class="material-symbols-outlined text-[20px]">receipt_long</span>
-                                <span>Emisión de Facturas</span>
+                                <span>Emisión de Deuda</span>
                                 <?php if ($facturas_existentes > 0): ?>
                                     <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full px-2 py-0.5 text-xs"><?= e($facturas_existentes) ?> generadas</span>
                                 <?php else: ?>
@@ -304,12 +304,12 @@
     </div>
 </div>
 
-                    <!-- PESTAÑA 2: EMISIÓN DE FACTURAS -->
+                    <!-- PESTAÑA 2: EMISIÓN DE DEUDA -->
                     <div class="tab-pane fade <?= ($tabActual === 'facturacion') ? 'show active' : '' ?>" id="tab-facturacion" role="tabpanel" aria-labelledby="tab-facturacion-btn">
                         <!-- Barra de Acciones del Contenido -->
                         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                             <div>
-                                <h4 class="text-lg font-bold text-on-surface mb-1">Emisión de Facturación Mensual</h4>
+                                <h4 class="text-lg font-bold text-on-surface mb-1">Emisión de Deuda Mensual</h4>
                                 <p class="text-xs text-on-surface-variant mb-0">Cálculo dinámico de cuotas del conjunto y distribución entre las unidades del conjunto</p>
                             </div>
                         </div>

@@ -12,7 +12,7 @@ use App\Models\FacturasModel;
 class GastoController extends Controller {
 
     /**
-     * Muestra el panel administrativo unificado de Gastos y Facturación.
+     * Muestra el panel administrativo unificado de Carga y Emisión de Deuda.
      */
     public function index() {
         Auth::requireRole(['admin', 'auditor']);
@@ -45,7 +45,7 @@ class GastoController extends Controller {
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
 
-        // Datos para la pestaña de Emisión de Facturas
+        // Datos para la pestaña de Emisión de Deuda
         $unidades = $unidadesModel->getActivas();
         $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
         $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
@@ -73,7 +73,7 @@ class GastoController extends Controller {
             'distribucion'        => $distribucion,
             'totalGastosMes'      => $totalMes,
             'layout'              => 'admin',
-            'title'               => 'Gastos y Facturación - Administrador'
+            'title'               => 'Carga y Emisión de Deuda - Administrador'
         ]);
     }
 

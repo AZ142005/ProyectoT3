@@ -4,7 +4,7 @@ $navItems = [
     ['route' => 'comprobantes',      'url' => '/admin/comprobantes',        'icon' => 'history',        'label' => 'Historial de Pagos'],
     ['route' => 'conciliacion',      'url' => '/admin/conciliacion',        'icon' => 'sync_alt',       'label' => 'Conciliación'],
     ['route' => 'cuentas_bancarias', 'url' => '/admin/cuentas-bancarias',   'icon' => 'account_balance', 'label' => 'Cuentas Bancarias'],
-    ['route' => 'gastos',            'url' => '/admin/gastos',              'icon' => 'receipt_long',   'label' => 'Gastos y Facturación'],
+    ['route' => 'gastos',            'url' => '/admin/gastos',              'icon' => 'receipt_long',   'label' => 'Carga y Emisión de Deuda'],
     ['route' => 'estructura',        'url' => '/admin/estructura',          'icon' => 'domain',         'label' => 'Estructura'],
     ['route' => 'estacionamientos',  'url' => '/admin/estacionamientos',    'icon' => 'directions_car', 'label' => 'Estacionamientos'],
     ['route' => 'comunicados',       'url' => '/admin/comunicados',         'icon' => 'campaign',       'label' => 'Comunicados'],
