@@ -11,8 +11,6 @@ use PDOException;
  * - Esquema: dup_guard unificado (ramas F y S) + uk_gasto_dup_guard, soporte_hash + índice;
  *   el índice plano uk_gasto_factura_periodo queda retirado (retenía filas borradas).
  * - crearGasto: pre-chequeo F (factura) y S (sin factura), cierre de carrera 23000 -> 0.
- * - importarGastosMaestro: idempotencia por hash del PDF + período, hash por fila y
- *   omisión de renglones en carrera.
  * - Flujos legítimos: datos distintos pasan y un gasto borrado libera la identidad F y S.
  */
 class GastosDuplicadosTest extends TestCase {
@@ -324,111 +322,6 @@ class GastosDuplicadosTest extends TestCase {
             // El gasto borrado ya no cuenta para el pre-chequeo ni para la guarda
             $id2 = $model->crearGasto($datos);
             $this->assertTrue($id2 > 0, 'Un gasto borrado debe liberar la identidad S');
-        } finally {
-            $this->limpiarGastos($db);
-        }
-    }
-
-    // =================================================================
-    // 3. importarGastosMaestro
-    // =================================================================
-
-    public function testImportarMaestroIdempotenciaPorHash(): void {
-        $db = Database::getConnection();
-        $categoriaId = $this->categoriaId($db);
-        $adminId = $this->adminId($db);
-        if ($categoriaId <= 0 || $adminId <= 0) {
-            $this->skip('Datos insuficientes (categorías/usuarios) para la prueba.');
-            return;
-        }
-        if (!$this->columnaExiste($db, 'gastos_comunes', 'soporte_hash')) {
-            $this->skip('migración Fase 18 no aplicada (soporte_hash)');
-            return;
-        }
-
-        $model = new GastosModel();
-        $sufijo = bin2hex(random_bytes(4));
-        $hashPdf = hash('sha256', 'pdf-maestro-' . $sufijo);
-
-        try {
-            $items = [
-                [
-                    'categoria_id' => $categoriaId,
-                    'descripcion'  => 'Renglón maestro ' . $sufijo,
-                    'monto_total'  => 55.10,
-                    'fecha_gasto'  => '2098-11-15',
-                    'proveedor'    => self::PREFIJO . $sufijo,
-                ],
-            ];
-
-            $primera = $model->importarGastosMaestro($items, $adminId, 'maestro_' . $sufijo . '.pdf', 11, 2098, $hashPdf);
-            $this->assertEquals(1, $primera['procesados'], 'La primera importación debe procesar el renglón');
-            $this->assertFalse((bool)$primera['archivo_ya_importado'], 'La primera importación no es duplicada');
-
-            $hashGuardado = $db->query("SELECT soporte_hash FROM gastos_comunes WHERE proveedor = '" . self::PREFIJO . $sufijo . "' LIMIT 1")->fetchColumn();
-            $this->assertEquals($hashPdf, $hashGuardado, 'Cada fila debe almacenar el hash del PDF Maestro');
-
-            // Re-ingesta del mismo PDF para el mismo período => sin inserts
-            $segunda = $model->importarGastosMaestro($items, $adminId, 'maestro_' . $sufijo . '.pdf', 11, 2098, $hashPdf);
-            $this->assertTrue((bool)$segunda['archivo_ya_importado'], 'La re-ingesta debe reportar archivo_ya_importado');
-            $this->assertEquals(0, $segunda['procesados'], 'La re-ingesta no debe insertar');
-            $this->assertEquals(count($items), $segunda['omitidos'], 'La re-ingesta debe omitir todos los renglones');
-            $this->assertEquals(count($items), $segunda['duplicados'], 'La re-ingesta debe contar los renglones duplicados');
-
-            $total = intval($db->query("SELECT COUNT(*) FROM gastos_comunes WHERE proveedor = '" . self::PREFIJO . $sufijo . "'")->fetchColumn());
-            $this->assertEquals(1, $total, 'La re-ingesta no debe crear filas adicionales');
-        } finally {
-            $this->limpiarGastos($db);
-        }
-    }
-
-    public function testImportarMaestroOmiteFilasDuplicadasEnCarrera(): void {
-        $db = Database::getConnection();
-        $categoriaId = $this->categoriaId($db);
-        $adminId = $this->adminId($db);
-        if ($categoriaId <= 0 || $adminId <= 0) {
-            $this->skip('Datos insuficientes (categorías/usuarios) para la prueba.');
-            return;
-        }
-        if (!$this->indiceExiste($db, 'gastos_comunes', 'uk_gasto_dup_guard')) {
-            $this->skip('migración Fase 18 no aplicada (uk_gasto_dup_guard)');
-            return;
-        }
-
-        $model = new GastosModel();
-        $sufijo = bin2hex(random_bytes(4));
-
-        try {
-            $itemRepetido = [
-                'categoria_id' => $categoriaId,
-                'descripcion'  => 'Renglón repetido ' . $sufijo,
-                'monto_total'  => 77.70,
-                'fecha_gasto'  => '2098-11-16',
-                'proveedor'    => self::PREFIJO . $sufijo,
-            ];
-            $itemDistinto = [
-                'categoria_id' => $categoriaId,
-                'descripcion'  => 'Renglón distinto ' . $sufijo,
-                'monto_total'  => 88.80,
-                'fecha_gasto'  => '2098-11-17',
-                'proveedor'    => self::PREFIJO . $sufijo,
-            ];
-
-            // Dos renglones idénticos sin factura: el segundo choca con la guarda
-            // S dentro de la misma transacción y se reporta como omitido.
-            $resultado = $model->importarGastosMaestro(
-                [$itemRepetido, $itemRepetido, $itemDistinto],
-                $adminId,
-                'maestro_carrera_' . $sufijo . '.pdf',
-                11,
-                2098,
-                null
-            );
-
-            $this->assertEquals(2, $resultado['procesados'], 'Los renglones distintos deben procesarse');
-            $this->assertEquals(1, $resultado['omitidos'], 'El renglón repetido debe omitirse en carrera');
-            $this->assertEquals(1, $resultado['duplicados'], 'El conteo de duplicados debe reflejar la omisión');
-            $this->assertFalse((bool)$resultado['archivo_ya_importado'], 'Sin hash previo no es re-ingesta');
         } finally {
             $this->limpiarGastos($db);
         }

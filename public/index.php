@@ -209,9 +209,6 @@ $router->post('/admin/cuentas-bancarias/eliminar', [\App\Controllers\CuentaBanca
 
 // --- Módulo de Gastos Comunes y Rendición de Cuentas (RF 30 - RF 34, RF 21, RF 22) ---
 $router->get('/admin/gastos', [\App\Controllers\GastoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->get('/admin/gastos/maestro', [\App\Controllers\GastoController::class, 'cargarMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->post('/admin/gastos/parsear-maestro', [\App\Controllers\GastoController::class, 'parsearMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->post('/admin/gastos/importar-maestro', [\App\Controllers\GastoController::class, 'importarMaestro'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
 // --- Reporte de Cartelera: importación de deuda por unidades ---
 $router->get('/admin/cartelera', [\App\Controllers\CarteleraController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);

@@ -54,17 +54,7 @@ class ArreglosAuditoriaTest extends TestCase {
             'Los checkboxes deben asociarse al formulario masivo con el atributo form');
     }
 
-    // T2 — Saneamiento de archivo_maestro / soportes
-    public function testGastoControllerSaneaArchivoMaestroConBasename(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'importarMaestro');
-
-        $this->assertStringContains('basename', $metodo, 'importarMaestro debe aplicar basename al archivo maestro');
-        $posBasename = strpos($metodo, 'basename');
-        $posImportacion = strpos($metodo, 'importarGastosMaestro');
-        $this->assertTrue($posBasename !== false && $posImportacion !== false && $posBasename < $posImportacion,
-            'El saneamiento debe ocurrir antes de llamar a importarGastosMaestro');
-    }
-
+    // T2 — Saneamiento de soportes
     public function testGastosModelEliminarGastoAplicaBasenameAntesDeUnlink(): void {
         $metodo = $this->extraerMetodo(BASE_PATH . '/app/models/GastosModel.php', 'eliminarGasto');
 
@@ -74,17 +64,6 @@ class ArreglosAuditoriaTest extends TestCase {
         $this->assertTrue($posUnlink !== false, 'eliminarGasto debe conservar el unlink del soporte');
         $this->assertTrue($posBasename < $posUnlink,
             'El basename debe aplicarse antes de construir la ruta y llamar a unlink');
-    }
-
-    public function testGastosModelImportarGastosMaestroSaneaAntesDeGuardarSoporte(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/models/GastosModel.php', 'importarGastosMaestro');
-
-        $posBasename = strpos($metodo, 'basename');
-        $posSoporte = strpos($metodo, "'soporte'");
-        $this->assertTrue($posBasename !== false, 'importarGastosMaestro debe sanear el nombre del archivo');
-        $this->assertTrue($posSoporte !== false, 'importarGastosMaestro debe seguir insertando la columna soporte');
-        $this->assertTrue($posBasename < $posSoporte,
-            'El saneamiento debe ocurrir antes de usar el nombre en la columna soporte');
     }
 
     // T3/T4 — Estacionamiento
@@ -152,13 +131,6 @@ class ArreglosAuditoriaTest extends TestCase {
         $this->assertStringContains('is_numeric', $metodo, 'aprobarLote debe exigir ids numéricos');
     }
 
-    public function testImportarMaestroProtegeCamposAntesDeTrimYFloatval(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'importarMaestro');
-
-        $this->assertStringContains('is_string', $metodo, 'Los campos de texto deben validarse como string');
-        $this->assertStringContains('is_scalar', $metodo, 'Los campos numéricos deben validarse como escalares');
-    }
-
     // T6a — Cuerpo JSON en conciliarPago
     public function testConciliarPagoAceptaJsonYSoloIdsEscalares(): void {
         $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'conciliarPago');
@@ -181,20 +153,9 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // Coerción — período escalar en el módulo de gastos
     public function testGastoControllerNormalizaPeriodoScalar(): void {
-        foreach (['guardar', 'parsearMaestro', 'importarMaestro'] as $metodoNombre) {
-            $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', $metodoNombre);
-            $this->assertStringContains('periodoDesdePost', $metodo,
-                "{$metodoNombre} debe normalizar mes/año con periodoDesdePost (solo escalares numéricos)");
-        }
-    }
-
-    public function testImportarMaestroValidaRangoDePeriodo(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'importarMaestro');
-
-        $this->assertStringContains('$mes < 1 || $mes > 12', $metodo,
-            'importarMaestro debe validar el mes en 1..12');
-        $this->assertStringContains('$anio < 2000 || $anio > 2100', $metodo,
-            'importarMaestro debe validar el año en 2000..2100');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'guardar');
+        $this->assertStringContains('periodoDesdePost', $metodo,
+            'guardar debe normalizar mes/año con periodoDesdePost (solo escalares numéricos)');
     }
 
     public function testConciliarPagoDevuelveCsrfTokenEnRespuestasJson(): void {
