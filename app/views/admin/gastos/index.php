@@ -101,9 +101,9 @@
             <p class="text-xs text-on-surface-variant mb-0">Control de facturas, tipología de egresos (comunes/individuales) y soporte digital</p>
         </div>
             <div class="d-flex align-items-center gap-2">
-                <a href="/admin/gastos/maestro?mes=<?= e($filtros['mes']) ?>&anio=<?= e($filtros['anio']) ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                <a href="/admin/cartelera" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                    <span>Cargar PDF Maestro</span>
+                    <span>Cargar Reporte de Cartelera</span>
                 </a>
                 <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto">
                     <span class="material-symbols-outlined text-[16px]">add</span>
