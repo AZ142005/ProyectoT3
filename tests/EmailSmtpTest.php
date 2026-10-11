@@ -7,7 +7,8 @@ use App\Services\SmtpMailer;
 
 /**
  * Pruebas del transporte de correo: modo mock, resolución de configuración SMTP
- * y protocolo SMTP completo contra un servidor falso local (sin red externa).
+ * y protocolo SMTP completo contra un servidor falso local (sin red externa),
+ * incluyendo el mensaje multipart/mixed con adjuntos PDF.
  */
 class EmailSmtpTest extends TestCase {
 
@@ -113,23 +114,27 @@ class EmailSmtpTest extends TestCase {
     }
 
     /**
-     * Protocolo completo (EHLO multilínea, AUTH LOGIN, MAIL/RCPT/DATA, QUIT) contra
-     * un servidor SMTP falso local lanzado con proc_open. Nunca toca la red externa.
+     * Lanza el servidor SMTP falso local, envía un mensaje con SmtpMailer y devuelve
+     * [resultado del envío, mensaje capturado]. Retorna null si el entorno no permite
+     * la prueba (en ese caso registra un skip). Nunca toca la red externa.
+     *
+     * @param array $adjuntos Adjuntos que se pasan a SmtpMailer::send().
+     * @return array{0: bool, 1: string}|null
      */
-    public function testProtocoloCompletoConServidorFalsoLocal(): void {
+    private function enviarContraServidorFalso(array $adjuntos = []): ?array {
         if (!function_exists('proc_open')) {
             $this->skip('proc_open no está disponible en este entorno.');
-            return;
+            return null;
         }
         if (!function_exists('stream_socket_server')) {
             $this->skip('stream_socket_server no está disponible en este entorno.');
-            return;
+            return null;
         }
 
         $script = __DIR__ . '/helpers/fake_smtp_server.php';
         if (!file_exists($script)) {
             $this->skip('No se encontró tests/helpers/fake_smtp_server.php.');
-            return;
+            return null;
         }
 
         $captura = sys_get_temp_dir() . '/fake_smtp_' . uniqid() . '.eml';
@@ -153,8 +158,11 @@ class EmailSmtpTest extends TestCase {
 
         if (!is_resource($proceso)) {
             $this->skip('proc_open no pudo iniciar el servidor falso SMTP.');
-            return;
+            return null;
         }
+
+        $resultado = false;
+        $contenido = '';
 
         try {
             stream_set_blocking($tuberias[1], false);
@@ -178,7 +186,7 @@ class EmailSmtpTest extends TestCase {
             if ($puerto === null || $puerto <= 0) {
                 $error = trim((string)stream_get_contents($tuberias[2]));
                 $this->skip('El servidor falso SMTP no reportó un puerto utilizable.' . ($error !== '' ? " STDERR: {$error}" : ''));
-                return;
+                return null;
             }
 
             $mailer = new SmtpMailer([
@@ -194,12 +202,10 @@ class EmailSmtpTest extends TestCase {
                 'ehlo_host'   => 'localhost',
             ]);
 
-            $resultado = $mailer->send('residente@example.com', 'Asunto de prueba', '<p>Hola SMTP</p>');
-            $this->assertTrue($resultado, 'El protocolo SMTP completo debe retornar true.');
+            $resultado = $mailer->send('residente@example.com', 'Asunto de prueba', '<p>Hola SMTP</p>', $adjuntos);
 
             // El servidor escribe la captura al recibir el punto final de DATA.
-            $contenido = '';
-            $limite    = microtime(true) + 5;
+            $limite = microtime(true) + 5;
             while (microtime(true) < $limite) {
                 if (file_exists($captura)) {
                     $contenido = (string)file_get_contents($captura);
@@ -209,9 +215,6 @@ class EmailSmtpTest extends TestCase {
                 }
                 usleep(50000);
             }
-
-            $this->assertStringContains('Subject: =?UTF-8?B?', $contenido, 'El mensaje capturado debe llevar el asunto en base64 UTF-8.');
-            $this->assertStringContains('Content-Transfer-Encoding: base64', $contenido, 'El mensaje capturado debe declarar cuerpo en base64.');
         } finally {
             if (is_resource($proceso)) {
                 $estado = proc_get_status($proceso);
@@ -232,5 +235,54 @@ class EmailSmtpTest extends TestCase {
                 @unlink($captura);
             }
         }
+
+        return [$resultado, $contenido];
+    }
+
+    /**
+     * Protocolo completo (EHLO multilínea, AUTH LOGIN, MAIL/RCPT/DATA, QUIT) contra
+     * el servidor falso; sin adjuntos el mensaje debe seguir siendo de una sola parte.
+     */
+    public function testProtocoloCompletoConServidorFalsoLocal(): void {
+        $captura = $this->enviarContraServidorFalso();
+        if ($captura === null) {
+            return;
+        }
+        [$resultado, $contenido] = $captura;
+
+        $this->assertTrue($resultado, 'El protocolo SMTP completo debe retornar true.');
+        $this->assertStringContains('Subject: =?UTF-8?B?', $contenido, 'El mensaje capturado debe llevar el asunto en base64 UTF-8.');
+        $this->assertStringContains('Content-Transfer-Encoding: base64', $contenido, 'El mensaje capturado debe declarar cuerpo en base64.');
+        $this->assertStringContains('Content-Type: text/html; charset=UTF-8', $contenido, 'Sin adjuntos el mensaje debe declarar el HTML.');
+        $this->assertFalse(str_contains($contenido, 'multipart'), 'Sin adjuntos el mensaje no debe ser multipart.');
+    }
+
+    /**
+     * Con adjuntos el mensaje debe ser multipart/mixed: HTML base64 como primera parte
+     * y el PDF como parte adjunta con nombre de archivo ASCII seguro.
+     */
+    public function testMensajeConAdjuntosEsMultipartMixed(): void {
+        $binario = '%PDF-1.4 carta-de-prueba 12345';
+        $captura = $this->enviarContraServidorFalso([[
+            'nombre'    => 'prueba.pdf',
+            'mime'      => 'application/pdf',
+            'contenido' => $binario,
+        ]]);
+        if ($captura === null) {
+            return;
+        }
+        [$resultado, $contenido] = $captura;
+
+        $this->assertTrue($resultado, 'El envío con adjuntos debe retornar true.');
+        $this->assertMatchesRegex('/Content-Type: multipart\/mixed; boundary="=_cond_[0-9a-f]+"/', $contenido,
+            'Con adjuntos el mensaje debe declarar multipart/mixed con boundary aleatorio.');
+        $this->assertStringContains('Content-Type: application/pdf; name="prueba.pdf"', $contenido,
+            'La parte adjunta debe declarar el MIME y el nombre del archivo.');
+        $this->assertStringContains('Content-Disposition: attachment; filename="prueba.pdf"', $contenido,
+            'La parte adjunta debe declarar la disposición de adjunto con el nombre.');
+        $this->assertStringContains(base64_encode($binario), $contenido,
+            'El contenido del adjunto debe viajar en base64.');
+        $this->assertMatchesRegex('/--=_cond_[0-9a-f]+--\r?\n/', $contenido,
+            'El multipart debe cerrar con el boundary final.');
     }
 }

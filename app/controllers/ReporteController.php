@@ -220,19 +220,34 @@ class ReporteController extends Controller {
             return;
         }
 
+        // Genera el PDF oficial antes de encolar: si falla, no se envía nada.
+        try {
+            $pdfCarta = (new \App\Services\CartaDeudaPdfService())->generar($detalle);
+        } catch (\Throwable $e) {
+            \App\Core\Flash::set('danger', 'No se pudo generar el PDF de la carta. Intente nuevamente.');
+            $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
+            return;
+        }
+
         $emailService = new \App\Services\EmailService();
         $notifService = new \App\Services\NotificationService();
 
         $cuerpoHtml = $emailService->renderTemplate('aviso_cobro', [
             'nombrePropietario' => $detalle['unidad']['propietario_nombre'] ?: 'Propietario',
-            'cedulaPropietario' => $detalle['unidad']['propietario_cedula'] ?? '',
             'numeroUnidad'      => $detalle['unidad']['unidad_numero'],
             'nombreEdificio'    => $detalle['unidad']['edificio_nombre'],
-            'facturas'          => $detalle['facturas'],
             'totalDeuda'        => $detalle['total_deuda']
         ]);
 
         $asunto = "📄 Carta de Cobro Oficial - Unidad " . $detalle['unidad']['unidad_numero'];
+
+        // El PDF viaja como adjunto cifrado en la cola; el worker solo lo descifra y despacha.
+        $nombreAdjunto = 'Carta-Deuda-Unidad-' . preg_replace('/[^A-Za-z0-9._-]/', '-', (string)$detalle['unidad']['unidad_numero']) . '.pdf';
+        $adjuntos = [[
+            'nombre'    => $nombreAdjunto,
+            'mime'      => 'application/pdf',
+            'contenido' => $pdfCarta,
+        ]];
 
         $encolado = $notifService->encolarNotificacion(
             $detalle['unidad']['propietario_email'],
@@ -240,7 +255,8 @@ class ReporteController extends Controller {
             $cuerpoHtml,
             $detalle['unidad']['propietario_telefono'],
             'ambos',
-            'alta'
+            'alta',
+            $adjuntos
         );
 
         // El envío solo se registra si el encolado del correo tuvo éxito.

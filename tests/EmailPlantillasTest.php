@@ -2,8 +2,8 @@
 namespace Tests;
 
 /**
- * Regresión de plantillas de correo: la carta de deuda debe usar el membrete
- * institucional actual, los días de mora reales (dias_mora, no dias_vencido)
+ * Regresión de plantillas de correo: la carta de deuda se envía como texto breve
+ * con el membrete institucional, el aviso de que la carta viaja en PDF adjunto
  * y el aviso de no responder.
  */
 class EmailPlantillasTest extends TestCase {
@@ -12,18 +12,22 @@ class EmailPlantillasTest extends TestCase {
         return (string)file_get_contents(dirname(__DIR__) . '/' . $relativePath);
     }
 
-    public function testAvisoCobroUsaMembreteActualDiasMoraYAvisoNoResponder(): void {
+    public function testAvisoCobroEsTextoBreveConMembreteYAvisoPdf(): void {
         $plantilla = $this->readFile('app/views/emails/aviso_cobro.php');
 
         $this->assertStringContains('CONDOMINIO CONJUNTO LAS MESETAS', $plantilla,
             'Debe usar el membrete institucional actual');
         $this->assertStringContains('RIF. J-400577870', $plantilla,
             'Debe usar el RIF actual');
-        $this->assertStringContains('dias_mora', $plantilla,
-            'Los días deben venir de dias_mora (el dato real que entrega el modelo)');
-        $this->assertFalse(str_contains($plantilla, 'dias_vencido'),
-            'No debe quedar la clave dias_vencido (siempre mostraba 0 días)');
+        $this->assertStringContains('PDF', $plantilla,
+            'El texto breve debe anunciar la Carta de Deuda en PDF adjunto');
         $this->assertStringContains('no responda a este correo', $plantilla,
             'Debe incluir el aviso de no responder');
+        $this->assertFalse(str_contains($plantilla, 'dias_vencido'),
+            'No debe quedar la clave dias_vencido (siempre mostraba 0 días)');
+        $this->assertFalse(str_contains($plantilla, 'facturas'),
+            'El texto breve ya no debe redactar la lista de facturas');
+        $this->assertFalse(str_contains($plantilla, '<table'),
+            'El texto breve no debe incluir tablas');
     }
 }

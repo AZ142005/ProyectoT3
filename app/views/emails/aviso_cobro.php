@@ -2,26 +2,16 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Carta de Cobro Oficial</title>
+    <title>Carta de Deuda</title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
         .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
         .header { background: #ffffff; border-bottom: 2px solid #27ae60; padding: 24px; text-align: left; }
         .header h3 { margin: 0 0 4px 0; color: #27ae60; font-size: 18px; font-weight: bold; }
         .header p { margin: 0; font-size: 12px; color: #64748b; }
-        .aviso-badge { display: inline-block; background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 6px 12px; font-family: monospace; font-weight: bold; font-size: 12px; margin-top: 10px; }
-        .content { padding: 28px 24px; line-height: 1.6; }
-        .title-carta { text-align: center; margin: 10px 0 24px 0; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
-        .title-carta h4 { margin: 0; color: #0f172a; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; }
-        .title-carta span { font-size: 12px; color: #64748b; }
-        .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; }
-        .info-card p { margin: 4px 0; }
-        .table-deuda { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
-        .table-deuda th, .table-deuda td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; }
-        .table-deuda th { background-color: #f1f5f9; color: #334155; font-size: 12px; text-transform: uppercase; }
-        .total-row { background-color: #fef2f2; font-weight: bold; }
-        .firmas { margin-top: 32px; padding-top: 24px; border-top: 1px dashed #cbd5e1; text-align: center; font-size: 12px; }
-        .firmas-col { display: inline-block; width: 48%; vertical-align: top; }
+        .content { padding: 28px 24px; line-height: 1.6; font-size: 14px; }
+        .content p { margin: 0 0 14px 0; }
+        .saldo { font-weight: bold; color: #dc2626; }
         .footer { background: #0f172a; color: rgba(255,255,255,0.7); padding: 16px; text-align: center; font-size: 11px; }
     </style>
 </head>
@@ -31,68 +21,16 @@
             <h3>CONDOMINIO CONJUNTO LAS MESETAS</h3>
             <p>RIF. J-400577870</p>
             <p>Av. Ppal. de Morón. Oficina Administrativa &bull; Urb. Las Mesetas. Teléf. 0271-2259170 - Valera, Edo. Trujillo</p>
-            <div class="aviso-badge">
-                AVISO OFICIAL: COB-<?= date('Ym') ?>-<?= e($numeroUnidad ?? '') ?>
-            </div>
         </div>
 
         <div class="content">
-            <div class="title-carta">
-                <h4>CARTA DE COBRO / RECORDATORIO DE MOROSIDAD</h4>
-                <span>Documento Formal de Cobranzas del Conjunto</span>
-            </div>
+            <p>Estimado(a) <?= e($nombrePropietario ?? 'Propietario') ?>,</p>
 
-            <div class="info-card">
-                <p><strong>Destinatario:</strong> <?= e($nombrePropietario ?? 'Propietario') ?> <?= !empty($cedulaPropietario) ? '(C.I: ' . e($cedulaPropietario) . ')' : '' ?></p>
-                <p><strong>Inmueble / Unidad:</strong> Apto/Unidad <?= e($numeroUnidad ?? '') ?> (<?= e($nombreEdificio ?? 'Sin Torre') ?>)</p>
-                <p><strong>Fecha de Emisión:</strong> <?= date('d/m/Y') ?></p>
-            </div>
+            <p>Le notificamos que la unidad <strong><?= e($numeroUnidad ?? '') ?></strong> (<?= e($nombreEdificio ?? 'Sin Torre') ?>) mantiene un saldo pendiente de <span class="saldo"><?= e(formatearMoneda($totalDeuda ?? 0)) ?></span>.</p>
 
-            <p style="font-size: 13px; margin-bottom: 12px;">Estimado(a) propietario, por medio de la presente comunicación formal se le notifica el balance deudor y las cuotas vencidas acumuladas correspondientes a su unidad habitacional:</p>
+            <p>Adjuntamos la Carta de Deuda oficial en formato PDF, con el detalle mensual completo, para su revisión y pago.</p>
 
-            <table class="table-deuda">
-                <thead>
-                    <tr>
-                        <th>Concepto / Mes</th>
-                        <th>Vencimiento</th>
-                        <th style="text-align:center;">Días Vencido</th>
-                        <th style="text-align:right;">Monto Adeudado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($facturas)): ?>
-                        <?php foreach ($facturas as $f): ?>
-                            <tr>
-                                <td><?= e($f['descripcion'] ?? 'Cuota de Conjunto') ?></td>
-                                <td><?= e($f['fecha_vencimiento'] ?? '') ?></td>
-                                <td style="text-align:center;"><?= e($f['dias_mora'] ?? 0) ?> días</td>
-                                <td style="text-align:right; font-weight:bold; color:#dc2626;"><?= e(formatearMoneda($f['saldo'] ?? 0)) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    <tr class="total-row">
-                        <td colspan="3" style="text-align:right; font-weight:bold;">TOTAL GENERAL ADEUDADO:</td>
-                        <td style="text-align:right; font-weight:bold; color:#dc2626; font-size:14px;"><?= e(formatearMoneda($totalDeuda ?? 0)) ?></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <p style="font-size:13px; color:#475569; margin-top:20px;">
-                Le exhortamos cordialmente a regularizar su situación de pago a la brevedad posible y reportar su comprobante a través de la plataforma en línea para evitar recargos o medidas administrativas.
-            </p>
-
-            <div class="firmas">
-                <div class="firmas-col">
-                    ____________________________________<br>
-                    <strong>ADMINISTRACIÓN GENERAL</strong><br>
-                    <span style="color:#64748b;">Las Mesetas de Morón</span>
-                </div>
-                <div class="firmas-col">
-                    ____________________________________<br>
-                    <strong>JUNTA DE CONJUNTO</strong><br>
-                    <span style="color:#64748b;">Firma Autorizada</span>
-                </div>
-            </div>
+            <p>Agradecemos su atención y le exhortamos a regularizar su situación a la brevedad posible.</p>
         </div>
 
         <div class="footer">

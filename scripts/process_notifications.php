@@ -99,9 +99,41 @@ try {
         $procesados++;
 
         // Paso A: Descifrado criptográfico seguro
+        $adjuntos = [];
         try {
             $destinatario = Encryption::decrypt($row['destinatario_email']);
             $cuerpoHtml = Encryption::decrypt($row['cuerpo_html']);
+
+            // Adjuntos opcionales: JSON cifrado con contenido en base64.
+            if (!empty($row['adjuntos'] ?? null)) {
+                $adjuntosJson = Encryption::decrypt($row['adjuntos']);
+                $adjuntosCrudos = json_decode($adjuntosJson, true);
+                if (!is_array($adjuntosCrudos)) {
+                    throw new Exception("Payload de adjuntos inválido (JSON no decodificable).");
+                }
+
+                foreach ($adjuntosCrudos as $indice => $adjunto) {
+                    $numero = $indice + 1;
+                    if (!is_array($adjunto)
+                        || !isset($adjunto['nombre'], $adjunto['mime'], $adjunto['contenido'])
+                        || !is_string($adjunto['nombre'])
+                        || !is_string($adjunto['mime'])
+                        || !is_string($adjunto['contenido'])) {
+                        throw new Exception("Payload de adjuntos inválido (estructura del adjunto {$numero}).");
+                    }
+
+                    $binario = base64_decode($adjunto['contenido'], true);
+                    if ($binario === false) {
+                        throw new Exception("Payload de adjuntos inválido (contenido base64 del adjunto {$numero}).");
+                    }
+
+                    $adjuntos[] = [
+                        'nombre'    => $adjunto['nombre'],
+                        'mime'      => $adjunto['mime'],
+                        'contenido' => $binario,
+                    ];
+                }
+            }
         } catch (\Throwable $e) {
             logWorker("[QUEUE_ID: {$id}] Error de descifrado criptográfico: " . $e->getMessage(), "ERROR");
             
@@ -119,7 +151,7 @@ try {
 
         // Paso B: Intento de despacho SMTP / Mail
         try {
-            $enviado = $emailService->enviar($destinatario, $row['asunto'], $cuerpoHtml);
+            $enviado = $emailService->enviar($destinatario, $row['asunto'], $cuerpoHtml, $adjuntos);
 
             if ($enviado) {
                 $db->prepare("

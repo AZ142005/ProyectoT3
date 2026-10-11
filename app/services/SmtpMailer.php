@@ -69,10 +69,12 @@ class SmtpMailer {
      * @param string $to      Destinatario (se valida el formato).
      * @param string $subject Asunto en UTF-8.
      * @param string $html    Cuerpo HTML en UTF-8.
+     * @param array $adjuntos Adjuntos ['nombre' => string, 'mime' => string, 'contenido' => string binario];
+     *                        con adjuntos el mensaje se construye como multipart/mixed.
      * @return bool true solo si el servidor aceptó el mensaje.
      * @throws Exception en cualquier fallo del protocolo, con etapa y respuesta.
      */
-    public function send(string $to, string $subject, string $html): bool {
+    public function send(string $to, string $subject, string $html, array $adjuntos = []): bool {
         $to = trim($to);
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
             throw new Exception("SMTP: dirección de destinatario inválida: {$to}");
@@ -105,7 +107,7 @@ class SmtpMailer {
             $this->comando($socket, 'RCPT TO:<' . $to . '>', 'RCPT TO', [250, 251]);
             $this->comando($socket, 'DATA', 'DATA', [354]);
 
-            $mensaje = $this->construirMensaje($to, $subject, $html);
+            $mensaje = $this->construirMensaje($to, $subject, $html, $adjuntos);
             if (fwrite($socket, $mensaje) === false) {
                 throw new Exception("SMTP [contenido]: no se pudo escribir el mensaje en el socket.");
             }
@@ -227,8 +229,12 @@ class SmtpMailer {
 
     /**
      * Construye el mensaje RFC 5322 con codificación UTF-8 (asunto y cuerpo en base64).
+     *
+     * Sin adjuntos el mensaje es de una sola parte (text/html), idéntico al histórico.
+     * Con adjuntos se usa multipart/mixed: el HTML va como primera parte y cada adjunto
+     * como parte base64 con Content-Disposition attachment y nombre saneado a ASCII.
      */
-    private function construirMensaje(string $to, string $subject, string $html): string {
+    private function construirMensaje(string $to, string $subject, string $html, array $adjuntos = []): string {
         $fromEmail = $this->cfg['from_email'];
         $fromName  = str_replace(['\\', '"'], ['\\\\', '\\"'], $this->cfg['from_name']);
 
@@ -242,20 +248,64 @@ class SmtpMailer {
         $cabeceras[] = 'To: <' . $to . '>';
         $cabeceras[] = 'Subject: =?UTF-8?B?' . base64_encode($subject) . '?=';
         $cabeceras[] = 'MIME-Version: 1.0';
-        $cabeceras[] = 'Content-Type: text/html; charset=UTF-8';
-        $cabeceras[] = 'Content-Transfer-Encoding: base64';
         $cabeceras[] = 'Reply-To: <' . $fromEmail . '>';
         $cabeceras[] = 'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . $this->cfg['ehlo_host'] . '>';
         $cabeceras[] = 'X-Mailer: CondominioDigital';
 
-        $cuerpo = chunk_split(base64_encode($html), 76, "\r\n");
+        if (empty($adjuntos)) {
+            // Mensaje single-part original (sin cambios de comportamiento).
+            $cabeceras[] = 'Content-Type: text/html; charset=UTF-8';
+            $cabeceras[] = 'Content-Transfer-Encoding: base64';
 
-        $mensaje = implode("\r\n", $cabeceras) . "\r\n\r\n" . $cuerpo;
+            $cuerpo = chunk_split(base64_encode($html), 76, "\r\n");
+            $mensaje = implode("\r\n", $cabeceras) . "\r\n\r\n" . $cuerpo;
+        } else {
+            $boundary = '=_cond_' . bin2hex(random_bytes(16));
+            $cabeceras[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+
+            $partes   = [];
+            $partes[] = '--' . $boundary . "\r\n"
+                . "Content-Type: text/html; charset=UTF-8\r\n"
+                . "Content-Transfer-Encoding: base64\r\n\r\n"
+                . chunk_split(base64_encode($html), 76, "\r\n");
+
+            foreach ($adjuntos as $adjunto) {
+                $nombre    = $this->sanearNombreAdjunto((string)($adjunto['nombre'] ?? 'adjunto'));
+                $mime      = $this->sanearMime((string)($adjunto['mime'] ?? ''));
+                $contenido = (string)($adjunto['contenido'] ?? '');
+
+                $partes[] = '--' . $boundary . "\r\n"
+                    . 'Content-Type: ' . $mime . '; name="' . $nombre . "\"\r\n"
+                    . 'Content-Disposition: attachment; filename="' . $nombre . "\"\r\n"
+                    . "Content-Transfer-Encoding: base64\r\n\r\n"
+                    . chunk_split(base64_encode($contenido), 76, "\r\n");
+            }
+
+            $partes[] = '--' . $boundary . "--\r\n";
+            $mensaje = implode("\r\n", $cabeceras) . "\r\n\r\n" . implode("\r\n", $partes);
+        }
+
         // El cuerpo en base64 ya termina en CRLF; solo falta el punto final de DATA.
         if (!str_ends_with($mensaje, "\r\n")) {
             $mensaje .= "\r\n";
         }
         return $mensaje . ".\r\n";
+    }
+
+    /**
+     * Sanea el nombre de archivo adjunto a ASCII seguro para la cabecera MIME.
+     */
+    private function sanearNombreAdjunto(string $nombre): string {
+        $saneado = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre);
+        return ($saneado === null || $saneado === '') ? 'adjunto' : $saneado;
+    }
+
+    /**
+     * Sanea el MIME del adjunto (evita inyección de cabeceras en multipart).
+     */
+    private function sanearMime(string $mime): string {
+        $saneado = preg_replace('/[^A-Za-z0-9.+\/-]/', '', $mime);
+        return ($saneado === null || $saneado === '') ? 'application/octet-stream' : $saneado;
     }
 
     /** Trunca respuestas del servidor para que los mensajes de error sean legibles. */

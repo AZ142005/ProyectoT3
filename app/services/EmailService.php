@@ -71,9 +71,12 @@ class EmailService {
      * @param string $destinatario Email del destinatario
      * @param string $asunto Asunto del correo
      * @param string $cuerpoHtml Contenido HTML
+     * @param array $adjuntos Lista de adjuntos ['nombre' => string, 'mime' => string, 'contenido' => string binario].
+     *                        Solo el transporte smtp los envía; mock los registra en el log y mail() los ignora
+     *                        (la función nativa de PHP no soporta adjuntos binarios directamente).
      * @return bool Retorna verdadero si el transporte aceptó el mensaje.
      */
-    public function enviar(string $destinatario, string $asunto, string $cuerpoHtml): bool {
+    public function enviar(string $destinatario, string $asunto, string $cuerpoHtml, array $adjuntos = []): bool {
         if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
             throw new Exception("Dirección de email inválida: {$destinatario}");
         }
@@ -137,10 +140,12 @@ class EmailService {
             ];
 
             $mailer = new SmtpMailer($config);
-            return $mailer->send($destinatario, $asunto, $cuerpoHtml);
+            return $mailer->send($destinatario, $asunto, $cuerpoHtml, $adjuntos);
         }
 
         if ($mode === 'mail') {
+            // mail() no permite adjuntos binarios de forma nativa: se ignoran de forma
+            // documentada (el modo productivo para la carta con PDF es smtp).
             $headers  = "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             $headers .= "From: {$fromName} <{$fromEmail}>\r\n";
@@ -159,9 +164,20 @@ class EmailService {
         if (!is_dir($logDir)) {
             @mkdir($logDir, 0755, true);
         }
+
+        $detalleAdjuntos = '';
+        if (!empty($adjuntos)) {
+            $partes = [];
+            foreach ($adjuntos as $adjunto) {
+                $tamanoKb = round(strlen((string)($adjunto['contenido'] ?? '')) / 1024, 1);
+                $partes[] = (string)($adjunto['nombre'] ?? 'adjunto') . " ({$tamanoKb} KB)";
+            }
+            $detalleAdjuntos = ' | ADJUNTOS: ' . implode(', ', $partes);
+        }
+
         file_put_contents(
             $logDir . '/mail_mock.log',
-            "[" . date('Y-m-d H:i:s') . "] TO: {$destinatario} | SUBJECT: {$asunto}\n",
+            "[" . date('Y-m-d H:i:s') . "] TO: {$destinatario} | SUBJECT: {$asunto}{$detalleAdjuntos}\n",
             FILE_APPEND
         );
         return true;

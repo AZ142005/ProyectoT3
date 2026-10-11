@@ -204,8 +204,8 @@ class CartaDeudaEnvioTest extends TestCase {
 
             $redireccion = $this->ejecutarEnviarAvisoCobro();
 
-            // Identifica la fila encolada por el controlador para su limpieza.
-            $stmtCola = $db->prepare("SELECT id FROM notificaciones_cola WHERE id > :max ORDER BY id DESC LIMIT 1");
+            // Identifica la fila encolada por el controlador para su limpieza y verificación.
+            $stmtCola = $db->prepare("SELECT id, cuerpo_html, adjuntos FROM notificaciones_cola WHERE id > :max ORDER BY id DESC LIMIT 1");
             $stmtCola->execute(['max' => $maxColaId]);
             $filaCola = $stmtCola->fetch(\PDO::FETCH_ASSOC);
             $colaId = $filaCola ? intval($filaCola['id']) : null;
@@ -220,6 +220,29 @@ class CartaDeudaEnvioTest extends TestCase {
                 "Debe encolarse exactamente 1 correo");
             $this->assertEquals($enviosAntes + 1, $this->contarEnviosUnidad($db, $unidadId),
                 "Debe registrarse exactamente 1 envío");
+
+            // El correo encolado debe llevar el texto breve y la Carta de Deuda como adjunto PDF.
+            $this->assertNotNull($filaCola, "El controlador debe haber encolado la notificación");
+            $this->assertNotNull($filaCola['adjuntos'] ?? null,
+                "La carta debe encolarse con el PDF adjunto cifrado");
+            if (!empty($filaCola['adjuntos'])) {
+                $cuerpoDescifrado = \App\Core\Encryption::decrypt($filaCola['cuerpo_html']);
+                $this->assertStringContains('PDF', $cuerpoDescifrado,
+                    "El cuerpo breve debe mencionar la Carta de Deuda en PDF");
+
+                $adjuntos = json_decode(\App\Core\Encryption::decrypt($filaCola['adjuntos']), true);
+                $this->assertIsArray($adjuntos,
+                    "Los adjuntos descifrados deben ser un JSON decodificable");
+                $nombreAdjunto = is_array($adjuntos) ? ($adjuntos[0]['nombre'] ?? '') : '';
+                $this->assertStringContains('Carta-Deuda-Unidad-', $nombreAdjunto,
+                    "El adjunto debe nombrarse Carta-Deuda-Unidad-...pdf");
+                $this->assertMatchesRegex('/^Carta-Deuda-Unidad-.+\.pdf$/', $nombreAdjunto,
+                    "El nombre del adjunto debe terminar en .pdf");
+
+                $contenidoPdf = is_array($adjuntos) ? base64_decode($adjuntos[0]['contenido'] ?? '', true) : false;
+                $this->assertTrue(is_string($contenidoPdf) && str_starts_with($contenidoPdf, '%PDF-'),
+                    "El adjunto debe decodificar a un PDF real");
+            }
 
             $stmtCanal = $db->prepare("SELECT canal FROM cartas_deuda_envios WHERE unidad_id = :uid ORDER BY id DESC LIMIT 1");
             $stmtCanal->execute(['uid' => $unidadId]);

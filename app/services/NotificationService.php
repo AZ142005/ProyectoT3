@@ -76,7 +76,18 @@ class NotificationService {
     }
 
     /**
-     * Encola una notificación en `notificaciones_cola` cifrando integralmente el email y cuerpo HTML.
+     * Encola una notificación en `notificaciones_cola` cifrando integralmente el email, cuerpo HTML y adjuntos.
+     *
+     * @param string $destinatarioEmail
+     * @param string $asunto
+     * @param string $cuerpoHtml
+     * @param string|null $telefono
+     * @param string $canal
+     * @param string $prioridad
+     * @param array|null $adjuntos Lista de adjuntos con la forma
+     *                            ['nombre' => string, 'mime' => string, 'contenido' => string binario].
+     *                            Cada contenido se guarda en base64 dentro de un JSON cifrado.
+     * @throws Exception si un adjunto excede el límite de 2 MB o su estructura es inválida.
      */
     public function encolarNotificacion(
         string $destinatarioEmail,
@@ -84,7 +95,8 @@ class NotificationService {
         string $cuerpoHtml,
         ?string $telefono = null,
         string $canal = 'email',
-        string $prioridad = 'normal'
+        string $prioridad = 'normal',
+        ?array $adjuntos = null
     ): bool {
         if (mb_strlen($cuerpoHtml) > 2097152) { // Max 2 MB
             throw new Exception("El cuerpo del correo excede el límite máximo permitido de 2 MB.");
@@ -100,11 +112,16 @@ class NotificationService {
         $cuerpoCifrado = Encryption::encrypt($cuerpoHtml);
         $telefonoCifrado = !empty($telefono) ? Encryption::encrypt($telefono) : null;
 
+        $adjuntosCifrados = null;
+        if (!empty($adjuntos)) {
+            $adjuntosCifrados = Encryption::encrypt(json_encode($this->normalizarAdjuntos($adjuntos)));
+        }
+
         $db = Database::getConnection();
         $stmt = $db->prepare("
             INSERT INTO notificaciones_cola 
-            (destinatario_email, destinatario_telefono, asunto, cuerpo_html, canal, prioridad, estado) 
-            VALUES (:email, :telefono, :asunto, :cuerpo, :canal, :prioridad, 'pendiente')
+            (destinatario_email, destinatario_telefono, asunto, cuerpo_html, adjuntos, canal, prioridad, estado) 
+            VALUES (:email, :telefono, :asunto, :cuerpo, :adjuntos, :canal, :prioridad, 'pendiente')
         ");
 
         return $stmt->execute([
@@ -112,9 +129,44 @@ class NotificationService {
             'telefono'  => $telefonoCifrado,
             'asunto'    => $asunto,
             'cuerpo'    => $cuerpoCifrado,
+            'adjuntos'  => $adjuntosCifrados,
             'canal'     => $canal,
             'prioridad' => $prioridad
         ]);
+    }
+
+    /**
+     * Valida y normaliza los adjuntos para su almacenamiento cifrado.
+     *
+     * El contenido binario se convierte a base64 (ASCII, seguro para JSON).
+     *
+     * @param array $adjuntos
+     * @return array Lista de adjuntos con 'contenido' en base64.
+     * @throws Exception si falta un nombre/contenido o el adjunto supera 2 MB.
+     */
+    private function normalizarAdjuntos(array $adjuntos): array {
+        $normalizados = [];
+
+        foreach ($adjuntos as $indice => $adjunto) {
+            $nombre = trim((string)($adjunto['nombre'] ?? ''));
+            $mime = trim((string)($adjunto['mime'] ?? ''));
+            $contenido = $adjunto['contenido'] ?? '';
+
+            if ($nombre === '' || !is_string($contenido)) {
+                throw new Exception("Adjunto #" . ($indice + 1) . " inválido: se requiere nombre y contenido binario.");
+            }
+            if (strlen($contenido) > 2097152) {
+                throw new Exception("El adjunto '{$nombre}' excede el límite máximo permitido de 2 MB.");
+            }
+
+            $normalizados[] = [
+                'nombre'    => $nombre,
+                'mime'      => $mime !== '' ? $mime : 'application/octet-stream',
+                'contenido' => base64_encode($contenido),
+            ];
+        }
+
+        return $normalizados;
     }
 
     /**
