@@ -170,14 +170,14 @@ class CartaDeudaPdfService {
             $etiqueta = ($esPrimeraFila ? 'Saldo de ' : '') . nombreMes($grupo['mes']) . '-' . $grupo['anio'];
             $pdf->SetX($x);
             $pdf->Cell($anchoMes, 6, $this->txt($etiqueta), 1, 0, 'L');
-            $pdf->Cell($anchoMonto, 6, $this->txt(formatearMoneda($grupo['total'])), 1, 1, 'R');
+            $pdf->Cell($anchoMonto, 6, $this->txt(formatearMonto($grupo['total'])), 1, 1, 'R');
             $esPrimeraFila = false;
         }
 
         $pdf->SetX($x);
         $pdf->SetFont('Helvetica', 'B', 10.5);
         $pdf->Cell($anchoMes, 6, $this->txt('Total'), 1, 0, 'L');
-        $pdf->Cell($anchoMonto, 6, $this->txt(formatearMoneda($totalDeuda)), 1, 1, 'R');
+        $pdf->Cell($anchoMonto, 6, $this->txt(formatearMonto($totalDeuda)), 1, 1, 'R');
     }
 
     /**
