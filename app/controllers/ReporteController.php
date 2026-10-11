@@ -166,12 +166,22 @@ class ReporteController extends Controller {
 
         $analisisTel = \App\Services\NotificationService::analizarTelefono($detalle['unidad']['propietario_telefono'] ?? '');
 
+        // Estado de envío por residente: cooldown por día calendario.
+        $enviosModel = new \App\Models\CartasDeudaEnviosModel();
+        $propietarioId = $detalle['unidad']['propietario_id'] !== null
+            ? intval($detalle['unidad']['propietario_id'])
+            : null;
+        $ultimoEnvio = $enviosModel->obtenerUltimoEnvio($unidadId, $propietarioId);
+        $enviadoHoy = $enviosModel->enviadoHoy($unidadId, $propietarioId);
+
         $this->render('admin/reportes/carta_deuda', [
             'unidad'         => $detalle['unidad'],
             'facturas'       => $detalle['facturas'],
             'totalDeuda'     => $detalle['total_deuda'],
             'enlaceWhatsapp' => $enlaceWhatsapp,
             'analisisTel'    => $analisisTel,
+            'ultimoEnvio'    => $ultimoEnvio,
+            'enviadoHoy'     => $enviadoHoy,
             'title'          => 'Carta Oficial de Deuda - Unidad ' . $detalle['unidad']['unidad_numero']
         ]);
     }
@@ -198,6 +208,18 @@ class ReporteController extends Controller {
             return;
         }
 
+        // Cooldown: un envío por residente por día calendario (clave: propietario o unidad).
+        $propietarioId = $detalle['unidad']['propietario_id'] !== null
+            ? intval($detalle['unidad']['propietario_id'])
+            : null;
+        $enviosModel = new \App\Models\CartasDeudaEnviosModel();
+
+        if ($enviosModel->enviadoHoy($unidadId, $propietarioId)) {
+            \App\Core\Flash::set('warning', 'Ya se envió una carta de deuda a este residente hoy. Podrá reenviarse a partir de mañana.');
+            $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
+            return;
+        }
+
         $emailService = new \App\Services\EmailService();
         $notifService = new \App\Services\NotificationService();
 
@@ -212,7 +234,7 @@ class ReporteController extends Controller {
 
         $asunto = "📄 Carta de Cobro Oficial - Unidad " . $detalle['unidad']['unidad_numero'];
 
-        $notifService->encolarNotificacion(
+        $encolado = $notifService->encolarNotificacion(
             $detalle['unidad']['propietario_email'],
             $asunto,
             $cuerpoHtml,
@@ -220,6 +242,15 @@ class ReporteController extends Controller {
             'ambos',
             'alta'
         );
+
+        // El envío solo se registra si el encolado del correo tuvo éxito.
+        if ($encolado !== true) {
+            \App\Core\Flash::set('danger', 'No se pudo encolar la carta. Intente nuevamente.');
+            $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
+            return;
+        }
+
+        $enviosModel->registrarEnvio($unidadId, $propietarioId, 'email', Auth::id());
 
         if (!empty($detalle['unidad']['propietario_id'])) {
             $notifService->registrarNotificacionResidente(
@@ -231,7 +262,7 @@ class ReporteController extends Controller {
             );
         }
 
-        \App\Core\Flash::set('success', 'Carta de cobro encolada exitosamente para envío.');
+        \App\Core\Flash::set('success', 'Carta de deuda enviada al residente. No podrá reenviarse hasta mañana.');
         $this->redirect('/admin/reportes/carta-deuda/' . $unidadId);
     }
 }

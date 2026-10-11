@@ -8,12 +8,15 @@
  * y caja "Recibido Por".
  *
  * Variables entregadas por ReporteController::generarCartaDeuda():
- * $unidad, $facturas, $totalDeuda, $enlaceWhatsapp, $analisisTel, $title.
+ * $unidad, $facturas, $totalDeuda, $enlaceWhatsapp, $analisisTel, $ultimoEnvio,
+ * $enviadoHoy, $title.
  */
 
 // Normaliza la entrada para que la vista quede libre de warnings.
 $facturas = $facturas ?? [];
 $totalDeuda = $totalDeuda ?? 0;
+$enviadoHoy = $enviadoHoy ?? false;
+$ultimoEnvio = $ultimoEnvio ?? null;
 
 // Agrupa las facturas por mes/año sumando saldos; conserva el orden cronológico de llegada.
 $gruposFacturas = agruparFacturasPorMes($facturas);
@@ -87,14 +90,24 @@ $montoEnLetrasTotal = montoEnLetras($totalDeuda);
             <a href="/admin/reportes/morosidad" class="btn btn-outline-secondary btn-sm fw-bold">
                 &larr; Volver al Reporte
             </a>
-            <div class="d-flex gap-2">
-                <form method="POST" action="/admin/reportes/enviar-aviso-cobro" class="d-inline">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="unidad_id" value="<?= e($unidad['unidad_id'] ?? '') ?>">
-                    <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center gap-1">
-                        <span class="material-symbols-outlined fs-6">mail</span> Enviar por Email
+            <div class="d-flex gap-2 align-items-center">
+                <?php if ($enviadoHoy): ?>
+                    <?php $fechaEnvioHoy = !empty($ultimoEnvio['created_at']) ? date('d/m/Y H:i', strtotime($ultimoEnvio['created_at'])) : ''; ?>
+                    <button type="button" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center gap-1" disabled title="Ya se envió hoy. Podrá reenviarse a partir de mañana.">
+                        <span class="material-symbols-outlined fs-6">mark_email_read</span> Carta enviada<?= $fechaEnvioHoy !== '' ? ' ' . e($fechaEnvioHoy) : '' ?>
                     </button>
-                </form>
+                <?php else: ?>
+                    <form method="POST" action="/admin/reportes/enviar-aviso-cobro" class="d-inline">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="unidad_id" value="<?= e($unidad['unidad_id'] ?? '') ?>">
+                        <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center gap-1">
+                            <span class="material-symbols-outlined fs-6">mail</span> Enviar por Email
+                        </button>
+                    </form>
+                    <?php if ($ultimoEnvio): ?>
+                        <span class="text-muted small">Último envío: <?= e(!empty($ultimoEnvio['created_at']) ? date('d/m/Y', strtotime($ultimoEnvio['created_at'])) : '') ?></span>
+                    <?php endif; ?>
+                <?php endif; ?>
 
                 <?php if (!empty($enlaceWhatsapp)): ?>
                     <a href="<?= e($enlaceWhatsapp) ?>" target="_blank" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1">
