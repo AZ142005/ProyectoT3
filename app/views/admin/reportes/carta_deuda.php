@@ -1,3 +1,36 @@
+<?php
+/**
+ * Carta Oficial de Deuda — notificación impresa por unidad.
+ *
+ * Replica el formato institucional de la notificación oficial: membrete con logo,
+ * fecha a la derecha, destinatario, cuerpo con meses de mora y monto en letras,
+ * tabla mensual agrupada, párrafo legal, medios de pago, firma de la administradora
+ * y caja "Recibido Por".
+ *
+ * Variables entregadas por ReporteController::generarCartaDeuda():
+ * $unidad, $facturas, $totalDeuda, $enlaceWhatsapp, $analisisTel, $title.
+ */
+
+// Normaliza la entrada para que la vista quede libre de warnings.
+$facturas = $facturas ?? [];
+$totalDeuda = $totalDeuda ?? 0;
+
+// Agrupa las facturas por mes/año sumando saldos; conserva el orden cronológico de llegada.
+$gruposFacturas = [];
+foreach ($facturas as $factura) {
+    $mes = intval($factura['mes'] ?? 0);
+    $anio = intval($factura['anio'] ?? 0);
+    $clave = $mes . '-' . $anio;
+    if (!isset($gruposFacturas[$clave])) {
+        $gruposFacturas[$clave] = ['mes' => $mes, 'anio' => $anio, 'total' => 0.0];
+    }
+    $gruposFacturas[$clave]['total'] += floatval($factura['saldo'] ?? 0);
+}
+
+$cantidadMeses = count($gruposFacturas);
+$textoMesesVencidos = ($cantidadMeses === 1) ? '1 mes vencido' : $cantidadMeses . ' meses vencidos';
+$montoEnLetrasTotal = montoEnLetras($totalDeuda);
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,12 +39,42 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet"/>
     <style>
-        body { font-family: 'Inter', sans-serif; color: #1e293b; background: #f8fafc; }
-        .carta-paper { background: #fff; max-width: 800px; margin: 30px auto; padding: 40px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+        body { font-family: 'Inter', Arial, sans-serif; color: #111; background: #f8fafc; }
+        .carta-paper { background: #fff; max-width: 800px; margin: 30px auto; padding: 40px 48px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; font-size: 14px; line-height: 1.6; }
+
+        /* Membrete institucional */
+        .membrete { display: flex; align-items: center; gap: 18px; }
+        .membrete-logo { height: 60px; width: auto; }
+        .membrete-texto { flex: 1; text-align: center; }
+        .membrete-texto p { margin: 0; }
+        .membrete-titulo, .membrete-rif { font-weight: 700; }
+        .linea-fina { border-top: 1px solid #000; margin-top: 14px; }
+        .linea-gruesa { border-top: 3px solid #000; margin-top: 2px; }
+
+        .fecha { text-align: right; margin: 24px 0 18px; }
+        .destinatario p { margin: 0; }
+        .cuerpo { text-align: justify; margin: 14px 0; }
+
+        /* Tabla mensual de la deuda */
+        .tabla-montos { width: 65%; margin: 18px auto; border-collapse: collapse; }
+        .tabla-montos th, .tabla-montos td { border: 1px solid #000; padding: 5px 10px; }
+        .tabla-montos th { text-align: center; font-weight: 700; }
+        .tabla-montos .col-monto { text-align: right; }
+        .tabla-montos .fila-total { font-weight: 700; }
+
+        .medios-pago { list-style: none; padding-left: 0; margin: 10px 0 16px; }
+        .medios-pago li { margin: 2px 0; }
+
+        /* Pie: firma de la administradora y caja de recibo */
+        .pie { display: flex; justify-content: space-between; align-items: center; gap: 30px; margin-top: 44px; }
+        .firma p { margin: 0; }
+        .tabla-recibido { width: 50%; border-collapse: collapse; }
+        .tabla-recibido td { border: 1px solid #000; height: 30px; vertical-align: top; padding: 3px 6px; }
+
         @media print {
             .no-print { display: none !important; }
             body { background: #fff; }
-            .carta-paper { box-shadow: none; border: none; padding: 0; margin: 0; }
+            .carta-paper { box-shadow: none; border: none; border-radius: 0; padding: 0; margin: 0; max-width: 100%; }
         }
         /* Botones de barra superior alineados al estilo de Conciliación (R1/R2) */
         .no-print .btn { border-radius: .75rem; font-size: .75rem; line-height: 1rem; font-weight: 700; padding: .625rem 1.25rem; display: inline-flex; align-items: center; gap: .375rem; transition: all .15s ease; }
@@ -36,7 +99,7 @@
             <div class="d-flex gap-2">
                 <form method="POST" action="/admin/reportes/enviar-aviso-cobro" class="d-inline">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="unidad_id" value="<?= e($unidad['unidad_id']) ?>">
+                    <input type="hidden" name="unidad_id" value="<?= e($unidad['unidad_id'] ?? '') ?>">
                     <button type="submit" class="btn btn-warning btn-sm fw-bold d-inline-flex align-items-center gap-1">
                         <span class="material-symbols-outlined fs-6">mail</span> Enviar por Email
                     </button>
@@ -63,86 +126,92 @@
         <!-- Documento Papel Carta -->
         <div class="carta-paper">
             <!-- Membrete -->
-            <div class="row border-bottom pb-4 mb-4 align-items-center">
-                <div class="col-8">
-                    <h3 class="fw-bold text-success mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h3>
-                    <p class="small text-muted mb-0">Junta de Conjunto & Administración General</p>
-                    <p class="small text-muted mb-0">RIF: J-30948572-0 | Morón, Estado Trujillo</p>
-                </div>
-                <div class="col-4 text-end">
-                    <div class="border p-2 rounded bg-light text-center">
-                        <small class="text-uppercase text-muted fw-bold d-block">AVISO OFICIAL</small>
-                        <span class="font-monospace fw-bold text-danger">COB-<?= date('Ym') ?>-<?= e($unidad['unidad_numero']) ?></span>
-                    </div>
+            <div class="membrete">
+                <img src="/img/logo_condominio.png" alt="Logo" class="membrete-logo">
+                <div class="membrete-texto">
+                    <p class="membrete-titulo">CONDOMINIO CONJUNTO LAS MESETAS</p>
+                    <p class="membrete-rif">RIF. J-400577870</p>
+                    <p>Av. Ppal. de Morón. Oficina Administrativa</p>
+                    <p>Urb. Las Mesetas. Teléf. 0271-2259170 - Valera, Edo. Trujillo</p>
                 </div>
             </div>
+            <div class="linea-fina"></div>
+            <div class="linea-gruesa"></div>
+
+            <!-- Fecha -->
+            <div class="fecha">Valera, <?= date('j') ?> de <?= nombreMes(date('n')) ?> de <?= date('Y') ?></div>
 
             <!-- Destinatario -->
-            <div class="mb-4">
-                <p class="mb-1"><strong>Fecha:</strong> <?= date('d/m/Y') ?></p>
-                <p class="mb-1"><strong>Ciudadano(a):</strong> <?= e($unidad['propietario_nombre'] ?: 'Propietario / Residente') ?></p>
-                <p class="mb-1"><strong>Cédula de Identidad:</strong> <?= e($unidad['propietario_cedula'] ?: 'N/A') ?></p>
-                <p class="mb-0"><strong>Inmueble:</strong> Edificio <?= e($unidad['edificio_nombre']) ?> - Apto/Unidad <?= e($unidad['unidad_numero']) ?></p>
+            <div class="destinatario">
+                <p>Ciudadana (o):</p>
+                <p><strong><?= e(mb_strtoupper(($unidad['propietario_nombre'] ?? '') ?: 'Propietario / Residente', 'UTF-8')) ?></strong></p>
+                <p>Propietario(a) del Apto. <?= e($unidad['unidad_numero'] ?? '') ?>. Del Edificio "<?= e($unidad['edificio_nombre'] ?? '') ?>".</p>
+                <p><strong>PRESENTE.-</strong></p>
             </div>
 
-            <!-- Cuerpo de la Carta -->
-            <div class="mb-4 text-justify" style="line-height: 1.8;">
-                <p>Por medio de la presente, la Administración del Conjunto Residencial <strong>"Las Mesetas de Morón"</strong> se dirige a usted para presentarle la relación detallada del estado de deuda actualizado de su inmueble. A la presente fecha, se registran cuotas del conjunto vencidas acumuladas, por lo que le solicitamos formalmente proceder con la regularización del pago:</p>
-            </div>
+            <?php if (empty($gruposFacturas)): ?>
+                <!-- Sin facturas vencidas -->
+                <p class="cuerpo">Esta unidad no posee facturas vencidas registradas.</p>
+            <?php else: ?>
+                <!-- Cuerpo -->
+                <p class="cuerpo">
+                    Nos es grato dirigirnos a usted, para saludarle y a la vez notificarle que a la fecha, tiene una morosidad de <?= e($textoMesesVencidos) ?> de condominio, que corresponden a gastos comunes (pago de servicios básicos, vigilancia, mantenimiento de equipos y áreas comunes de nuestra urbanización y salario de trabajadores, pues han sido consumidos y disfrutados en su totalidad), por un monto de <?= e($montoEnLetrasTotal) ?> (<?= e(formatearMoneda($totalDeuda)) ?>). Monto total se detalla a continuación:
+                </p>
 
-            <!-- Desglose de Facturas -->
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered align-middle text-sm">
-                    <thead class="table-light text-uppercase">
+                <!-- Tabla mensual -->
+                <table class="tabla-montos">
+                    <thead>
                         <tr>
-                            <th>Nro. Factura / Cuota</th>
-                            <th>Mes / Año</th>
-                            <th>Vencimiento</th>
-                            <th class="text-center">Días Mora</th>
-                            <th class="text-end">Monto Pendiente (Bs.)</th>
+                            <th>Mes</th>
+                            <th>Monto Bs.</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($facturas)): ?>
+                        <?php $esPrimeraFila = true; ?>
+                        <?php foreach ($gruposFacturas as $grupo): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-3 text-success font-weight-bold">
-                                    Esta unidad no posee facturas vencidas registradas.
-                                </td>
+                                <td><?= e(($esPrimeraFila ? 'Saldo de ' : '') . nombreMes($grupo['mes']) . '-' . $grupo['anio']) ?></td>
+                                <td class="col-monto"><?= e(formatearMonto($grupo['total'])) ?></td>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($facturas as $f): ?>
-                                <tr>
-                                    <td class="font-monospace">FAC-<?= e($f['numero_factura'] ?: $f['id']) ?></td>
-                                    <td><?= e($f['mes']) ?>/<?= e($f['anio']) ?></td>
-                                    <td><?= e(date('d/m/Y', strtotime($f['fecha_vencimiento']))) ?></td>
-                                    <td class="text-center text-danger fw-bold"><?= e($f['dias_mora']) ?> días</td>
-                                    <td class="text-end font-monospace fw-bold text-danger"><?= e(formatearMoneda($f['saldo'])) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                    <tfoot>
-                        <tr class="table-light">
-                            <td colspan="4" class="text-end fw-bold fs-6">TOTAL GENERAL ADEUDADO:</td>
-                            <td class="text-end font-monospace fw-bold fs-5 text-danger"><?= e(formatearMoneda($totalDeuda)) ?></td>
+                            <?php $esPrimeraFila = false; ?>
+                        <?php endforeach; ?>
+                        <tr class="fila-total">
+                            <td>Total</td>
+                            <td class="col-monto"><?= e(formatearMonto($totalDeuda)) ?></td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
-            </div>
+            <?php endif; ?>
 
+            <!-- Párrafo legal -->
+            <p class="cuerpo">
+                Nos gustaría que usted gentilmente cancele lo más pronto posible la totalidad de la deuda indicada en el párrafo anterior; de lo contrario, nos veremos en la necesidad de pasar a consultoría jurídica su deuda y/o a competencia de las Juezas y Jueces de Paz Comunal. Artículo 8, Literal 2 y el gasto de honorarios profesionales correrá por su cuenta.
+            </p>
 
-            <!-- Firmas -->
-            <div class="row text-center mt-5 pt-4">
-                <div class="col-6">
-                    ____________________________________<br>
-                    <small class="fw-bold text-dark d-block mt-1">ADMINISTRACIÓN GENERAL</small>
-                    <small class="text-muted">Las Mesetas de Morón</small>
+            <!-- Medios de pago -->
+            <p>Los medios establecidos para su pago son los siguientes:</p>
+            <ul class="medios-pago">
+                <li>✓ Cuenta Corriente Banco de Venezuela Nº. 0102-0373-2200-0010-2432</li>
+                <li>✓ Divisa (Tasa del BCV del día de cancelación)</li>
+                <li>✓ Enviar su pago al correo electrónico: pagosjdclm@gmail.com</li>
+            </ul>
+
+            <p>Sírvase dar recibo al encargado de practicar esta Notificación.</p>
+
+            <!-- Pie: firma y caja de recibo -->
+            <div class="pie">
+                <div class="firma">
+                    <p>Ninoska Moncada</p>
+                    <p>Administradora</p>
                 </div>
-                <div class="col-6">
-                    ____________________________________<br>
-                    <small class="fw-bold text-dark d-block mt-1">JUNTA DE CONJUNTO</small>
-                    <small class="text-muted">Firma Autorizada</small>
-                </div>
+                <table class="tabla-recibido">
+                    <tbody>
+                        <tr><td colspan="2">Recibido Por:</td></tr>
+                        <tr><td colspan="2">Nombres y Apellidos:</td></tr>
+                        <tr><td colspan="2">Cédula de Identidad Nº</td></tr>
+                        <tr><td>Fecha:</td><td>Hora:</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

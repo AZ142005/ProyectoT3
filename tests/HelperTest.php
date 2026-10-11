@@ -100,6 +100,52 @@ class HelperTest extends TestCase {
     }
 
     // =====================================================================
+    // montoEnLetras()
+    // =====================================================================
+
+    public function testMontoEnLetrasCasosBase(): void {
+        $this->assertEquals('CERO BOLÍVARES CON 00/100', montoEnLetras(null),
+            "null debe expresarse como CERO BOLÍVARES CON 00/100");
+        $this->assertEquals('CERO BOLÍVARES CON 00/100', montoEnLetras(''),
+            "String vacío debe expresarse como CERO BOLÍVARES CON 00/100");
+        $this->assertEquals('CERO BOLÍVARES CON 00/100', montoEnLetras(0),
+            "0 debe expresarse como CERO BOLÍVARES CON 00/100");
+        $this->assertEquals('UN BOLÍVAR CON 00/100', montoEnLetras(1),
+            "1 debe expresarse en singular: UN BOLÍVAR CON 00/100");
+    }
+
+    public function testMontoEnLetrasDecenasYCentenas(): void {
+        $this->assertEquals('CIEN BOLÍVARES CON 00/100', montoEnLetras(100),
+            "100 debe expresarse como CIEN BOLÍVARES");
+        $this->assertEquals('CIENTO CINCUENTA BOLÍVARES CON 00/100', montoEnLetras(150.00),
+            "150 debe expresarse como CIENTO CINCUENTA BOLÍVARES");
+        $this->assertEquals('VEINTIÚN BOLÍVARES CON 00/100', montoEnLetras(21),
+            "21 debe usar el apócope VEINTIÚN");
+    }
+
+    public function testMontoEnLetrasMilesYCentavos(): void {
+        $this->assertEquals('SIETE MIL QUINIENTOS CUARENTA Y OCHO BOLÍVARES CON 05/100', montoEnLetras(7548.05),
+            "7548.05 debe expresar los centavos como 05/100");
+        $this->assertEquals('CIENTO DOCE MIL CIENTO NOVENTA Y SEIS BOLÍVARES CON 84/100', montoEnLetras(112196.84),
+            "112196.84 debe expresar miles, centenas y centavos correctamente");
+    }
+
+    public function testMontoEnLetrasMillones(): void {
+        $this->assertEquals('UN MILLÓN DE BOLÍVARES CON 00/100', montoEnLetras(1000000),
+            "Un múltiplo exacto de millón debe llevar el conector DE");
+        $this->assertEquals('UN MILLÓN CIEN BOLÍVARES CON 00/100', montoEnLetras(1000100),
+            "El conector DE solo aplica cuando el entero es múltiplo exacto de 1.000.000");
+    }
+
+    public function testMontoEnLetrasLimiteSuperior(): void {
+        $this->assertEquals(
+            'NOVECIENTOS NOVENTA Y NUEVE MILLONES NOVECIENTOS NOVENTA Y NUEVE MIL NOVECIENTOS NOVENTA Y NUEVE BOLÍVARES CON 99/100',
+            montoEnLetras(999999999.99),
+            "Debe soportar el límite superior 999.999.999,99"
+        );
+    }
+
+    // =====================================================================
     // normalizarCedula() & validarCedula()
     // =====================================================================
 

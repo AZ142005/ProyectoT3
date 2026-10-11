@@ -80,6 +80,100 @@ if (!function_exists('formatearCantidad')) {
     }
 }
 
+if (!function_exists('montoEnLetras')) {
+    /**
+     * Convierte un monto numérico a su expresión en letras para documentos oficiales
+     * (Ej: 7548.05 → "SIETE MIL QUINIENTOS CUARENTA Y OCHO BOLÍVARES CON 05/100").
+     *
+     * Reglas:
+     * - Redondea a 2 decimales y expresa los centavos como "XX/100".
+     * - Usa apócopes (UN / VEINTIÚN) delante de BOLÍVAR(ES), MIL y MILLÓN.
+     * - Agrega "DE" antes de BOLÍVARES solo cuando el entero es múltiplo exacto de 1.000.000.
+     * - Soporta montos desde 0 hasta 999.999.999,99; valores negativos se tratan como cero.
+     *
+     * @param float|int|string|null $valor
+     * @return string
+     */
+    function montoEnLetras($valor): string {
+        if (!is_numeric($valor)) {
+            $valor = 0;
+        }
+
+        // Redondeo a 2 decimales trabajando en centavos para evitar errores de flotante.
+        $totalCentavos = (int) round(floatval($valor) * 100);
+        if ($totalCentavos < 0) {
+            $totalCentavos = 0;
+        }
+
+        $entero = intdiv($totalCentavos, 100);
+        $centavos = $totalCentavos % 100;
+
+        $unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+        $especiales = [
+            10 => 'DIEZ', 11 => 'ONCE', 12 => 'DOCE', 13 => 'TRECE', 14 => 'CATORCE',
+            15 => 'QUINCE', 16 => 'DIECISÉIS', 17 => 'DIECISIETE', 18 => 'DIECIOCHO', 19 => 'DIECINUEVE',
+            20 => 'VEINTE', 21 => 'VEINTIÚN', 22 => 'VEINTIDÓS', 23 => 'VEINTITRÉS', 24 => 'VEINTICUATRO',
+            25 => 'VEINTICINCO', 26 => 'VEINTISÉIS', 27 => 'VEINTISIETE', 28 => 'VEINTIOCHO', 29 => 'VEINTINUEVE',
+        ];
+        $decenas = [
+            30 => 'TREINTA', 40 => 'CUARENTA', 50 => 'CINCUENTA',
+            60 => 'SESENTA', 70 => 'SETENTA', 80 => 'OCHENTA', 90 => 'NOVENTA',
+        ];
+        $centenas = [
+            100 => 'CIEN', 200 => 'DOSCIENTOS', 300 => 'TRESCIENTOS', 400 => 'CUATROCIENTOS', 500 => 'QUINIENTOS',
+            600 => 'SEISCIENTOS', 700 => 'SETECIENTOS', 800 => 'OCHOCIENTOS', 900 => 'NOVECIENTOS',
+        ];
+
+        // Convierte un grupo de 0 a 999 a letras.
+        $grupoALetras = function (int $grupo) use (&$grupoALetras, $unidades, $especiales, $decenas, $centenas): string {
+            if ($grupo === 0) {
+                return '';
+            }
+            if ($grupo < 10) {
+                return $unidades[$grupo];
+            }
+            if ($grupo < 30) {
+                return $especiales[$grupo];
+            }
+            if ($grupo < 100) {
+                $resto = $grupo % 10;
+                return $decenas[intdiv($grupo, 10) * 10] . ($resto > 0 ? ' Y ' . $unidades[$resto] : '');
+            }
+            if ($grupo === 100) {
+                return 'CIEN';
+            }
+            $resto = $grupo % 100;
+            // 101-199 se expresan como "CIENTO ..."; 200+ usan su centena (DOSCIENTOS, ...).
+            $baseCentena = ($grupo < 200) ? 'CIENTO' : $centenas[intdiv($grupo, 100) * 100];
+            return $baseCentena . ($resto > 0 ? ' ' . $grupoALetras($resto) : '');
+        };
+
+        // Convierte el entero completo a letras (MIL / MILLÓN / MILLONES).
+        $enteroALetras = function (int $numero) use (&$enteroALetras, $grupoALetras): string {
+            if ($numero < 1000) {
+                return $grupoALetras($numero);
+            }
+            if ($numero < 1000000) {
+                $miles = intdiv($numero, 1000);
+                $resto = $numero % 1000;
+                $parteMiles = ($miles === 1) ? 'MIL' : $grupoALetras($miles) . ' MIL';
+                return $resto > 0 ? $parteMiles . ' ' . $grupoALetras($resto) : $parteMiles;
+            }
+            $millones = intdiv($numero, 1000000);
+            $resto = $numero % 1000000;
+            $parteMillones = $enteroALetras($millones) . ($millones === 1 ? ' MILLÓN' : ' MILLONES');
+            return $resto > 0 ? $parteMillones . ' ' . $enteroALetras($resto) : $parteMillones;
+        };
+
+        $numeroLetras = ($entero === 0) ? 'CERO' : $enteroALetras($entero);
+        $esMultiploDeMillon = ($entero > 0 && $entero % 1000000 === 0);
+        $sustantivo = ($entero === 1) ? 'BOLÍVAR' : 'BOLÍVARES';
+        $conector = $esMultiploDeMillon ? ' DE' : '';
+
+        return $numeroLetras . $conector . ' ' . $sustantivo . ' CON ' . sprintf('%02d/100', $centavos);
+    }
+}
+
 if (!function_exists('nombreMes')) {
     /**
      * Retorna el nombre en español de un número de mes (1-12).
