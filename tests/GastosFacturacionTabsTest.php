@@ -2,8 +2,9 @@
 namespace Tests;
 
 /**
- * Verifica la unificación de "Generar Factura" y "Gastos" bajo el nuevo
- * módulo "Carga y Emisión de Deuda" con navegación por pestañas y backward compatibility.
+ * Verifica la unificación de "Generar Factura" y "Gastos" bajo el módulo
+ * "Carga y Emisión" (secciones combinadas en una sola vista) y la
+ * retrocompatibilidad de las rutas antiguas.
  */
 class GastosFacturacionTabsTest extends TestCase {
 
@@ -14,48 +15,46 @@ class GastosFacturacionTabsTest extends TestCase {
     public function testSidebarAdminUnificaGastosYFacturacionYDeprecaGenerarFacturas(): void {
         $adminSidebar = $this->readFile('app/views/layouts/admin_sidebar.php');
 
-        $this->assertStringContains("'label' => 'Carga y Emisión de Deuda'", $adminSidebar,
-            "El sidebar admin debe etiquetar la sección como 'Carga y Emisión de Deuda'");
+        $this->assertStringContains("'label' => 'Carga y Emisión'", $adminSidebar,
+            "El sidebar admin debe etiquetar la sección como 'Carga y Emisión'");
+        $this->assertFalse(str_contains($adminSidebar, "'label' => 'Carga y Emisión de Deuda'"),
+            "El sidebar admin no debe conservar 'de deuda' en la etiqueta");
         $this->assertFalse(str_contains($adminSidebar, "'label' => 'Generar Facturas'"),
             "El sidebar admin no debe contener la entrada independiente 'Generar Facturas'");
         $this->assertFalse(str_contains($adminSidebar, "'/admin/facturas/generar'"),
             "El sidebar admin no debe enlazar a la ruta independiente /admin/facturas/generar");
 
         $auditorSidebar = $this->readFile('app/views/layouts/auditor_sidebar.php');
-        $this->assertStringContains("'label' => 'Carga y Emisión de Deuda'", $auditorSidebar,
-            "El sidebar auditor debe etiquetar la sección como 'Carga y Emisión de Deuda'");
+        $this->assertStringContains("'label' => 'Carga y Emisión'", $auditorSidebar,
+            "El sidebar auditor debe etiquetar la sección como 'Carga y Emisión'");
+        $this->assertFalse(str_contains($auditorSidebar, "'label' => 'Carga y Emisión de Deuda'"),
+            "El sidebar auditor no debe conservar 'de deuda' en la etiqueta");
     }
 
-    public function testVistaGastosContienePestanasYEncabezadoUnificado(): void {
+    public function testVistaGastosMuestraSeccionesCombinadas(): void {
         $content = $this->readFile('app/views/admin/gastos/index.php');
 
-        $this->assertStringContains('Carga y Emisión de Deuda', $content,
-            "El encabezado de la vista debe titularse 'Carga y Emisión de Deuda'");
-        $this->assertStringContains('id="gastosTabs"', $content,
-            "Debe existir el contenedor de pestañas gastosTabs");
-        $this->assertStringContains('data-bs-toggle="pill"', $content,
-            "Las pestañas deben implementar el patrón nav-pills de Bootstrap 5");
-        $this->assertStringContains('id="tab-gastos"', $content,
-            "Debe existir el pane de Registro de Gastos");
-        $this->assertStringContains('id="tab-facturacion"', $content,
-            "Debe existir el pane de Emisión de Deuda");
-        $this->assertStringContains('id="tab-gastos-btn"', $content,
-            "Debe existir el botón selector de la pestaña de gastos");
-        $this->assertStringContains('id="tab-facturacion-btn"', $content,
-            "Debe existir el botón selector de la pestaña de facturación");
+        $this->assertStringContains('Carga y Emisión', $content,
+            "El encabezado de la vista debe titularse 'Carga y Emisión' sin 'de deuda'");
+        $this->assertFalse(str_contains($content, 'Carga y Emisión de Deuda'),
+            "El encabezado no debe conservar 'Carga y Emisión de Deuda'");
+        $this->assertStringContains('id="seccion-gastos"', $content,
+            "Debe existir la sección de Registro de Gastos");
+        $this->assertStringContains('id="seccion-emision"', $content,
+            "Debe existir la sección de Emisión de Deuda");
         $this->assertStringContains('Registro de Gastos', $content,
-            "El botón de la primera pestaña debe rotularse 'Registro de Gastos'");
-        $this->assertStringContains('Emisión de Deuda', $content,
-            "El botón de la segunda pestaña debe rotularse 'Emisión de Deuda'");
-        $this->assertStringContains('history.replaceState', $content,
-            "El cambio de pestaña debe sincronizar la URL sin recarga completa");
-        $this->assertFalse(str_contains($content, 'Total Gastos del Mes'),
-            "El resumen de gastos del mes no debe mostrarse (no rellenable con el reporte de cartelera)");
-        $this->assertFalse(str_contains($content, 'facturas registradas'),
-            "Las tarjetas por categoría no deben mostrarse (no rellenables con el reporte de cartelera)");
+            "El título de la primera sección debe ser 'Registro de Gastos'");
+        $this->assertStringContains('Emisión de Deuda Mensual', $content,
+            "El título de la segunda sección debe ser 'Emisión de Deuda Mensual'");
+        $this->assertFalse(str_contains($content, 'gastosTabs'),
+            "No deben existir pestañas (contenedor gastosTabs)");
+        $this->assertFalse(str_contains($content, 'data-bs-toggle="pill"'),
+            "No deben existir botones nav-pills de pestañas");
+        $this->assertFalse(str_contains($content, 'history.replaceState'),
+            "No debe existir la sincronización de pestaña en la URL");
     }
 
-    public function testPestanaFacturacionContieneFormularioYResumenCuotas(): void {
+    public function testSeccionEmisionContieneFormularioYResumenCuotas(): void {
         $content = $this->readFile('app/views/admin/gastos/index.php');
 
         $this->assertStringContains('Resumen y Generación de Cuotas', $content,
@@ -74,7 +73,7 @@ class GastosFacturacionTabsTest extends TestCase {
             "El formulario debe apuntar a la acción de generar facturas");
     }
 
-    public function testControladorGastosCargaAmbasPestanas(): void {
+    public function testControladorGastosCargaDatosDeLasSecciones(): void {
         $content = $this->readFile('app/controllers/GastoController.php');
 
         $this->assertStringContains("'facturacion'", $content,
@@ -87,8 +86,8 @@ class GastosFacturacionTabsTest extends TestCase {
             "El controlador debe contar las facturas del período");
         $this->assertStringContains('distribucion', $content,
             "El controlador debe calcular la distribución de cuotas");
-        $this->assertStringContains('Carga y Emisión de Deuda', $content,
-            "El título de la vista debe ser Carga y Emisión de Deuda");
+        $this->assertStringContains('Carga y Emisión - Administrador', $content,
+            "El título de la vista debe ser 'Carga y Emisión - Administrador'");
     }
 
     public function testRutaAntiguaFacturasGenerarRedirigeALaPestanaFacturacion(): void {

@@ -205,15 +205,15 @@ class GastosTipologiaCalculoTest extends TestCase {
      */
     public function testRenombradoDeSeccionAGastos(): void {
         $adminSidebar = file_get_contents(dirname(__DIR__) . '/app/views/layouts/admin_sidebar.php');
-        $this->assertTrue(strpos($adminSidebar, "'label' => 'Carga y Emisión de Deuda'") !== false || strpos($adminSidebar, "'label' => 'Gastos'") !== false, 'admin_sidebar debe tener Carga y Emisión de Deuda');
+        $this->assertTrue(strpos($adminSidebar, "'label' => 'Carga y Emisión'") !== false || strpos($adminSidebar, "'label' => 'Gastos'") !== false, 'admin_sidebar debe tener Carga y Emisión');
         $this->assertTrue(strpos($adminSidebar, "'label' => 'Gastos Comunes'") === false, 'admin_sidebar NO debe tener Gastos Comunes');
 
         $auditorSidebar = file_get_contents(dirname(__DIR__) . '/app/views/layouts/auditor_sidebar.php');
-        $this->assertTrue(strpos($auditorSidebar, "'label' => 'Carga y Emisión de Deuda'") !== false || strpos($auditorSidebar, "'label' => 'Gastos'") !== false, 'auditor_sidebar debe tener Carga y Emisión de Deuda');
+        $this->assertTrue(strpos($auditorSidebar, "'label' => 'Carga y Emisión'") !== false || strpos($auditorSidebar, "'label' => 'Gastos'") !== false, 'auditor_sidebar debe tener Carga y Emisión');
         $this->assertTrue(strpos($auditorSidebar, "'label' => 'Gastos Comunes'") === false, 'auditor_sidebar NO debe tener Gastos Comunes');
 
         $gastoIndex = file_get_contents(dirname(__DIR__) . '/app/views/admin/gastos/index.php');
-        $this->assertTrue(strpos($gastoIndex, 'Carga y Emisión de Deuda') !== false || strpos($gastoIndex, '>Gastos<') !== false, 'index de gastos debe titularse Carga y Emisión de Deuda');
+        $this->assertTrue(strpos($gastoIndex, 'Carga y Emisión') !== false || strpos($gastoIndex, '>Gastos<') !== false, 'index de gastos debe titularse Carga y Emisión');
         $this->assertTrue(strpos($gastoIndex, '>Gastos Comunes<') === false, 'header no debe decir Gastos Comunes');
     }
 }

@@ -69,11 +69,10 @@ class FiltrosCompactosTest extends TestCase {
     }
 
     /**
-     * Verifica que Carga y Emisión de Deuda preserve los selectores y tab.
+     * Verifica que Carga y Emisión preserve los selectores de filtrado.
      */
     public function testGastosFiltrosCampos(): void {
         $content = $this->readFile('app/views/admin/gastos/index.php');
-        $this->assertStringContains('name="tab"', $content);
         $this->assertStringContains('name="mes"', $content);
         $this->assertStringContains('name="anio"', $content);
         $this->assertStringContains('name="categoria_id"', $content);

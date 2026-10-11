@@ -220,7 +220,7 @@ class AdminController extends Controller {
             return;
         }
 
-        // Redirección de compatibilidad: el módulo ahora está unificado bajo Carga y Emisión de Deuda
+        // Redirección de compatibilidad: el módulo ahora está unificado bajo Carga y Emisión
         $this->redirect('/admin/gastos?tab=facturacion');
     }
 }

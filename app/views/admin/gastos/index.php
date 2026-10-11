@@ -18,7 +18,7 @@
                 </button>
                 <h1 class="text-xl font-bold text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">receipt_long</span>
-                    <span>Carga y Emisión de Deuda</span>
+                    <span>Carga y Emisión</span>
                 </h1>
             </div>
             <a href="/admin/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-lg border border-red-200 transition-colors flex items-center justify-center" title="Cerrar Sesión">
@@ -32,67 +32,8 @@
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
-                <!-- ESTILOS ESPECÍFICOS PARA PESTAÑAS -->
-                <style>
-                .nav-pills .nav-link {
-                    color: #475569;
-                    background-color: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                    transition: all 0.2s ease-in-out;
-                }
-                .nav-pills .nav-link:hover:not(.active) {
-                    background-color: #f1f5f9;
-                    color: #0f172a;
-                }
-                .nav-pills .nav-link.active {
-                    background-color: #27ae60 !important;
-                    border-color: #27ae60 !important;
-                    color: #ffffff !important;
-                    box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.25);
-                }
-                </style>
-
-                <!-- NAVEGACIÓN EN DOS PESTAÑAS: REGISTRO DE GASTOS VS EMISIÓN DE DEUDA -->
-                <div class="bg-white rounded-2xl border border-outline-variant p-2 shadow-sm mb-4">
-                    <ul class="nav nav-pills nav-fill gap-2" id="gastosTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= ($tabActual === 'gastos') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
-                                    id="tab-gastos-btn"
-                                    data-bs-toggle="pill"
-                                    data-bs-target="#tab-gastos"
-                                    type="button"
-                                    role="tab"
-                                    aria-controls="tab-gastos"
-                                    aria-selected="<?= ($tabActual === 'gastos') ? 'true' : 'false' ?>">
-                                <span class="material-symbols-outlined text-[20px]">receipt</span>
-                                <span>Registro de Gastos</span>
-                                <span class="badge bg-slate-200 text-slate-700 rounded-full px-2 py-0.5 text-xs"><?= e($paginacion['total']) ?></span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= ($tabActual === 'facturacion') ? 'active' : '' ?> py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2"
-                                    id="tab-facturacion-btn"
-                                    data-bs-toggle="pill"
-                                    data-bs-target="#tab-facturacion"
-                                    type="button"
-                                    role="tab"
-                                    aria-controls="tab-facturacion"
-                                    aria-selected="<?= ($tabActual === 'facturacion') ? 'true' : 'false' ?>">
-                                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
-                                <span>Emisión de Deuda</span>
-                                <?php if ($facturas_existentes > 0): ?>
-                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full px-2 py-0.5 text-xs"><?= e($facturas_existentes) ?> emitidas</span>
-                                <?php else: ?>
-                                    <span class="badge bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5 text-xs">Pendiente</span>
-                                <?php endif; ?>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="tab-content" id="gastosTabsContent">
-                    <!-- PESTAÑA 1: REGISTRO DE GASTOS -->
-                    <div class="tab-pane fade <?= ($tabActual === 'gastos') ? 'show active' : '' ?>" id="tab-gastos" role="tabpanel" aria-labelledby="tab-gastos-btn">
+                <!-- SECCIÓN 1: REGISTRO DE GASTOS -->
+                <div id="seccion-gastos">
 
     <!-- Barra de Acciones del Contenido -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -115,7 +56,6 @@
     <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
     <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
         <form method="GET" action="/admin/gastos" class="flex flex-wrap items-center gap-2">
-            <input type="hidden" name="tab" value="gastos">
             <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
                 <span class="material-symbols-outlined text-[18px]">filter_alt</span>
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
@@ -161,7 +101,7 @@
                     <span class="material-symbols-outlined text-[16px]">filter_alt</span>
                     Filtrar
                 </button>
-                <a href="/admin/gastos?tab=gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
+                <a href="/admin/gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
                     <span class="material-symbols-outlined text-[16px]">clear_all</span>
                     Limpiar
                 </a>
@@ -269,13 +209,12 @@
     </div>
 </div>
 
-                    <!-- PESTAÑA 2: EMISIÓN DE DEUDA -->
-                    <div class="tab-pane fade <?= ($tabActual === 'facturacion') ? 'show active' : '' ?>" id="tab-facturacion" role="tabpanel" aria-labelledby="tab-facturacion-btn">
+                    <!-- SECCIÓN 2: EMISIÓN DE DEUDA -->
+                    <div id="seccion-emision" class="mt-5 pt-5 border-top border-background">
                         <!-- Barra de Acciones del Contenido -->
                         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                             <div>
                                 <h4 class="text-lg font-bold text-on-surface mb-1">Emisión de Deuda Mensual</h4>
-                                <p class="text-xs text-on-surface-variant mb-0">Cálculo dinámico de cuotas del conjunto y distribución entre las unidades del conjunto</p>
                             </div>
                         </div>
 
@@ -340,7 +279,6 @@
                                 </form>
                         </div>
                     </div>
-                </div>
 
 <!-- Modal para Registrar Nuevo Gasto -->
 <div class="modal fade" id="modalNuevoGasto" tabindex="-1" aria-hidden="true">
@@ -455,16 +393,6 @@ function toggleEdificioModal(tipo) {
         selectEd.value = '';
     }
 }
-
-document.querySelectorAll('#gastosTabs button[data-bs-toggle="pill"]').forEach(btn => {
-    btn.addEventListener('shown.bs.tab', function(e) {
-        const target = e.target.getAttribute('data-bs-target');
-        const tab = target === '#tab-facturacion' ? 'facturacion' : 'gastos';
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tab);
-        window.history.replaceState({}, '', url);
-    });
-});
 </script>
 
             </div>
