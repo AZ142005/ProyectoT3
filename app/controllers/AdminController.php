@@ -12,6 +12,7 @@ use App\Models\UnidadesModel;
 use App\Models\ReportesModel;
 use App\Models\GastosModel;
 use App\Models\CuentasBancariasModel;
+use App\Models\CarteleraModel;
 
 class AdminController extends Controller {
 
@@ -40,10 +41,14 @@ class AdminController extends Controller {
         // Solo lectura de últimos movimientos procesados (máximo los últimos 4 movimientos)
         $procesados = $comprobantesModel->getProcesados(4) ?: [];
 
+        // Reportes cargados en el último mes (resumen del historial)
+        $reportesRecientes = (new CarteleraModel())->obtenerHistorialUltimoMes(1, 5);
+
         $this->render('admin/dashboard', [
             'resumen'                 => $resumenFinanciero,
             'kpis'                    => $resumenFinanciero['kpis_morosidad'],
             'gastos_por_categoria'    => $gastosPorCategoria,
+            'reportes_recientes'      => $reportesRecientes,
             'cuentas_bancarias'       => $cuentasBancarias,
             'ultimos_comprobantes'    => $procesados,
             'comprobantes_pendientes' => [],

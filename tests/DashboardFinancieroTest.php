@@ -7,7 +7,7 @@ class DashboardFinancieroTest extends TestCase {
 
     /**
      * Verifica que la vista del Dashboard contenga los indicadores clave
-     * de resumen financiero (balances, ingresos, egresos, morosidad vs solvencia).
+     * de resumen financiero (cartera, ingresos, reportes cargados, morosidad vs solvencia).
      */
     public function testDashboardFinancieroMetricasYComponentes(): void {
         $viewPath = VIEWS_PATH . '/admin/dashboard.php';
@@ -19,8 +19,10 @@ class DashboardFinancieroTest extends TestCase {
         $this->assertStringContains('Panel de Control Financiero', $content, "La vista debe titularse Panel de Control Financiero");
         $this->assertStringContains('Total por Cobrar', $content, "Debe contener tarjeta de Total por Cobrar");
         $this->assertStringContains('Ingresos (', $content, "Debe contener tarjeta de Ingresos del mes");
-        $this->assertStringContains('Egresos (', $content, "Debe contener tarjeta de Egresos del mes");
-        $this->assertStringContains('Balance Operativo', $content, "Debe contener tarjeta de Balance Operativo");
+        $this->assertFalse(str_contains($content, 'Egresos ('),
+            "La tarjeta de Egresos del mes ya no debe mostrarse");
+        $this->assertFalse(str_contains($content, 'Balance Operativo'),
+            "La tarjeta de Balance Operativo ya no debe mostrarse");
 
         // 2. Sección de Salud de Cartera (Morosidad vs Solvencia)
         $this->assertStringContains('Salud de Cartera (Morosidad vs Solvencia)', $content,
@@ -28,9 +30,13 @@ class DashboardFinancieroTest extends TestCase {
         $this->assertStringContains('Unidades Solventes', $content, "Debe mostrar desglose de Unidades Solventes");
         $this->assertStringContains('Unidades Deudoras', $content, "Debe mostrar desglose de Unidades Deudoras");
 
-        // 3. Distribución de Egresos por Categoría
-        $this->assertStringContains('Egresos por Categoría', $content,
-            "Debe contener bloque de Egresos por Categoría");
+        // 3. Reportes Cargados (historial del último mes)
+        $this->assertStringContains('Reportes Cargados', $content,
+            "Debe contener bloque de Reportes Cargados");
+        $this->assertStringContains('Ver Historial', $content,
+            "Debe enlazar hacia el historial de reportes");
+        $this->assertFalse(str_contains($content, 'Egresos por Categoría'),
+            "El bloque de Egresos por Categoría no debe existir (reemplazado por Reportes Cargados)");
 
         // 4. Cuentas Bancarias Autorizadas
         $this->assertStringContains('Cuentas Bancarias Autorizadas', $content,

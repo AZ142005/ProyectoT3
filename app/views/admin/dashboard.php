@@ -2,6 +2,7 @@
 $resumen = $resumen ?? [];
 $kpis = $kpis ?? ($resumen['kpis_morosidad'] ?? []);
 $gastos_por_categoria = $gastos_por_categoria ?? [];
+$reportes_recientes = $reportes_recientes ?? ['datos' => [], 'total' => 0];
 $cuentas_bancarias = $cuentas_bancarias ?? [];
 $ultimos_comprobantes = $ultimos_comprobantes ?? [];
 $mes = intval($mes ?? date('n'));
@@ -91,7 +92,7 @@ $anio = intval($anio ?? date('Y'));
             <!-- Métricas Financieras Principales (KPI Cards) -->
             <div class="row g-4 mb-4">
                 <!-- Tarjeta 1: Total por Cobrar (Deuda Total) -->
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-12 col-sm-6">
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-body p-4 d-flex flex-column justify-content-between">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -115,7 +116,7 @@ $anio = intval($anio ?? date('Y'));
                 </div>
 
                 <!-- Tarjeta 2: Ingresos Recaudados (Mes Actual) -->
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-12 col-sm-6">
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-body p-4 d-flex flex-column justify-content-between">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -138,57 +139,9 @@ $anio = intval($anio ?? date('Y'));
                     </div>
                 </div>
 
-                <!-- Tarjeta 3: Egresos / Gastos Comunes (Mes Actual) -->
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
-                        <div class="card-body p-4 d-flex flex-column justify-content-between">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase text-muted fw-bold small">Egresos (<?= e(nombreMes($mes)) ?>)</span>
-                                <div class="bg-blue-50 text-primary p-2.5 rounded-circle d-flex align-items-center justify-center">
-                                    <span class="material-symbols-outlined fs-5">receipt_long</span>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="fw-bold text-primary mb-1"><?= e(formatearMoneda($resumen['total_gastos_mes'] ?? 0)) ?></h3>
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span class="text-muted text-xs">Histórico: <?= e(formatearMoneda($resumen['total_gastos_historico'] ?? 0)) ?></span>
-                                    <a href="/admin/gastos" class="text-xs text-primary font-bold text-decoration-none hover:underline d-inline-flex align-items-center gap-0.5">
-                                        <span>Gastos</span>
-                                        <span class="material-symbols-outlined text-xs">chevron_right</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tarjeta 4: Balance Operativo Neto -->
-                <div class="col-12 col-sm-6 col-xl-3">
-                    <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
-                        <div class="card-body p-4 d-flex flex-column justify-content-between">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase text-muted fw-bold small">Balance Operativo</span>
-                                <div class="<?= ($resumen['balance_neto_mes'] ?? 0) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-danger' ?> p-2.5 rounded-circle d-flex align-items-center justify-center">
-                                    <span class="material-symbols-outlined fs-5">balance</span>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <h3 class="fw-bold <?= ($resumen['balance_neto_mes'] ?? 0) >= 0 ? 'text-emerald-700' : 'text-danger' ?> mb-0">
-                                        <?= e(formatearMoneda($resumen['balance_neto_mes'] ?? 0)) ?>
-                                    </h3>
-                                    <span class="badge <?= ($resumen['balance_neto_mes'] ?? 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-danger' ?> text-[10px] font-bold px-2 py-0.5 rounded-pill">
-                                        <?= ($resumen['balance_neto_mes'] ?? 0) >= 0 ? 'Superávit' : 'Déficit' ?>
-                                    </span>
-                                </div>
-                                <span class="text-muted text-xs d-block">Neto acumulado: <?= e(formatearMoneda($resumen['balance_historico'] ?? 0)) ?></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <!-- Fila 2: Salud de Cartera & Distribución de Egresos -->
+            <!-- Fila 2: Salud de Cartera & Reportes Cargados -->
             <div class="row g-4 mb-4">
                 <!-- Columna Izquierda: Salud de Cartera (Morosidad vs. Solvencia) -->
                 <div class="col-12 col-lg-6">
@@ -248,56 +201,51 @@ $anio = intval($anio ?? date('Y'));
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Distribución de Egresos por Categoría -->
+                <!-- Columna Derecha: Reportes Cargados (último mes) -->
                 <div class="col-12 col-lg-6">
                     <div class="card border-0 shadow-xs rounded-3 h-100 bg-white">
                         <div class="card-header bg-white py-3.5 px-4 d-flex justify-content-between align-items-center border-bottom">
                             <div class="d-flex align-items-center gap-2">
-                                <span class="material-symbols-outlined text-primary fs-5">category</span>
-                                <h5 class="fw-bold mb-0 text-dark fs-6">Egresos por Categoría (<?= e(nombreMes($mes)) ?>)</h5>
+                                <span class="material-symbols-outlined text-primary fs-5">picture_as_pdf</span>
+                                <h5 class="fw-bold mb-0 text-dark fs-6">Reportes Cargados</h5>
                             </div>
-                            <span class="text-xs text-muted font-medium"><?= e($anio) ?></span>
+                            <span class="badge bg-slate-100 text-slate-700 border text-xs"><?= e($reportes_recientes['total'] ?? 0) ?> en el último mes</span>
                         </div>
                         <div class="card-body p-4 d-flex flex-column justify-content-between">
-                            <?php if (empty($gastos_por_categoria) || ($resumen['total_gastos_mes'] ?? 0) <= 0): ?>
+                            <?php if (empty($reportes_recientes['datos'])): ?>
                                 <div class="text-center py-6 text-muted">
-                                    <span class="material-symbols-outlined fs-1 text-slate-300 mb-2">receipt_long</span>
-                                    <p class="small fw-semibold mb-0">No hay egresos registrados en el período <?= e(nombreMes($mes)) ?> <?= e($anio) ?>.</p>
-                                    <span class="text-xs text-muted">Los gastos cargados en el módulo se reflejarán automáticamente aquí.</span>
+                                    <span class="material-symbols-outlined fs-1 text-slate-300 mb-2">description</span>
+                                    <p class="small fw-semibold mb-0">No hay reportes cargados en el último mes.</p>
                                 </div>
                             <?php else: ?>
                                 <div class="space-y-3">
-                                    <?php foreach ($gastos_por_categoria as $cat): ?>
-                                        <?php if (floatval($cat['total_monto']) > 0): ?>
-                                            <?php 
-                                                $pct = ($resumen['total_gastos_mes'] ?? 0) > 0 
-                                                    ? round((floatval($cat['total_monto']) / $resumen['total_gastos_mes']) * 100, 1) 
-                                                    : 0;
-                                            ?>
-                                            <div>
-                                                <div class="d-flex justify-content-between align-items-center text-xs mb-1">
-                                                    <span class="fw-bold text-dark d-flex align-items-center gap-1.5">
-                                                        <span class="material-symbols-outlined text-sm text-primary"><?= e($cat['icono'] ?: 'label') ?></span>
-                                                        <?= e($cat['categoria_nombre']) ?>
-                                                    </span>
-                                                    <span class="font-mono font-bold text-slate-700">
-                                                        <?= e(formatearMoneda($cat['total_monto'])) ?> 
-                                                        <span class="text-muted font-normal">(<?= e($pct) ?>%)</span>
-                                                    </span>
+                                    <?php foreach ($reportes_recientes['datos'] as $rep): ?>
+                                        <div class="p-3 rounded-2xl bg-slate-50/80 border border-slate-200">
+                                            <div class="d-flex justify-content-between align-items-start mb-1.5">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="material-symbols-outlined text-primary text-base">picture_as_pdf</span>
+                                                    <h6 class="fw-bold mb-0 text-dark text-xs"><?= e($rep['nombre_original'] ?: $rep['archivo']) ?></h6>
                                                 </div>
-                                                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                                                    <div class="bg-primary h-full rounded-full" style="width: <?= e($pct) ?>%;"></div>
-                                                </div>
+                                                <span class="text-[11px] text-muted font-mono"><?= e(date('d/m/Y H:i', strtotime($rep['fecha_carga']))) ?></span>
                                             </div>
-                                        <?php endif; ?>
+                                            <div class="d-flex flex-wrap align-items-center gap-1.5">
+                                                <span class="badge bg-blue-50 text-blue-700 border border-blue-200 rounded-pill px-2.5 py-1 font-semibold" style="font-size: 11px;"><?= e($rep['facturas_creadas']) ?> facturas</span>
+                                                <?php if (!empty($rep['facturas_actualizadas'])): ?>
+                                                    <span class="badge bg-slate-100 text-slate-700 border rounded-pill px-2.5 py-1 font-semibold" style="font-size: 11px;"><?= e($rep['facturas_actualizadas']) ?> actualizadas</span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($rep['fecha_emision'])): ?>
+                                                    <span class="text-muted text-xs">Reporte del <?= e(date('d/m/Y', strtotime($rep['fecha_emision']))) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
 
                             <div class="pt-3 border-top mt-4 d-flex justify-content-between align-items-center">
-                                <span class="text-muted text-xs">Total egresos mes: <strong class="text-primary"><?= e(formatearMoneda($resumen['total_gastos_mes'] ?? 0)) ?></strong></span>
+                                <span class="text-muted text-xs">Se muestran las últimas 5 cargas</span>
                                 <a href="/admin/gastos" class="btn btn-sm btn-outline-secondary rounded-xl text-xs font-bold px-3 py-1.5 d-inline-flex align-items-center gap-1">
-                                    <span>Gestionar Gastos</span>
+                                    <span>Ver Historial</span>
                                     <span class="material-symbols-outlined text-xs">arrow_forward</span>
                                 </a>
                             </div>
