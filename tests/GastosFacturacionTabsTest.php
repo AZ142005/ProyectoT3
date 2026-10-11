@@ -49,6 +49,10 @@ class GastosFacturacionTabsTest extends TestCase {
             "El botón de la segunda pestaña debe rotularse 'Emisión de Deuda'");
         $this->assertStringContains('history.replaceState', $content,
             "El cambio de pestaña debe sincronizar la URL sin recarga completa");
+        $this->assertFalse(str_contains($content, 'Total Gastos del Mes'),
+            "El resumen de gastos del mes no debe mostrarse (no rellenable con el reporte de cartelera)");
+        $this->assertFalse(str_contains($content, 'facturas registradas'),
+            "Las tarjetas por categoría no deben mostrarse (no rellenables con el reporte de cartelera)");
     }
 
     public function testPestanaFacturacionContieneFormularioYResumenCuotas(): void {
@@ -56,14 +60,14 @@ class GastosFacturacionTabsTest extends TestCase {
 
         $this->assertStringContains('Resumen y Generación de Cuotas', $content,
             "La pestaña de facturación debe contener el panel de generación de cuotas");
-        $this->assertStringContains('Total Gastos Declarados', $content,
-            "Debe mostrar el KPI de Total Gastos Declarados");
-        $this->assertStringContains('Cuota Base Común', $content,
-            "Debe mostrar el KPI de Cuota Base Común");
         $this->assertStringContains('Deudas Creadas', $content,
             "Debe mostrar el contador de Deudas Creadas");
-        $this->assertStringContains('Cálculo Dinámico de Cuotas a Emitir', $content,
-            "Debe detallar el desglose de cálculo global e individual");
+        $this->assertFalse(str_contains($content, 'Total Gastos Declarados'),
+            "No debe mostrarse el KPI de Total Gastos Declarados (no rellenable con el reporte)");
+        $this->assertFalse(str_contains($content, 'Cuota Base Común'),
+            "No debe mostrarse el KPI de Cuota Base Común (no rellenable con el reporte)");
+        $this->assertFalse(str_contains($content, 'Cálculo Dinámico de Cuotas'),
+            "No debe mostrarse el cuadro de cálculo dinámico de cuotas (no rellenable con el reporte)");
         $this->assertStringContains('csrf_field()', $content,
             "El formulario de generación debe incluir token CSRF");
         $this->assertStringContains('generar-facturas', $content,
