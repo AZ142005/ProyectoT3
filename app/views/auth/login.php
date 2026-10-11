@@ -14,7 +14,7 @@
             <!-- Logo y Encabezado Principal -->
             <div class="login-brand-header text-center mb-4">
                 <div class="login-brand-logo mb-3">
-                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="423" height="423">
+                    <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" width="570" height="437">
                 </div>
                 <p class="login-brand-subtitle">Ingresa a tu cuenta para continuar</p>
             </div>
@@ -218,13 +218,16 @@ body > footer {
 }
 
 .login-brand-logo img {
+    /* El texto "Las Mesetas" del PNG mide 52.11% del ancho de la imagen (570px):
+       100 / 0.5211 = 191.92% del contenedor para que el texto coincida con el
+       ancho del botón "Iniciar Sesión" (regla pedida por el usuario). */
     display: block;
-    width: 136.61%;
+    width: 191.92%;
     height: auto;
     max-width: none;
-    margin-left: -18.31%;
-    margin-right: -18.31%;
-    transform: translateX(-1.5%);
+    margin-left: -45.96%;
+    margin-right: -45.96%;
+    transform: translateX(0.18%);
 }
 
 .login-brand-subtitle {
@@ -436,7 +439,7 @@ body > footer {
     background-color: #0f172a;
     background-image: 
         linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.88) 100%),
-        url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1800&q=85');
+        url('/img/fondo_login.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
