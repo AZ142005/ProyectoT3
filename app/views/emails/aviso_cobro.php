@@ -28,9 +28,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h3>CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h3>
-            <p>Junta de Conjunto & Administración General</p>
-            <p>RIF: J-30948572-0 | Morón, Estado Trujillo</p>
+            <h3>CONDOMINIO CONJUNTO LAS MESETAS</h3>
+            <p>RIF. J-400577870</p>
+            <p>Av. Ppal. de Morón. Oficina Administrativa &bull; Urb. Las Mesetas. Teléf. 0271-2259170 - Valera, Edo. Trujillo</p>
             <div class="aviso-badge">
                 AVISO OFICIAL: COB-<?= date('Ym') ?>-<?= e($numeroUnidad ?? '') ?>
             </div>
@@ -65,7 +65,7 @@
                             <tr>
                                 <td><?= e($f['descripcion'] ?? 'Cuota de Conjunto') ?></td>
                                 <td><?= e($f['fecha_vencimiento'] ?? '') ?></td>
-                                <td style="text-align:center;"><?= e($f['dias_vencido'] ?? 0) ?> días</td>
+                                <td style="text-align:center;"><?= e($f['dias_mora'] ?? 0) ?> días</td>
                                 <td style="text-align:right; font-weight:bold; color:#dc2626;"><?= e(formatearMoneda($f['saldo'] ?? 0)) ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -96,7 +96,8 @@
         </div>
 
         <div class="footer">
-            &copy; <?= date('Y') ?> Conjunto Residencial Las Mesetas de Morón &bull; Sistema de Gestión de Cobranzas
+            &copy; <?= date('Y') ?> Condominio Conjunto Las Mesetas &bull; Sistema de Gestión de Cobranzas
+            <p style="margin:8px 0 0 0;">Este es un mensaje automático; por favor no responda a este correo.</p>
         </div>
     </div>
 </body>
