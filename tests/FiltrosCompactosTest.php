@@ -17,7 +17,6 @@ class FiltrosCompactosTest extends TestCase {
             'app/views/admin/comprobantes.php',
             'app/views/pagos/admin/lista.php',
             'app/views/admin/usuarios/index.php',
-            'app/views/admin/gastos/index.php',
             'app/views/admin/reportes/morosidad.php',
         ];
 
@@ -66,17 +65,6 @@ class FiltrosCompactosTest extends TestCase {
         $this->assertStringContains('name="tab"', $content);
         $this->assertStringContains('name="buscar"', $content);
         $this->assertStringContains('name="rol"', $content);
-    }
-
-    /**
-     * Verifica que Carga y Emisión preserve los selectores de filtrado.
-     */
-    public function testGastosFiltrosCampos(): void {
-        $content = $this->readFile('app/views/admin/gastos/index.php');
-        $this->assertStringContains('name="mes"', $content);
-        $this->assertStringContains('name="anio"', $content);
-        $this->assertStringContains('name="categoria_id"', $content);
-        $this->assertStringContains('name="tipo_gasto"', $content);
     }
 
     /**

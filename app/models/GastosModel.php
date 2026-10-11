@@ -169,49 +169,6 @@ class GastosModel extends BaseModel {
     }
 
     /**
-     * Obtiene el listado paginado de gastos para el panel de administración.
-     */
-    public function obtenerGastosAdmin(int $pagina = 1, int $porPagina = 15, array $filtros = []): array {
-        $where = "WHERE g.deleted_at IS NULL";
-        $params = [];
-
-        if (!empty($filtros['mes'])) {
-            $where .= " AND g.mes = :mes";
-            $params['mes'] = intval($filtros['mes']);
-        }
-        if (!empty($filtros['anio'])) {
-            $where .= " AND g.anio = :anio";
-            $params['anio'] = intval($filtros['anio']);
-        }
-        if (!empty($filtros['categoria_id'])) {
-            $where .= " AND g.categoria_id = :cat_id";
-            $params['cat_id'] = intval($filtros['categoria_id']);
-        }
-        if (!empty($filtros['tipo_gasto'])) {
-            $where .= " AND g.tipo_gasto = :tipo_gasto";
-            $params['tipo_gasto'] = trim($filtros['tipo_gasto']);
-        }
-        if (!empty($filtros['edificio_id'])) {
-            $where .= " AND g.edificio_id = :edificio_id";
-            $params['edificio_id'] = intval($filtros['edificio_id']);
-        }
-
-        $baseSql = "
-            SELECT g.*, c.nombre AS categoria_nombre, c.icono AS categoria_icono, c.color AS categoria_color,
-                   u.nombre_completo AS admin_nombre, ed.nombre AS edificio_nombre
-            FROM gastos_comunes g
-            INNER JOIN categorias_gastos c ON g.categoria_id = c.id
-            INNER JOIN usuarios u ON g.admin_id = u.id
-            LEFT JOIN edificios ed ON g.edificio_id = ed.id
-            {$where}
-        ";
-
-        $countSql = "SELECT COUNT(*) AS total FROM gastos_comunes g {$where}";
-
-        return $this->paginate($baseSql, $countSql, $params, $pagina, $porPagina, 'g.fecha_gasto DESC, g.id DESC');
-    }
-
-    /**
      * Obtiene todos los gastos de un período para el visor de residentes o informes,
      * incluyendo si es gasto común o individual por edificio.
      */

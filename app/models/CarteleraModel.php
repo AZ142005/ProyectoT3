@@ -9,7 +9,8 @@ namespace App\Models;
  * ("N-NN") que falten. Es idempotente por `numero_factura` en modo upsert: las
  * deudas ya existentes se actualizan con los valores del reporte en lugar de
  * duplicarse, respetando el soft-delete. Audita cada factura creada y agrega una
- * fila resumen por lote cuando hubo actualizaciones.
+ * fila resumen por lote cuando hubo actualizaciones. Además registra la carga en
+ * `reportes_cartelera` (una fila por reporte, upsert por hash del PDF).
  */
 class CarteleraModel extends BaseModel
 {
@@ -27,9 +28,10 @@ class CarteleraModel extends BaseModel
      * @param int    $adminId       Usuario que ejecuta la importación.
      * @param string $archivo       Nombre del PDF soporte almacenado en uploads/soportes/.
      * @param string|null $hash     SHA-256 del PDF (trazabilidad en auditoría).
+     * @param string|null $nombreOriginal Nombre original del PDF subido (historial de reportes).
      * @return array{edificios_creados: int, unidades_creadas: int, facturas_creadas: int, facturas_actualizadas: int, facturas_omitidas: int, total_importado: int}
      */
-    public function importarLote(array $filas, string $fechaEmision, int $adminId, string $archivo, ?string $hash): array
+    public function importarLote(array $filas, string $fechaEmision, int $adminId, string $archivo, ?string $hash, ?string $nombreOriginal = null): array
     {
         $fecha = \DateTimeImmutable::createFromFormat('!Y-m-d', $fechaEmision);
         if ($fecha === false || $fecha->format('Y-m-d') !== $fechaEmision) {
@@ -38,6 +40,13 @@ class CarteleraModel extends BaseModel
         $anio = (int)$fecha->format('Y');
 
         $archivo = basename(str_replace('\\', '/', str_replace("\0", '', trim($archivo))));
+        $nombreOriginal = $nombreOriginal !== null
+            ? substr(trim(basename(str_replace(['\\', "\0"], ['/', ''], $nombreOriginal))), 0, 255)
+            : null;
+        if ($nombreOriginal === '') {
+            $nombreOriginal = null;
+        }
+        $hashCompleto = !empty($hash) ? substr(trim($hash), 0, 64) : null;
         $hashReferencia = !empty($hash) ? substr($hash, 0, 12) : 'sin-hash';
 
         $resultado = [
@@ -243,6 +252,8 @@ class CarteleraModel extends BaseModel
                 ]);
             }
 
+            $this->registrarCarga($db, $resultado, $fechaEmision, $archivo, $hashCompleto, $nombreOriginal, $adminId);
+
             $db->commit();
         } catch (\Throwable $e) {
             if ($db->inTransaction()) {
@@ -254,5 +265,65 @@ class CarteleraModel extends BaseModel
 
         $resultado['total_importado'] = $resultado['facturas_creadas'];
         return $resultado;
+    }
+
+    /**
+     * Registra (o actualiza) la fila del historial de reportes para esta carga.
+     *
+     * Upsert por `hash` del PDF: recargar el mismo reporte refresca `fecha_carga`
+     * y el resultado, sin duplicar la entrada. Debe invocarse dentro de la
+     * transacción de importarLote para que un fallo no deje historial huérfano.
+     */
+    private function registrarCarga(\PDO $db, array $resultado, string $fechaEmision, string $archivo, ?string $hash, ?string $nombreOriginal, int $adminId): void {
+        $stmt = $db->prepare("
+            INSERT INTO reportes_cartelera
+                (archivo, nombre_original, hash, fecha_emision, fecha_carga, facturas_creadas, facturas_actualizadas, facturas_omitidas, edificios_creados, unidades_creadas, usuario_id)
+            VALUES (:archivo, :nombre_original, :hash, :fecha_emision, NOW(), :creadas, :actualizadas, :omitidas, :edificios, :unidades, :usuario_id)
+            ON DUPLICATE KEY UPDATE
+                archivo = VALUES(archivo),
+                nombre_original = VALUES(nombre_original),
+                fecha_emision = VALUES(fecha_emision),
+                fecha_carga = NOW(),
+                facturas_creadas = VALUES(facturas_creadas),
+                facturas_actualizadas = VALUES(facturas_actualizadas),
+                facturas_omitidas = VALUES(facturas_omitidas),
+                edificios_creados = VALUES(edificios_creados),
+                unidades_creadas = VALUES(unidades_creadas),
+                usuario_id = VALUES(usuario_id)
+        ");
+        $stmt->execute([
+            'archivo' => $archivo,
+            'nombre_original' => $nombreOriginal,
+            'hash' => $hash,
+            'fecha_emision' => $fechaEmision,
+            'creadas' => (int)$resultado['facturas_creadas'],
+            'actualizadas' => (int)$resultado['facturas_actualizadas'],
+            'omitidas' => (int)$resultado['facturas_omitidas'],
+            'edificios' => (int)$resultado['edificios_creados'],
+            'unidades' => (int)$resultado['unidades_creadas'],
+            'usuario_id' => $adminId,
+        ]);
+    }
+
+    /**
+     * Historial de reportes cargados en el último mes (por fecha de carga).
+     *
+     * Las cargas más antiguas dejan de listarse; no se eliminan datos.
+     *
+     * @return array{datos: array, total: int, pagina: int, porPagina: int, totalPaginas: int}
+     */
+    public function obtenerHistorialUltimoMes(int $pagina = 1, int $porPagina = 15): array {
+        $baseSql = "
+            SELECT r.*, u.nombre_completo AS usuario_nombre
+            FROM reportes_cartelera r
+            LEFT JOIN usuarios u ON r.usuario_id = u.id
+            WHERE r.fecha_carga >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+        ";
+        $countSql = "
+            SELECT COUNT(*) AS total
+            FROM reportes_cartelera r
+            WHERE r.fecha_carga >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+        ";
+        return $this->paginate($baseSql, $countSql, [], $pagina, $porPagina, 'r.fecha_carga DESC, r.id DESC');
     }
 }

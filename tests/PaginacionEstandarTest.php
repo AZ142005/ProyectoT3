@@ -90,8 +90,8 @@ class PaginacionEstandarTest extends TestCase {
         $controller = $this->readFile('app/controllers/GastoController.php');
         $view = $this->readFile('app/views/admin/gastos/index.php');
 
-        $this->assertStringContains('obtenerGastosAdmin($pagina, 25, $filtros)', $controller,
-            "GastoController debe consultar con limite de 25 registros");
+        $this->assertStringContains('obtenerHistorialUltimoMes($pagina, 25)', $controller,
+            "GastoController debe consultar el historial de reportes con limite de 25 registros");
         $this->assertStringContains('components/pagination.php', $view,
             "admin/gastos/index debe incluir components/pagination.php");
     }

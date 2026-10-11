@@ -53,155 +53,75 @@
             </div>
     </div>
 
-    <!-- Barra de Filtros Ultra-Compacta (Toolbar Permanente) -->
-    <div class="bg-white rounded-2xl border border-outline-variant p-2.5 shadow-sm mb-4">
-        <form method="GET" action="/admin/gastos" class="flex flex-wrap items-center gap-2">
-            <div class="flex items-center gap-1 text-primary shrink-0 pe-2 border-r border-slate-100 hidden sm:flex">
-                <span class="material-symbols-outlined text-[18px]">filter_alt</span>
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
-            </div>
-
-            <!-- Mes -->
-            <div class="w-full sm:w-auto">
-                <select name="mes" id="mes" aria-label="Mes" class="w-full sm:w-auto px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <?php for ($m = 1; $m <= 12; $m++): ?>
-                        <option value="<?= e($m) ?>" <?= $m === intval($filtros['mes']) ? 'selected' : '' ?>><?= e(nombreMes($m)) ?></option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-
-            <!-- Año -->
-            <div class="w-full sm:w-24">
-                <input type="number" name="anio" id="anio" value="<?= e($filtros['anio']) ?>" placeholder="Año" aria-label="Año" title="Año"
-                       class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
-            </div>
-
-            <!-- Categoría -->
-            <div class="flex-1 sm:flex-initial min-w-[160px]">
-                <select name="categoria_id" id="categoria_id" aria-label="Categoría" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <option value="">Todas las Categorías</option>
-                    <?php foreach ($categorias as $cat): ?>
-                        <option value="<?= e($cat['id']) ?>" <?= (!empty($filtros['categoria_id']) && intval($filtros['categoria_id']) === intval($cat['id'])) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <!-- Tipo de Gasto -->
-            <div class="flex-1 sm:flex-initial min-w-[150px]">
-                <select name="tipo_gasto" id="tipo_gasto" aria-label="Tipo de Gasto" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
-                    <option value="">Todos los tipos</option>
-                    <option value="comun" <?= ($filtros['tipo_gasto'] ?? '') === 'comun' ? 'selected' : '' ?>>Común (Global)</option>
-                    <option value="individual" <?= ($filtros['tipo_gasto'] ?? '') === 'individual' ? 'selected' : '' ?>>Individual (Por Edificio)</option>
-                </select>
-            </div>
-
-            <!-- Botones de Acción Inline -->
-            <div class="flex items-center gap-1.5 ms-auto">
-                <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-3 py-1.5 rounded-xl shadow-sm text-xs transition-all flex items-center justify-center gap-1 active:scale-95">
-                    <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                    Filtrar
-                </button>
-                <a href="/admin/gastos" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1" title="Limpiar filtros">
-                    <span class="material-symbols-outlined text-[16px]">clear_all</span>
-                    Limpiar
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <!-- Tabla de Gastos -->
+    <!-- Historial de Reportes -->
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="text-lg font-bold text-on-surface mb-0">Historial de Gastos del Período</h5>
-            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total']) ?> Gastos</span>
+            <div>
+                <h5 class="text-lg font-bold text-on-surface mb-0">Historial de Reportes</h5>
+                <small class="text-on-surface-variant">Se muestran las cargas del último mes</small>
+            </div>
+            <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total']) ?> Reportes</span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="w-full text-left text-sm border-collapse">
                     <thead>
                         <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
-                            <th class="py-3 px-4">Categoría</th>
-                            <th class="py-3 px-4">Tipo / Alcance</th>
-                            <th class="py-3 px-4">Proveedor / Nro. Factura</th>
-                            <th class="py-3 px-4">Descripción</th>
-                            <th class="py-3 px-4 text-center">Fecha Gasto</th>
-                            <th class="py-3 px-4 text-end">Monto Total</th>
-                            <th class="py-3 px-4 text-center">Soporte Digital</th>
-                            <th class="py-3 px-4 text-end">Acciones</th>
+                            <th class="py-3 px-4">Reporte</th>
+                            <th class="py-3 px-4 text-center">Fecha de Carga</th>
+                            <th class="py-3 px-4 text-center">Fecha del Reporte</th>
+                            <th class="py-3 px-4">Resultado</th>
+                            <th class="py-3 px-4">Cargado por</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-background">
-                        <?php if (empty($gastos)): ?>
+                        <?php if (empty($historial)): ?>
                             <tr>
-                                <td colspan="8" class="text-center py-12 text-on-surface-variant">
-                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">receipt_long</span>
-                                    No hay gastos registrados para este período.
+                                <td colspan="5" class="text-center py-12 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">description</span>
+                                    No hay reportes cargados en el último mes.
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($gastos as $g): ?>
+                            <?php foreach ($historial as $r): ?>
                                 <tr class="hover:bg-background/40 transition-colors">
                                     <td class="py-4 px-4">
-                                        <span class="badge rounded-pill px-3 py-1 text-white" style="background-color: <?= e($g['categoria_color']) ?>;">
-                                            <span class="material-symbols-outlined align-middle fs-6 me-1"><?= e($g['categoria_icono']) ?></span>
-                                            <?= e($g['categoria_nombre']) ?>
-                                        </span>
-                                    </td>
-                                    <td class="py-4 px-4">
-                                        <?php if (($g['tipo_gasto'] ?? 'comun') === 'individual'): ?>
-                                            <span class="badge bg-purple-100 text-purple-800 border border-purple-200 rounded-pill px-2.5 py-1 text-xs font-semibold" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
-                                                <span class="material-symbols-outlined align-middle text-sm me-0.5">apartment</span>
-                                                Individual: <?= e($g['edificio_nombre'] ?? 'Torre') ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-blue-50 text-blue-700 border border-blue-200 rounded-pill px-2.5 py-1 text-xs font-semibold">
-                                                <span class="material-symbols-outlined align-middle text-sm me-0.5">public</span>
-                                                Común (Global)
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="py-4 px-4">
-                                        <div class="font-semibold text-on-surface"><?= e($g['proveedor']) ?></div>
-                                        <small class="text-on-surface-variant">Fac: <?= e($g['nro_factura_proveedor'] ?: 'S/N') ?></small>
-                                    </td>
-                                    <td class="py-4 px-4 text-xs text-on-surface-variant" style="max-width: 250px;">
-                                        <?= e($g['descripcion']) ?>
-                                    </td>
-                                    <td class="py-4 px-4 text-center text-xs"><?= e(date('d/m/Y', strtotime($g['fecha_gasto']))) ?></td>
-                                    <td class="py-4 px-4 text-end font-bold text-on-surface">
-                                        <?= e(formatearMoneda($g['monto_total'])) ?>
-                                    </td>
-                                    <td class="py-4 px-4 text-center">
-                                        <?php if (!empty($g['soporte_digital'])): ?>
-                                            <a href="/uploads/soportes/<?= e($g['soporte_digital']) ?>" target="_blank" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
-                                                <span class="material-symbols-outlined fs-6">visibility</span> Ver Doc
+                                        <div class="font-semibold text-on-surface flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-primary text-[18px]">picture_as_pdf</span>
+                                            <?= e($r['nombre_original'] ?: $r['archivo']) ?>
+                                        </div>
+                                        <?php if (!empty($r['archivo_existe'])): ?>
+                                            <a href="/uploads/soportes/<?= e($r['archivo']) ?>" target="_blank" class="text-xs text-primary font-semibold inline-flex items-center gap-1 mt-1">
+                                                <span class="material-symbols-outlined text-[14px]">visibility</span> Ver PDF
                                             </a>
-                                            <?php if (!empty($g['pagina_soporte'])): ?>
-                                                <span class="badge bg-light text-primary border border-primary-subtle d-block mt-1" style="font-size: 11px;">
-                                                    Pág. <?= e($g['pagina_soporte']) ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary text-white">Sin Soporte</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="py-4 px-4 text-end">
-                                        <form method="POST" action="/admin/gastos/eliminar" class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar este gasto y su archivo físico?');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="id" value="<?= e($g['id']) ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm border-0" title="Eliminar Gasto">
-                                                <span class="material-symbols-outlined fs-6">delete</span>
-                                            </button>
-                                        </form>
+                                    <td class="py-4 px-4 text-center text-xs"><?= e(date('d/m/Y H:i', strtotime($r['fecha_carga']))) ?></td>
+                                    <td class="py-4 px-4 text-center text-xs"><?= e($r['fecha_emision'] ? date('d/m/Y', strtotime($r['fecha_emision'])) : '—') ?></td>
+                                    <td class="py-4 px-4">
+                                        <span class="badge bg-blue-50 text-blue-700 border border-blue-200 rounded-pill px-2.5 py-1 text-xs font-semibold"><?= e($r['facturas_creadas']) ?> facturas</span>
+                                        <?php if (!empty($r['facturas_actualizadas'])): ?>
+                                            <span class="badge bg-slate-100 text-slate-700 border rounded-pill px-2.5 py-1 text-xs font-semibold"><?= e($r['facturas_actualizadas']) ?> actualizadas</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($r['facturas_omitidas'])): ?>
+                                            <span class="badge bg-amber-100 text-amber-800 border border-amber-200 rounded-pill px-2.5 py-1 text-xs font-semibold"><?= e($r['facturas_omitidas']) ?> omitidas</span>
+                                        <?php endif; ?>
+                                        <?php
+                                        $nuevos = [];
+                                        if (!empty($r['edificios_creados'])) { $nuevos[] = $r['edificios_creados'] . ' edificios'; }
+                                        if (!empty($r['unidades_creadas'])) { $nuevos[] = $r['unidades_creadas'] . ' unidades'; }
+                                        if (!empty($nuevos)):
+                                        ?>
+                                            <small class="d-block text-on-surface-variant mt-1"><?= e(implode(' · ', $nuevos)) ?></small>
+                                        <?php endif; ?>
                                     </td>
+                                    <td class="py-4 px-4 text-xs"><?= e($r['usuario_nombre'] ?: '—') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-
-            <!-- Paginación -->
             <div class="p-3 border-top bg-light">
                 <?php include VIEWS_PATH . '/components/pagination.php'; ?>
             </div>

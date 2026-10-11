@@ -106,6 +106,13 @@ class CarteleraUpsertTest extends TestCase {
             } catch (\Throwable $e) {
                 error_log('[CarteleraUpsertTest] No se pudo limpiar la auditoría del test: ' . $e->getMessage());
             }
+            // Limpieza del historial de reportes generado por el test (upsert sin hash)
+            try {
+                $db->prepare("DELETE FROM reportes_cartelera WHERE archivo = :archivo")
+                   ->execute(['archivo' => self::ARCHIVO_TEST]);
+            } catch (\Throwable $e) {
+                error_log('[CarteleraUpsertTest] No se pudo limpiar el historial de reportes del test: ' . $e->getMessage());
+            }
         }
     }
 

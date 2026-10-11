@@ -83,10 +83,16 @@ class CarteleraController extends Controller
 
         $hash = @hash_file('sha256', $rutaCompleta);
 
+        $nombreOriginalRaw = $_FILES['pdf_cartelera']['name'] ?? null;
+        $nombreOriginal = is_string($nombreOriginalRaw)
+            ? substr(trim(basename(str_replace(['\\', "\0"], ['/', ''], $nombreOriginalRaw))), 0, 255)
+            : '';
+
         $_SESSION['cartelera_preview'] = $resultado['filas'];
         $_SESSION['cartelera_meta'] = [
             'archivo'             => $nombreArchivo,
             'hash'                => $hash !== false ? $hash : null,
+            'nombre_original'     => $nombreOriginal !== '' ? $nombreOriginal : null,
             'fecha_emision'       => $resultado['fecha_emision'],
             'anio'                => $resultado['anio'],
             'meses'               => $resultado['meses'],
@@ -120,7 +126,8 @@ class CarteleraController extends Controller
                 (string)$meta['fecha_emision'],
                 Auth::id() ?? 1,
                 (string)($meta['archivo'] ?? ''),
-                $meta['hash'] ?? null
+                $meta['hash'] ?? null,
+                $meta['nombre_original'] ?? null
             );
 
             unset($_SESSION['cartelera_preview'], $_SESSION['cartelera_meta']);

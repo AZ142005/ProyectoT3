@@ -8,6 +8,7 @@ use App\Models\GastosModel;
 use App\Models\CategoriasGastosModel;
 use App\Models\UnidadesModel;
 use App\Models\FacturasModel;
+use App\Models\CarteleraModel;
 
 class GastoController extends Controller {
 
@@ -22,9 +23,6 @@ class GastoController extends Controller {
         $pagina = max(1, intval($_GET['page'] ?? 1));
         $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
         $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));
-        $categoriaId = !empty($_GET['categoria_id']) ? intval($_GET['categoria_id']) : null;
-        $tipoGasto = !empty($_GET['tipo_gasto']) ? trim($_GET['tipo_gasto']) : null;
-        $edificioId = !empty($_GET['edificio_id']) ? intval($_GET['edificio_id']) : null;
 
         $gastosModel = new GastosModel();
         $categoriasModel = new CategoriasGastosModel();
@@ -32,18 +30,18 @@ class GastoController extends Controller {
         $unidadesModel = new UnidadesModel();
         $facturasModel = new FacturasModel();
 
-        $filtros = [
-            'mes'          => $mes,
-            'anio'         => $anio,
-            'categoria_id' => $categoriaId,
-            'tipo_gasto'   => $tipoGasto,
-            'edificio_id'  => $edificioId,
-        ];
-        $resultado = $gastosModel->obtenerGastosAdmin($pagina, 25, $filtros);
         $categorias = $categoriasModel->getActivas();
         $edificios = $edificiosModel->getAll();
         $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
         $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
+
+        // Historial de reportes cargados (último mes)
+        $historial = (new CarteleraModel())->obtenerHistorialUltimoMes($pagina, 25);
+        foreach ($historial['datos'] as &$filaReporte) {
+            $filaReporte['archivo_existe'] = !empty($filaReporte['archivo'])
+                && is_file(UPLOADS_PATH . '/soportes/' . $filaReporte['archivo']);
+        }
+        unset($filaReporte);
 
         // Datos para la sección de Emisión de Deuda
         $unidades = $unidadesModel->getActivas();
@@ -51,20 +49,19 @@ class GastoController extends Controller {
         $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
 
         $paginacion = [
-            'total'        => $resultado['total'],
-            'pagina'       => $resultado['pagina'],
-            'porPagina'    => $resultado['porPagina'],
-            'totalPaginas' => $resultado['totalPaginas'],
+            'total'        => $historial['total'],
+            'pagina'       => $historial['pagina'],
+            'porPagina'    => $historial['porPagina'],
+            'totalPaginas' => $historial['totalPaginas'],
         ];
 
         $this->render('admin/gastos/index', [
             'tabActual'           => $tabActual,
-            'gastos'              => $resultado['datos'],
+            'historial'           => $historial['datos'],
             'categorias'          => $categorias,
             'edificios'           => $edificios,
             'totalesPorCategoria' => $totalesPorCategoria,
             'totalMes'            => $totalMes,
-            'filtros'             => $filtros,
             'paginacion'          => $paginacion,
             'unidades'            => $unidades,
             'mes'                 => $mes,
