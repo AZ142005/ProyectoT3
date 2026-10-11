@@ -7,7 +7,7 @@ use Tests\TestCase;
  * Tests de Helpers — Funciones helper del proyecto
  *
  * formatearMoneda, validarCedula, validarEmail, validarTelefono,
- * nombreMes, diasHastaVencimiento, csrf helpers.
+ * nombreMes, agruparFacturasPorMes, diasHastaVencimiento, csrf helpers.
  */
 class HelperTest extends TestCase {
 
@@ -333,6 +333,59 @@ class HelperTest extends TestCase {
     public function testNombreMesStringInput(): void {
         $this->assertEquals('Enero', nombreMes('1'),
             "nombreMes debe aceptar string numérico");
+    }
+
+    // =====================================================================
+    // agruparFacturasPorMes()
+    // =====================================================================
+
+    public function testAgruparFacturasPorMesSumaMismoMesYAnio(): void {
+        $grupos = agruparFacturasPorMes([
+            ['mes' => 4, 'anio' => 2026, 'saldo' => '5000.00'],
+            ['mes' => 4, 'anio' => 2026, 'saldo' => '1500.50'],
+            ['mes' => 5, 'anio' => 2026, 'saldo' => 100.00],
+        ]);
+
+        $this->assertEquals(2, count($grupos),
+            "Las facturas del mismo mes/año deben agruparse en una sola fila");
+        $this->assertEquals(4, $grupos[0]['mes']);
+        $this->assertEquals(2026, $grupos[0]['anio']);
+        $this->assertTrue(is_float($grupos[0]['total']),
+            "El total del grupo debe ser float");
+        $this->assertEquals(6500.50, $grupos[0]['total'],
+            "El total del grupo debe ser la suma de los saldos");
+        $this->assertEquals(100.0, $grupos[1]['total'],
+            "Un mes único conserva su saldo sin cambios");
+    }
+
+    public function testAgruparFacturasPorMesConservaOrdenDeAparicion(): void {
+        $grupos = agruparFacturasPorMes([
+            ['mes' => 8, 'anio' => 2026, 'saldo' => 10.0],
+            ['mes' => 6, 'anio' => 2026, 'saldo' => 20.0],
+            ['mes' => 8, 'anio' => 2026, 'saldo' => 5.0],
+        ]);
+
+        $this->assertEquals(2, count($grupos));
+        $this->assertEquals(8, $grupos[0]['mes'],
+            "El primer grupo debe ser el primero en aparecer (facturas por vencimiento)");
+        $this->assertEquals(15.0, $grupos[0]['total'],
+            "Los saldos repetidos se acumulan en el grupo existente");
+        $this->assertEquals(6, $grupos[1]['mes'],
+            "El orden de aparición debe preservarse, sin reordenar por mes");
+    }
+
+    public function testAgruparFacturasPorMesSinClavesNiVacios(): void {
+        $this->assertEquals([], agruparFacturasPorMes([]),
+            "Una lista vacía debe devolver una lista vacía");
+
+        $grupos = agruparFacturasPorMes([[], ['saldo' => '10.25']]);
+
+        $this->assertEquals(1, count($grupos),
+            "Las facturas sin mes/año se agrupan en la clave 0-0");
+        $this->assertEquals(0, $grupos[0]['mes']);
+        $this->assertEquals(0, $grupos[0]['anio']);
+        $this->assertEquals(10.25, $grupos[0]['total'],
+            "Las claves ausentes no deben emitir warnings ni aportar saldo");
     }
 
     // =====================================================================

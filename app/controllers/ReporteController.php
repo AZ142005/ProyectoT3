@@ -128,37 +128,36 @@ class ReporteController extends Controller {
 
         $numUnidad = $detalle['unidad']['unidad_numero'] ?? '';
         $torre = $detalle['unidad']['edificio_nombre'] ?: 'Sin Torre';
-        $propietario = $detalle['unidad']['propietario_nombre'] ?: 'Propietario';
-        $cedula = $detalle['unidad']['propietario_cedula'] ?: 'N/A';
-        $codigoAviso = 'COB-' . date('Ym') . '-' . $numUnidad;
-        $fechaEmision = date('d/m/Y');
-        $totalBs = formatearMonto(floatval($detalle['total_deuda']));
+        $propietario = $detalle['unidad']['propietario_nombre'] ?: 'Propietario / Residente';
 
-        $lineasFacturas = "";
-        if (!empty($detalle['facturas'])) {
-            foreach ($detalle['facturas'] as $f) {
-                $concepto = $f['descripcion'] ?? 'Cuota de Condominio';
-                $venc = $f['fecha_vencimiento'] ?? '';
-                $dias = isset($f['dias_vencido']) ? intval($f['dias_vencido']) : 0;
-                $monto = formatearMonto(floatval($f['saldo'] ?? 0));
-                $lineasFacturas .= "• " . $concepto . " (Venc: " . $venc . " | " . $dias . " d): Bs. " . $monto . "\n";
-            }
+        // El mensaje refleja la tabla mensual de la carta: sin días por factura.
+        $gruposFacturas = agruparFacturasPorMes($detalle['facturas']);
+        $cantidadMeses = count($gruposFacturas);
+        $textoMesesVencidos = ($cantidadMeses === 1) ? '1 mes vencido' : $cantidadMeses . ' meses vencidos';
+        $montoEnLetrasTotal = montoEnLetras($detalle['total_deuda']);
+
+        $detalleMensual = "";
+        $esPrimeraFila = true;
+        foreach ($gruposFacturas as $grupo) {
+            $etiqueta = ($esPrimeraFila ? 'Saldo de ' : '') . nombreMes($grupo['mes']) . '-' . $grupo['anio'];
+            $detalleMensual .= $etiqueta . ': ' . formatearMoneda($grupo['total']) . "\n";
+            $esPrimeraFila = false;
         }
+        $detalleMensual .= "TOTAL: " . formatearMoneda($detalle['total_deuda']);
 
-        $mensajeCarta = "CONJUNTO RESIDENCIAL \"LAS MESETAS DE MORÓN\"\n"
-            . "Junta de Condominio & Administración General\n"
-            . "RIF: J-30948572-0 | Morón, Estado Trujillo\n\n"
-            . "AVISO OFICIAL: " . $codigoAviso . "\n"
-            . "CARTA DE COBRO / RECORDATORIO DE MOROSIDAD\n\n"
-            . "Destinatario: " . $propietario . " (C.I: " . $cedula . ")\n"
-            . "Unidad: Apto/Unidad " . $numUnidad . " (" . $torre . ")\n"
-            . "Fecha de Emisión: " . $fechaEmision . "\n\n"
-            . "DETALLE DE CUOTAS Y OBLIGACIONES VENCIDAS:\n"
-            . $lineasFacturas . "\n"
-            . "TOTAL GENERAL ADEUDADO: Bs. " . $totalBs . "\n\n"
-            . "Por medio de la presente se le notifica formalmente el saldo adeudado. Le solicitamos realizar el pago correspondiente a la brevedad y registrar su comprobante en el portal.\n\n"
+        $mensajeCarta = "CONDOMINIO CONJUNTO LAS MESETAS\n"
+            . "RIF. J-400577870\n"
+            . "Av. Ppal. de Morón. Oficina Administrativa\n"
+            . "Urb. Las Mesetas. Teléf. 0271-2259170 - Valera, Edo. Trujillo\n\n"
+            . "Valera, " . date('j') . " de " . nombreMes(date('n')) . " de " . date('Y') . "\n\n"
+            . "Ciudadana (o): " . mb_strtoupper($propietario, 'UTF-8') . "\n"
+            . "Propietario(a) del Apto. " . $numUnidad . ". Del Edificio \"" . $torre . "\".\n"
+            . "PRESENTE.-\n\n"
+            . "Nos es grato dirigirnos a usted, para saludarle y a la vez notificarle que a la fecha, tiene una morosidad de " . $textoMesesVencidos . " de condominio, por un monto de " . $montoEnLetrasTotal . " (" . formatearMoneda($detalle['total_deuda']) . "). Monto total se detalla a continuación:\n\n"
+            . $detalleMensual . "\n\n"
+            . "Le solicitamos realizar el pago a la brevedad posible por los medios establecidos: Cuenta Corriente Banco de Venezuela Nº. 0102-0373-2200-0010-2432; Divisa (Tasa del BCV del día de cancelación); o al correo pagosjdclm@gmail.com.\n\n"
             . "Atentamente,\n"
-            . "ADMINISTRACIÓN GENERAL & JUNTA DE CONDOMINIO";
+            . "Ninoska Moncada — Administradora";
 
         $enlaceWhatsapp = \App\Services\NotificationService::generarEnlaceWhatsApp(
             $detalle['unidad']['propietario_telefono'] ?? '',

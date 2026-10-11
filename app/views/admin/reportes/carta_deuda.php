@@ -16,16 +16,7 @@ $facturas = $facturas ?? [];
 $totalDeuda = $totalDeuda ?? 0;
 
 // Agrupa las facturas por mes/año sumando saldos; conserva el orden cronológico de llegada.
-$gruposFacturas = [];
-foreach ($facturas as $factura) {
-    $mes = intval($factura['mes'] ?? 0);
-    $anio = intval($factura['anio'] ?? 0);
-    $clave = $mes . '-' . $anio;
-    if (!isset($gruposFacturas[$clave])) {
-        $gruposFacturas[$clave] = ['mes' => $mes, 'anio' => $anio, 'total' => 0.0];
-    }
-    $gruposFacturas[$clave]['total'] += floatval($factura['saldo'] ?? 0);
-}
+$gruposFacturas = agruparFacturasPorMes($facturas);
 
 $cantidadMeses = count($gruposFacturas);
 $textoMesesVencidos = ($cantidadMeses === 1) ? '1 mes vencido' : $cantidadMeses . ' meses vencidos';

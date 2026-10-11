@@ -191,6 +191,33 @@ if (!function_exists('nombreMes')) {
     }
 }
 
+if (!function_exists('agruparFacturasPorMes')) {
+    /**
+     * Agrupa facturas por mes/año sumando sus saldos.
+     *
+     * Conserva el orden de aparición de las facturas (se esperan ordenadas por
+     * fecha de vencimiento), de modo que el primer grupo corresponde al mes más
+     * antiguo y la primera fila de la tabla mensual queda rotulada como
+     * "Saldo de {Mes}-{año}".
+     *
+     * @param array $facturas Lista de facturas con claves 'mes', 'anio' y 'saldo'.
+     * @return array Lista de grupos con la forma ['mes' => int, 'anio' => int, 'total' => float].
+     */
+    function agruparFacturasPorMes(array $facturas): array {
+        $grupos = [];
+        foreach ($facturas as $factura) {
+            $mes = intval($factura['mes'] ?? 0);
+            $anio = intval($factura['anio'] ?? 0);
+            $clave = $mes . '-' . $anio;
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = ['mes' => $mes, 'anio' => $anio, 'total' => 0.0];
+            }
+            $grupos[$clave]['total'] += floatval($factura['saldo'] ?? 0);
+        }
+        return array_values($grupos);
+    }
+}
+
 if (!function_exists('diasHastaVencimiento')) {
     /**
      * Calcula los días restantes hasta la fecha de vencimiento.
