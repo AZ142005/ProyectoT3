@@ -394,6 +394,25 @@ try {
             'pagebreak' {
                 $sel.InsertBreak(7)
             }
+            'part' {
+                $sel.InsertBreak(7)                      # wdPageBreak
+                Reset-BodyFormat $sel
+                $sel.Font.Name = 'Calibri'
+                Set-FontSize $sel 20
+                $sel.Font.Bold = 1
+                $sel.Font.Italic = 0
+                $sel.Font.Underline = 0
+                $sel.Font.Color = $COLOR_H1
+                $sel.ParagraphFormat.Alignment = 1       # center
+                $sel.ParagraphFormat.SpaceBefore = 0
+                $sel.ParagraphFormat.SpaceAfter = 18
+                try { $sel.ParagraphFormat.LineSpacingRule = 0 } catch { }   # single
+                $sel.TypeText([string]$node.text)
+                $sel.TypeParagraph()
+                Reset-BodyFormat $sel
+                $sel.ParagraphFormat.SpaceAfter = 12
+                $sel.TypeParagraph()                     # extra spacing after the part title
+            }
             'h1' { Write-Heading $sel 1 ([string]$node.text) }
             'h2' { Write-Heading $sel 2 ([string]$node.text) }
             'h3' { Write-Heading $sel 3 ([string]$node.text) }
