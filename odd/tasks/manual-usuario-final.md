@@ -5,6 +5,7 @@
 ## Estado (2026-10-12)
 
 - **v2 generada y validada**: 24 capítulos numerados en dos partes + portada/control/índice; **28 figuras** = 22 embebidas (logo + 21 capturas) + **7 placeholders** "CAPTURA PENDIENTE"; ~50 páginas; docx 3,37 MB / PDF 2,16 MB; builds idempotentes (~33 s); sin procesos WINWORD residuales.
+- **v3 (ronda final, 12/10)**: corregida la **maquetación de figuras** (causa: la selección de Word tras `AddPicture` desplazaba la imagen al final del flujo; fix: `EndKey(6)` + KeepWithNext — verificado por sondeo: imagen y rótulo adyacentes, sin empaquetados, logo en portada); capítulo 1 condensado; registro reformulado ("un residente solicita su **usuario del sistema**"); PARTE II resumida (~30-40% menos texto) + bloque "Cómo iniciar sesión"; **glosario y anexos eliminados** (la carta-ejemplo pasó al cap. 12 como Figura 18). Salida actual: 598 párrafos, 44 tablas, 28 figuras, 22 media, 7 pendientes; el documento termina en "22. PREGUNTAS FRECUENTES"; docx 3,36 MB / PDF 2,11 MB.
 - **Estructura final**: 1 Introducción · 2 Acceso · **PARTE I** (caps. 3–14: Dashboard, Historial/verificación, Conciliación, Cuentas, Carga y Emisión, Estructura, Estacionamientos, Comunicados, Usuarios, Carta de Deuda, Respaldos, Rol Auditor [fusionado]) · **PARTE II** (caps. 15–20: Portal público, Panel, Registrar pago, Mis Pagos, Notificaciones, Cartelera) · 21 Mi Perfil · 22 FAQ · 23 Glosario · 24 Anexos.
 - **Decisiones aplicadas (pedido del usuario, 12/10)**: registro en 2 figuras (`02-registro-residente(1).png` / `(2).png`); eliminadas secciones y capturas de estado de cuenta (23) y rendición (26) — más la FAQ asociada y el término del glosario; Notificaciones y Cartelera sin captura propia (el panel, fig. 21, ya las cubre); auditor = mismas vistas que el admin en lectura, fusionado en el cap. 14.
 - **Hallazgo**: `/residente/historial` es código muerto (redirige a `/pagos`). La sección 18 describe "Mis Pagos" real (columnas verificadas contra `pagos/residente/lista.php` y `pagos/detalle.php`).
@@ -31,7 +32,8 @@
 - [x] T5 — Plan de capturas entregado al usuario (decisión: las toma el usuario).
 - [x] T6a — Reestructura en dos partes + ajustes (2 figuras de registro; −23/26/27/28; auditor fusionado; sección "Mis Pagos" real; índice; nodo `part`).
 - [x] T6b — Datos de prueba sembrados para la captura 22 (seed idempotente).
-- [ ] T6c — Incorporar las 7 capturas restantes (18, 20, 22, 30 + opcionales) y regenerar.
+- [x] T6c — Ronda final: maquetación de figuras corregida (imagen+rótulo adyacentes) + intro condensada + registro como "solicitud de usuario" + PARTE II resumida + "Cómo iniciar sesión" en PARTE II + sin glosario/anexos (carta-ejemplo → Fig. 18 del cap. 12).
+- [ ] T6d — Incorporar las 7 capturas restantes (2FA, cartelera, respaldos, auditor, log, éxito, Mis Pagos) y regenerar.
 - [ ] T7 — Cierre: commit final + resumen en Engram.
 
 ## Regenerar

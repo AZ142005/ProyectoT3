@@ -5,7 +5,13 @@
 #
 # Requirements: Windows PowerShell 5.1 + Microsoft Word installed.
 # Run:  powershell -ExecutionPolicy Bypass -File scripts\manual\build_manual.ps1
+#       powershell -ExecutionPolicy Bypass -File scripts\manual\build_manual.ps1 -OutputDir <folder>
+#
+# -OutputDir (optional): writes "manual de usuario final.docx/.pdf" into that
+# folder (created if missing). When omitted, outputs go to <repo>\docs.
 # =============================================================================
+
+param([string]$OutputDir = '')
 
 $ErrorActionPreference = 'Stop'
 
@@ -37,6 +43,13 @@ if ([string]::IsNullOrEmpty($scriptsDir)) {
 $repoRoot   = Split-Path (Split-Path $scriptsDir -Parent) -Parent   # <repo>
 $jsonPath   = Join-Path $scriptsDir 'contenido_manual.json'
 $docsDir    = Join-Path $repoRoot 'docs'
+if (-not [string]::IsNullOrEmpty($OutputDir)) {
+    # Optional override for test builds (e.g. -OutputDir C:\Temp\manual_build)
+    $docsDir = $OutputDir
+    if (-not (Test-Path -LiteralPath $docsDir)) {
+        New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
+    }
+}
 $docxAbs    = Join-Path $docsDir 'manual de usuario final.docx'
 $pdfAbs     = Join-Path $docsDir 'manual de usuario final.pdf'
 $logoAbs    = Join-Path $repoRoot 'public\img\logo_condominio.png'
@@ -190,13 +203,18 @@ function Add-Figure($sel, $doc, $node) {
         $shape = $doc.InlineShapes.AddPicture($absPath, $false, $true, $sel.Range)
         $shape.LockAspectRatio = -1
         $shape.Width = 425.2                             # 15 cm in points
+        # The selection does not follow the inserted picture; move it to the
+        # end of the story so the caption paragraph lands AFTER the image.
+        # (Without this, captions/following content end up before the image.)
+        $sel.EndKey(6) | Out-Null                        # wdStory = 6
+        try { $sel.ParagraphFormat.KeepWithNext = -1 } catch { }
         $sel.TypeParagraph()
         Write-Caption $sel $figLabel
     } else {
-        # Visible pending placeholder: red label + yellow 1x1 boxed table
+        # Visible pending placeholder: yellow boxed table first, red caption
+        # below (same order as embedded figures: placeholder above, label below)
         $script:placeholderCount++
         Reset-BodyFormat $sel
-        Write-RichParagraph $sel "$figLabel (captura pendiente)" 11 1 1 $COLOR_RED 1
 
         $t = $doc.Tables.Add($sel.Range, 1, 1)
         $t.Borders.Enable = 1
@@ -208,7 +226,11 @@ function Add-Figure($sel, $doc, $node) {
         $cellRange.Font.Bold = 1
         $cellRange.Font.Color = 0
         $t.AutoFitBehavior(2)                            # fit to window
-        Move-AfterTable $sel $t
+        # Move to the end of the story (the empty paragraph right after the
+        # table) and write the red label there: the label sits directly BELOW
+        # the placeholder box, with no extra blank paragraph in between.
+        $sel.EndKey(6) | Out-Null                        # wdStory = 6
+        Write-RichParagraph $sel "$figLabel (captura pendiente)" 11 1 1 $COLOR_RED 1
     }
 }
 
@@ -325,6 +347,8 @@ try {
         $logoShape = $doc.InlineShapes.AddPicture($logoAbs, $false, $true, $sel.Range)
         $logoShape.LockAspectRatio = -1
         $logoShape.Width = 127.56                        # 4.5 cm
+        # Keep the selection after the logo so the title does not jump before it
+        $sel.EndKey(6) | Out-Null                        # wdStory = 6
         $sel.TypeParagraph()
     }
 

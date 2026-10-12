@@ -44,55 +44,34 @@
       "19. NOTIFICACIONES",
       "20. CARTELERA DE COMUNICADOS",
       "21. MI PERFIL (TODOS LOS ROLES)",
-      "22. PREGUNTAS FRECUENTES",
-      "23. GLOSARIO",
-      "24. ANEXOS"
+      "22. PREGUNTAS FRECUENTES"
     ] },
 
     { "type": "h1", "text": "1. INTRODUCCIÓN" },
     { "type": "h2", "text": "1.1 ¿Qué es el sistema?" },
-    { "type": "p", "text": "Condominio Digital es el sistema web de cobranzas y gestión de pagos del Conjunto Residencial \"Las Mesetas de Morón\". Con él, la administración registra y verifica los pagos de los residentes, los cruza con el estado de cuenta del banco (conciliación), controla los gastos con sus facturas y soportes, emite la deuda mensual, publica comunicados y conserva un registro de auditoría de todas las acciones importantes." },
-    { "type": "bullets", "items": [
-      "Pagos: el residente reporta su pago con el comprobante y la administración lo verifica, aprueba o rechaza.",
-      "Conciliación: el sistema compara los pagos reportados con el extracto bancario y propone coincidencias.",
-      "Gastos y facturación: registro de egresos del conjunto, carga del reporte de deuda por unidad y emisión de la cuota mensual.",
-      "Comunicados: cartelera digital con avisos para todo el conjunto o para edificios y unidades específicas.",
-      "Auditoría: registro de cada cambio de estado y de cada acción de los usuarios.",
-      "Portal público: cualquier persona puede reportar un pago sin iniciar sesión."
-    ] },
+    { "type": "p", "text": "Condominio Digital es el sistema web de cobranzas y gestión de pagos del Conjunto Residencial \"Las Mesetas de Morón\". La administración registra y verifica los pagos, los concilia con el extracto bancario, controla los gastos con sus facturas, emite la deuda mensual, publica comunicados y conserva la auditoría de las acciones importantes. El portal público permite reportar un pago sin iniciar sesión." },
     { "type": "h2", "text": "1.2 ¿A quién está dirigido este manual?" },
-    { "type": "p", "text": "El manual está dirigido a las tres clases de usuario del sistema. Cada capítulo explica las pantallas que le corresponden." },
+    { "type": "p", "text": "El manual está dirigido a las tres clases de usuario del sistema." },
     { "type": "table",
       "headers": ["Rol", "¿Quién lo usa?", "¿Qué puede hacer?"],
       "rows": [
-        ["Administrador", "Personal de administración del conjunto.", "Gestiona todos los módulos: pagos, conciliación, cuentas bancarias, gastos, estructura, estacionamientos, comunicados, usuarios y carta de deuda."],
-        ["Residente", "Propietario o habitante de una unidad registrada.", "Consulta su deuda, reporta pagos con comprobante, revisa el estado de sus pagos, sus notificaciones y la cartelera."],
-        ["Auditor", "Persona encargada de la fiscalización.", "Usa las mismas vistas del administrador en modo lectura (fiscalización); no puede modificar información."]
+        ["Administrador", "Personal de administración del conjunto.", "Gestiona todos los módulos: pagos, conciliación, gastos, estructura, comunicados, usuarios y carta de deuda."],
+        ["Residente", "Propietario o habitante de una unidad registrada.", "Consulta su deuda, reporta pagos y revisa sus notificaciones."],
+        ["Auditor", "Persona encargada de la fiscalización.", "Consulta los módulos del administrador en modo lectura."]
       ] },
-    { "type": "note", "variant": "info", "text": "El portal público de pago se usa SIN iniciar sesión. Está disponible para cualquier persona que necesite reportar un pago de una unidad (por ejemplo, un familiar o un tercero)." },
     { "type": "h2", "text": "1.3 Cómo usar este manual" },
-    { "type": "p", "text": "Cada pantalla se explica siempre en el mismo orden: primero para qué sirve, luego cómo llegar a ella y después los pasos en orden. Los nombres de botones, campos y secciones aparecen entre comillas, por ejemplo: \"Enviar a Revisión\"." },
-    { "type": "p", "text": "A lo largo del manual encontrará tres clases de avisos:" },
-    { "type": "bullets", "items": [
-      "Aviso informativo (fondo azul): información útil para entender el comportamiento del sistema.",
-      "Consejo (fondo verde): una recomendación que facilita el trabajo.",
-      "Atención (fondo naranja): una advertencia importante. Léala antes de continuar."
-    ] },
-    { "type": "note", "variant": "tip", "text": "Si es su primera vez en el sistema, siga el capítulo 2 para iniciar sesión y luego vaya directamente al capítulo de su rol: administrador (capítulos 3 a 13), residente (capítulos 15 a 20) o auditor (capítulo 14)." },
+    { "type": "p", "text": "Cada pantalla se explica en el mismo orden (para qué sirve, cómo acceder y los pasos), y los nombres de botones y campos aparecen entre comillas: por ejemplo, \"Enviar a Revisión\". Los avisos se distinguen por color: azul (informativo), verde (consejo) y naranja (atención)." },
     { "type": "h2", "text": "1.4 Acceso y requisitos" },
-    { "type": "p", "text": "Para usar el sistema necesita:" },
     { "type": "bullets", "items": [
       "Un navegador web actualizado (Chrome, Edge, Firefox o Safari).",
-      "La dirección del sistema provista por la administración (por ejemplo, http://localhost:8000 en el entorno de pruebas).",
-      "Conexión a internet: el sistema usa servicios en línea para leer los comprobantes y para los estilos de las pantallas.",
-      "Usuario y contraseña. El acceso de residente se habilita cuando la administración aprueba la solicitud de registro.",
+      "La dirección del sistema entregada por la administración.",
+      "Su usuario y contraseña: el acceso del residente se habilita cuando la administración aprueba su solicitud de usuario.",
       "Un correo electrónico válido: si la verificación en dos pasos está activa, allí llegará el código de acceso."
     ] },
-    { "type": "note", "variant": "warn", "text": "Por seguridad, la sesión se cierra sola después de 30 minutos sin actividad. Guarde su trabajo antes de alejarse del equipo." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "2. ACCESO AL SISTEMA" },
-    { "type": "p", "text": "En este capítulo aprenderá a iniciar sesión, a completar la verificación en dos pasos, a registrar su cuenta como residente y a cerrar la sesión correctamente." },
+    { "type": "p", "text": "En este capítulo aprenderá a iniciar sesión, a completar la verificación en dos pasos, a solicitar su usuario de residente y a cerrar la sesión correctamente." },
     { "type": "h2", "text": "2.1 Iniciar sesión" },
     { "type": "p", "text": "¿Para qué sirve? Es la puerta de entrada al sistema. Desde aquí se identifican los tres roles: administrador, residente y auditor." },
     { "type": "image", "file": "docs/manual-capturas/01-login.png", "caption": "Pantalla de inicio de sesión del sistema.", "desc_pendiente": "Abra la dirección del sistema sin sesión iniciada y capture la pantalla completa de inicio de sesión, incluyendo los campos de correo y contraseña." },
@@ -109,7 +88,7 @@
     { "type": "note", "variant": "warn", "text": "Después de varios intentos fallidos, la cuenta se bloquea temporalmente: \"Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.\"" },
     { "type": "p", "text": "Desde la misma pantalla de inicio de sesión también puede:" },
     { "type": "bullets", "items": [
-      "Crear una cuenta nueva: enlace \"Crear Cuenta de Residente\".",
+      "Solicitar un usuario de residente: enlace \"Crear Cuenta de Residente\".",
       "Reportar un pago sin iniciar sesión: botón \"Pagar sin iniciar sesión\"."
     ] },
     { "type": "h2", "text": "2.2 Verificación en dos pasos (cuando está activa)" },
@@ -126,10 +105,10 @@
     { "type": "p", "text": "Si el código no llega o expiró, pulse \"Reenviar Código\". Para abandonar el ingreso, pulse \"Cancelar y Salir\"." },
     { "type": "note", "variant": "warn", "text": "El código expira en 5 minutos y admite un máximo de 3 intentos. Si se agotan, deberá iniciar sesión otra vez." },
     { "type": "note", "variant": "tip", "text": "Puede activar o desactivar la verificación en dos pasos desde \"Mi Perfil\" (sección 21.2)." },
-    { "type": "h2", "text": "2.3 Registro de un nuevo residente" },
-    { "type": "p", "text": "¿Para qué sirve? Permite que una persona solicite su registro como residente del conjunto. La administración revisa la solicitud y la aprueba o la rechaza." },
-    { "type": "image", "file": "docs/manual-capturas/02-registro-residente(1).png", "caption": "Registro de residente — primera parte: datos personales, cédula, teléfono y unidad.", "desc_pendiente": "Desde la pantalla de inicio de sesión, pulse \"Crear Cuenta de Residente\" y capture la primera parte del formulario: datos personales, cédula, teléfono y unidad." },
-    { "type": "image", "file": "docs/manual-capturas/02-registro-residente(2).png", "caption": "Registro de residente — segunda parte: correo, contraseña y envío.", "desc_pendiente": "En la misma pantalla, capture la segunda parte del formulario: correo electrónico, contraseña y el botón \"Enviar Solicitud de Registro\"." },
+    { "type": "h2", "text": "2.3 Solicitud de usuario para residentes" },
+    { "type": "p", "text": "¿Para qué sirve? Permite que un residente del conjunto (propietario o habitante de una unidad) solicite su cuenta de usuario del sistema. La administración revisa la solicitud, valida la unidad y aprueba o rechaza el acceso." },
+    { "type": "image", "file": "docs/manual-capturas/02-registro-residente(1).png", "caption": "Solicitud de usuario — primera parte: datos personales, cédula, teléfono y unidad.", "desc_pendiente": "Desde la pantalla de inicio de sesión, pulse \"Crear Cuenta de Residente\" y capture la primera parte del formulario: datos personales, cédula, teléfono y unidad." },
+    { "type": "image", "file": "docs/manual-capturas/02-registro-residente(2).png", "caption": "Solicitud de usuario — segunda parte: correo, contraseña y envío de la solicitud.", "desc_pendiente": "En la misma pantalla, capture la segunda parte del formulario: correo electrónico, contraseña y el botón \"Enviar Solicitud de Registro\"." },
     { "type": "h3", "text": "Cómo acceder" },
     { "type": "p", "text": "En la pantalla de inicio de sesión, pulse el enlace \"Crear Cuenta de Residente\". Se abrirá la pantalla \"Solicitud de Registro\"." },
     { "type": "h3", "text": "Pasos" },
@@ -143,8 +122,8 @@
       "Cree una \"Contraseña\" y confírmela. Debe tener mínimo 8 caracteres, al menos una letra y al menos un número. El sistema muestra los requisitos en pantalla.",
       "Pulse \"Enviar Solicitud de Registro\"."
     ] },
-    { "type": "p", "text": "Resultado esperado: aparecerá la pantalla \"¡Solicitud Enviada con Éxito!\". Su cuenta queda en estado PENDIENTE hasta la verificación de la administración." },
-    { "type": "note", "variant": "warn", "text": "Por motivos de seguridad, no podrá iniciar sesión hasta que la administración apruebe su solicitud y valide la asignación de su unidad." },
+    { "type": "p", "text": "Resultado esperado: aparecerá la pantalla \"¡Solicitud Enviada con Éxito!\". Su solicitud de usuario queda en estado Pendiente de aprobación hasta que la administración la revise." },
+    { "type": "note", "variant": "warn", "text": "Por motivos de seguridad, no podrá iniciar sesión hasta que la administración apruebe su solicitud de usuario y valide su unidad." },
     { "type": "h2", "text": "2.4 Cierre de sesión y caducidad de la sesión" },
     { "type": "p", "text": "Cerrar sesión evita que otra persona use su cuenta en el mismo equipo. En el panel del administrador y del auditor, el botón \"Salir\" está al final de la barra lateral. En las pantallas del residente, el botón rojo de salida está en la esquina superior derecha." },
     { "type": "steps", "items": [
@@ -332,9 +311,9 @@
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "11. USUARIOS: GESTIÓN Y SOLICITUDES" },
-    { "type": "p", "text": "¿Para qué sirve? Administra las cuentas del sistema y atiende las solicitudes: registro de nuevos residentes y cambios de datos." },
+    { "type": "p", "text": "¿Para qué sirve? Administra las cuentas del sistema y atiende las solicitudes: acceso de nuevos residentes (solicitudes de usuario) y cambios de datos." },
     { "type": "image", "file": "docs/manual-capturas/14-usuarios.png", "caption": "Usuarios: listado, roles y acciones de gestión.", "desc_pendiente": "Inicie sesión como administrador, abra Usuarios y capture la pestaña \"Usuarios\" con el listado de cuentas." },
-    { "type": "image", "file": "docs/manual-capturas/15-usuarios-solicitudes.png", "caption": "Solicitudes de registro de residentes pendientes de aprobación.", "desc_pendiente": "En Usuarios, abra la pestaña \"Solicitudes de Registro\" y capture la bandeja con al menos una solicitud pendiente." },
+    { "type": "image", "file": "docs/manual-capturas/15-usuarios-solicitudes.png", "caption": "Solicitudes de usuario de residentes pendientes de aprobación.", "desc_pendiente": "En Usuarios, abra la pestaña \"Solicitudes de Registro\" y capture la bandeja con al menos una solicitud pendiente." },
     { "type": "h2", "text": "11.1 Cómo acceder" },
     { "type": "p", "text": "Barra lateral → Usuarios. La pantalla se titula \"Usuarios y Solicitudes\" y tiene tres pestañas: \"Usuarios\", \"Solicitudes de Registro\" y \"Cambios de Datos\"." },
     { "type": "h2", "text": "11.2 Gestión de usuarios" },
@@ -345,14 +324,14 @@
     ] },
     { "type": "p", "text": "Cuando reinicia una contraseña, el sistema muestra el banner \"¡Contraseña Reiniciada Exitosamente!\" con la nueva clave temporal y el botón \"Copiar al portapapeles\". Si la cuenta estaba bloqueada por intentos fallidos, se desbloquea." },
     { "type": "note", "variant": "info", "text": "Deberá entregar la contraseña temporal al usuario y recomendarle cambiarla desde \"Mi Perfil\" después de iniciar sesión." },
-    { "type": "h2", "text": "11.3 Solicitudes de registro" },
+    { "type": "h2", "text": "11.3 Solicitudes de Registro (acceso de residentes)" },
     { "type": "steps", "items": [
-      "Abra la pestaña \"Solicitudes de Registro\".",
+      "Abra la pestaña \"Solicitudes de Registro\": reúne las solicitudes de usuario de los residentes.",
       "Filtre por estado: Todas, Pendientes, Aprobadas o Rechazadas.",
-      "Revise los datos del solicitante: nombre, cédula, contacto, apartamento asignado y fecha.",
-      "Pulse \"Aprobar\" para activar la cuenta (el sistema pide confirmación), o \"Rechazar\" e indique el \"Motivo del Rechazo\"."
+      "Revise los datos del solicitante: nombre, cédula, contacto, la unidad solicitada y la fecha.",
+      "Pulse \"Aprobar\" para activar la cuenta de usuario (el sistema pide confirmación), o \"Rechazar\" e indique el \"Motivo del Rechazo\"."
     ] },
-    { "type": "note", "variant": "warn", "text": "Al aprobar una solicitud se activa la cuenta de residente y el sistema valida que la unidad esté disponible. Si otra solicitud ocupó la unidad, la aprobación puede fallar." },
+    { "type": "note", "variant": "warn", "text": "Al aprobar una solicitud se activa el acceso del residente y el sistema valida que la unidad esté disponible. Si otra solicitud ocupó la unidad, la aprobación puede fallar." },
     { "type": "h2", "text": "11.4 Cambios de datos" },
     { "type": "p", "text": "La pestaña \"Cambios de Datos\" muestra las solicitudes de los residentes (por ejemplo, teléfono o correo) con el valor actual y el valor solicitado. Para aprobar o rechazar, use el campo \"Motivo (obligatorio al rechazar)\" y los botones \"Aprobar\" o \"Rechazar\"." },
 
@@ -371,6 +350,7 @@
       "En la carta oficial, pulse \"Imprimir / PDF\" para imprimirla o guardarla."
     ] },
     { "type": "p", "text": "La carta se abre con formato institucional: membrete con logo, fecha, destinatario, el cuerpo con los meses vencidos y el monto en letras, la tabla de montos por mes, el aviso legal, los medios de pago y la caja \"Recibido Por\"." },
+    { "type": "image", "file": "docs/manual-capturas/17-carta-deuda-ejemplo.png", "caption": "Ejemplo de la carta de deuda generada por el sistema.", "desc_pendiente": "Genere una carta de deuda de ejemplo desde el módulo Carta de Deuda y capture el documento completo (o use el archivo docs/carta_deuda_ejemplo.pdf si existe en su entorno)." },
     { "type": "note", "variant": "info", "text": "El botón \"Enviar por Email\" envía la carta al propietario una vez por día por unidad. El botón \"WhatsApp (1-Clic)\" abre el mensaje preparado en WhatsApp, si el teléfono registrado es compatible." },
     { "type": "note", "variant": "warn", "text": "La numeración y el contenido de la deuda provienen de las facturas y sus saldos. Verifique el período antes de enviar la carta." },
 
@@ -419,27 +399,33 @@
     { "type": "note", "variant": "info", "text": "El log registra también los intentos bloqueados, por ejemplo intentos de cambiar un pago a un estado no permitido. Es una herramienta de fiscalización: la información no se puede editar ni borrar desde el sistema." },
 
     { "type": "part", "text": "PARTE II — GUÍA DEL RESIDENTE" },
-    { "type": "p", "text": "Esta guía explica cómo consultar su deuda, reportar pagos con comprobante, revisar el estado de sus pagos y mantenerse informado. Para entrar al sistema use su correo y contraseña de residente." },
-    { "type": "note", "variant": "warn", "text": "Los pagos y las consultas tardan unos segundos en reflejarse. Si una pantalla no muestra lo que espera, actualice la página antes de intentar de nuevo." },
+    { "type": "p", "text": "Esta guía explica cómo consultar su deuda, reportar pagos con comprobante, revisar el estado de sus pagos y mantenerse informado." },
+    { "type": "h2", "text": "Cómo iniciar sesión" },
+    { "type": "p", "text": "Para entrar al sistema use la pantalla de acceso descrita en la sección 2.1 (Figura 1)." },
+    { "type": "steps", "items": [
+      "Abra la dirección del sistema entregada por la administración.",
+      "Escriba su correo electrónico y su contraseña, y pulse \"Iniciar Sesión\".",
+      "Si su cuenta tiene activada la verificación en dos pasos, escriba el código de 6 dígitos que llegó a su correo."
+    ] },
+    { "type": "p", "text": "¿Aún no tiene usuario? Vea la sección 2.3; ¿solo quiere pagar sin cuenta? use el portal del capítulo 15." },
 
     { "type": "h1", "text": "15. PORTAL PÚBLICO DE PAGO (SIN INICIAR SESIÓN)" },
     { "type": "p", "text": "El portal público permite reportar un pago por transferencia o pago móvil sin usuario ni contraseña. El pago queda asociado a la unidad seleccionada y pasa a revisión de la administración." },
     { "type": "h2", "text": "15.1 Reportar un pago" },
-    { "type": "p", "text": "¿Para qué sirve? Registrar el pago de una unidad cuando no se tiene una cuenta de residente, por ejemplo para un familiar o una persona que paga en nombre del propietario." },
+    { "type": "p", "text": "¿Para qué sirve? Registrar el pago de una unidad sin cuenta de residente, por ejemplo para un familiar o un tercero que paga en nombre del propietario." },
     { "type": "image", "file": "docs/manual-capturas/19-pago-directo.png", "caption": "Portal público de pago: identificación de la unidad y datos del pago.", "desc_pendiente": "Abra la pantalla de pago sin iniciar sesión, seleccione un edificio y una unidad de ejemplo que muestre deuda, y capture el formulario con sus secciones visibles." },
     { "type": "h3", "text": "Cómo acceder" },
     { "type": "p", "text": "En la pantalla de inicio de sesión, pulse \"Pagar sin iniciar sesión\". Se abrirá la pantalla \"Pago de Conjunto\"." },
     { "type": "h3", "text": "Pasos" },
     { "type": "steps", "items": [
       "En \"Identifica tu unidad\", seleccione el \"Edificio\" y la \"Unidad / Apartamento\".",
-      "El sistema consultará la deuda y mostrará el \"Estado de cuenta de la unidad\" con el \"Total pendiente\" y el detalle por periodo. Puede pulsar \"Copiar monto\" para copiar el total al portapapeles.",
-      "En \"Paso 1: Subir Comprobante (Extracción Inteligente)\", seleccione la \"Cuenta Oficial para el Pago\" y suba la foto o el PDF del comprobante. El sistema intentará leer los datos del comprobante y autocompletar el formulario.",
-      "En \"Paso 2: Datos del Pago (Verifique o complete)\", revise o complete: \"Monto Pagado (Bs.)\", \"Fecha de Realización\", \"Método de Pago\" (Transferencia Bancaria o Pago Móvil), \"Número de Referencia\" y \"Banco Emisor / Pagador (Origen)\". Puede añadir \"Observaciones Complementarias\".",
+      "El sistema consulta la deuda y muestra el \"Estado de cuenta de la unidad\" con el \"Total pendiente\". Puede pulsar \"Copiar monto\".",
+      "En \"Paso 1: Subir Comprobante (Extracción Inteligente)\", seleccione la \"Cuenta Oficial para el Pago\" y suba la foto o el PDF del comprobante: el sistema intentará autocompletar los datos del pago.",
+      "En \"Paso 2: Datos del Pago (Verifique o complete)\", revise o complete \"Monto Pagado (Bs.)\", \"Fecha de Realización\", \"Método de Pago\", \"Número de Referencia\" y \"Banco Emisor / Pagador (Origen)\"; puede añadir \"Observaciones Complementarias\".",
       "Pulse \"Enviar Comprobante\"."
     ] },
     { "type": "p", "text": "Resultado esperado: el sistema confirma que el pago fue registrado y que será verificado por la administración." },
-    { "type": "note", "variant": "warn", "text": "Su pago quedará asociado a la unidad seleccionada y será verificado por la administración. Si selecciona una unidad equivocada, el pago quedará registrado a nombre de esa unidad." },
-    { "type": "note", "variant": "info", "text": "Si la unidad no tiene facturas pendientes, puede reportar un abono anticipado. Si tiene saldo a favor, el sistema lo mostrará antes de reportar el pago." },
+    { "type": "note", "variant": "info", "text": "Si la unidad no tiene facturas pendientes, puede reportar un abono anticipado; si tiene saldo a favor, el sistema lo mostrará antes de reportar el pago." },
     { "type": "note", "variant": "tip", "text": "El comprobante puede ser una imagen JPG o PNG, o un archivo PDF, con un tamaño máximo de 5 MB." },
     { "type": "h2", "text": "15.2 Confirmación del reporte" },
     { "type": "p", "text": "¿Para qué sirve? Confirma que el comprobante fue recibido y explica el paso siguiente." },
@@ -449,7 +435,6 @@
       "\"Volver al inicio\": regresa a la página principal.",
       "\"Reportar otro pago\": abre otra vez el formulario para registrar un nuevo pago."
     ] },
-    { "type": "note", "variant": "info", "text": "Los pagos reportados desde el portal público quedan en estado \"En Revisión\" y pasan al proceso de verificación de la administración." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "16. PANEL DEL RESIDENTE" },
@@ -460,12 +445,10 @@
     { "type": "h2", "text": "16.2 Qué encontrará" },
     { "type": "bullets", "items": [
       "Encabezado con su nombre y los datos \"Unidad\", \"Torre\" y \"Cédula\".",
-      "Tarjeta \"Deuda Total\": el monto pendiente de su unidad.",
-      "Tarjeta \"Saldo a Favor\": el crédito disponible para sus próximas cuotas.",
-      "Sección \"Comunicados\": los avisos publicados con su nivel de urgencia (Urgente, Importante o Normal) y su fecha.",
+      "Tarjetas \"Deuda Total\" (monto pendiente de su unidad) y \"Saldo a Favor\" (crédito para sus próximas cuotas).",
+      "Sección \"Comunicados\": los avisos publicados con su nivel de urgencia y su fecha.",
       "Botones \"Mi Perfil\", \"Gestionar Pagos\" y el botón rojo para cerrar sesión."
     ] },
-    { "type": "note", "variant": "info", "text": "Si su unidad está al día, la tarjeta \"Deuda Total\" mostrará Bs. 0,00." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "17. REGISTRAR UN PAGO PASO A PASO" },
@@ -477,14 +460,13 @@
     { "type": "h2", "text": "17.2 Pasos" },
     { "type": "steps", "items": [
       "Revise el resumen superior: \"Deuda Pendiente\" y \"Saldo a Favor Actual\".",
-      "En \"Paso 1: Subir Comprobante (Extracción Inteligente)\", seleccione la cuenta oficial del conjunto. El sistema mostrará una tarjeta con el número de cuenta, el titular, el RIF y el teléfono de pago móvil, con botones \"Copiar\".",
-      "Suba el comprobante: haga clic en la zona de carga o arrastre el archivo. Se muestra una vista previa y el sistema intenta leer los datos automáticamente. Si algo no se detecta, puede pulsar \"Reanalizar\".",
+      "En \"Paso 1: Subir Comprobante (Extracción Inteligente)\", seleccione la cuenta oficial del conjunto: el sistema muestra sus datos (número de cuenta, titular, RIF y teléfono de pago móvil) con botones \"Copiar\".",
+      "Suba el comprobante: haga clic en la zona de carga o arrastre el archivo. El sistema intenta leer los datos automáticamente; si algo no se detecta, pulse \"Reanalizar\".",
       "En \"Paso 2: Datos del Pago (Verifique o complete)\", revise o complete el \"Monto Pagado (Bs.)\", el \"Banco Emisor / Pagador (Origen)\", la \"Fecha de Realización\", el \"Número de Referencia\" y las \"Observaciones Complementarias\".",
-      "Si el sistema detectó una observación (por ejemplo, un dato que no coincide), corríjala con cuidado: aparece resaltada en color ámbar.",
-      "Pulse \"Enviar a Revisión\"."
+      "Si el sistema resaltó una observación (por ejemplo, un dato que no coincide), corríjala y pulse \"Enviar a Revisión\"."
     ] },
     { "type": "p", "text": "Resultado esperado: el pago aparece en su lista de movimientos en estado \"En Revisión\" y la administración podrá verificarlo." },
-    { "type": "note", "variant": "warn", "text": "El comprobante debe ser JPG, PNG o PDF y no superar 5 MB. Las imágenes borrosas o incompletas dificultan la verificación." },
+    { "type": "note", "variant": "warn", "text": "El comprobante debe ser JPG, PNG o PDF y no superar 5 MB." },
     { "type": "note", "variant": "tip", "text": "Cualquier pago que exceda su deuda o un pago anticipado se acreditará automáticamente como Saldo a Favor para sus próximas cuotas." },
     { "type": "p", "text": "Estados posibles de un pago reportado:" },
     { "type": "bullets", "items": [
@@ -502,24 +484,22 @@
     { "type": "p", "text": "En el panel del residente pulse \"Gestionar Pagos\". Se abre la pantalla \"Mis Pagos\"." },
     { "type": "h2", "text": "18.2 Qué encontrará" },
     { "type": "bullets", "items": [
-      "La tabla muestra las columnas \"Fecha Pago\", \"Monto\", \"Referencia\", \"Reportado por\", \"Estado\", \"Comprobante\" y \"Detalle\" (botón \"Ver Detalle\").",
+      "La tabla muestra las columnas \"Fecha Pago\", \"Monto\", \"Referencia\", \"Reportado por\", \"Estado\", \"Comprobante\" y \"Detalle\".",
       "En \"Reportado por\" verá quién registró el pago: un miembro de su unidad o \"Pago directo (sin usuario)\".",
-      "Pulse la miniatura de la columna \"Comprobante\" para ampliar la imagen.",
-      "Pulse \"Ver Detalle\" para abrir el detalle del pago: \"Información General del Pago\" (monto, estado, unidad, fecha, referencia, método de pago y bancos), el \"Comprobante de Pago Adjunto\" y el \"Historial de Auditoría\" con los cambios de estado."
+      "Pulse la miniatura del \"Comprobante\" para ampliarlo, o \"Ver Detalle\" para abrir el detalle: información general del pago, comprobante adjunto e \"Historial de Auditoría\" con los cambios de estado."
     ] },
-    { "type": "note", "variant": "info", "text": "La etiqueta de estado \"No Aprobado\" corresponde a un pago rechazado. El motivo del rechazo aparece en el \"Historial de Auditoría\" del detalle, junto a cada cambio de estado, y en sus notificaciones." },
+    { "type": "note", "variant": "info", "text": "La etiqueta de estado \"No Aprobado\" corresponde a un pago rechazado; el motivo del rechazo aparece en el \"Historial de Auditoría\" del detalle y en sus notificaciones." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "19. NOTIFICACIONES" },
-    { "type": "p", "text": "¿Para qué sirve? Es su bandeja personal de avisos del sistema: cambios de estado de sus pagos, avisos de la administración y otros eventos." },
+    { "type": "p", "text": "¿Para qué sirve? Es su bandeja personal de avisos del sistema: cambios de estado de sus pagos y avisos de la administración." },
     { "type": "h2", "text": "19.1 Cómo acceder" },
     { "type": "p", "text": "Ingrese como residente y abra el módulo \"Notificaciones\" desde su portal. La pantalla se titula \"Bandeja de Notificaciones\"." },
     { "type": "h2", "text": "19.2 Qué encontrará" },
     { "type": "bullets", "items": [
       "El contador de notificaciones sin leer, por ejemplo \"3 sin leer\".",
       "Cada notificación muestra su título, el mensaje, la fecha y el estado de lectura.",
-      "Pulse \"Ver Detalle\" para ir a la pantalla relacionada (por ejemplo, la lista de pagos).",
-      "Pulse \"Marcar como leída\" para actualizar el contador."
+      "Pulse \"Ver Detalle\" para ir a la pantalla relacionada, o \"Marcar como leída\" para actualizar el contador."
     ] },
 
     { "type": "pagebreak" },
@@ -529,12 +509,10 @@
     { "type": "p", "text": "Ingrese como residente y abra el módulo \"Cartelera\" desde su portal. La pantalla se titula \"Cartelera Digital del Conjunto\"." },
     { "type": "h2", "text": "20.2 Qué encontrará" },
     { "type": "bullets", "items": [
-      "Cada comunicado muestra su nivel de urgencia: Urgente, Importante o Normal.",
-      "La fecha de publicación y el edificio o la unidad a la que está dirigido.",
+      "Cada comunicado muestra su nivel de urgencia (Urgente, Importante o Normal), la fecha de publicación y el edificio o la unidad a la que está dirigido.",
       "El título y el contenido completo del aviso."
     ] },
     { "type": "p", "text": "También encontrará estos avisos en su panel principal." },
-    { "type": "note", "variant": "info", "text": "Los comunicados con más de 180 caracteres se muestran recortados en el panel; abra la cartelera para leerlos completos." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "21. MI PERFIL (TODOS LOS ROLES)" },
@@ -585,59 +563,6 @@
     { "type": "h2", "text": "22.10 Mi cuenta fue bloqueada. ¿Qué hago?" },
     { "type": "p", "text": "El bloqueo es temporal y ocurre tras varios intentos fallidos. Espere el tiempo indicado e intente otra vez, o contacte a la administración para que reinicie su clave (el reinicio también desbloquea la cuenta)." },
     { "type": "h2", "text": "22.11 ¿Puedo usar el sistema desde el teléfono?" },
-    { "type": "p", "text": "Sí. Las pantallas se adaptan al tamaño del dispositivo y se usan desde el navegador. Para cargar comprobantes desde el teléfono, tenga a mano la foto o el PDF del pago." },
-
-    { "type": "pagebreak" },
-    { "type": "h1", "text": "23. GLOSARIO" },
-    { "type": "p", "text": "Términos que aparecen en el sistema y en este manual." },
-    { "type": "table",
-      "headers": ["Término", "Significado"],
-      "rows": [
-        ["Unidad", "Apartamento o local del conjunto al que se asocian los residentes, las facturas y los pagos."],
-        ["Edificio / Torre", "Bloque o torre que agrupa varias unidades."],
-        ["Local", "Unidad no residencial (comercial) dentro del conjunto."],
-        ["Cuota / Factura", "Monto que debe pagar cada unidad por los gastos del conjunto en un período."],
-        ["Comprobante", "Imagen o PDF que demuestra que un pago fue realizado (transferencia o pago móvil)."],
-        ["Extracto bancario", "Estado de cuenta del banco con los movimientos recibidos por el conjunto."],
-        ["Conciliación", "Proceso de comparar los pagos reportados con el extracto bancario para confirmarlos."],
-        ["Lote de conciliación", "Grupo de movimientos importados en una misma carga del extracto."],
-        ["Morosidad", "Situación de una unidad que tiene deuda vencida."],
-        ["Solvencia", "Situación de una unidad que está al día con sus cuotas."],
-        ["Carta de deuda", "Notificación oficial que se envía a la unidad morosa con el detalle de su deuda."],
-        ["Saldo a favor", "Crédito de una unidad por pagos que superaron su deuda; se aplica a próximas cuotas."],
-        ["Comunicado / Cartelera", "Aviso oficial publicado por la administración para el conjunto, un edificio o unidades específicas."],
-        ["Notificación", "Aviso personal que el sistema registra en la bandeja del residente."],
-        ["Rol", "Perfil de acceso de un usuario: administrador, residente o auditor."],
-        ["Auditor", "Usuario de fiscalización que consulta todos los módulos en modo lectura."],
-        ["OTP / 2FA", "Código temporal de 6 dígitos y verificación en dos pasos usada como seguridad adicional."],
-        ["Respaldo (backup)", "Copia de seguridad de la base de datos que genera el servidor automáticamente."],
-        ["Libro mayor", "Historial de movimientos contables de una unidad: cargos, abonos y ajustes con sus saldos."]
-      ] },
-
-    { "type": "pagebreak" },
-    { "type": "h1", "text": "24. ANEXOS" },
-    { "type": "h2", "text": "Anexo A. Ejemplo de carta de deuda" },
-    { "type": "p", "text": "Modelo de notificación oficial que genera el sistema desde el módulo Carta de Deuda." },
-    { "type": "image", "file": "docs/manual-capturas/17-carta-deuda-ejemplo.png", "caption": "Ejemplo de carta de deuda emitida por el sistema.", "desc_pendiente": "Genere una carta de deuda de ejemplo desde el módulo Carta de Deuda y capture el documento completo (o use el archivo docs/carta_deuda_ejemplo.pdf si existe en su entorno)." },
-    { "type": "h2", "text": "Anexo B. Estados de un pago y su significado" },
-    { "type": "table",
-      "headers": ["Estado en el sistema", "Qué significa", "Qué puede pasar después"],
-      "rows": [
-        ["Pendiente", "El pago fue reportado y espera la verificación de la administración.", "Puede pasar a En Revisión, Aprobado o No Aprobado."],
-        ["En Revisión", "La administración está analizando el pago y su comprobante.", "Puede pasar a Aprobado o No Aprobado."],
-        ["Aprobado", "El pago fue verificado. Se aplica a las facturas y, si corresponde, genera saldo a favor.", "Es un estado final: no cambia."],
-        ["No Aprobado (Rechazado)", "El pago no fue aceptado. El residente recibe el motivo indicado por la administración.", "Es un estado final: si el pago era correcto, debe reportarse de nuevo."]
-      ] },
-    { "type": "note", "variant": "info", "text": "Los estados Aprobado y No Aprobado son definitivos. Los pagos reportados desde el portal público se registran directamente en estado En Revisión." },
-    { "type": "h2", "text": "Anexo C. Canales de notificación del sistema" },
-    { "type": "table",
-      "headers": ["Canal", "Cómo funciona", "Dónde se ve"],
-      "rows": [
-        ["Bandeja de notificaciones", "El sistema registra cada evento del residente (pago aprobado, no aprobado, en revisión).", "Residente: \"Bandeja de Notificaciones\"."],
-        ["Correo electrónico", "Envío de avisos al correo registrado (por ejemplo, resultado de la verificación de un pago).", "Bandeja del correo del residente."],
-        ["WhatsApp", "Enlace de mensaje predefinido (por ejemplo, en la Carta de Deuda).", "Se abre WhatsApp con el mensaje listo para enviar."],
-        ["Cartelera digital", "Comunicados oficiales para el conjunto, un edificio o unidades específicas, con nivel de urgencia.", "Residente: \"Cartelera Digital del Conjunto\"."]
-      ] },
-    { "type": "note", "variant": "info", "text": "La disponibilidad de cada canal depende de la configuración de la administración (correo del servidor y datos de contacto actualizados)." }
+    { "type": "p", "text": "Sí. Las pantallas se adaptan al tamaño del dispositivo y se usan desde el navegador. Para cargar comprobantes desde el teléfono, tenga a mano la foto o el PDF del pago." }
   ]
 }
