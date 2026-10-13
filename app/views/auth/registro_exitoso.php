@@ -28,9 +28,5 @@
                 </a>
             </div>
         </div>
-
-        <p class="text-center text-muted small mt-4 mb-0">
-            Sistema de Gestión de Cobranzas &copy; <?= date('Y') ?>
-        </p>
     </div>
 </div>

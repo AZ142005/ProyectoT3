@@ -260,10 +260,6 @@
                 Iniciar Sesión
             </a>
         </div>
-
-        <p class="text-center text-xs text-on-surface-variant mt-6">
-            Sistema de Gestión de Cobranzas &copy; <?= date('Y') ?>
-        </p>
     </div>
 </div>
 

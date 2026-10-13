@@ -7,9 +7,6 @@
             <?php endif; ?>
             <a href="#" class="text-white/60 hover:text-primary-container transition-colors">Términos y Condiciones</a>
         </div>
-        <p>
-            &copy; <?= date('Y') ?> Conjunto Digital - Sistema de Cobranzas. Todos los derechos reservados.
-        </p>
     </footer>
 <?php endif; ?>
 

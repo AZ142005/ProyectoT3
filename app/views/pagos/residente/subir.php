@@ -68,7 +68,7 @@
                     </div>
                     <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required onchange="actualizarInfoCuenta(this)"
                             class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                        <option value="">-- Seleccione la cuenta oficial del conjunto --</option>
+                        <option value="">-- Seleccione la cuenta oficial --</option>
                         <?php foreach ($cuentasBancarias as $cb): ?>
                             <option value="<?= e($cb['id']) ?>" 
                                     data-banco="<?= e($cb['banco']) ?>"
@@ -95,7 +95,7 @@
                             <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                 <div class="min-w-0">
                                     <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de Cuenta (20 dígitos)</span>
-                                    <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base break-all block select-all"></span>
                                 </div>
                                 <button type="button" onclick="copiarDatoCuenta('infoNumero', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
                                     <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -106,14 +106,14 @@
                             <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                 <div class="min-w-0">
                                     <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular Autorizado</span>
-                                    <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    <span id="infoTitular" class="font-bold text-slate-800 text-base break-words block select-all"></span>
                                 </div>
                             </div>
 
                             <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                 <div class="min-w-0">
                                     <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
-                                    <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                    <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base break-words block select-all"></span>
                                 </div>
                                 <button type="button" onclick="copiarDatoCuenta('infoDoc', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
                                     <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -124,7 +124,7 @@
                             <div id="wrapperInfoTelefono" class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                 <div class="min-w-0">
                                     <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
-                                    <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
+                                    <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base break-words block select-all"></span>
                                 </div>
                                 <button type="button" onclick="copiarDatoCuenta('infoTelefono', this)" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
                                     <span class="material-symbols-outlined text-[14px]">content_copy</span>

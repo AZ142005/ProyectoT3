@@ -79,7 +79,7 @@
                                class="login-input">
                         <button type="button" onclick="togglePassword('password', this)" class="login-toggle-password" title="Mostrar u ocultar contraseña">
                             <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                             <svg class="icon-eye-off d-none" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -123,15 +123,12 @@
 
         <!-- Footer discreto en la parte inferior -->
         <div class="login-footer text-center">
-            <div class="d-flex justify-content-center gap-3 mb-1">
+            <div class="d-flex justify-content-center gap-3">
                 <?php if (!\App\Core\Auth::check()): ?>
                     <a href="/admin/login" class="login-footer-link">Administrador</a>
                     <span class="opacity-25">&bull;</span>
                 <?php endif; ?>
                 <a href="#" class="login-footer-link">Términos y Condiciones</a>
-            </div>
-            <div class="login-footer-copy">
-                &copy; <?= date('Y') ?> Conjunto Digital. Todos los derechos reservados.
             </div>
         </div>
     </div>
@@ -509,7 +506,27 @@ body > footer {
         flex: 1 0 100%;
         width: 100%;
         max-width: 100%;
-        padding: 2rem 7% 1.5rem;
+        padding: 1.25rem 6% 1rem;
+    }
+    /* Logo compacto en móvil: el tamaño de escritorio (texto calzado con el botón)
+       ocupaba media pantalla y empujaba los botones fuera de vista. */
+    .login-brand-logo img {
+        width: 62%;
+        max-width: 240px;
+        margin-left: auto;
+        margin-right: auto;
+        transform: none;
+    }
+    .login-brand-header {
+        margin-bottom: 1rem !important;
+    }
+}
+
+/* Pantallas cortas (p.ej. iPhone SE): logo mas pequeno para que todos los
+   botones queden visibles sin scroll interno. */
+@media (max-width: 767.98px) and (max-height: 700px) {
+    .login-brand-logo img {
+        width: 48%;
     }
 }
 

@@ -33,8 +33,4 @@
             </a>
         </div>
     </div>
-
-    <p class="text-center text-sm text-on-surface-variant mt-8">
-        Sistema de Gestión de Cobranzas &copy; <?= date('Y') ?>
-    </p>
 </div>

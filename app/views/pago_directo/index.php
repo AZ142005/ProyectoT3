@@ -152,7 +152,8 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             </div>
 
                 <!-- Paso 1: Subida de Comprobante con Extracción Automática -->
-                <div class="mt-6 bg-slate-50/70 border border-outline-variant rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+                <!-- Nota: p-6 (no p-5): Bootstrap tambien define .p-5 (48px !important) y comprime el contenido en movil -->
+                <div class="mt-6 bg-slate-50/70 border border-outline-variant rounded-2xl p-6 flex flex-col gap-4">
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <div>
                             <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
@@ -177,7 +178,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                         </div>
                         <select id="cuenta_bancaria_id" name="cuenta_bancaria_id" required
                                 class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-semibold text-sm">
-                            <option value="">-- Seleccione la cuenta oficial del conjunto --</option>
+                            <option value="">-- Seleccione la cuenta oficial --</option>
                             <?php foreach ($cuentasBancarias as $cb): ?>
                                 <option value="<?= e($cb['id']) ?>"
                                         data-banco="<?= e($cb['banco']) ?>"
@@ -205,7 +206,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Número de Cuenta (20 dígitos)</span>
-                                        <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                        <span id="infoNumero" class="font-mono font-bold text-slate-800 text-base break-all block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoNumero', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar número de cuenta">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -215,13 +216,13 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Titular Autorizado</span>
-                                        <span id="infoTitular" class="font-bold text-slate-800 text-base truncate block select-all"></span>
+                                        <span id="infoTitular" class="font-bold text-slate-800 text-base break-words block select-all"></span>
                                     </div>
                                 </div>
                                 <div class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">RIF / Identificación</span>
-                                        <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base truncate block select-all"></span>
+                                        <span id="infoDoc" class="font-mono font-bold text-slate-800 text-base break-words block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoDoc', this)" class="shrink-0 bg-blue-50 hover:bg-blue-100 text-primary font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar RIF">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -231,7 +232,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                 <div id="wrapperInfoTelefono" class="bg-white/90 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-xs">
                                     <div class="min-w-0">
                                         <span class="text-[10px] uppercase font-bold text-slate-400 block">Teléfono Pago Móvil</span>
-                                        <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base truncate block select-all"></span>
+                                        <span id="infoTelefono" class="font-mono font-bold text-emerald-700 text-base break-words block select-all"></span>
                                     </div>
                                     <button type="button" onclick="copiarDatoCuenta('infoTelefono', this)" class="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1 rounded-lg text-[11px] transition-all flex items-center gap-1 active:scale-95 cursor-pointer" title="Copiar teléfono">
                                         <span class="material-symbols-outlined text-[14px]">content_copy</span>
@@ -293,7 +294,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     </div>
 
                     <!-- Tarjeta A: Detalles de la Transacción -->
-                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 flex flex-col gap-5">
+                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-6 flex flex-col gap-5">
                         <div class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
                             <span class="material-symbols-outlined text-[17px] text-primary">payments</span>
                             Detalles de la Transacción
@@ -369,7 +370,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     </div>
 
                     <!-- Tarjeta B: Entidades Bancarias y Cuentas -->
-                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-5 flex flex-col gap-5">
+                    <div class="bg-slate-50/70 border border-outline-variant rounded-2xl p-6 flex flex-col gap-5">
                         <div class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/80 pb-2">
                             <span class="material-symbols-outlined text-[17px] text-primary">account_balance</span>
                             Entidades Bancarias y Cuentas
