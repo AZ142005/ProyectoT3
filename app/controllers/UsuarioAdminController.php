@@ -317,38 +317,14 @@ class UsuarioAdminController extends Controller {
         if ($rolActual === 'auditor' && $nuevoRol === 'admin') {
             Flash::error('No es posible ascender a un auditor al rol de Administrador.');
             $this->redirect('/admin/usuarios');
-            return;
-        }
-
-        // Protección clave: no dejar al sistema sin administradores activos.
-        if ($rolActual === 'admin' && $nuevoRol === 'auditor' && (int)($usuario['estado'] ?? 0) === 1) {
-            $db = Database::getConnection();
-            $stmtCount = $db->prepare("SELECT COUNT(*) FROM usuarios WHERE rol = 'admin' AND estado = 1 AND id != :id");
-            $stmtCount->execute(['id' => $id]);
-
-            if ((int)$stmtCount->fetchColumn() === 0) {
-                Flash::error('No es posible degradar al último administrador activo del sistema. Asigne otro administrador activo antes de cambiar este rol.');
-                $this->redirect('/admin/usuarios');
-                return;
-            }
-        }
-
         $nombre = $usuario['nombre_completo'] ?? $usuario['usuario'] ?? 'Usuario';
+        $resultado = $usuariosModel->cambiarRolSeguro($id, $nuevoRol);
 
-        try {
-            $db = Database::getConnection();
-            $stmt = $db->prepare("UPDATE usuarios SET rol = :rol WHERE id = :id");
-            $exito = $stmt->execute(['rol' => $nuevoRol, 'id' => $id]);
-        } catch (\PDOException $e) {
-            error_log("[USUARIOS] Error al cambiar rol: " . sanitize_exception_message($e));
-            $exito = false;
-        }
-
-        if ($exito) {
+        if (!empty($resultado['success'])) {
             $rolTexto = $nuevoRol === 'admin' ? 'Administrador' : 'Auditor';
             Flash::success("Rol de {$nombre} actualizado a {$rolTexto} correctamente.");
         } else {
-            Flash::error('Ocurrió un error al actualizar el rol en la base de datos.');
+            Flash::error($resultado['error'] ?? 'Ocurrió un error al actualizar el rol en la base de datos.');
         }
 
         $this->redirect('/admin/usuarios');
@@ -358,7 +334,7 @@ class UsuarioAdminController extends Controller {
      * Procesa el reinicio de contraseña de un usuario o residente.
      */
     public function reiniciarPassword(): void {
-        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
+        Auth::requireRole(UserRole::ADMIN);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');
@@ -566,7 +542,7 @@ class UsuarioAdminController extends Controller {
      * Bloquea la eliminación de administradores.
      */
     public function eliminar(): void {
-        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
+        Auth::requireRole(UserRole::ADMIN);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/admin/usuarios');

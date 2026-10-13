@@ -225,7 +225,7 @@ class ConciliacionController extends Controller {
      * Concilia y aprueba un pago individual de 1-clic.
      */
     public function conciliarPago() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $isAjax = (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
                || (!empty($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'application/json'))
@@ -323,7 +323,7 @@ class ConciliacionController extends Controller {
      * Concilia un lote de pagos seleccionados de forma masiva (máx. 100).
      */
     public function conciliarLote() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $itemsJson = trim($_POST['items_json'] ?? '');
         if (empty($itemsJson)) {
@@ -375,7 +375,7 @@ class ConciliacionController extends Controller {
      * Rechaza un pago reportado desde la pantalla de conciliación con motivo obligatorio.
      */
     public function rechazarPago() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $pagoId = intval($_POST['pago_id'] ?? 0);
         $origenTipo = trim($_POST['origen_tipo'] ?? 'pago');
@@ -424,7 +424,7 @@ class ConciliacionController extends Controller {
      * Verifica y aprueba directamente un pago o comprobante desde el módulo de conciliación.
      */
     public function verificarPagoDirecto() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole('admin');
 
         $pagoId = intval($_POST['pago_id'] ?? 0);
         $origenTipo = trim($_POST['origen_tipo'] ?? 'pago');

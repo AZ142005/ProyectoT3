@@ -319,4 +319,50 @@ class UsuariosModel extends BaseModel {
             return false;
         }
     }
+
+    /**
+     * Cambia el rol de un usuario de manera atómica con protección contra degradación del último admin.
+     *
+     * @param int $id
+     * @param string $nuevoRol
+     * @return array ['success' => bool, 'error' => ?string]
+     */
+    public function cambiarRolSeguro(int $id, string $nuevoRol): array {
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            // Bloquear a todos los administradores activos para evitar race conditions
+            $stmtAdmins = $db->query("SELECT id FROM usuarios WHERE rol = 'admin' AND estado = 1 FOR UPDATE");
+            $adminsActivos = $stmtAdmins->fetchAll(PDO::FETCH_COLUMN);
+
+            // Obtener el rol y estado actual del usuario objetivo
+            $stmtUser = $db->prepare("SELECT id, rol, estado FROM usuarios WHERE id = :id FOR UPDATE");
+            $stmtUser->execute(['id' => $id]);
+            $usuario = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+            if (!$usuario) {
+                $db->rollBack();
+                return ['success' => false, 'error' => 'El usuario no existe.'];
+            }
+
+            if ($usuario['rol'] === 'admin' && $nuevoRol !== 'admin' && (int)$usuario['estado'] === 1) {
+                $restantes = array_filter($adminsActivos, fn($adminId) => (int)$adminId !== $id);
+                if (count($restantes) === 0) {
+                    $db->rollBack();
+                    return ['success' => false, 'error' => 'No se puede degradar al único administrador activo.'];
+                }
+            }
+
+            $stmt = $db->prepare("UPDATE usuarios SET rol = :rol WHERE id = :id");
+            $stmt->execute(['rol' => $nuevoRol, 'id' => $id]);
+
+            $db->commit();
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            return ['success' => false, 'error' => 'Error al actualizar el rol en la base de datos.'];
+        }
+    }
 }
