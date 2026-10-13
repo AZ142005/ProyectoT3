@@ -70,7 +70,7 @@ class SmtpMailer {
      * @param string $subject Asunto en UTF-8.
      * @param string $html    Cuerpo HTML en UTF-8.
      * @param array $adjuntos Adjuntos ['nombre' => string, 'mime' => string, 'contenido' => string binario];
-     *                        con adjuntos el mensaje se construye como multipart/mixed.
+     *                        con adjuntos el mensaje es multipart/mixed con el multipart/alternative dentro.
      * @return bool true solo si el servidor aceptó el mensaje.
      * @throws Exception en cualquier fallo del protocolo, con etapa y respuesta.
      */
@@ -230,9 +230,10 @@ class SmtpMailer {
     /**
      * Construye el mensaje RFC 5322 con codificación UTF-8 (asunto y cuerpo en base64).
      *
-     * Sin adjuntos el mensaje es de una sola parte (text/html), idéntico al histórico.
-     * Con adjuntos se usa multipart/mixed: el HTML va como primera parte y cada adjunto
-     * como parte base64 con Content-Disposition attachment y nombre saneado a ASCII.
+     * Sin adjuntos el cuerpo es un multipart/alternative con la versión text/plain
+     * derivada del HTML y el HTML original; con adjuntos se usa multipart/mixed cuyo
+     * primer componente es ese multipart/alternative y cada adjunto va como parte
+     * base64 con Content-Disposition attachment y nombre saneado a ASCII.
      */
     private function construirMensaje(string $to, string $subject, string $html, array $adjuntos = []): string {
         $fromEmail = $this->cfg['from_email'];
@@ -249,25 +250,32 @@ class SmtpMailer {
         $cabeceras[] = 'Subject: =?UTF-8?B?' . base64_encode($subject) . '?=';
         $cabeceras[] = 'MIME-Version: 1.0';
         $cabeceras[] = 'Reply-To: <' . $fromEmail . '>';
-        $cabeceras[] = 'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . $this->cfg['ehlo_host'] . '>';
+        $cabeceras[] = 'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . $this->dominioMensajeId() . '>';
         $cabeceras[] = 'X-Mailer: CondominioDigital';
 
-        if (empty($adjuntos)) {
-            // Mensaje single-part original (sin cambios de comportamiento).
-            $cabeceras[] = 'Content-Type: text/html; charset=UTF-8';
-            $cabeceras[] = 'Content-Transfer-Encoding: base64';
+        // Alternativa texto/HTML (RFC 2046): todo mensaje lleva ambas partes.
+        $boundaryAlt = '=_cond_alt_' . bin2hex(random_bytes(16));
+        $alternativa = '--' . $boundaryAlt . "\r\n"
+            . "Content-Type: text/plain; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n\r\n"
+            . chunk_split(base64_encode($this->textoPlanoDesdeHtml($html)), 76, "\r\n")
+            . '--' . $boundaryAlt . "\r\n"
+            . "Content-Type: text/html; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n\r\n"
+            . chunk_split(base64_encode($html), 76, "\r\n")
+            . '--' . $boundaryAlt . "--\r\n";
 
-            $cuerpo = chunk_split(base64_encode($html), 76, "\r\n");
-            $mensaje = implode("\r\n", $cabeceras) . "\r\n\r\n" . $cuerpo;
+        if (empty($adjuntos)) {
+            $cabeceras[] = 'Content-Type: multipart/alternative; boundary="' . $boundaryAlt . '"';
+            $mensaje = implode("\r\n", $cabeceras) . "\r\n\r\n" . $alternativa;
         } else {
             $boundary = '=_cond_' . bin2hex(random_bytes(16));
             $cabeceras[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
 
             $partes   = [];
             $partes[] = '--' . $boundary . "\r\n"
-                . "Content-Type: text/html; charset=UTF-8\r\n"
-                . "Content-Transfer-Encoding: base64\r\n\r\n"
-                . chunk_split(base64_encode($html), 76, "\r\n");
+                . 'Content-Type: multipart/alternative; boundary="' . $boundaryAlt . "\"\r\n\r\n"
+                . $alternativa;
 
             foreach ($adjuntos as $adjunto) {
                 $nombre    = $this->sanearNombreAdjunto((string)($adjunto['nombre'] ?? 'adjunto'));
@@ -290,6 +298,47 @@ class SmtpMailer {
             $mensaje .= "\r\n";
         }
         return $mensaje . ".\r\n";
+    }
+
+    /**
+     * Dominio para el Message-ID: preferir el del remitente (RFC 5322) y usar el
+     * hostname EHLO solo como último recurso cuando el remitente no lo tuviera.
+     */
+    private function dominioMensajeId(): string {
+        $arroba = strrpos($this->cfg['from_email'], '@');
+        if ($arroba !== false) {
+            $dominio = trim(substr($this->cfg['from_email'], $arroba + 1));
+            if ($dominio !== '') {
+                return $dominio;
+            }
+        }
+        return $this->cfg['ehlo_host'];
+    }
+
+    /**
+     * Deriva la versión text/plain de un cuerpo HTML para el multipart/alternative.
+     *
+     * Quita bloques style/script, traduce <br> y cierres de bloque a saltos de línea,
+     * elimina el resto de etiquetas, decodifica entidades y colapsa espacios.
+     * Nunca retorna cadena vacía (una parte MIME no debe quedar vacía).
+     */
+    private function textoPlanoDesdeHtml(string $html): string {
+        // Quita bloques no visibles completos antes de extraer el texto.
+        $texto = preg_replace('#<(style|script)[^>]*>.*?</\1>#is', '', $html) ?? $html;
+
+        // Saltos de línea: <br> y cierres de bloque se traducen a saltos.
+        $texto = preg_replace('#<br\s*/?>#i', "\n", $texto) ?? $texto;
+        $texto = preg_replace('#</(?:p|tr|div|h[1-6]|table)>#i', "\n", $texto) ?? $texto;
+
+        $texto = strip_tags($texto);
+        $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Colapsa espacios/tabs y acota los saltos consecutivos.
+        $texto = preg_replace('/[ \t]+/', ' ', $texto) ?? $texto;
+        $texto = preg_replace('/\n{3,}/', "\n\n", $texto) ?? $texto;
+        $texto = trim($texto);
+
+        return $texto === '' ? ' ' : $texto;
     }
 
     /**

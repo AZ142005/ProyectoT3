@@ -88,3 +88,30 @@ Ejecución: 2026-10-04. Implementación delegada; commits locales `7aa2529` (fea
 - Prueba de punta a punta: carta de ejemplo de la Unidad 5-25 (Bs. 144.801,73) → **texto breve + `Carta-Deuda-Unidad-5-25.pdf` (117.086 bytes, `%PDF-`)** encolada y despachada por el worker: `[QUEUE_ID: 904] Correo enviado exitosamente a azdeo142005@gmail.com` (1 procesado, 1 exitoso, 0 fallidos).
 - Verificación en BD: fila 904 `estado=enviado`, `intentos=1`, `error_mensaje=NULL`; cuerpo descifrado con el aviso "no responda"; adjunto con nombre/mime/tamaño correctos; cola en 0 pendientes.
 - El pipeline completo (UI "Enviar por Email" → cola cifrada → worker → SMTP Gmail con adjunto) queda operativo. Para producción: replicar las claves MAIL_* del `.env` en el servidor y programar el worker.
+
+### Entregabilidad / Spam — 2026-10-13
+
+Contexto: el primer envío real (carta ejemplo) llegó a Spam en la cuenta destino; el usuario pide revisar causas y asegurar que los códigos de verificación (OTP) funcionen igual.
+
+Diagnóstico:
+- Autenticación alineada: se envía por `smtp.gmail.com` autenticado con la propia cuenta `@gmail.com` → SPF de Gmail + DKIM `d=gmail.com`; el `From` coincide con la cuenta. No es un problema de SPF/DKIM/DMARC.
+- Causa probable principal: **cuenta emisora nueva sin reputación + primer contacto** con el destinatario (heurística de Gmail). Suele resolverse marcando "No es spam" y manteniendo envíos regulares.
+- Factores técnicos secundarios detectados: (a) `Message-ID` con hostname local (`DESKTOP-0N6AEUO`) en vez de un dominio válido; (b) correos HTML sin alternativa `text/plain`; (c) plantilla OTP con marca antigua y sin aviso de no responder.
+
+Checklist:
+- [x] T1: `SmtpMailer` — `Message-ID` con el dominio del remitente; estructura `multipart/alternative` (texto plano derivado + HTML) anidada en `multipart/mixed` cuando hay adjuntos.
+- [x] T2: plantilla OTP alineada (marca actual + pie "no responda a este correo").
+- [x] T3: tests (`EmailSmtpTest` estructura nueva + `EmailPlantillasTest` OTP) + suites verdes.
+- [ ] T4: prueba real de OTP a `azdeo142005@gmail.com` + aporte de evidencia.
+
+Resultados T1–T3 (2026-10-13, local, sin envíos reales; commit work-unit `fix(correo): multipart/alternative con texto plano, Message-ID del remitente y OTP alineado`):
+- `php -l` de los 4 archivos tocados: sin errores.
+- `php tests/run.php --filter=Email`: 18 tests / 105 ✅ (baseline 17 / 86). `--filter=EmailPlantillas`: 2 / 13 ✅ (baseline 1 / 7).
+- `--filter=Notification`: 6 / 25 ✅; `--filter=CartaDeudaEnvio`: 8 / 43 ✅; `--filter=Security2FA`: 3 / 26 ✅.
+- `--filter=Auth`: 37 / 315 ✅ con 3 aserciones ❌ preexistentes en `rbacAuthorizationTest::auditorModuleRoutesAreAdminOnly` (falla igual con los archivos de esta tarea en stash).
+- Suite completa (aborto conocido en `SecurityTest`): 67 clases / 588 ✅ / 5 ❌ / 2 ⏭; baseline sin estos cambios: 587 ✅ / 5 ❌ / 2 ⏭ (mismos fallos preexistentes de Pagos/Comprobantes/RBAC).
+- Sonda por reflexión de `construirMensaje` con `E_ALL`: sin warnings con HTML vacío, emojis ni entidades; texto plano vacío → `' '`; `Message-ID` con el dominio del `from_email` y fallback al `ehlo_host`.
+- Cobertura nueva: `Message-ID` del remitente, alternativa `text/plain` decodificada sin adjuntos, anidado `multipart/alternative` en `multipart/mixed` con cierre de ambos boundaries y PDF decodificado intacto.
+- T4 pendiente: requiere worker con envío real de OTP; no se ejecutaron envíos reales en esta tarea.
+
+Mitigaciones del lado del destinatario: marcar "No es spam", agregar el remitente a contactos y mantener envíos regulares (calentar la cuenta).
