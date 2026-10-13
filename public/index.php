@@ -93,7 +93,14 @@ $scriptName = dirname($_SERVER['SCRIPT_NAME']);
 if ($scriptName === '/' || $scriptName === '\\') {
     $scriptName = '';
 }
-$route = substr($uri, strlen($scriptName));
+// Descontar el prefijo del script SOLO si la URI lo incluye (p. ej. instalación
+// en subcarpeta). Bajo el layout de InfinityFree (htdocs + rewrite hacia
+// /public/) la URI pública no lleva /public y un recorte ciego la corrompería.
+if ($scriptName !== '' && ($uri === $scriptName || strpos($uri, $scriptName . '/') === 0)) {
+    $route = substr($uri, strlen($scriptName));
+} else {
+    $route = $uri;
+}
 if (empty($route)) {
     $route = '/';
 }
