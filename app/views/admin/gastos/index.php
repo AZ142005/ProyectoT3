@@ -91,7 +91,7 @@
                                             <?= e($r['nombre_original'] ?: $r['archivo']) ?>
                                         </div>
                                         <?php if (!empty($r['archivo_existe'])): ?>
-                                            <a href="/uploads/soportes/<?= e($r['archivo']) ?>" target="_blank" class="text-xs text-primary font-semibold inline-flex items-center gap-1 mt-1">
+                                            <a href="/soporte-proxy.php?file=<?= urlencode($r['archivo']) ?>" target="_blank" class="text-xs text-primary font-semibold inline-flex items-center gap-1 mt-1">
                                                 <span class="material-symbols-outlined text-[14px]">visibility</span> Ver PDF
                                             </a>
                                         <?php endif; ?>

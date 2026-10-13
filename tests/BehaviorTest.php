@@ -475,23 +475,19 @@ class BehaviorTest extends TestCase {
     }
 
     // =====================================================================
-    // 26. SOPORTES HTACCESS — Verifica que .htaccess existe y protege
+    // 26. SOPORTE PROXY — Verifica que el proxy de soportes existe y protege
     // =====================================================================
 
-    public function testSoportesHtaccessExistsAndProtects(): void {
-        $path = dirname(__DIR__) . '/public/uploads/soportes/.htaccess';
-        if (!is_dir(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
-        }
-        if (!file_exists($path)) {
-            file_put_contents($path, "php_flag engine off\nOptions -Indexes\n");
-        }
-        $this->assertFileExists($path, '.htaccess file must exist');
+    public function testSoporteProxyExistsAndRequiresAuth(): void {
+        $path = dirname(__DIR__) . '/public/soporte-proxy.php';
+        $this->assertFileExists($path, 'soporte-proxy.php must exist');
         $content = file_get_contents($path);
-        $this->assertStringContains('php_flag engine off', $content,
-            '.htaccess must disable PHP execution');
-        $this->assertStringContains('Options -Indexes', $content,
-            '.htaccess must disable directory listing');
+        $this->assertStringContains('$_SESSION', $content,
+            'proxy must validate an active session');
+        $this->assertStringContains('basename', $content,
+            'proxy must sanitize the file parameter');
+        $this->assertStringContains('UPLOADS_PATH', $content,
+            'proxy must serve from the protected uploads directory');
     }
 
     // =====================================================================

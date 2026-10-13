@@ -119,7 +119,7 @@
                                             'cuota_estimada'   => formatearMonto($cuotaUnidadGasto),
                                             'pagina_soporte'   => intval($g['pagina_soporte'] ?? 1),
                                             'extracto_texto'   => $g['extracto_texto'] ?? '',
-                                            'archivo_url'      => '/uploads/soportes/' . $g['soporte_digital']
+                                            'archivo_url'      => '/soporte-proxy.php?file=' . urlencode($g['soporte_digital'])
                                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                                     ?>
                                         <button type="button" data-gasto="<?= e($datosGastoJson) ?>" onclick='abrirJustificacion(JSON.parse(this.getAttribute("data-gasto")))' class="bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1 shadow-sm">
