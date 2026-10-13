@@ -74,7 +74,7 @@ Lo único que **debe** existir: `vendor/` (autoloader), el `.env` de producción
 
 1. **Cuenta y dominio**: registrarse en InfinityFree y crear el dominio (sirve el subdominio gratuito).
 2. **Base de datos**: en el panel, crear la base MySQL y anotar host (`sqlXXX.infinityfree.com`), nombre, usuario y contraseña.
-3. **Importar**: en phpMyAdmin, importar el dump exportado desde tu entorno local. ⚠ **Antes de importar, revisar "Gotchas de importación" (§8)** — el servidor corre MariaDB ≥10.5 y hay una restricción con columnas generadas + FK `ON DELETE SET NULL` que el export local (10.4) no detecta y rompe la importación a mitad. El dump trae los usuarios y personas del entorno local: probar el primer acceso con esas credenciales. Si hiciera falta resetear una contraseña, se hace con un `UPDATE` por phpMyAdmin (el plan gratuito no tiene CLI/SSH, no se pueden correr los scripts de `scripts/`).
+3. **Importar**: en phpMyAdmin, importar **`database/condominio_cobranzas.sql`** (dump canónico regenerado 2026-10-13, ya compatible con MariaDB ≥10.5 — importable tal cual; incluye `DROP TABLE` + FK checks apagados, así que sirve incluso sobre un estado de importación parcial). Si en cambio exportás un dump nuevo desde otro entorno 10.4, revisá **§8**. El dump trae los usuarios y personas del entorno local: probar el primer acceso con esas credenciales. Si hiciera falta resetear una contraseña, se hace con un `UPDATE` por phpMyAdmin (el plan gratuito no tiene CLI/SSH, no se pueden correr los scripts de `scripts/`).
 4. **FTP**: extraer `deploy-infinityfree-htdocs.zip` y subir **el contenido completo DENTRO de `htdocs/`** con FileZilla (host y credenciales del panel; la raíz FTP es la raíz de la cuenta, entrar a `htdocs/`). Se recomienda **vaciar antes `htdocs`** para no mezclar estados. El paquete incluye `public/` como subcarpeta, el `.htaccess` raíz nuevo, `app/`, `vendor/`, `uploads/`, `logs/`, `storage/` y `scripts/`.
 5. **`.env` de producción**: crear el archivo en `htdocs/.env` con los valores reales — ver T5 y la sección 7 (host `sqlXXX`, claves de seguridad nuevas, `MAIL_MODE=smtp`). Queda protegido por el rewrite (404 desde el navegador).
 6. **PHP**: en el panel, seleccionar PHP 8.3/8.4 (el código es compatible; no usa sintaxis más nueva).
@@ -135,7 +135,7 @@ Con token incorrecto responde 403; si el `.env` no tiene `CRON_TOKEN`, responde 
 
 Causa: desde MariaDB 10.5, una columna generada **STORED/PERSISTENT no puede depender de una columna que sea modificable por una acción de FK en cascada** (`ON DELETE SET NULL`, `ON UPDATE CASCADE`) — el valor almacenado quedaría desincronizado (MDEV-18114; validado también en MDEV-32030). MariaDB 10.4 (local) solo lo avisa; el servidor (10.5+) lo rechaza con error.
 
-En este proyecto el único caso es `gastos_comunes.dup_guard` (STORED) ↔ FK `fk_gastos_edificio` (`edificio_id`, `ON DELETE SET NULL`). Fix: editar el archivo `.sql` exportado, **una línea** (buscar y reemplazar):
+En este proyecto el único caso es `gastos_comunes.dup_guard` (STORED) ↔ FK `fk_gastos_edificio` (`edificio_id`, `ON DELETE SET NULL`) — **ya corregido en local y en el dump canónico del repo (2026-10-13)**. El reemplazo siguiente solo hace falta para exports generados en OTROS entornos sin el cambio: editar el archivo `.sql`, **una línea** (buscar y reemplazar):
 
 ```
 buscar:     ADD CONSTRAINT `fk_gastos_edificio` FOREIGN KEY (`edificio_id`) REFERENCES `edificios` (`id`) ON DELETE SET NULL;
@@ -153,7 +153,7 @@ SET FOREIGN_KEY_CHECKS=0;   -- luego, en la pestaña Estructura: seleccionar TOD
 SET FOREIGN_KEY_CHECKS=1;
 ```
 
-**Paridad local (recomendado)** — aplicar el mismo cambio al MariaDB local para que los próximos exports vengan sanos:
+**Paridad local — ✅ aplicada (2026-10-13)** al MariaDB local y reflejada en el dump canónico `database/condominio_cobranzas.sql` (regenerado con `mysqldump`):
 
 ```sql
 ALTER TABLE gastos_comunes DROP FOREIGN KEY fk_gastos_edificio;
