@@ -42,6 +42,21 @@ class NotificationQueueWorker {
     }
 
     /**
+     * Chequeo liviano: ¿hay correos elegibles pendientes?
+     * Usado por el auto-despacho por tráfico (hostings sin cron, p. ej.
+     * InfinityFree bloquea los web-crons externos con su anti-bot).
+     */
+    public static function hayPendientes(): bool {
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->query("SELECT 1 FROM notificaciones_cola WHERE estado = 'pendiente' AND (proximo_intento IS NULL OR proximo_intento <= NOW()) LIMIT 1");
+            return (bool)$stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return false; // ante cualquier duda, no correr
+        }
+    }
+
+    /**
      * Ejecuta una pasada del worker.
      *
      * @param int|null $batchSize Máximo de correos por corrida (se acota a 1–100).

@@ -261,5 +261,30 @@ $router->get('/admin/respaldos', [\App\Controllers\RespaldoController::class, 'i
 $router->post('/admin/respaldos/generar', [\App\Controllers\RespaldoController::class, 'generarManual'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->get('/admin/respaldos/descargar/{id}', [\App\Controllers\RespaldoController::class, 'descargar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
+// Auto-despacho de la cola de correos SIN cron externo (InfinityFree bloquea
+// los web-crons con su anti-bot). Con QUEUE_AUTORUN=1: al terminar la
+// respuesta, si hay correos pendientes, se despachan (lote de 5; lockfile
+// compartido). La cola la genera el tráfico real: un OTP se encola y se
+// despacha en el mismo login.
+if (($_ENV['QUEUE_AUTORUN'] ?? getenv('QUEUE_AUTORUN')) == '1') {
+    register_shutdown_function(function () {
+        try {
+            if (PHP_SAPI === 'cli' || !\App\Services\NotificationQueueWorker::hayPendientes()) {
+                return;
+            }
+            if (function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request(); // entregar la respuesta antes de trabajar
+            }
+            ignore_user_abort(true);
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close(); // persistir sesión ya (el frontend puede volver enseguida)
+            }
+            (new \App\Services\NotificationQueueWorker())->run(5);
+        } catch (\Throwable $e) {
+            error_log('[AUTOWORKER] ' . $e->getMessage());
+        }
+    });
+}
+
 // Despachar la petición
 $router->dispatch($_SERVER['REQUEST_METHOD'], $route);

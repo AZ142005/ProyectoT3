@@ -42,4 +42,23 @@ class CronNotificacionesTest extends TestCase {
         $this->assertStringContains('NotificationQueueWorker', $contenido,
             'El CLI debe delegar en el servicio compartido (sin lógica duplicada)');
     }
+
+    /**
+     * Auto-despacho por tráfico (hostings sin cron: InfinityFree bloquea los
+     * web-crons externos con su anti-bot — el worker corre al final de cada
+     * respuesta cuando QUEUE_AUTORUN=1).
+     */
+    public function testIndexTieneAutoDespachoPorTrafico(): void {
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/public/index.php');
+        $this->assertStringContains('QUEUE_AUTORUN', $contenido,
+            'index.php debe registrar el auto-despacho por tráfico (QUEUE_AUTORUN)');
+        $this->assertStringContains('hayPendientes', $contenido,
+            'El hook debe consultar pendientes antes de correr el worker');
+    }
+
+    public function testEnvsDocumentanAutoRun(): void {
+        $env = (string)file_get_contents(dirname(__DIR__) . '/.env.example');
+        $this->assertStringContains('QUEUE_AUTORUN', $env,
+            '.env.example debe documentar QUEUE_AUTORUN');
+    }
 }
