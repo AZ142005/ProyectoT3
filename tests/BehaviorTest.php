@@ -621,16 +621,21 @@ class BehaviorTest extends TestCase {
     }
 
     // =====================================================================
-    // 36. SALDO A FAVOR — Verify surplus payment logic
+    // 36. SALDO A FAVOR — Verify surplus logic lives in LiquidacionPagoService
     // =====================================================================
 
-    public function testComprobantesModelHasSaldoAFavorLogic(): void {
-        $file = dirname(__DIR__) . '/app/Models/ComprobantesModel.php';
-        $content = file_get_contents($file);
-        $this->assertStringContains('saldoAFavor', $content,
-            'aprobar() must handle saldo a favor logic');
-        $this->assertStringContains('siguienteFactura', $content,
-            'aprobar() must look for next pending invoice');
+    public function testSaldoAFavorLogicLivesInLiquidacionPagoService(): void {
+        $modelo = file_get_contents(dirname(__DIR__) . '/app/Models/ComprobantesModel.php');
+        $this->assertStringContains('LiquidacionPagoService', $modelo,
+            'aprobar() must delegate liquidation to LiquidacionPagoService');
+        $this->assertStringContains('aplicarPagoAUnidad', $modelo,
+            'aprobar() must invoke the service cascade');
+
+        $servicio = file_get_contents(dirname(__DIR__) . '/app/Services/LiquidacionPagoService.php');
+        $this->assertStringContains('saldoAFavor', $servicio,
+            'LiquidacionPagoService must handle saldo a favor logic');
+        $this->assertStringContains('montoRestante', $servicio,
+            'LiquidacionPagoService must track remaining amount in cascade');
     }
 
     // =====================================================================
@@ -983,15 +988,33 @@ class BehaviorTest extends TestCase {
             'PagoController must define state transitions');
     }
 
-    // 2.2a — AprobarLote has cascade loop
-    public function testAprobarLoteHasCascadeLoop(): void {
+    // 2.2a — AprobarLote delegates cascade to LiquidacionPagoService
+    public function testAprobarLoteDelegatesCascadeToLiquidacionPagoService(): void {
         $content = file_get_contents(dirname(__DIR__) . '/app/Models/PagoModel.php');
-        preg_match('/public function aprobarLote\(.*?\)(.*?)(?=\}\s*\}|private function|public function)/s', $content, $m);
-        $this->assertTrue(count($m) > 1, 'aprobarLote must exist');
-        $this->assertStringContains('while', $m[1],
-            'aprobarLote must loop to cascade saldo across invoices');
-        $this->assertStringContains('montoRestante', $m[1],
-            'Must track remaining payment amount');
+        $inicio = strpos($content, 'public function aprobarLote(');
+        $this->assertTrue($inicio !== false, 'aprobarLote must exist');
+
+        // Extracción por límites de método: el patrón anterior con llaves
+        // anidadas podía cortar el cuerpo antes del bloque de liquidación.
+        $fin = strlen($content);
+        foreach (["\n    public function", "\n    private function", "\n    protected function"] as $marca) {
+            $pos = strpos($content, $marca, $inicio + 10);
+            if ($pos !== false && $pos < $fin) {
+                $fin = $pos;
+            }
+        }
+        $cuerpo = substr($content, $inicio, $fin - $inicio);
+
+        $this->assertStringContains('aplicarPagoAUnidad', $cuerpo,
+            'aprobarLote must delegate the invoice cascade to LiquidacionPagoService');
+        $this->assertStringContains('montoRestante', $cuerpo,
+            'Must track remaining payment amount before delegating');
+
+        $servicio = file_get_contents(dirname(__DIR__) . '/app/Services/LiquidacionPagoService.php');
+        $this->assertStringContains('montoRestante', $servicio,
+            'Cascade must track remaining payment amount');
+        $this->assertStringContains('facturasPendientes', $servicio,
+            'Cascade must iterate the pending invoices of the unit');
     }
 
     // 2.3a — OCR endpoint has rate limiting
