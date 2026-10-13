@@ -53,7 +53,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testToggleEdificioReadsPostNotGet(): void {
-        $file = dirname(__DIR__) . '/app/controllers/EstructuraController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/EstructuraController.php';
         $content = file_get_contents($file);
 
         // Verify toggleEdificio uses $_POST['id']
@@ -71,7 +71,7 @@ class BehaviorTest extends TestCase {
     }
 
     public function testToggleUnidadReadsPostNotGet(): void {
-        $file = dirname(__DIR__) . '/app/controllers/EstructuraController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/EstructuraController.php';
         $content = file_get_contents($file);
 
         $this->assertStringContains('$_POST[\'id\']', $content,
@@ -136,9 +136,9 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testPagoControllerUsesRandomBytesForFilename(): void {
-        $file = dirname(__DIR__) . '/app/controllers/PagoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/PagoController.php';
         $content = file_get_contents($file);
-        $uploaderFile = dirname(__DIR__) . '/app/services/FileUploader.php';
+        $uploaderFile = dirname(__DIR__) . '/app/Services/FileUploader.php';
         $uploaderContent = file_exists($uploaderFile) ? file_get_contents($uploaderFile) : '';
 
         $this->assertTrue(
@@ -155,7 +155,7 @@ class BehaviorTest extends TestCase {
     }
 
     public function testPagoModelUsesRandomBytesForFilename(): void {
-        $file = dirname(__DIR__) . '/app/models/PagoModel.php';
+        $file = dirname(__DIR__) . '/app/Models/PagoModel.php';
         $content = file_get_contents($file);
 
         $this->assertTrue(
@@ -325,7 +325,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRateLimiterUsesIpInKey(): void {
-        $file = dirname(__DIR__) . '/app/core/RateLimiter.php';
+        $file = dirname(__DIR__) . '/app/Core/RateLimiter.php';
         $content = file_get_contents($file);
         $this->assertStringContains('getClientIp', $content,
             'RateLimiter must use getClientIp() for IP resolution');
@@ -340,7 +340,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRegisterHasRateLimiting(): void {
-        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($file);
         preg_match('/public function register\(\)(.*?)(?=public function|private function)/s', $content, $matches);
         $this->assertNotNull($matches, 'register() method must exist');
@@ -354,7 +354,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testApiControllerInitializesVariablesBeforeUse(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $content = file_get_contents($file);
         preg_match('/public function login\(\)(.*?)(?=public function)/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -370,7 +370,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testApi2faReturns428(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $content = file_get_contents($file);
         preg_match('/twoFactorEnabled\)(.*?)(?=RateLimiter::clear)/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -386,7 +386,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRefreshRevokesOldToken(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $content = file_get_contents($file);
         preg_match('/public function refresh\(\)(.*?)(?=public function)/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -401,7 +401,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testJwtContainsIssAndAud(): void {
-        $file = dirname(__DIR__) . '/app/core/JWT.php';
+        $file = dirname(__DIR__) . '/app/Core/JWT.php';
         $content = file_get_contents($file);
         $this->assertStringContains("'iss'", $content,
             'JWT must include iss claim');
@@ -414,7 +414,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRedirectRejectsExternalUrls(): void {
-        $file = dirname(__DIR__) . '/app/core/Controller.php';
+        $file = dirname(__DIR__) . '/app/Core/Controller.php';
         $content = file_get_contents($file);
         preg_match('/protected function redirect\(.*?\{(.+?)\n    \}/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -427,7 +427,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testAnalizarComprobanteHasFinfoFallback(): void {
-        $file = dirname(__DIR__) . '/app/controllers/PagoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/PagoController.php';
         $content = file_get_contents($file);
         preg_match('/public function analizarComprobante\(\)(.*?)(?=public function|private function|$)/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -440,7 +440,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testPagoModelHandlesDuplicateGracefully(): void {
-        $file = dirname(__DIR__) . '/app/models/PagoModel.php';
+        $file = dirname(__DIR__) . '/app/Models/PagoModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('PDOException', $content,
             'PagoModel must catch PDOException');
@@ -466,7 +466,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testGastoControllerUsesFileUploader(): void {
-        $file = dirname(__DIR__) . '/app/controllers/GastoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/GastoController.php';
         $content = file_get_contents($file);
         preg_match('/public function guardar\(\)(.*?)(?=public function)/s', $content, $matches);
         $this->assertNotNull($matches);
@@ -499,7 +499,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRateLimiterKeysIncludeIpHash(): void {
-        $file = dirname(__DIR__) . '/app/core/RateLimiter.php';
+        $file = dirname(__DIR__) . '/app/Core/RateLimiter.php';
         $content = file_get_contents($file);
         $this->assertStringContains('rate_limits', $content,
             'RateLimiter must use rate_limits table (DB-based, not session)');
@@ -512,7 +512,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testUnidadesModelHasQueryLimit(): void {
-        $file = dirname(__DIR__) . '/app/models/UnidadesModel.php';
+        $file = dirname(__DIR__) . '/app/Models/UnidadesModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('LIMIT', $content,
             'UnidadesModel queries must have LIMIT clause');
@@ -523,7 +523,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testUsuariosModelHasLockoutMethods(): void {
-        $file = dirname(__DIR__) . '/app/models/UsuariosModel.php';
+        $file = dirname(__DIR__) . '/app/Models/UsuariosModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('incrementarIntentosFallidos', $content);
         $this->assertStringContains('resetIntentosFallidos', $content);
@@ -532,14 +532,14 @@ class BehaviorTest extends TestCase {
     }
 
     public function testPersonasModelHasLockoutMethods(): void {
-        $file = dirname(__DIR__) . '/app/models/PersonasModel.php';
+        $file = dirname(__DIR__) . '/app/Models/PersonasModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('incrementarIntentosFallidos', $content);
         $this->assertStringContains('estaBloqueado', $content);
     }
 
     public function testAuthControllerUsesLockout(): void {
-        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($file);
         $this->assertStringContains('estaBloqueado', $content);
         $this->assertStringContains('resetIntentosFallidos', $content);
@@ -551,7 +551,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testApiEstadoCuentaChecksRole(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $content = file_get_contents($file);
         preg_match('/function estadoCuenta\(\)(.*?)(?=public function|$)/s', $content, $matches);
         $this->assertTrue(count($matches) > 0, 'estadoCuenta() method must exist');
@@ -566,7 +566,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testOtpResendUsesUserIdInRateKey(): void {
-        $file = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($file);
         preg_match('/function reenviarOtp\(\)(.*?)(?=public function|$)/s', $content, $matches);
         $this->assertTrue(count($matches) > 0, 'reenviarOtp() method must exist');
@@ -592,7 +592,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testComunicadoControllerGroupsNotificationsByPerson(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ComunicadoController.php';
         $content = file_get_contents($file);
         preg_match('/function encolarComunicadoCorreo\(.*?\}(?=\s*\}|$)/s', $content, $matches);
         $this->assertTrue(count($matches) > 0, 'encolarComunicadoCorreo method must exist');
@@ -607,7 +607,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testConciliacionServiceUsesIndexedArray(): void {
-        $file = dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php';
+        $file = dirname(__DIR__) . '/app/Services/ConciliacionBancariaService.php';
         $content = file_get_contents($file);
         $this->assertStringContains('indexByRef', $content,
             'ConciliacionService must build indexByRef for O(1) lookup');
@@ -618,7 +618,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testReportesModelHasConfigurableLimit(): void {
-        $file = dirname(__DIR__) . '/app/models/ReportesModel.php';
+        $file = dirname(__DIR__) . '/app/Models/ReportesModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('limiteMax', $content,
             'obtenerReporteMorosidadCompleto must accept $limiteMax parameter');
@@ -629,7 +629,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testComprobantesModelHasSaldoAFavorLogic(): void {
-        $file = dirname(__DIR__) . '/app/models/ComprobantesModel.php';
+        $file = dirname(__DIR__) . '/app/Models/ComprobantesModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('saldoAFavor', $content,
             'aprobar() must handle saldo a favor logic');
@@ -642,7 +642,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testReportesModelUsesFileBasedKpiCache(): void {
-        $file = dirname(__DIR__) . '/app/models/ReportesModel.php';
+        $file = dirname(__DIR__) . '/app/Models/ReportesModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('sys_get_temp_dir', $content,
             'KPI cache must use file-based storage, not session');
@@ -655,7 +655,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testEstacionamientosModelChecksUnicity(): void {
-        $file = dirname(__DIR__) . '/app/models/EstacionamientosModel.php';
+        $file = dirname(__DIR__) . '/app/Models/EstacionamientosModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('unidad_id = :uid AND id != :id', $content,
             'asignarAUnidad must check unicity of parking per unit');
@@ -666,7 +666,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testEstadoCuentaImprimirUsesLimit500(): void {
-        $file = dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php';
         $content = file_get_contents($file);
         preg_match('/function imprimir\(\)(.*?)(?=public function|$)/s', $content, $matches);
         $this->assertTrue(count($matches) > 0, 'imprimir() method must exist');
@@ -679,7 +679,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testMovimientosModelHasDailyAdjustmentLimit(): void {
-        $file = dirname(__DIR__) . '/app/models/MovimientosModel.php';
+        $file = dirname(__DIR__) . '/app/Models/MovimientosModel.php';
         $content = file_get_contents($file);
         $this->assertStringContains('ajuste', $content);
         $this->assertStringContains('>= 10', $content,
@@ -693,7 +693,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testComunicadoControllerSanitizesTituloXss(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ComunicadoController.php';
         $content = file_get_contents($file);
         preg_match('/function guardar\(\)(.*?)(?=public function|private function)/s', $content, $matches);
         $this->assertTrue(count($matches) > 0, 'guardar() method must exist');
@@ -706,7 +706,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testComunicadoEncolarHasRecipientLimit(): void {
-        $file = dirname(__DIR__) . '/app/controllers/ComunicadoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/ComunicadoController.php';
         $content = file_get_contents($file);
         $this->assertStringContains('LIMIT 500', $content,
             'encolarComunicadoCorreo must limit to 500 recipients');
@@ -717,7 +717,7 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testRespaldoControllerVerifiesChecksum(): void {
-        $file = dirname(__DIR__) . '/app/controllers/RespaldoController.php';
+        $file = dirname(__DIR__) . '/app/Controllers/RespaldoController.php';
         $content = file_get_contents($file);
         $this->assertStringContains('checksum_sha256', $content,
             'descargar() must verify SHA-256 checksum');
@@ -733,7 +733,7 @@ class BehaviorTest extends TestCase {
 
     // 1.1a — CSRF validates Content-Type
     public function testCsrfValidatesContentType(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/core/Security.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Core/Security.php');
         $this->assertStringContains('CONTENT_TYPE', $content,
             'Security must inspect Content-Type header');
         $this->assertStringContains('415', $content,
@@ -742,7 +742,7 @@ class BehaviorTest extends TestCase {
 
     // 1.1b — CSRF JSON requires header token
     public function testCsrfJsonRequiresHeaderToken(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/core/Security.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Core/Security.php');
         $this->assertStringContains('HTTP_X_CSRF_TOKEN', $content,
             'CSRF must accept token from X-CSRF-Token header for JSON');
         $this->assertStringContains('php://input', $content,
@@ -837,7 +837,7 @@ class BehaviorTest extends TestCase {
 
     // 1.3a — procesar2fa has rate limiting
     public function testProcesar2faHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
         preg_match('/public function procesar2fa\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'procesar2fa method must exist');
         $this->assertStringContains('RateLimiter::attempt', $m[1],
@@ -848,7 +848,7 @@ class BehaviorTest extends TestCase {
 
     // 1.4a — loginAsAdmin updates ultimo_acceso
     public function testLoginAsAdminUpdatesLastAccess(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/core/Auth.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php');
         preg_match('/public static function loginAsAdmin\(array \$user\)(.*?)(?=public static function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'loginAsAdmin must exist');
         $this->assertStringContains('ultimo_acceso', $m[1],
@@ -859,7 +859,7 @@ class BehaviorTest extends TestCase {
 
     // 1.5a — solicitarCambio has rate limiting
     public function testSolicitarCambioHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PerfilController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/PerfilController.php');
         $this->assertStringContains('RateLimiter::attempt', $content,
             'solicitarCambio must use RateLimiter');
         $this->assertStringContains('solicitud_cambio_', $content,
@@ -881,7 +881,7 @@ class BehaviorTest extends TestCase {
 
     // 1.7a — SolicitudesModel has dedup check
     public function testSolicitudesModelHasDuplicateCheck(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/SolicitudesModel.php');
         preg_match('/public function crearSolicitud\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'crearSolicitud method must exist');
         $this->assertStringContains('ksort', $m[1],
@@ -896,7 +896,7 @@ class BehaviorTest extends TestCase {
 
     // 1.8a — API login validates min payload
     public function testApiControllerValidatesMinPayloadSize(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ApiController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/ApiController.php');
         preg_match('/public function login\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'login method must exist');
         $this->assertStringContains('strlen($rawBody) < 1', $m[1],
@@ -907,7 +907,7 @@ class BehaviorTest extends TestCase {
 
     // 1.9a — reenviarOtp cleans expired tokens
     public function testReenviarOtpCleansExpiredTokens(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
         preg_match('/public function reenviarOtp\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'reenviarOtp method must exist');
         $this->assertStringContains('DELETE FROM auth_otp_tokens', $m[1],
@@ -920,7 +920,7 @@ class BehaviorTest extends TestCase {
 
     // 1.4b — All loginAs* methods update ultimo_acceso
     public function testAllLoginMethodsUpdateLastAccess(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/core/Auth.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php');
         // loginAsAdmin
         preg_match('/public static function loginAsAdmin\(array \$user\)(.*?)(?=public static function|\Z)/s', $content, $mA);
         $this->assertStringContains('ultimo_acceso', $mA[1] ?? '',
@@ -946,7 +946,7 @@ class BehaviorTest extends TestCase {
 
     // 1.7b — Dedup allows retry after 24 hours
     public function testSolicitudesDedupAllowsRetryAfter24Hours(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/SolicitudesModel.php');
         $this->assertStringContains('86400', $content,
             'Must allow retry after 24 hours (86400 seconds)');
         $this->assertStringContains('fecha_respuesta', $content,
@@ -955,7 +955,7 @@ class BehaviorTest extends TestCase {
 
     // 1.9b — OTP cleanup targets ALL expired (not just used)
     public function testReenviarOtpCleansAllExpiredNotJustUsed(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
         preg_match('/public function reenviarOtp\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1);
         // Must NOT filter by usado = 1 — clean ALL expired tokens
@@ -965,7 +965,7 @@ class BehaviorTest extends TestCase {
 
     // 1.3b — OTP rate limit key is per-user
     public function testOtpVerifyRateLimitKeyIncludesUserId(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
         preg_match('/public function procesar2fa\(\)(.*?)(?=public function|private function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1);
         $this->assertStringContains('otp_verify_', $m[1],
@@ -982,14 +982,14 @@ class BehaviorTest extends TestCase {
 
     // 2.1a — State machine exists
     public function testPagoStateTransitionsAreDefined(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoController.php');
         $this->assertStringContains('transicionesValidas', $content,
             'PagoController must define state transitions');
     }
 
     // 2.2a — AprobarLote has cascade loop
     public function testAprobarLoteHasCascadeLoop(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/PagoModel.php');
         preg_match('/public function aprobarLote\(.*?\)(.*?)(?=\}\s*\}|private function|public function)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'aprobarLote must exist');
         $this->assertStringContains('while', $m[1],
@@ -1000,7 +1000,7 @@ class BehaviorTest extends TestCase {
 
     // 2.3a — OCR endpoint has rate limiting
     public function testExtraerEndpointHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoController.php');
         preg_match('/public function extraer\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'extraer method must exist');
         $this->assertStringContains('RateLimiter::attempt', $m[1],
@@ -1011,7 +1011,7 @@ class BehaviorTest extends TestCase {
 
     // 2.4a — KPI cache uses atomic write
     public function testKpiCacheUsesAtomicWrite(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/ReportesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/ReportesModel.php');
         $this->assertStringContains('rename', $content,
             'KPI cache must use rename() for atomic write');
         $this->assertStringContains('.tmp', $content,
@@ -1020,7 +1020,7 @@ class BehaviorTest extends TestCase {
 
     // 2.5a — cuota_mensual validation
     public function testFacturasModelValidatesCuotaMensualBounds(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/FacturasModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/FacturasModel.php');
         $this->assertStringContains('cuota_mensual', $content);
         $this->assertStringContains('999999', $content,
             'Must validate cuota_mensual upper bound');
@@ -1028,7 +1028,7 @@ class BehaviorTest extends TestCase {
 
     // 2.6a — conciliarLote validates input
     public function testConciliarLoteValidatesInput(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ConciliacionController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/ConciliacionController.php');
         preg_match('/public function conciliarLote\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'conciliarLote must exist');
         $this->assertStringContains('json_decode', $m[1]);
@@ -1038,7 +1038,7 @@ class BehaviorTest extends TestCase {
 
     // 2.7a — Cruce inteligente has LIMIT
     public function testCruceInteligenteHasQueryLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Services/ConciliacionBancariaService.php');
         preg_match('/public function ejecutarCruceInteligente\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'ejecutarCruceInteligente must exist');
         $this->assertStringContains('LIMIT 5000', $m[1],
@@ -1047,7 +1047,7 @@ class BehaviorTest extends TestCase {
 
     // 2.8a — Resident payments use paginate
     public function testPagoResidenteIsPaginated(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/PagoModel.php');
         preg_match('/public function obtenerPagosPorResidente\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'obtenerPagosPorResidente must exist');
         $this->assertStringContains('paginate', $m[1],
@@ -1056,7 +1056,7 @@ class BehaviorTest extends TestCase {
 
     // 2.9a — imprimirMorosidad reports truncation
     public function testImprimirMorosidadReportsTruncation(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/ReporteController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/ReporteController.php');
         $this->assertStringContains('truncado', $content,
             'imprimirMorosidad must report when results are truncated');
     }
@@ -1065,7 +1065,7 @@ class BehaviorTest extends TestCase {
 
     // 2.1b — APROBADO and RECHAZADO are terminal
     public function testApprovedAndRejectedAreTerminalStates(): void {
-        $controllerContent = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $controllerContent = file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoController.php');
         $this->assertStringContains('transicionesValidas', $controllerContent,
             'PagoController must consume the centralized state machine');
 
@@ -1092,7 +1092,7 @@ class BehaviorTest extends TestCase {
 
     // 2.2b — AprobarLote cascades across multiple invoices
     public function testAprobarLoteCascadesAcrossInvoices(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/PagoModel.php');
         $this->assertStringContains('montoRestante', $content,
             'aprobarLote must track remaining amount for cascade');
         $this->assertStringContains('MovimientosModel', $content,
@@ -1101,21 +1101,21 @@ class BehaviorTest extends TestCase {
 
     // 2.5b — cuota_mensual has upper bound
     public function testCuotaMensualHasUpperBound(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/FacturasModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/FacturasModel.php');
         $this->assertStringContains('999999', $content,
             'cuota_mensual must have upper bound validation');
     }
 
     // 2.7b — Conciliación has query limit
     public function testConciliacionHasQueryLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/services/ConciliacionBancariaService.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Services/ConciliacionBancariaService.php');
         $this->assertStringContains('LIMIT 5000', $content,
             'Conciliación query must have LIMIT 5000');
     }
 
     // 2.8b — Resident payments use paginate
     public function testResidentPaymentsUsePaginate(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/PagoModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/PagoModel.php');
         $this->assertStringContains('paginate', $content,
             'obtenerPagosPorResidente must use paginate()');
     }
@@ -1128,19 +1128,19 @@ class BehaviorTest extends TestCase {
 
     // 3.1a — getActivos has LIMIT
     public function testGetActivosHasLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/EdificiosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/EdificiosModel.php');
         $this->assertStringContains('LIMIT', $content, 'getActivos must have a LIMIT clause');
     }
 
     // 3.2a — getActivas has LIMIT
     public function testGetActivasHasLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/UnidadesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/UnidadesModel.php');
         $this->assertStringContains('LIMIT', $content, 'getActivas must have a LIMIT clause');
     }
 
     // 3.3a — guardarVehiculo has rate limiting
     public function testGuardarVehiculoHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstacionamientoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstacionamientoController.php');
         preg_match('/public function guardarVehiculo\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'guardarVehiculo must exist');
         $this->assertStringContains('RateLimiter::attempt', $m[1], 'Must use RateLimiter');
@@ -1149,7 +1149,7 @@ class BehaviorTest extends TestCase {
 
     // 3.4a — eliminarVehiculo uses soft delete
     public function testEliminarVehiculoUsesSoftDelete(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/VehiculosModel.php');
         preg_match('/public function eliminarVehiculo\(.*?\)(.*?)(?=\}|private function|public function)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'eliminarVehiculo must exist');
         $this->assertStringContains('deleted_at', $m[1], 'Must use soft delete (deleted_at)');
@@ -1158,28 +1158,28 @@ class BehaviorTest extends TestCase {
 
     // 3.5a — crearVehiculo validates placa format
     public function testCrearVehiculoValidatesPlacaFormat(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/VehiculosModel.php');
         $this->assertStringContains('preg_match', $content, 'Must validate placa format with regex');
         $this->assertStringContains('{3}[0-9]{3,4}', $content, 'Regex must match 3 letters + 3-4 digits');
     }
 
     // 3.6a — index uses cache
     public function testEstructuraIndexUsesCache(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstructuraController.php');
         $this->assertStringContains('storage/cache', $content, 'Cache must use project storage directory');
         $this->assertStringContains('cacheTtl', $content, 'Must have cache TTL');
     }
 
     // 3.7a — listarConDetalles has LIMIT and filters deleted vehicles
     public function testListarConDetallesHasLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/EstacionamientosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/EstacionamientosModel.php');
         $this->assertStringContains('LIMIT 500', $content, 'listarConDetalles must have LIMIT 500');
         $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles');
     }
 
     // 3.8a — Cache invalidation on structure changes
     public function testStructureCacheIsInvalidatedOnChanges(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstructuraController.php');
         $this->assertStringContains('invalidarCacheEstructura', $content, 'Must have cache invalidation method');
         $this->assertStringContains('unlink', $content, 'Must unlink cache files');
         $this->assertStringContains('file_exists', $content, 'Must check file exists before unlink');
@@ -1196,32 +1196,32 @@ class BehaviorTest extends TestCase {
 
     // 3.1b — getActivas has LIMIT
     public function testGetActivasHasLimitBehavior(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/UnidadesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/UnidadesModel.php');
         $this->assertStringContains('LIMIT', $content, 'getActivas must have LIMIT');
     }
 
     // 3.3b — Rate limit key per-admin
     public function testGuardarVehiculoRateLimitKeyIsPerAdmin(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstacionamientoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstacionamientoController.php');
         $this->assertStringContains('vehiculo_', $content, 'Rate limit key must include vehiculo prefix');
         $this->assertStringContains('Auth::id()', $content, 'Rate limit key must include admin ID');
     }
 
     // 3.5b — Placa validation rejects invalid formats
     public function testPlacaValidationRejectsInvalidFormats(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/VehiculosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/VehiculosModel.php');
         $this->assertStringContains('{3}[0-9]{3,4}', $content, 'Placa regex must require 3 letters + 3-4 digits');
     }
 
     // 3.7b — listarConDetalles excludes soft-deleted vehicles
     public function testListarConDetallesExcludesSoftDeletedVehicles(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/EstacionamientosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/EstacionamientosModel.php');
         $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles in listing');
     }
 
     // 3.8b — Cache invalidation uses file_exists check
     public function testCacheInvalidationUsesFileExists(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstructuraController.php');
         $this->assertStringContains('file_exists', $content, 'Must check file exists before unlink');
         $this->assertStringContains('storage/cache', $content, 'Cache dir must match');
     }
@@ -1234,7 +1234,7 @@ class BehaviorTest extends TestCase {
 
     // 4.1a — eliminar() checks movimientos_cuenta before deleting
     public function testGastoEliminarChecksProrrateo(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'eliminar() must exist');
         $this->assertStringContains('movimientos_cuenta', $m[1],
@@ -1245,7 +1245,7 @@ class BehaviorTest extends TestCase {
 
     // 4.1b — eliminar() validates gasto existence before deletion
     public function testGastoEliminarValidatesExistence(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertStringContains('gastos_comunes WHERE id', $m[1],
             'eliminar() must verify gasto exists in DB');
@@ -1255,7 +1255,7 @@ class BehaviorTest extends TestCase {
 
     // 4.1c — eliminar() redirects with period filters preserved
     public function testGastoEliminarPreservesPeriodInRedirect(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertStringContains("gasto['mes']", $m[1],
             'eliminar() redirect must preserve mes filter');
@@ -1265,7 +1265,7 @@ class BehaviorTest extends TestCase {
 
     // 4.1d — eliminar() returns error flash on prorrateo
     public function testGastoEliminarReturnsErrorOnProrrateo(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertStringContains("Flash::set('danger'", $m[1],
             'Must set danger flash on prorrateo detection');
@@ -1275,7 +1275,7 @@ class BehaviorTest extends TestCase {
 
     // 4.1e — eliminar() handles id=0 gracefully
     public function testGastoEliminarHandlesZeroId(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function eliminar\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertStringContains('$id <= 0', $m[1],
             'Must check for invalid ID before any DB query');
@@ -1287,7 +1287,7 @@ class BehaviorTest extends TestCase {
 
     // 4.2a — imprimir() has rate limiting
     public function testImprimirEstadoCuentaHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
         preg_match('/public function imprimir\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'imprimir() must exist');
         $this->assertStringContains('RateLimiter::attempt', $m[1],
@@ -1300,14 +1300,14 @@ class BehaviorTest extends TestCase {
 
     // 4.2b — Rate limit is 10 per hour
     public function testImprimirRateLimitIs10PerHour(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
         $this->assertStringContains('10, 3600', $content,
             'Rate limit must be 10 requests per 3600 seconds');
     }
 
     // 4.2c — imprimir() redirects on rate limit
     public function testImprimirRedirectsOnRateLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
         $this->assertStringContains('/residente/estado-cuenta', $content,
             'Must redirect to estado-cuenta when rate limited');
         $this->assertStringContains('return;', $content,
@@ -1316,7 +1316,7 @@ class BehaviorTest extends TestCase {
 
     // 4.2d — Rate limit shows remaining time
     public function testImprimirRateLimitShowsRemainingTime(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/EstadoCuentaController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
         $this->assertStringContains('secondsUntilAvailable', $content,
             'Must calculate remaining time for user message');
         $this->assertStringContains('minuto', $content,
@@ -1327,7 +1327,7 @@ class BehaviorTest extends TestCase {
 
     // 4.3a — obtenerGastosPorPeriodo has safety cap
     public function testGastosPorPeriodoHasMaxLimit500(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/GastosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/GastosModel.php');
         preg_match('/public function obtenerGastosPorPeriodo\(.*?\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'obtenerGastosPorPeriodo must exist');
         $this->assertStringContains('min(', $m[1],
@@ -1338,7 +1338,7 @@ class BehaviorTest extends TestCase {
 
     // 4.3b — Cap is applied BEFORE the SQL LIMIT
     public function testGastosPorPeriodoCapBeforeLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/GastosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/GastosModel.php');
         preg_match('/function obtenerGastosPorPeriodo.*?LIMIT/s', $content, $m);
         $this->assertTrue(count($m) > 0, 'Must find cap before LIMIT');
         $capPos = strpos($m[0], 'min(');
@@ -1351,7 +1351,7 @@ class BehaviorTest extends TestCase {
 
     // 4.5a — rendicionResidente uses COUNT query
     public function testRendicionResidenteUsesCountQuery(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1, 'rendicionResidente() must exist');
         $this->assertStringContains('COUNT(*)', $m[1],
@@ -1362,7 +1362,7 @@ class BehaviorTest extends TestCase {
 
     // 4.5b — rendicionResidente does NOT call getActivas()
     public function testRendicionResidenteDoesNotLoadFullArray(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertTrue(count($m) > 1);
         $this->assertTrue(strpos($m[1], 'getActivas()') === false,
@@ -1371,7 +1371,7 @@ class BehaviorTest extends TestCase {
 
     // 4.5c — rendicionResidente handles zero units gracefully
     public function testRendicionResidenteHandlesZeroUnits(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
         $this->assertStringContains('intval($stmtCount', $m[1],
             'Must intval the COUNT result');
@@ -1383,7 +1383,7 @@ class BehaviorTest extends TestCase {
 
     // 4.6a — Daily adjustment limit is 10
     public function testMovimientosModelDailyLimitIs10(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/MovimientosModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/MovimientosModel.php');
         $this->assertStringContains('>= 10', $content,
             'Daily adjustment limit must be 10, not 20');
         $this->assertTrue(strpos($content, '>= 20') === false,
@@ -1397,14 +1397,14 @@ class BehaviorTest extends TestCase {
     // =====================================================================
 
     public function testComprobantesModelPersistsBankFields(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/models/ComprobantesModel.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Models/ComprobantesModel.php');
         $this->assertStringContains('banco_pagador', $content, 'ComprobantesModel must insert banco_pagador');
         $this->assertStringContains('banco_receptor', $content, 'ComprobantesModel must insert banco_receptor');
         $this->assertStringContains('cuenta_bancaria_id', $content, 'ComprobantesModel must insert cuenta_bancaria_id');
     }
 
     public function testFileUploaderGuardsFinfoCloseForPhp85(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/services/FileUploader.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Services/FileUploader.php');
         $this->assertStringContains('PHP_VERSION_ID < 80500', $content, 'FileUploader must guard finfo_close for PHP 8.5+');
     }
 
@@ -1420,7 +1420,7 @@ class BehaviorTest extends TestCase {
     }
 
     public function testPagoControllerResolvesGlobalDateTime(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoController.php');
         $this->assertTrue(
             str_contains($content, 'use DateTime;') || str_contains($content, '\DateTime::createFromFormat'),
             'PagoController must import DateTime or use fully qualified \DateTime'

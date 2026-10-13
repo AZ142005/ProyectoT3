@@ -145,8 +145,8 @@ class SecurityTest extends TestCase {
      * Debe usar finfo_open() o similar.
      */
     public function testFileValidationUsesRealMimeType(): void {
-        $controllerFiles = glob(dirname(__DIR__) . '/app/controllers/*.php');
-        $modelFiles = glob(dirname(__DIR__) . '/app/models/*.php');
+        $controllerFiles = glob(dirname(__DIR__) . '/app/Controllers/*.php');
+        $modelFiles = glob(dirname(__DIR__) . '/app/Models/*.php');
         $allFiles = array_merge($controllerFiles, $modelFiles);
 
         $usesFinfo = false;
@@ -178,7 +178,7 @@ class SecurityTest extends TestCase {
      * Verifica que los uploads en PagoController no preserven el nombre original del archivo.
      */
     public function testUploadFilenameIsSanitized(): void {
-        $filePath = dirname(__DIR__) . '/app/controllers/PagoController.php';
+        $filePath = dirname(__DIR__) . '/app/Controllers/PagoController.php';
 
         if (!file_exists($filePath)) {
             $this->failures[] = "Archivo PagoController.php no encontrado";
@@ -241,7 +241,7 @@ class SecurityTest extends TestCase {
      * y no interpolen variables directamente en SQL.
      */
     public function testModelsUsePreparedStatements(): void {
-        $modelFiles = glob(dirname(__DIR__) . '/app/models/*.php');
+        $modelFiles = glob(dirname(__DIR__) . '/app/Models/*.php');
         $vulnerableModels = [];
 
         foreach ($modelFiles as $file) {
@@ -279,7 +279,7 @@ class SecurityTest extends TestCase {
      * Verifica que la conexión PDO deshabilite EMULATE_PREPARES.
      */
     public function testPdoDisablesEmulatedPrepares(): void {
-        $dbFile = dirname(__DIR__) . '/app/core/Database.php';
+        $dbFile = dirname(__DIR__) . '/app/Core/Database.php';
         $content = file_get_contents($dbFile);
 
         $this->assertStringContains('EMULATE_PREPARES', $content,
@@ -293,7 +293,7 @@ class SecurityTest extends TestCase {
      * Verifica que PDO esté en modo ERRMODE_EXCEPTION.
      */
     public function testPdoUsesExceptionMode(): void {
-        $dbFile = dirname(__DIR__) . '/app/core/Database.php';
+        $dbFile = dirname(__DIR__) . '/app/Core/Database.php';
         $content = file_get_contents($dbFile);
 
         $this->assertStringContains('ERRMODE_EXCEPTION', $content,
@@ -342,7 +342,7 @@ class SecurityTest extends TestCase {
      * Verifica que el login no acepte passwords vacíos.
      */
     public function testLoginRejectsEmptyPasswords(): void {
-        $authFile = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $authFile = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($authFile);
 
         $this->assertStringContains("empty(\$password)", $content,
@@ -353,7 +353,7 @@ class SecurityTest extends TestCase {
      * Verifica que el registro valide longitud mínima de password.
      */
     public function testRegisterEnforcesMinimumPasswordLength(): void {
-        $authFile = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $authFile = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($authFile);
 
         $this->assertStringContains('strlen', $content,
@@ -371,7 +371,7 @@ class SecurityTest extends TestCase {
      * Verifica que el perfil valide longitud mínima de password de al menos 8 caracteres.
      */
     public function testPerfilEnforcesMinimumPasswordLength(): void {
-        $perfilFile = dirname(__DIR__) . '/app/controllers/PerfilController.php';
+        $perfilFile = dirname(__DIR__) . '/app/Controllers/PerfilController.php';
         $content = file_get_contents($perfilFile);
 
         $this->assertStringContains('strlen', $content,
@@ -388,7 +388,7 @@ class SecurityTest extends TestCase {
      * Verifica que el password se hashee con bcrypt antes de guardar.
      */
     public function testPasswordIsHashedWithBcrypt(): void {
-        $authFile = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $authFile = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($authFile);
 
         $this->assertStringContains('password_hash', $content,
@@ -402,7 +402,7 @@ class SecurityTest extends TestCase {
      * Verifica que el login use password_verify.
      */
     public function testLoginUsesPasswordVerify(): void {
-        $authFile = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $authFile = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $content = file_get_contents($authFile);
 
         $this->assertStringContains('password_verify', $content,

@@ -84,7 +84,7 @@ class AuthEmailTest extends TestCase {
      * con mensajes de error genéricos y normalización a minúsculas.
      */
     public function testAuthControllerEmailLoginImplementation(): void {
-        $controllerPath = dirname(__DIR__) . '/app/controllers/AuthController.php';
+        $controllerPath = dirname(__DIR__) . '/app/Controllers/AuthController.php';
         $this->assertFileExists($controllerPath, "AuthController debe existir.");
 
         $content = file_get_contents($controllerPath);
@@ -103,7 +103,7 @@ class AuthEmailTest extends TestCase {
      * Valida que ApiController acepte payload con email en lugar de cédula.
      */
     public function testApiControllerEmailLoginImplementation(): void {
-        $apiControllerPath = dirname(__DIR__) . '/app/controllers/ApiController.php';
+        $apiControllerPath = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $this->assertFileExists($apiControllerPath, "ApiController debe existir.");
 
         $content = file_get_contents($apiControllerPath);
@@ -139,7 +139,7 @@ class AuthEmailTest extends TestCase {
      * Valida que UsuarioAdminController exija correo electrónico obligatorio y único.
      */
     public function testUsuarioAdminControllerRequiresEmail(): void {
-        $controllerPath = dirname(__DIR__) . '/app/controllers/UsuarioAdminController.php';
+        $controllerPath = dirname(__DIR__) . '/app/Controllers/UsuarioAdminController.php';
         $this->assertFileExists($controllerPath, "UsuarioAdminController debe existir.");
 
         $content = file_get_contents($controllerPath);
@@ -154,8 +154,8 @@ class AuthEmailTest extends TestCase {
      * Valida que los modelos implementen métodos case-insensitive para búsqueda por email.
      */
     public function testModelsSupportCaseInsensitiveEmailLookup(): void {
-        $usuariosModelPath = dirname(__DIR__) . '/app/models/UsuariosModel.php';
-        $personasModelPath = dirname(__DIR__) . '/app/models/PersonasModel.php';
+        $usuariosModelPath = dirname(__DIR__) . '/app/Models/UsuariosModel.php';
+        $personasModelPath = dirname(__DIR__) . '/app/Models/PersonasModel.php';
 
         $uContent = file_get_contents($usuariosModelPath);
         $pContent = file_get_contents($personasModelPath);

@@ -135,7 +135,7 @@ class ConciliacionMontoDisparTest extends TestCase {
      * pago/alerta y jamás producir fechas 01/01/1970 en la bandeja.
      */
     public function testInconsistenciaConExtractoNullNoRompeFechas(): void {
-        $controlador = file_get_contents(BASE_PATH . '/app/controllers/ConciliacionController.php');
+        $controlador = file_get_contents(BASE_PATH . '/app/Controllers/ConciliacionController.php');
         $vista = file_get_contents(VIEWS_PATH . '/admin/conciliacion/index.php');
 
         // Controlador: conserva pago/alerta y protege la fecha con fallback null-safe.

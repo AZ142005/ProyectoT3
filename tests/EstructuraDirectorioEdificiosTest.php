@@ -78,7 +78,7 @@ class EstructuraDirectorioEdificiosTest extends TestCase {
             "La vista no debe tener formularios hacia /admin/estructura/residente/desvincular");
 
         // 2. En EstructuraController no deben existir guardarResidente ni desvincularResidente
-        $controllerPath = dirname(__DIR__) . '/app/controllers/EstructuraController.php';
+        $controllerPath = dirname(__DIR__) . '/app/Controllers/EstructuraController.php';
         $controllerContent = file_get_contents($controllerPath);
 
         $this->assertFalse(str_contains($controllerContent, 'function guardarResidente'),

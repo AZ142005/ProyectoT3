@@ -151,7 +151,7 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
             "Ya no debe existir el toggle de colapso de Bootstrap");
 
         // 3. Orden por mayor deuda (sin agrupar por edificio) y scroll vertical propio
-        $controller = file_get_contents(dirname(__DIR__) . '/app/controllers/ReporteController.php');
+        $controller = file_get_contents(dirname(__DIR__) . '/app/Controllers/ReporteController.php');
         $this->assertStringContains('usort($todasUnidades', $controller,
             "El controlador debe reordenar la lista plana por mayor deuda");
         $this->assertMatchesRegex('/max-h-\[calc\(100vh[^\]]*\)\][^>]*overflow-y-auto/', $content,

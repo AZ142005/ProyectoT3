@@ -92,7 +92,7 @@ class EstructuraEliminarEdificioTest extends TestCase {
     }
 
     public function testControladorEliminarEdificioSoloAdminYDelegaEnModelo(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/EstructuraController.php', 'eliminarEdificio');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/EstructuraController.php', 'eliminarEdificio');
 
         $this->assertTrue($metodo !== '', 'EstructuraController debe tener el método eliminarEdificio');
         $this->assertStringContains("Auth::requireRole(['admin'])", $metodo,
@@ -108,7 +108,7 @@ class EstructuraEliminarEdificioTest extends TestCase {
     }
 
     public function testModeloContieneReglaDeRechazoYTransaccion(): void {
-        $modelo = file_get_contents(BASE_PATH . '/app/models/EdificiosModel.php');
+        $modelo = file_get_contents(BASE_PATH . '/app/Models/EdificiosModel.php');
 
         $this->assertStringContains('function eliminarSiLimpio(int $id): array', $modelo,
             'El modelo debe exponer eliminarSiLimpio(int $id): array');

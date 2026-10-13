@@ -306,7 +306,7 @@ class HashCruzadoDuplicadosTest extends TestCase {
     }
 
     public function testControladorAnalizarComprobanteAplicaRateLimit(): void {
-        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/PagoController.php');
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoController.php');
 
         $this->assertStringContains("RateLimiter::attempt('ocr_analisis_' . Auth::id(), 20, 60)", $contenido,
             'analizarComprobante debe aplicar rate limit 20/60 por usuario');

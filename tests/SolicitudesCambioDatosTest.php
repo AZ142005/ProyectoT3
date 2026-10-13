@@ -213,7 +213,7 @@ class SolicitudesCambioDatosTest extends TestCase {
     public function testVistaIncluyePestanaCambiosYComparacion(): void {
         $vistaUsuarios = file_get_contents(dirname(__DIR__) . '/app/views/admin/usuarios/index.php');
         $partial = file_get_contents(dirname(__DIR__) . '/app/views/admin/solicitudes_cambio/index.php');
-        $controlador = file_get_contents(dirname(__DIR__) . '/app/controllers/UsuarioAdminController.php');
+        $controlador = file_get_contents(dirname(__DIR__) . '/app/Controllers/UsuarioAdminController.php');
         $rutas = file_get_contents(dirname(__DIR__) . '/public/index.php');
 
         // Pestaña integrada en la página existente de usuarios
@@ -295,9 +295,9 @@ class SolicitudesCambioDatosTest extends TestCase {
 
     public function testPerfilIncluyeNotaDeVencimientoYControladoresLimpian(): void {
         $vistaPerfil = file_get_contents(dirname(__DIR__) . '/app/views/perfil/index.php');
-        $modelo = file_get_contents(dirname(__DIR__) . '/app/models/SolicitudesModel.php');
-        $ctrlPerfil = file_get_contents(dirname(__DIR__) . '/app/controllers/PerfilController.php');
-        $ctrlAdmin = file_get_contents(dirname(__DIR__) . '/app/controllers/UsuarioAdminController.php');
+        $modelo = file_get_contents(dirname(__DIR__) . '/app/Models/SolicitudesModel.php');
+        $ctrlPerfil = file_get_contents(dirname(__DIR__) . '/app/Controllers/PerfilController.php');
+        $ctrlAdmin = file_get_contents(dirname(__DIR__) . '/app/Controllers/UsuarioAdminController.php');
 
         $this->assertStringContains('Solo se conservan las solicitudes aprobadas', $vistaPerfil, "El perfil del residente debe advertir el vencimiento de solicitudes");
         $this->assertStringContains('public function eliminarExpiradas', $modelo, "El modelo debe exponer la limpieza de solicitudes vencidas");

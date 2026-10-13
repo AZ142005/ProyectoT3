@@ -42,10 +42,10 @@ class ComprobanteFlujoAprobacionTest extends TestCase {
      * permita aprobar directamente desde PENDIENTE y que PagoController la consuma.
      */
     public function testPagoControllerPermiteAprobarDesdePendiente(): void {
-        $estadoPagoPath = APP_PATH . '/core/EstadoPago.php';
+        $estadoPagoPath = APP_PATH . '/Core/EstadoPago.php';
         $this->assertTrue(file_exists($estadoPagoPath), "EstadoPago.php debe existir");
 
-        $controllerContent = file_get_contents(APP_PATH . '/controllers/PagoController.php');
+        $controllerContent = file_get_contents(APP_PATH . '/Controllers/PagoController.php');
         $this->assertStringContains('EstadoPago::transicionesValidas()', $controllerContent,
             "PagoController debe consumir la máquina de estados centralizada");
 

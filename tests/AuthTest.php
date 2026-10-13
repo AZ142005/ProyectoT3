@@ -302,10 +302,10 @@ class AuthTest extends TestCase {
      */
     public function testProtectedRoutesUseAuth(): void {
         $protectedFiles = [
-            dirname(__DIR__) . '/app/controllers/AdminController.php',
-            dirname(__DIR__) . '/app/controllers/ResidenteController.php',
-            dirname(__DIR__) . '/app/controllers/PagoController.php',
-            dirname(__DIR__) . '/app/controllers/EstructuraController.php',
+            dirname(__DIR__) . '/app/Controllers/AdminController.php',
+            dirname(__DIR__) . '/app/Controllers/ResidenteController.php',
+            dirname(__DIR__) . '/app/Controllers/PagoController.php',
+            dirname(__DIR__) . '/app/Controllers/EstructuraController.php',
         ];
 
         $missingAuth = [];
@@ -335,7 +335,7 @@ class AuthTest extends TestCase {
      * para permitir el autoregistro con el correo pre-cargado por la administración.
      */
     public function testRegisterExcludesOwnPersonaIdOnEmailCheck(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
 
         $this->assertStringContains('emailExistsActive($email, (int)$persona[\'id\'])', $content,
             "AuthController debe excluir el id de la persona para permitir registrarse con el correo pre-asignado");
@@ -377,7 +377,7 @@ class AuthTest extends TestCase {
      * Verifica que el controlador de autenticación procese el inicio de sesión con correo electrónico.
      */
     public function testAuthControllerUsesEmailLogin(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/controllers/AuthController.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
         $this->assertStringContains("validarEmail", $content,
             "AuthController debe validar el formato del correo electrónico");
         $this->assertStringContains("getActiveByEmail", $content,

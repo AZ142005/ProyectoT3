@@ -56,7 +56,7 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T2 — Saneamiento de soportes
     public function testGastosModelEliminarGastoAplicaBasenameAntesDeUnlink(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/models/GastosModel.php', 'eliminarGasto');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Models/GastosModel.php', 'eliminarGasto');
 
         $posBasename = strpos($metodo, 'basename');
         $posUnlink = strpos($metodo, 'unlink(');
@@ -68,7 +68,7 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T3/T4 — Estacionamiento
     public function testGuardarVehiculoResuelvePersonaDesdeLaUnidad(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/EstacionamientoController.php', 'guardarVehiculo');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/EstacionamientoController.php', 'guardarVehiculo');
 
         $this->assertFalse(str_contains($metodo, "\$_POST['persona_id']"),
             'guardarVehiculo no debe leer persona_id desde el cliente');
@@ -79,7 +79,7 @@ class ArreglosAuditoriaTest extends TestCase {
     }
 
     public function testEliminarVehiculoUsaRolesString(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/EstacionamientoController.php', 'eliminarVehiculo');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/EstacionamientoController.php', 'eliminarVehiculo');
 
         $this->assertStringContains("Auth::requireRole(['admin', 'auditor'])", $metodo,
             'eliminarVehiculo debe usar roles string como el resto del archivo');
@@ -89,21 +89,21 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T5 — Carta de deuda tolera ids no numéricos
     public function testReporteCartaDeudaParametroSinTipoCon404(): void {
-        $controlador = file_get_contents(BASE_PATH . '/app/controllers/ReporteController.php');
+        $controlador = file_get_contents(BASE_PATH . '/app/Controllers/ReporteController.php');
 
         $this->assertStringContains('public function generarCartaDeuda($unidadId)', $controlador,
             'El parámetro debe ser sin tipo para evitar TypeError con entradas no numéricas');
         $this->assertFalse(str_contains($controlador, 'public function generarCartaDeuda(int $unidadId)'),
             'No debe conservarse el parámetro tipado int');
 
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ReporteController.php', 'generarCartaDeuda');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/ReporteController.php', 'generarCartaDeuda');
         $this->assertStringContains('intval($unidadId)', $metodo, 'Debe convertir el id con intval');
         $this->assertStringContains('errors/404', $metodo, 'Debe renderizar 404 para ids inválidos');
     }
 
     // T6b — Rango de período en la generación de facturas
     public function testAdminGenerarFacturasValidaRangoDePeriodo(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/AdminController.php', 'generarFacturas');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/AdminController.php', 'generarFacturas');
 
         $this->assertStringContains('$mes < 1 || $mes > 12', $metodo,
             'generarFacturas debe validar el mes en 1..12');
@@ -117,7 +117,7 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T6c — Sin http_response_code(400) previo al redirect
     public function testEstacionamientoGuardarSinHttpResponseCode400(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/EstacionamientoController.php', 'guardar');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/EstacionamientoController.php', 'guardar');
 
         $this->assertFalse(str_contains($metodo, 'http_response_code(400)'),
             'guardar no debe fijar 400 antes del redirect de flash');
@@ -125,7 +125,7 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T6d — Coerción intval(array)
     public function testAprobarLoteFiltraIdsNoEscalares(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/models/PagoModel.php', 'aprobarLote');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Models/PagoModel.php', 'aprobarLote');
 
         $this->assertStringContains('is_scalar', $metodo, 'aprobarLote debe exigir ids escalares');
         $this->assertStringContains('is_numeric', $metodo, 'aprobarLote debe exigir ids numéricos');
@@ -133,7 +133,7 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // T6a — Cuerpo JSON en conciliarPago
     public function testConciliarPagoAceptaJsonYSoloIdsEscalares(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'conciliarPago');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/ConciliacionController.php', 'conciliarPago');
 
         $this->assertStringContains('application/json', $metodo, 'conciliarPago debe detectar el cuerpo JSON');
         $this->assertStringContains('php://input', $metodo, 'conciliarPago debe leer php://input para el JSON');
@@ -153,13 +153,13 @@ class ArreglosAuditoriaTest extends TestCase {
 
     // Coerción — período escalar en el módulo de gastos
     public function testGastoControllerNormalizaPeriodoScalar(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/GastoController.php', 'guardar');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/GastoController.php', 'guardar');
         $this->assertStringContains('periodoDesdePost', $metodo,
             'guardar debe normalizar mes/año con periodoDesdePost (solo escalares numéricos)');
     }
 
     public function testConciliarPagoDevuelveCsrfTokenEnRespuestasJson(): void {
-        $metodo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'conciliarPago');
+        $metodo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/ConciliacionController.php', 'conciliarPago');
 
         $this->assertTrue(substr_count($metodo, "'csrf_token'") >= 4,
             'Las 4 respuestas JSON deben exponer el token CSRF rotado para el siguiente llamado');

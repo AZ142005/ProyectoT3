@@ -108,7 +108,7 @@ class EstacionamientosNumeroTest extends TestCase {
     }
 
     public function testControladorValidaNumeroEnCreateYUpdate(): void {
-        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/EstacionamientoController.php');
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/EstacionamientoController.php');
 
         $this->assertStringContains('numeroExists($numero, $id)', $contenido,
             'EstacionamientoController::guardar debe validar el número (create y update) con numeroExists');

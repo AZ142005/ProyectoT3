@@ -28,7 +28,7 @@ class CarteleraHistorialTest extends TestCase {
     }
 
     public function testControladorConsultaElHistorialDelUltimoMes(): void {
-        $controller = $this->readFile('app/controllers/GastoController.php');
+        $controller = $this->readFile('app/Controllers/GastoController.php');
 
         $this->assertStringContains('obtenerHistorialUltimoMes($pagina, 25)', $controller,
             "GastoController debe consultar el historial con límite de 25");

@@ -74,7 +74,7 @@ class GastosFacturacionTabsTest extends TestCase {
     }
 
     public function testControladorGastosCargaDatosDeLasSecciones(): void {
-        $content = $this->readFile('app/controllers/GastoController.php');
+        $content = $this->readFile('app/Controllers/GastoController.php');
 
         $this->assertStringContains("'facturacion'", $content,
             "El controlador debe soportar el parámetro tab=facturacion");
@@ -91,7 +91,7 @@ class GastosFacturacionTabsTest extends TestCase {
     }
 
     public function testRutaAntiguaFacturasGenerarRedirigeALaPestanaFacturacion(): void {
-        $adminController = $this->readFile('app/controllers/AdminController.php');
+        $adminController = $this->readFile('app/Controllers/AdminController.php');
 
         $this->assertStringContains('/admin/gastos?tab=facturacion', $adminController,
             "La ruta antigua /admin/facturas/generar debe redirigir a /admin/gastos?tab=facturacion");

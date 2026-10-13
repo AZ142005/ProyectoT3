@@ -537,12 +537,12 @@ class HelperTest extends TestCase {
     // =====================================================================
 
     public function testHelpersFileExists(): void {
-        $this->assertFileExists(dirname(__DIR__) . '/app/core/helpers.php',
+        $this->assertFileExists(dirname(__DIR__) . '/app/Core/helpers.php',
             "El archivo helpers.php debe existir en core/");
     }
 
     public function testHelpersHaveFunctionGuards(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/core/helpers.php');
+        $content = file_get_contents(dirname(__DIR__) . '/app/Core/helpers.php');
 
         $this->assertStringContains('function_exists', $content,
             "helpers.php debe usar guards function_exists() para evitar redeclaración");

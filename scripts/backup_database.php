@@ -8,7 +8,7 @@ set_time_limit(0);
  */
 
 require_once dirname(__DIR__) . '/app/config/config.php';
-require_once dirname(__DIR__) . '/app/core/Database.php';
+require_once dirname(__DIR__) . '/app/Core/Database.php';
 
 use App\Core\Database;
 

@@ -94,7 +94,7 @@ class CuentasBancariasTest extends TestCase {
      * guards internos solo-admin y acciones ocultas en la vista.
      */
     public function testAuditorSinToggleNiEliminarDeCuentas(): void {
-        $ctrl = file_get_contents(BASE_PATH . '/app/controllers/CuentaBancariaController.php');
+        $ctrl = file_get_contents(BASE_PATH . '/app/Controllers/CuentaBancariaController.php');
 
         foreach (['toggle', 'eliminar'] as $metodo) {
             preg_match('/public function ' . $metodo . '\(\)(.*?)(?=public function|\Z)/s', $ctrl, $m);

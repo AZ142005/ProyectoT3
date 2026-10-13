@@ -24,7 +24,7 @@ class PagoUploadHuerfanoTest extends TestCase {
     }
 
     public function testPagoControllerEliminaComprobanteHuerfanoEnRamaDeFallo(): void {
-        $cuerpo = $this->extraerMetodo(dirname(__DIR__) . '/app/controllers/PagoController.php', 'subir');
+        $cuerpo = $this->extraerMetodo(dirname(__DIR__) . '/app/Controllers/PagoController.php', 'subir');
 
         $this->assertTrue($cuerpo !== '', 'PagoController::subir() debe existir');
 
@@ -56,7 +56,7 @@ class PagoUploadHuerfanoTest extends TestCase {
     }
 
     public function testPagoDirectoControllerEliminaComprobanteHuerfanoEnRamaDeFallo(): void {
-        $cuerpo = $this->extraerMetodo(dirname(__DIR__) . '/app/controllers/PagoDirectoController.php', 'reportar');
+        $cuerpo = $this->extraerMetodo(dirname(__DIR__) . '/app/Controllers/PagoDirectoController.php', 'reportar');
 
         $this->assertTrue($cuerpo !== '', 'PagoDirectoController::reportar() debe existir');
 
@@ -87,7 +87,7 @@ class PagoUploadHuerfanoTest extends TestCase {
     public function testRutaDeEliminacionCoincideConLaRutaDeAlmacenamiento(): void {
         // Paridad de directorio: FileUploader persiste en UPLOADS_PATH/comprobantes
         // y los controladores deben eliminar exactamente de esa ruta.
-        $uploader = (string)file_get_contents(dirname(__DIR__) . '/app/services/FileUploader.php');
+        $uploader = (string)file_get_contents(dirname(__DIR__) . '/app/Services/FileUploader.php');
         $this->assertStringContains("UPLOADS_PATH . '/comprobantes'", $uploader,
             'FileUploader debe seguir almacenando los comprobantes en UPLOADS_PATH/comprobantes');
     }

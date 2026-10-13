@@ -60,7 +60,7 @@ class ConciliacionFiltroMesTest extends TestCase {
      * a la vista.
      */
     public function testIndexAplicaFiltroDeMesAntesDeSinExtractoYVista(): void {
-        $cuerpo = $this->extraerMetodo(BASE_PATH . '/app/controllers/ConciliacionController.php', 'index');
+        $cuerpo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/ConciliacionController.php', 'index');
         $this->assertTrue($cuerpo !== '', 'ConciliacionController::index() debe existir');
 
         $posFetch  = strpos($cuerpo, '$pagosPendientes = $conciliacionModel->obtenerTodosPagosPendientes();');

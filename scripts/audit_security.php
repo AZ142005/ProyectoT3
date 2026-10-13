@@ -18,7 +18,7 @@ $warnings = [];
 
 // 1. Auditar Modelos por SQL Injection
 echo "1. Analizando Modelos (SQL Injection)..." . PHP_EOL;
-$modelFiles = glob($baseDir . '/app/models/*.php');
+$modelFiles = glob($baseDir . '/app/Models/*.php');
 foreach ($modelFiles as $file) {
     $content = file_get_contents($file);
     $filename = basename($file);

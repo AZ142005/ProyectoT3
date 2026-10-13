@@ -56,7 +56,7 @@ class UsuariosSolicitudesTabsTest extends TestCase {
     }
 
     public function testControladorUsuariosCargaAmbasPestanas(): void {
-        $content = $this->readFile('app/controllers/UsuarioAdminController.php');
+        $content = $this->readFile('app/Controllers/UsuarioAdminController.php');
 
         $this->assertStringContains("'solicitudes'", $content, "El controlador debe aceptar la pestaña solicitudes en la whitelist");
         $this->assertStringContains('tabActual', $content, "El controlador debe calcular la pestaña activa");
@@ -65,7 +65,7 @@ class UsuariosSolicitudesTabsTest extends TestCase {
     }
 
     public function testControladorSolicitudesRedirigeALaPestana(): void {
-        $content = $this->readFile('app/controllers/SolicitudesRegistroController.php');
+        $content = $this->readFile('app/Controllers/SolicitudesRegistroController.php');
 
         $this->assertStringContains('/admin/usuarios?tab=solicitudes', $content, "La antigua ruta debe redirigir a la pestaña de solicitudes");
         $this->assertStringContains("header('Location: /admin/usuarios?tab=solicitudes')", $content, "El index antiguo debe redirigir con header Location");

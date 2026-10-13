@@ -377,7 +377,7 @@ class FileUploaderCompresionTest extends TestCase {
     }
 
     public function testCableadoDeLaCompresionEnUploadEsAnteriorAlHash(): void {
-        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/services/FileUploader.php');
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/Services/FileUploader.php');
 
         $posValidacionMime = strpos($contenido, '!in_array($mime, $this->allowedMimes, true)');
         $posComprimir = strpos($contenido, "self::comprimirImagen(\$file['tmp_name'])");

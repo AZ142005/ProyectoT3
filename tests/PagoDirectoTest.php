@@ -58,7 +58,7 @@ class PagoDirectoTest extends TestCase {
         $this->assertTrue(method_exists(PagoDirectoController::class, 'extraer'),
             'PagoDirectoController debe exponer el método público extraer()');
 
-        $controlador = (string)file_get_contents($base . '/app/controllers/PagoDirectoController.php');
+        $controlador = (string)file_get_contents($base . '/app/Controllers/PagoDirectoController.php');
         $this->assertStringContains("'csrf_token'", $controlador,
             'La respuesta de extracción debe incluir el token CSRF rotado (permite analizar de nuevo sin recargar)');
 
@@ -108,7 +108,7 @@ class PagoDirectoTest extends TestCase {
     }
 
     public function testRateLimiterComparaVentanasEnHoraSql(): void {
-        $content = (string)file_get_contents(dirname(__DIR__) . '/app/core/RateLimiter.php');
+        $content = (string)file_get_contents(dirname(__DIR__) . '/app/Core/RateLimiter.php');
 
         $this->assertStringContains('DATE_SUB(NOW(', $content,
             'attempt() debe comparar la ventana con la hora de MySQL (DATE_SUB(NOW(), ...))');
@@ -274,7 +274,7 @@ class PagoDirectoTest extends TestCase {
     }
 
     public function testControladorPagoDirectoAtribuyeResidenteYUsaEstadoEnRevision(): void {
-        $fuente = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/PagoDirectoController.php');
+        $fuente = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/PagoDirectoController.php');
 
         $this->assertStringContains('getPrincipalByUnidadId', $fuente,
             'El controlador debe resolver el residente principal de la unidad');

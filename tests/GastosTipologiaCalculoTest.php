@@ -187,7 +187,7 @@ class GastosTipologiaCalculoTest extends TestCase {
      */
     public function testDeprecacionCuotaMensualManualEnEstructura(): void {
         // 1. En EstructuraController.php, guardarUnidad no debe procesar ni requerir cuota_mensual
-        $controllerContent = file_get_contents(dirname(__DIR__) . '/app/controllers/EstructuraController.php');
+        $controllerContent = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstructuraController.php');
         preg_match('/public function guardarUnidad\(\)(.*?)(?=public function|\Z)/s', $controllerContent, $m);
         $this->assertTrue(count($m) > 1, 'guardarUnidad debe existir en EstructuraController');
         $this->assertTrue(strpos($m[1], "\$_POST['cuota_mensual']") === false, 'guardarUnidad NO debe leer cuota_mensual de POST');

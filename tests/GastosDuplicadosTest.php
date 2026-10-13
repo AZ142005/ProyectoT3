@@ -328,7 +328,7 @@ class GastosDuplicadosTest extends TestCase {
     }
 
     public function testGastoControllerMuestraMensajeDuplicado(): void {
-        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/GastoController.php');
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
         $this->assertStringContains('Ya existe un gasto con los mismos datos en el período', $contenido,
             'GastoController::guardar debe mostrar el Flash específico de duplicado');
     }

@@ -359,7 +359,7 @@ class ComprobantesDuplicadosTest extends TestCase {
     // =================================================================
 
     public function testControladoresTienenRateLimitingAdecuado(): void {
-        $pagoContent = file_get_contents(APP_PATH . '/controllers/PagoController.php');
+        $pagoContent = file_get_contents(APP_PATH . '/Controllers/PagoController.php');
 
         // PagoController::subir
         $this->assertStringContains("RateLimiter::attempt('pago_subir_' . \$residenteId, 10, 3600)", $pagoContent,

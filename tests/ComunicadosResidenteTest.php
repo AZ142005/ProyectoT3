@@ -348,9 +348,9 @@ class ComunicadosResidenteTest extends TestCase {
     }
 
     public function testControladoresUsanResolucionUnificadaYComunicados(): void {
-        $residenteController = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/ResidenteController.php');
-        $comunicadoController = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/ComunicadoController.php');
-        $personasModel = (string)file_get_contents(dirname(__DIR__) . '/app/models/PersonasModel.php');
+        $residenteController = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/ResidenteController.php');
+        $comunicadoController = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/ComunicadoController.php');
+        $personasModel = (string)file_get_contents(dirname(__DIR__) . '/app/Models/PersonasModel.php');
 
         $this->assertStringContains('obtenerPorResidente', $residenteController,
             'ResidenteController::dashboard debe cargar comunicados con obtenerPorResidente');

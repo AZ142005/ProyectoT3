@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../app/config/config.php';
-require_once __DIR__ . '/../app/core/Database.php';
-require_once __DIR__ . '/../app/core/helpers.php';
-require_once __DIR__ . '/../app/core/Encryption.php';
-require_once __DIR__ . '/../app/services/EmailService.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Core/helpers.php';
+require_once __DIR__ . '/../app/Core/Encryption.php';
+require_once __DIR__ . '/../app/Services/EmailService.php';
 
 use App\Core\Database;
 use App\Core\Encryption;

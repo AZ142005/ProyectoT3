@@ -226,7 +226,7 @@ class ComunicadosDuplicadosTest extends TestCase {
     }
 
     public function testControladorIntegraRateLimitYGuardaDuplicado(): void {
-        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/controllers/ComunicadoController.php');
+        $contenido = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/ComunicadoController.php');
 
         $this->assertStringContains("RateLimiter::attempt('comunicado_' . \$adminId, 10, 3600)", $contenido,
             'ComunicadoController::guardar debe aplicar rate limit 10/3600 por admin');

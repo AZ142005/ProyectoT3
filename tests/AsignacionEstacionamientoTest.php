@@ -45,7 +45,7 @@ class AsignacionEstacionamientoTest extends TestCase {
      * Verifica que EstructuraController gestione la bandera de asignación de puesto de estacionamiento.
      */
     public function testControladorProcesaAsignacionEstacionamiento(): void {
-        $controllerPath = dirname(__DIR__) . '/app/controllers/EstructuraController.php';
+        $controllerPath = dirname(__DIR__) . '/app/Controllers/EstructuraController.php';
         $content = file_get_contents($controllerPath);
 
         $this->assertStringContains('asignar_estacionamiento', $content,

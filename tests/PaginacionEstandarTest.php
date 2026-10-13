@@ -23,7 +23,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testDashboardResidenteCargaComunicadosSinListasDePago(): void {
-        $controller = $this->readFile('app/controllers/ResidenteController.php');
+        $controller = $this->readFile('app/Controllers/ResidenteController.php');
         $view = $this->readFile('app/views/residente/dashboard.php');
 
         $this->assertStringContains('obtenerPorResidente', $controller,
@@ -47,7 +47,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testVistaResidenteMisPagosPaginada(): void {
-        $controller = $this->readFile('app/controllers/PagoController.php');
+        $controller = $this->readFile('app/Controllers/PagoController.php');
         $view = $this->readFile('app/views/pagos/residente/lista.php');
 
         $this->assertStringContains('obtenerTodosPagos([\'unidad_id\' => $unidadId], $pagina, 25)', $controller,
@@ -57,7 +57,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testDashboardAdminMaximoCuatroMovimientos(): void {
-        $controller = $this->readFile('app/controllers/AdminController.php');
+        $controller = $this->readFile('app/Controllers/AdminController.php');
         $view = $this->readFile('app/views/admin/dashboard.php');
 
         $this->assertStringContains('getProcesados(4)', $controller,
@@ -67,7 +67,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminHistorialPagosPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/AdminController.php');
+        $controller = $this->readFile('app/Controllers/AdminController.php');
         $view = $this->readFile('app/views/admin/comprobantes.php');
 
         $this->assertStringContains('\'porPagina\'   => 25', $controller,
@@ -77,7 +77,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminConciliacionBancariaPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/ConciliacionController.php');
+        $controller = $this->readFile('app/Controllers/ConciliacionController.php');
         $view = $this->readFile('app/views/admin/conciliacion/index.php');
 
         $this->assertStringContains('$porPagina = 25;', $controller,
@@ -87,7 +87,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminGastosHistorialPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/GastoController.php');
+        $controller = $this->readFile('app/Controllers/GastoController.php');
         $view = $this->readFile('app/views/admin/gastos/index.php');
 
         $this->assertStringContains('obtenerHistorialUltimoMes($pagina, 25)', $controller,
@@ -97,7 +97,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminEstructuraPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/EstructuraController.php');
+        $controller = $this->readFile('app/Controllers/EstructuraController.php');
         $view = $this->readFile('app/views/admin/estructura.php');
 
         $this->assertStringContains('$porPagina = 25;', $controller,
@@ -107,7 +107,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminEstacionamientosPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/EstacionamientoController.php');
+        $controller = $this->readFile('app/Controllers/EstacionamientoController.php');
         $view = $this->readFile('app/views/admin/estacionamientos/index.php');
 
         $this->assertStringContains('$porPagina = 25;', $controller,
@@ -119,7 +119,7 @@ class PaginacionEstandarTest extends TestCase {
     }
 
     public function testAdminUsuariosYSolicitudesPaginacion25(): void {
-        $controller = $this->readFile('app/controllers/UsuarioAdminController.php');
+        $controller = $this->readFile('app/Controllers/UsuarioAdminController.php');
         $viewUsuarios = $this->readFile('app/views/admin/usuarios/index.php');
         $viewSolicitudes = $this->readFile('app/views/admin/solicitudes_registro/index.php');
 

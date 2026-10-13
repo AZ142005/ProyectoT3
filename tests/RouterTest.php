@@ -168,7 +168,7 @@ class RouterTest extends TestCase {
      * Verifica que cada ruta use un controlador existente.
      */
     public function testReferencedControllersExist(): void {
-        $controllerFiles = glob(dirname(__DIR__) . '/app/controllers/*.php');
+        $controllerFiles = glob(dirname(__DIR__) . '/app/Controllers/*.php');
         $existingControllers = array_map(function ($f) {
             return basename($f, '.php');
         }, $controllerFiles);
@@ -206,7 +206,7 @@ class RouterTest extends TestCase {
      * Verifica que el 404 retorne código HTTP 404.
      */
     public function test404ReturnsCorrectStatusCode(): void {
-        $routerContent = file_get_contents(dirname(__DIR__) . '/app/core/Router.php');
+        $routerContent = file_get_contents(dirname(__DIR__) . '/app/Core/Router.php');
         $this->assertTrue(
             str_contains($this->indexContent, 'http_response_code(404)') || str_contains($routerContent, 'http_response_code(404)'),
             "El handler 404 debe retornar código HTTP 404"
@@ -217,7 +217,7 @@ class RouterTest extends TestCase {
      * Verifica que el 404 muestre una vista de error.
      */
     public function test404ShowsErrorView(): void {
-        $routerContent = file_get_contents(dirname(__DIR__) . '/app/core/Router.php');
+        $routerContent = file_get_contents(dirname(__DIR__) . '/app/Core/Router.php');
         $this->assertTrue(
             str_contains($this->indexContent, '404.php') || str_contains($routerContent, '404.php'),
             "El handler 404 debe cargar la vista errors/404.php"

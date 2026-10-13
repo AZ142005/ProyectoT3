@@ -14,7 +14,7 @@ class ModelTest extends TestCase {
     private string $modelsPath;
 
     public function __construct() {
-        $this->modelsPath = dirname(__DIR__) . '/app/models/';
+        $this->modelsPath = dirname(__DIR__) . '/app/Models/';
     }
 
     private function getModelFiles(): array {
