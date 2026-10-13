@@ -1,7 +1,7 @@
 # Guía de despliegue — InfinityFree (plan gratuito)
 
 Complementa el seguimiento interno en `odd/tasks/deploy-infinityfree.md`.
-Estado: T1–T4 cerradas; T5–T8 en curso (ver `odd/tasks/deploy-infinityfree.md`).
+Estado: T1–T4 y T6 cerradas; T5/T7/T8 corresponden al momento del despliegue (secciones 3–5 de esta guía).
 
 ## 1. Por qué este layout
 
@@ -85,4 +85,36 @@ Lo único que **debe** existir: `vendor/` (autoloader), el `.env` de producción
 | T3 | ✅ Resuelto: proxy `/soporte-proxy.php` (sesión obligatoria; sirve desde `uploads/soportes/`) | `public/uploads` no se sube |
 | T4 | ✅ Resuelto por diseño: `public/uploads` es local (ignorado por git) y no se sube | — |
 | T5 | `.env` de producción y orden SSL → `production` | pasos 5 y 7 |
-| T6 | Web-cron con token (worker de correos/respaldo) | sin él los correos quedan encolados |
+| T6 | ✅ Resuelto: `/cron-notificaciones.php` + cron externo (ver sección 7) | sin él los correos quedan encolados |
+
+## 7. Correo en producción — web-cron (T6)
+
+InfinityFree no tiene cron: la cola de correos (OTP de 2FA, cartas de deuda, avisos) se despacha con un **cron externo** que llama a un endpoint protegido por token.
+
+### Qué subir
+
+| Archivo | Destino | Para qué |
+|---|---|---|
+| `public/cron-notificaciones.php` | `htdocs/cron-notificaciones.php` | Disparador web del worker (el archivo que llama el cron externo) |
+| `app/Services/NotificationQueueWorker.php` | raíz → `app/Services/` | Worker compartido (viaja con la carpeta `app/`) |
+| `app/Services/EmailService.php` + `SmtpMailer.php` | raíz → `app/Services/` | Transporte SMTP real (viajan con `app/`) |
+| `.env` del servidor | raíz de la cuenta | `MAIL_*` idénticas a tu entorno local + `CRON_TOKEN` nuevo |
+
+El CLI `scripts/process_notifications.php` no es necesario en el servidor (solo se usa en local).
+
+La configuración de correo que ya funciona en local (SMTP Gmail con contraseña de aplicación) se copia **tal cual** al `.env` del servidor: `MAIL_MODE=smtp`, `MAIL_HOST`, `MAIL_PORT=587`, `MAIL_ENCRYPTION=tls`, `MAIL_USER`, `MAIL_PASS`, `MAIL_VERIFY_PEER=1`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`, `MAIL_TIMEOUT`.
+
+### Configurar el cron externo (cron-job.org u otro)
+
+1. Crear un job con URL: `https://TU-DOMINIO/cron-notificaciones.php?token=TU_CRON_TOKEN`
+2. Frecuencia: cada 5 minutos.
+3. Verificación manual: abrir la URL en el navegador → debe responder JSON `{"ok":true,...}`.
+
+Con token incorrecto responde 403; si el `.env` no tiene `CRON_TOKEN`, responde 503 con aviso. El worker tiene lockfile: dos llamadas simultáneas no se pisan.
+
+### Antes del primer disparo
+
+- **El dump actual trae 12 correos en `pendiente`** (residuos sintéticos de pruebas, `RECHTEST…`/`DEP-TWIN…`). Antes del primer disparo del cron, anularlos tras importar:
+  `UPDATE notificaciones_cola SET estado='fallido', error_mensaje='Anulado pre-despliegue' WHERE estado='pendiente';`
+- Copiar `NOTIFICATION_ENCRYPT_KEY` idéntica a la local (los correos nuevos se cifran con la clave del servidor; la copia evita sorpresas con datos del dump).
+- Prueba de humo real: pedir un OTP desde el login del servidor → abrir la URL del cron a mano → verificar que llegó el correo y que la fila pasó a `enviado`.

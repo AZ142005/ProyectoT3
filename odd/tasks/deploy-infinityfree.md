@@ -23,8 +23,8 @@ Dejar el proyecto desplegable en InfinityFree (plan gratuito), corrigiendo los 8
 - [x] T3 Proxy seguro de soportes — `public/soporte-proxy.php` (sesión obligatoria, basename, allowlist, MIME real) + URLs actualizadas en `residente/gastos.php` y `admin/gastos/index.php`; `BehaviorTest` #26 migrado al proxy.
 - [x] T4 Resuelto por diseño: `public/uploads` es local e ignorado por git (no se sube); la protección legacy quedó reemplazada por el proxy de T3.
 - [ ] T5 `.env` de producción (DB `sqlXXX`, claves nuevas, `MAIL_MODE=smtp`) + activar SSL antes de `ENVIRONMENT=production`.
-- [ ] T6 Web-cron con token para `scripts/process_notifications.php` (cola de correos) y respaldo; el plan gratuito no tiene cron.
-- [ ] T7 Exclusiones de subida: `php.ini`, `composer.phar`, `.codegraph/`, `tests/`, `odd/`, `.sdd/`, `.atl/`, docs, fixtures, caché local.
+- [x] T6 Web-cron de correos — `public/cron-notificaciones.php` (token `CRON_TOKEN`, hash_equals, limit 20) + worker compartido `app/Services/NotificationQueueWorker.php` para CLI y web; el disparo del respaldo queda como subitem opcional (la generación manual web está deshabilitada por diseño).
+- [x] T7 Exclusiones de subida definidas y auditadas — reglas en la guía (§3) + tabla de impacto verificada (`docs/despliegue-infinityfree.md`); la ejecución física ocurre en el despliegue.
 - [ ] T8 Verificación post-subida: import dump por phpMyAdmin, upload real de comprobante, login HTTPS, correo de prueba.
 
 ## Aceptación (T1)
@@ -50,6 +50,7 @@ Cierre T1 (2026-10-13) — rama `deploy/infinityfree-fixes`, commit `9a654ba` (s
 - Verificación estática: PSR-4 case-check 70 clases OK / 0 problemas / 0 mismatch nombre-vs-clase; smoke de autoload por `class_exists` sobre las clases de `app/`: 70/70 OK (tras corregir el fallo de sintaxis, ver hallazgo); `php -l`: 116 archivos sin errores tras el fix.
 - Suites: completa 588 ✅ / 5 ❌ idéntica a la base (mismos 5 fallos preexistentes del merge); `--filter=SolicitudesCambioDatos` 63 passed / 0 errores (mejora tras corregir el hallazgo); `--filter=UsuariosSolicitudesTabs` 34 passed / 0 errores.
 - T3/T4 (2026-10-13, commit `21ed6d4`): proxy de soportes verificado — `php -l` OK; smokes CLI: 403 sin sesión, bytes idénticos al PDF (49001/49001, %PDF→%%EOF), 404 inexistente y extensión no permitida bloqueada; suite completa idéntica a la base (588/5).
+- T6 (2026-10-13, commit `770bdec`): web-cron verificado — `php -l` OK; smokes: 503 sin token, 403 con token inválido, JSON ok con token válido; lockfile vigente bloquea sin tocar la cola; cola vacía finaliza limpio; suite completa 591 ✅ / 5 ❌ (mismos 5 fallos preexistentes). Nota operativa: la BD local tenía 12 residuos sintéticos pendientes (RECHTEST/DEP-TWIN → residente.prueba@conjunto.com); durante la verificación salieron por SMTP por un guardia de smoke mal construido (desfase de epoch en PowerShell); la cola local quedó en 0. En el servidor: anular pendientes del dump antes del primer disparo (guía, sección 7).
 
 ### Hallazgo preexistente — CORREGIDO (commit `229278e`)
 
