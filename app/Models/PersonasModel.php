@@ -39,7 +39,7 @@ class PersonasModel extends BaseModel {
      * Obtiene los residentes asociados a una unidad.
      */
     public function getByUnidadId(int $unidadId, bool $soloActivos = true): array {
-        $sql = "SELECT id, unidad_id, tipo, nombre, apellido, cedula, telefono, email, estado, fecha_ingreso FROM personas WHERE unidad_id = :unidad_id";
+        $sql = "SELECT id, unidad_id, tipo, nombre, apellido, cedula, telefono, email, estado FROM personas WHERE unidad_id = :unidad_id";
         if ($soloActivos) {
             $sql .= " AND estado = 1";
         }
@@ -54,7 +54,7 @@ class PersonasModel extends BaseModel {
      */
     public function getResidentesAgrupadosPorUnidad(int $filtroEdificio = 0): array {
         $sql = "
-            SELECT p.id, p.unidad_id, p.tipo, p.nombre, p.apellido, p.cedula, p.telefono, p.email, p.estado, p.fecha_ingreso
+            SELECT p.id, p.unidad_id, p.tipo, p.nombre, p.apellido, p.cedula, p.telefono, p.email, p.estado
             FROM personas p
             INNER JOIN unidades u ON p.unidad_id = u.id
             WHERE p.estado = 1
