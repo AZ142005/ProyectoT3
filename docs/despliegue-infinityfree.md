@@ -117,8 +117,9 @@ La configuración de correo que ya funciona en local (SMTP Gmail con contraseña
 ### Configurar el cron externo (cron-job.org u otro)
 
 1. Crear un job con URL: `https://TU-DOMINIO/cron-notificaciones.php?token=TU_CRON_TOKEN`
-2. Frecuencia: cada 5 minutos.
+2. **Frecuencia: cada 1 minuto** — los códigos OTP expiran a los 5 minutos; con un intervalo de 5 min podrían llegar al borde del vencimiento (validado en la prueba real del 2026-10-13).
 3. Verificación manual: abrir la URL en el navegador → debe responder JSON `{"ok":true,...}`.
+4. **Con el job activo, el worker corre solo**: no hace falta ningún disparo manual. El log `app/logs/notifications_<fecha>.log` mostrará una corrida por minuto (la mayoría dirá "No existen notificaciones pendientes" — es normal).
 
 Con token incorrecto responde 403; si el `.env` no tiene `CRON_TOKEN`, responde 503 con aviso. El worker tiene lockfile: dos llamadas simultáneas no se pisan.
 
