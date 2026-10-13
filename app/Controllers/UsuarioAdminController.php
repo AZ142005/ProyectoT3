@@ -317,6 +317,9 @@ class UsuarioAdminController extends Controller {
         if ($rolActual === 'auditor' && $nuevoRol === 'admin') {
             Flash::error('No es posible ascender a un auditor al rol de Administrador.');
             $this->redirect('/admin/usuarios');
+            return;
+        }
+
         $nombre = $usuario['nombre_completo'] ?? $usuario['usuario'] ?? 'Usuario';
         $resultado = $usuariosModel->cambiarRolSeguro($id, $nuevoRol);
 
