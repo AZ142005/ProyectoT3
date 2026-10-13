@@ -97,29 +97,42 @@ Lo único que **debe** existir: `vendor/` (autoloader), el `.env` de producción
 | T5 | `.env` de producción y orden SSL → `production` | pasos 5 y 7 |
 | T6 | ✅ Resuelto: `/cron-notificaciones.php` + cron externo (ver sección 7) | sin él los correos quedan encolados |
 
-## 7. Correo en producción — web-cron (T6)
+## 7. Correo en producción — despacho automático (T6)
 
-InfinityFree no tiene cron: la cola de correos (OTP de 2FA, cartas de deuda, avisos) se despacha con un **cron externo** que llama a un endpoint protegido por token.
+InfinityFree no tiene cron y **bloquea los web-crons externos** (ver abajo): la cola de correos (OTP de 2FA, cartas de deuda, avisos) se despacha **automáticamente por tráfico real** al final de cada respuesta web (`QUEUE_AUTORUN=1`).
 
 ### Qué subir
 
 | Archivo | Destino | Para qué |
 |---|---|---|
-| `public/cron-notificaciones.php` | `htdocs/public/cron-notificaciones.php` | Disparador web del worker (la URL pública no cambia: el rewrite lo sirve igual) |
+| `public/cron-notificaciones.php` | `htdocs/public/cron-notificaciones.php` | Disparador manual/endpoint del worker (la URL pública no cambia: el rewrite lo sirve igual) |
+| `public/index.php` | `htdocs/public/index.php` | Registra el **auto-despacho por tráfico** (lote al final de cada respuesta) |
 | `app/Services/NotificationQueueWorker.php` | `htdocs/app/Services/` | Worker compartido (viaja con la carpeta `app/`) |
 | `app/Services/EmailService.php` + `SmtpMailer.php` | `htdocs/app/Services/` | Transporte SMTP real (viajan con `app/`) |
-| `.env` del servidor | `htdocs/.env` | `MAIL_*` idénticas a tu entorno local + `CRON_TOKEN` nuevo |
+| `.env` del servidor | `htdocs/.env` | `MAIL_*` idénticas a tu entorno local + `CRON_TOKEN` y **`QUEUE_AUTORUN=1`** |
 
 El CLI `scripts/process_notifications.php` no es necesario en el servidor (solo se usa en local).
 
 La configuración de correo que ya funciona en local (SMTP Gmail con contraseña de aplicación) se copia **tal cual** al `.env` del servidor: `MAIL_MODE=smtp`, `MAIL_HOST`, `MAIL_PORT=587`, `MAIL_ENCRYPTION=tls`, `MAIL_USER`, `MAIL_PASS`, `MAIL_VERIFY_PEER=1`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`, `MAIL_TIMEOUT`.
 
-### Configurar el cron externo (cron-job.org u otro)
+### ⚠ Despacho automático (el cron externo NO funciona en el plan gratuito)
 
-1. Crear un job con URL: `https://TU-DOMINIO/cron-notificaciones.php?token=TU_CRON_TOKEN`
-2. **Frecuencia: cada 1 minuto** — los códigos OTP expiran a los 5 minutos; con un intervalo de 5 min podrían llegar al borde del vencimiento (validado en la prueba real del 2026-10-13).
-3. Verificación manual: abrir la URL en el navegador → debe responder JSON `{"ok":true,...}`.
-4. **Con el job activo, el worker corre solo**: no hace falta ningún disparo manual. El log `app/logs/notifications_<fecha>.log` mostrará una corrida por minuto (la mayoría dirá "No existen notificaciones pendientes" — es normal).
+InfinityFree **bloquea los web-crons externos** (cron-job.org y similares): su sistema anti-bot les responde un desafío JavaScript (`aes.js` + cookie `__test`) que solo un navegador real puede resolver — el PHP nunca se ejecuta. Es intencional: *"Web cron tools and the like are explicitly blocked on our hosting"* (Admin de InfinityFree, foro, 2026-10-11).
+
+**La solución del proyecto es el auto-despacho por tráfico** — agregar al `.env` del servidor:
+
+```ini
+QUEUE_AUTORUN=1
+```
+
+- Al terminar **cada respuesta web**, si hay correos pendientes, el worker los despacha (lote de 5, lockfile compartido; corre después de entregar la respuesta al usuario con `fastcgi_finish_request`, cerrando la sesión antes de trabajar).
+- La cola la genera el propio uso: un login con 2FA encola el OTP y **esa misma visita lo despacha** (llega en segundos); una carta encolada por el admin sale en su siguiente visita.
+- No requiere cron ni servicios externos. Si nadie visita el sitio, no hay correos que enviar.
+- **No usar en local** (dejarlo vacío): evita enviar residuos de pruebas por SMTP.
+
+**Disparo manual** (pruebas/reintentos, siempre desde un navegador — los clientes externos reciben el desafío): abrir `https://TU-DOMINIO/cron-notificaciones.php?token=TU_CRON_TOKEN` → responde por ejemplo `{"ok":true,...,"procesados":2,"exitosos":2}`.
+
+**Premium (opcional):** con hosting premium hay cron real (web o CLI) y se puede programar ese endpoint.
 
 Con token incorrecto responde 403; si el `.env` no tiene `CRON_TOKEN`, responde 503 con aviso. El worker tiene lockfile: dos llamadas simultáneas no se pisan.
 
