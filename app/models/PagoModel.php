@@ -838,7 +838,7 @@ class PagoModel extends BaseModel {
                         $montoRestante = floatval($payInfo['monto']);
                         $liquidacionService = new LiquidacionPagoService();
                         $refTexto = !empty($payInfo['referencia']) ? "Ref. " . $payInfo['referencia'] : "Aprobación lote Pago #{$sqlPago['id']}";
-                        while ($montoRestante > 0.009) {
+                        if ($montoRestante > 0.009) {
                             $liquidacionService->aplicarPagoAUnidad(
                                 $db,
                                 intval($payInfo['unidad_id']),
@@ -847,7 +847,6 @@ class PagoModel extends BaseModel {
                                 $sqlPago['id'],
                                 'pago'
                             );
-                            break;
                         }
                     }
 

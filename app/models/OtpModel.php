@@ -6,6 +6,16 @@ use PDO;
 
 class OtpModel extends BaseModel {
 
+    private ?PDO $customDb = null;
+
+    public function __construct(?PDO $db = null) {
+        $this->customDb = $db;
+    }
+
+    protected function db(): PDO {
+        return $this->customDb ?? Database::getConnection();
+    }
+
     /**
      * Genera un código OTP de 6 dígitos, invalida los anteriores no usados y lo persiste con hash.
      *
@@ -13,7 +23,7 @@ class OtpModel extends BaseModel {
      * @return string Código numérico de 6 dígitos en texto plano para el envío
      */
     public function generarOtp(int $usuarioId): string {
-        $db = Database::getConnection();
+        $db = $this->db();
 
         // 1. Invalidar códigos previos pendientes para este usuario
         $stmtClean = $db->prepare("UPDATE auth_otp_tokens SET usado = 1 WHERE usuario_id = :uid AND usado = 0");
@@ -44,10 +54,11 @@ class OtpModel extends BaseModel {
      * @return array ['valido' => bool, 'error' => ?string]
      */
     public function verificarOtp(int $usuarioId, string $codigoIngresado): array {
-        $db = Database::getConnection();
+        $db = $this->db();
 
         $stmt = $db->prepare("
-            SELECT * FROM auth_otp_tokens 
+            SELECT *, CASE WHEN NOW() > expires_at THEN 1 ELSE 0 END AS expirado
+            FROM auth_otp_tokens 
             WHERE usuario_id = :uid AND usado = 0 
             ORDER BY id DESC LIMIT 1
         ");
@@ -61,8 +72,12 @@ class OtpModel extends BaseModel {
             ];
         }
 
-        // Verificar expiración temporal (5 minutos)
-        if (strtotime($row['expires_at']) < time()) {
+        // Verificar expiración temporal evaluada contra el reloj del motor SQL (5 minutos)
+        $expirado = array_key_exists('expirado', $row)
+            ? (intval($row['expirado']) === 1)
+            : (strtotime($row['expires_at']) < time());
+
+        if ($expirado) {
             $stmtExpire = $db->prepare("UPDATE auth_otp_tokens SET usado = 1 WHERE id = :id");
             $stmtExpire->execute(['id' => $row['id']]);
 

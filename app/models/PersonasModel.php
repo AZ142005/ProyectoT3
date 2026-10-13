@@ -39,7 +39,7 @@ class PersonasModel extends BaseModel {
      * Obtiene los residentes asociados a una unidad.
      */
     public function getByUnidadId(int $unidadId, bool $soloActivos = true): array {
-        $sql = "SELECT * FROM personas WHERE unidad_id = :unidad_id";
+        $sql = "SELECT id, unidad_id, tipo, nombre, apellido, cedula, telefono, email, estado, fecha_ingreso FROM personas WHERE unidad_id = :unidad_id";
         if ($soloActivos) {
             $sql .= " AND estado = 1";
         }
@@ -47,6 +47,34 @@ class PersonasModel extends BaseModel {
         $stmt = $this->db()->prepare($sql);
         $stmt->execute(['unidad_id' => $unidadId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obtiene todos los residentes activos agrupados por unidad_id en una sola consulta estructurada.
+     */
+    public function getResidentesAgrupadosPorUnidad(int $filtroEdificio = 0): array {
+        $sql = "
+            SELECT p.id, p.unidad_id, p.tipo, p.nombre, p.apellido, p.cedula, p.telefono, p.email, p.estado, p.fecha_ingreso
+            FROM personas p
+            INNER JOIN unidades u ON p.unidad_id = u.id
+            WHERE p.estado = 1
+        ";
+        $params = [];
+        if ($filtroEdificio > 0) {
+            $sql .= " AND u.edificio_id = :edificio_id";
+            $params['edificio_id'] = $filtroEdificio;
+        }
+        $sql .= " ORDER BY CASE WHEN p.tipo IN ('propietario', 'ambos') THEN 1 ELSE 2 END, p.apellido ASC, p.nombre ASC";
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $agrupados = [];
+        foreach ($filas as $f) {
+            $uId = (int)$f['unidad_id'];
+            $agrupados[$uId][] = $f;
+        }
+        return $agrupados;
     }
 
     /**
@@ -217,14 +245,14 @@ class PersonasModel extends BaseModel {
      */
     public function estaBloqueado(int $personaId): bool {
         $stmt = $this->db()->prepare(
-            "SELECT bloqueado_hasta FROM personas WHERE id = :id"
+            "SELECT bloqueado_hasta, CASE WHEN bloqueado_hasta IS NOT NULL AND bloqueado_hasta > NOW() THEN 1 ELSE 0 END AS sigue_bloqueado FROM personas WHERE id = :id"
         );
         $stmt->execute(['id' => $personaId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row || empty($row['bloqueado_hasta'])) {
             return false;
         }
-        return strtotime($row['bloqueado_hasta']) > time();
+        return intval($row['sigue_bloqueado'] ?? 0) === 1;
     }
 
     /**
@@ -310,6 +338,10 @@ class PersonasModel extends BaseModel {
                 WHERE id = :id
             ");
             $stmtP->execute(['id' => $personaId]);
+
+            // 3. Revocar refresh tokens activos
+            $stmtRev = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = :id AND revocado = 0");
+            $stmtRev->execute(['id' => $personaId]);
 
             $db->commit();
             return true;

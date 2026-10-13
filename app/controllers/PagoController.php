@@ -154,8 +154,8 @@ class PagoController extends Controller {
         }
         $banco_receptor = $cuentaReceptora['banco'];
         
-        if ($monto <= 0) {
-            Flash::error("El monto del pago debe ser mayor a cero.");
+        if ($monto < 0.01 || $monto > 999999.99) {
+            Flash::error("El monto del pago debe estar entre Bs. 0,01 y Bs. 999.999,99.");
             $this->redirect('/pagos/nuevo');
             return;
         }
@@ -202,7 +202,12 @@ class PagoController extends Controller {
             'archivo_hash'       => $archivoHash
         ];
         
-        $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);
+        try {
+            $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);
+        } catch (\Throwable $e) {
+            @unlink(UPLOADS_PATH . '/' . $uniqueName);
+            throw $e;
+        }
         
         if ($result) {
             if ($esExcedente) {
@@ -219,7 +224,6 @@ class PagoController extends Controller {
             if ($uniqueName && file_exists($rutaComprobante)) {
                 @unlink($rutaComprobante);
             }
-
             Flash::error("No se pudo registrar el pago: es un duplicado o hubo un error de datos.");
             $this->redirect('/pagos/nuevo');
         }
@@ -389,7 +393,7 @@ class PagoController extends Controller {
      * Cambia el estado del pago (Admin). CSRF ya validado globalmente en index.php.
      */
     public function cambiarEstado() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole(UserRole::ADMIN);
         
         $pagoId = intval($_POST['pago_id'] ?? 0);
         $nuevoEstado = trim($_POST['nuevo_estado'] ?? '');
@@ -462,7 +466,7 @@ class PagoController extends Controller {
      * Procesa la aprobación masiva en lote de hasta 50 pagos (Admin).
      */
     public function aprobarMasivo() {
-        Auth::requireRole(['admin', 'auditor']);
+        Auth::requireRole(UserRole::ADMIN);
 
         $pagoIds = $_POST['pago_ids'] ?? [];
         if (!is_array($pagoIds) || empty($pagoIds)) {

@@ -361,7 +361,7 @@ class ConciliacionTest extends TestCase {
         $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
         $unidad = $db->query("SELECT id FROM unidades LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
         if (!$persona || !$unidad) {
-            $this->markTestSkipped("Datos insuficientes para prueba.");
+            $this->skip("Datos insuficientes para prueba.");
             return;
         }
 
@@ -413,7 +413,7 @@ class ConciliacionTest extends TestCase {
         $persona = $db->query("SELECT id FROM personas LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
         $unidad = $db->query("SELECT id FROM unidades LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
         if (!$persona || !$unidad) {
-            $this->markTestSkipped("Datos insuficientes para prueba.");
+            $this->skip("Datos insuficientes para prueba.");
             return;
         }
 
@@ -449,6 +449,40 @@ class ConciliacionTest extends TestCase {
             $db->prepare("DELETE FROM log_auditoria WHERE pago_id = :id")->execute(['id' => $pagoId]);
             $db->prepare("DELETE FROM pagos WHERE id = :id")->execute(['id' => $pagoId]);
         }
+    }
+
+    public function testMapearColumnasPorBancoFormatosYLimites() {
+        $service = new ConciliacionBancariaService();
+        $method = new \ReflectionMethod(ConciliacionBancariaService::class, 'mapearColumnasPorBanco');
+
+        // TC-WB-07a: Banesco con formato europeo/latinoamericano 1.250,50
+        $resBanescoLatam = $method->invoke($service, ['25/08/2026', 'PAGO MOVIL', 'REF-001', '1.250,50'], 'banesco');
+        $this->assertNotNull($resBanescoLatam, "Debe parsear fila válida de Banesco");
+        $this->assertEquals('2026-08-25', $resBanescoLatam['fecha']);
+        $this->assertEquals('REF-001', $resBanescoLatam['referencia']);
+        $this->assertEquals('PAGO MOVIL', $resBanescoLatam['descripcion']);
+        $this->assertEquals(1250.50, $resBanescoLatam['monto']);
+        $this->assertEquals('credito', $resBanescoLatam['tipo']);
+
+        // TC-WB-07b: Banesco con formato anglosajón/internacional 1,250.50 (DEF-02)
+        $resBanescoUS = $method->invoke($service, ['25/08/2026', 'TRANSFERENCIA', 'REF-002', '1,250.50'], 'banesco');
+        $this->assertNotNull($resBanescoUS, "Debe parsear formato anglosajón 1,250.50 sin inflar el monto");
+        $this->assertEquals(1250.50, $resBanescoUS['monto']);
+        $this->assertEquals('credito', $resBanescoUS['tipo']);
+
+        // TC-WB-07c: Provincial con monto negativo entre paréntesis (500,25) -> débito
+        $resProvincial = $method->invoke($service, ['15/09/2026', 'COMISION', 'REF-003', '(500,25)'], 'provincial');
+        $this->assertNotNull($resProvincial, "Debe parsear monto contable negativo entre paréntesis");
+        $this->assertEquals(500.25, $resProvincial['monto']);
+        $this->assertEquals('debito', $resProvincial['tipo']);
+
+        // TC-WB-07d: Fecha inválida -> retorna null
+        $resFechaInvalida = $method->invoke($service, ['fecha-invalida', 'REF-004', 'DESC', '100,00'], 'mercantil');
+        $this->assertNull($resFechaInvalida, "Fecha inválida debe retornar null");
+
+        // TC-WB-07e: Monto cero -> retorna null
+        $resMontoCero = $method->invoke($service, ['15/09/2026', 'REF-005', 'SALDO CERO', '0,00'], 'venezuela');
+        $this->assertNull($resMontoCero, "Monto 0,00 debe retornar null");
     }
 }
 

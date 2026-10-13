@@ -20,7 +20,7 @@ class AuditorController extends Controller {
      * Acceso exclusivo de administradores (módulo retirado del rol auditor).
      */
     public function dashboard() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $db = Database::getConnection();
 
@@ -55,7 +55,7 @@ class AuditorController extends Controller {
      * Listado detallado y paginado del log de auditoría del sistema.
      */
     public function logTransacciones() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $pagina = max(1, intval($_GET['page'] ?? 1));
         $porPagina = 25;
@@ -95,7 +95,7 @@ class AuditorController extends Controller {
      * Exporta el log de auditoría en formato CSV para fiscalización externa.
      */
     public function exportarLog() {
-        Auth::requireRole(UserRole::ADMIN);
+        Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
 
         $db = Database::getConnection();
 
@@ -109,44 +109,48 @@ class AuditorController extends Controller {
         header('X-Content-Type-Options: nosniff');
 
         $out = fopen('php://output', 'w');
-        fputs($out, "\xEF\xBB\xBF");
-        fputcsv($out, ['ID', 'Fecha y Hora', 'Usuario', 'Acción', 'Tabla Afectada', 'ID Registro', 'Detalles', 'Dirección IP'], ';');
+        try {
+            fputs($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['ID', 'Fecha y Hora', 'Usuario', 'Acción', 'Tabla Afectada', 'ID Registro', 'Detalles', 'Dirección IP'], ';');
 
-        while ($offset < $limiteMaximo) {
-            $stmt = $db->prepare("
-                SELECT l.id, l.created_at AS fecha, COALESCE(u.nombre_completo, 'Sistema') AS usuario,
-                       l.accion, l.tabla_afectada, l.registro_id, l.detalles, l.ip_address
-                FROM log_auditoria l
-                LEFT JOIN usuarios u ON l.usuario_id = u.id
-                ORDER BY l.id DESC
-                LIMIT :limit OFFSET :offset
-            ");
-            $stmt->bindValue(':limit', $batchSize, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            while ($offset < $limiteMaximo) {
+                $stmt = $db->prepare("
+                    SELECT l.id, l.created_at AS fecha, COALESCE(u.nombre_completo, 'Sistema') AS usuario,
+                           l.accion, l.tabla_afectada, l.registro_id, l.detalles, l.ip_address
+                    FROM log_auditoria l
+                    LEFT JOIN usuarios u ON l.usuario_id = u.id
+                    ORDER BY l.id DESC
+                    LIMIT :limit OFFSET :offset
+                ");
+                $stmt->bindValue(':limit', $batchSize, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if (empty($rows)) {
-                break;
+                if (empty($rows)) {
+                    break;
+                }
+
+                foreach ($rows as $l) {
+                    fputcsv($out, [
+                        $l['id'],
+                        $l['fecha'],
+                        $l['usuario'],
+                        $l['accion'],
+                        $l['tabla_afectada'],
+                        $l['registro_id'],
+                        $l['detalles'],
+                        $l['ip_address']
+                    ], ';');
+                }
+
+                $offset += $batchSize;
             }
-
-            foreach ($rows as $l) {
-                fputcsv($out, [
-                    $l['id'],
-                    $l['fecha'],
-                    $l['usuario'],
-                    $l['accion'],
-                    $l['tabla_afectada'],
-                    $l['registro_id'],
-                    $l['detalles'],
-                    $l['ip_address']
-                ], ';');
+        } finally {
+            if (is_resource($out)) {
+                fclose($out);
             }
-
-            $offset += $batchSize;
         }
-
-        fclose($out);
         exit;
     }
 }

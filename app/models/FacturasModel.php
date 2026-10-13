@@ -202,6 +202,7 @@ class FacturasModel extends BaseModel {
                     'saldo'             => $saldo_restante,
                     'estado'            => $estado
                 ]);
+                $facturaId = (int)$db->lastInsertId();
 
                 // Si quedó remanente de saldo a favor tras cubrir la cuota, persistirlo para no perder el crédito
                 if ($remanenteSaldoFavor > 0.009) {
@@ -220,13 +221,15 @@ class FacturasModel extends BaseModel {
                     ]);
                 }
 
-                // Registrar cargo de la cuota en el libro mayor de la unidad
-                $movModel = new MovimientosModel();
+                // Registrar cargo de la cuota en el libro mayor de la unidad con huella de idempotencia
+                $movModel = new MovimientosModel($db);
                 $movModel->registrarMovimiento(
                     $unidad_id,
                     'cargo_factura',
                     $monto_factura,
-                    "Emisión cuota de mantenimiento " . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numero_factura}"
+                    "Emisión cuota de mantenimiento " . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numero_factura}",
+                    $facturaId,
+                    'factura'
                 );
 
                 $stats['generadas']++;

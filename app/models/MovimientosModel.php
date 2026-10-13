@@ -7,6 +7,15 @@ use Exception;
 class MovimientosModel extends BaseModel {
 
     protected string $table = 'movimientos_cuenta';
+    private ?PDO $customDb = null;
+
+    public function __construct(?PDO $db = null) {
+        $this->customDb = $db;
+    }
+
+    protected function db(): PDO {
+        return $this->customDb ?? parent::db();
+    }
 
     /**
      * Registra un movimiento inmutable en el libro mayor de una unidad habitacional con bloqueo pesimista.

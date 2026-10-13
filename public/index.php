@@ -12,6 +12,7 @@ use App\Controllers\PagoDirectoController;
 use App\Controllers\ResidenteController;
 use App\Controllers\UsuarioAdminController;
 use App\Core\Auth;
+use App\Core\Logger;
 use App\Core\Router;
 use App\Core\Security;
 use App\Core\UserRole;
@@ -64,7 +65,10 @@ if (ENVIRONMENT === 'production') {
 
 // Exception handler global — captura errores no manejados
 set_exception_handler(function (Throwable $e) {
-    error_log("[EXCEPTION] " . sanitize_exception_message($e) . " in " . basename($e->getFile()) . ":" . $e->getLine());
+    Logger::error('unhandled_exception', sanitize_exception_message($e), [
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
 
     http_response_code(500);
 
@@ -234,13 +238,13 @@ $router->post('/perfil/2fa/toggle', [\App\Controllers\PerfilController::class, '
 $router->post('/api/v1/auth/login', [\App\Controllers\ApiController::class, 'login']);
 $router->post('/api/v1/auth/refresh', [\App\Controllers\ApiController::class, 'refresh']);
 $router->get('/api/v1/residente/estado-cuenta', [\App\Controllers\ApiController::class, 'estadoCuenta']);
-$router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
+$router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Auditoría y Fiscalización de Solo Lectura (RF 8) ---
-$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::ADMIN]);
-$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::ADMIN]);
-$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::ADMIN]);
+$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
 // --- Extracción Asistida de Comprobantes (RF 15) ---
 $router->post('/pagos/analizar-comprobante', [\App\Controllers\PagoController::class, 'analizarComprobante'], [UserRole::RESIDENTE]);

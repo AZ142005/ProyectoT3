@@ -157,18 +157,20 @@ class ApiController extends Controller {
         // 3. Generar Access Token JWT (Vigencia: 2 horas = 7200 seg)
         $jti = bin2hex(random_bytes(8));
         $accessToken = JWT::encode([
-            'sub'   => $user['id'],
-            'email' => $user['email'],
-            'role'  => $role,
-            'name'  => $user['nombre'],
-            'jti'   => $jti
+            'sub'       => $user['id'],
+            'user_type' => ($role === UserRole::RESIDENTE ? 'persona' : 'usuario'),
+            'email'     => $user['email'],
+            'role'      => $role,
+            'name'      => $user['nombre'],
+            'jti'       => $jti
         ], 7200);
 
         // Almacenar jti para poder revocarlo en logout
         $_SESSION['auth_jwt_jti'] = $jti;
 
         // 4. Generar Refresh Token criptográfico (Vigencia: 7 días)
-        $refreshTokenPlain = bin2hex(random_bytes(32));
+        $prefix = ($role === UserRole::RESIDENTE) ? 'p_' : 'u_';
+        $refreshTokenPlain = $prefix . bin2hex(random_bytes(32));
         $refreshTokenHash = hash('sha256', $refreshTokenPlain);
 
         $stmtRef = $db->prepare("
@@ -242,20 +244,12 @@ class ApiController extends Controller {
         $stmtRevoke = $db->prepare("UPDATE refresh_tokens SET revocado = 1 WHERE id = :id");
         $stmtRevoke->execute(['id' => $row['id']]);
 
-        // Obtener datos del usuario para el nuevo payload — verificar que exista y esté activo
-        $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo, estado FROM usuarios WHERE id = :id AND estado = 1");
-        $stmtU->execute(['id' => $row['usuario_id']]);
-        $usuario = $stmtU->fetch(PDO::FETCH_ASSOC);
-
+        // Obtener datos del usuario para el nuevo payload según el tipo de token (evitar escalamiento de privilegios)
         $email = null;
         $role = null;
         $name = null;
 
-        if ($usuario) {
-            $email = $usuario['email'];
-            $role = $usuario['rol'];
-            $name = $usuario['nombre_completo'];
-        } else {
+        if (str_starts_with($refreshToken, 'p_')) {
             $stmtP = $db->prepare("SELECT id, email, CONCAT(nombre, ' ', apellido) AS nombre_completo, estado FROM personas WHERE id = :id AND estado = 1");
             $stmtP->execute(['id' => $row['usuario_id']]);
             $persona = $stmtP->fetch(PDO::FETCH_ASSOC);
@@ -263,6 +257,35 @@ class ApiController extends Controller {
                 $email = $persona['email'];
                 $role = UserRole::RESIDENTE;
                 $name = $persona['nombre_completo'];
+            }
+        } elseif (str_starts_with($refreshToken, 'u_')) {
+            $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo, estado FROM usuarios WHERE id = :id AND estado = 1");
+            $stmtU->execute(['id' => $row['usuario_id']]);
+            $usuario = $stmtU->fetch(PDO::FETCH_ASSOC);
+            if ($usuario) {
+                $email = $usuario['email'];
+                $role = $usuario['rol'];
+                $name = $usuario['nombre_completo'];
+            }
+        } else {
+            // Fallback para tokens legados sin prefijo
+            $stmtU = $db->prepare("SELECT id, email, rol, nombre_completo, estado FROM usuarios WHERE id = :id AND estado = 1");
+            $stmtU->execute(['id' => $row['usuario_id']]);
+            $usuario = $stmtU->fetch(PDO::FETCH_ASSOC);
+
+            if ($usuario) {
+                $email = $usuario['email'];
+                $role = $usuario['rol'];
+                $name = $usuario['nombre_completo'];
+            } else {
+                $stmtP = $db->prepare("SELECT id, email, CONCAT(nombre, ' ', apellido) AS nombre_completo, estado FROM personas WHERE id = :id AND estado = 1");
+                $stmtP->execute(['id' => $row['usuario_id']]);
+                $persona = $stmtP->fetch(PDO::FETCH_ASSOC);
+                if ($persona) {
+                    $email = $persona['email'];
+                    $role = UserRole::RESIDENTE;
+                    $name = $persona['nombre_completo'];
+                }
             }
         }
 
@@ -272,14 +295,16 @@ class ApiController extends Controller {
         }
 
         $newAccessToken = JWT::encode([
-            'sub'   => (int)$row['usuario_id'],
-            'email' => $email,
-            'role'  => $role,
-            'name'  => $name
+            'sub'       => (int)$row['usuario_id'],
+            'user_type' => ($role === UserRole::RESIDENTE ? 'persona' : 'usuario'),
+            'email'     => $email,
+            'role'      => $role,
+            'name'      => $name
         ], 7200);
 
-        // Generar nuevo refresh token (rotation)
-        $newRefreshPlain = bin2hex(random_bytes(32));
+        // Generar nuevo refresh token con prefijo correspondiente (rotation)
+        $prefix = ($role === UserRole::RESIDENTE) ? 'p_' : 'u_';
+        $newRefreshPlain = $prefix . bin2hex(random_bytes(32));
         $newRefreshHash = hash('sha256', $newRefreshPlain);
         $stmtNewRef = $db->prepare("
             INSERT INTO refresh_tokens (usuario_id, token_hash, expires_at, revocado)
