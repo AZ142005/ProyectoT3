@@ -40,10 +40,6 @@ class AuthController extends Controller {
                 } elseif (!validarEmail($email)) {
                     $error = 'El formato del correo electrónico no es válido (ejemplo: usuario@dominio.com).';
                 } else {
-                    $loginExitoso = false;
-                    $foundUserId = null;
-                    $foundType = null; // 'admin' or 'residente'
-
                     $usuariosModel = new UsuariosModel();
                     $personasModel = new PersonasModel();
 
@@ -58,9 +54,6 @@ class AuthController extends Controller {
                             $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
                         } elseif (password_verify($password, $usuario['password'])) {
                             $usuariosModel->resetIntentosFallidos((int)$usuario['id']);
-                            $loginExitoso = true;
-                            $foundUserId = (int)$usuario['id'];
-                            $foundType = 'admin';
 
                             if (!empty($usuario['two_factor_enabled'])) {
                                 return $this->iniciarFlujo2fa($usuario, $usuario['rol'] ?? UserRole::ADMIN);
@@ -90,9 +83,6 @@ class AuthController extends Controller {
                                 $error = 'Su cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Espere 30 minutos.';
                             } elseif (!empty($residente['password']) && password_verify($password, $residente['password'])) {
                                 $personasModel->resetIntentosFallidos((int)$residente['id']);
-                                $loginExitoso = true;
-                                $foundUserId = (int)$residente['id'];
-                                $foundType = 'residente';
 
                                 if (!empty($residente['two_factor_enabled'])) {
                                     return $this->iniciarFlujo2fa($residente, UserRole::RESIDENTE);
