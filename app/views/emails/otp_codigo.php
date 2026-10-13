@@ -38,7 +38,6 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eeeeee;">
-                            Condominio Conjunto Las Mesetas &copy; <?= date('Y') ?> — Todos los derechos reservados.<br>
                             Este es un mensaje automático; por favor no responda a este correo.
                         </td>
                     </tr>

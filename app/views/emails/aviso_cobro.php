@@ -34,8 +34,7 @@
         </div>
 
         <div class="footer">
-            &copy; <?= date('Y') ?> Condominio Conjunto Las Mesetas &bull; Sistema de Gestión de Cobranzas
-            <p style="margin:8px 0 0 0;">Este es un mensaje automático; por favor no responda a este correo.</p>
+            <p style="margin:0;">Este es un mensaje automático; por favor no responda a este correo.</p>
         </div>
     </div>
 </body>
