@@ -1,7 +1,7 @@
 # Guía de despliegue — InfinityFree (plan gratuito)
 
 Complementa el seguimiento interno en `odd/tasks/deploy-infinityfree.md`.
-Estado: T1 (autoload PSR-4) y T2 (esta guía) cerradas; T3–T8 en curso.
+Estado: T1–T4 cerradas; T5–T8 en curso (ver `odd/tasks/deploy-infinityfree.md`).
 
 ## 1. Por qué este layout
 
@@ -28,7 +28,7 @@ Estado: T1 (autoload PSR-4) y T2 (esta guía) cerradas; T3–T8 en curso.
 Notas:
 
 - Subir el **contenido** de `public/`, no la carpeta `public` (la URL debe quedar `https://tudominio/`, no `https://tudominio/public/`).
-- `public/uploads/` no forma parte del despliegue (su función la cubrirá el proxy seguro de soportes — ver pendientes T3/T4).
+- `public/uploads/` es una carpeta local de desarrollo (ignorada por git) y **no se sube**: los soportes se guardan y sirven desde `uploads/soportes/` mediante el proxy seguro `/soporte-proxy.php`.
 
 ## 3. Qué NO subir
 
@@ -38,6 +38,24 @@ Notas:
 - Datos locales: contenido de `uploads/` (hay archivos de prueba), `storage/cache/*`, `logs/*`
 
 (El pase de limpieza definitivo es el punto T7 del seguimiento.)
+
+### ¿Qué pasa si NO subes cada cosa? (verificado)
+
+Ninguno de los excluidos rompe el sistema: la app no los lee en runtime (0 referencias en código de producción) y las carpetas de datos se autogestionan.
+
+| Excluido | Efecto real |
+|---|---|
+| `php.ini` | Ninguno: el servidor usa su propia configuración; el archivo solo aplica al PHP local. |
+| `composer.phar` | Ninguno en el servidor (solo se usa en la PC para regenerar el autoloader). |
+| `.git/`, `.codegraph/`, `.atl/`, `.sdd/`, `.config/`, `odd/`, `tests/` | Ninguno; herramientas de desarrollo (el namespace `Tests` del autoloader queda sin uso). |
+| `docs/`, documentos e imágenes sueltas de la raíz | Ninguno; ninguna vista los enlaza. |
+| `resources/` | Ninguno; el estilo corre por CDN (Tailwind/Bootstrap) y los estilos propios van inline en el layout. |
+| `Estilos de stitch/` | Ninguno; material de diseño. |
+| Contenido de `storage/cache/`, `storage/logs/` y `logs/` | Ninguno: la caché de estructura se recrea sola (crea sus subcarpetas) y los logs nacen al primer uso. |
+| Contenido de `uploads/` (datos de prueba) | Ninguno: `uploads/comprobantes` y `uploads/soportes` se autocrean al primer upload. |
+| `database/*.sql` | Ninguno en runtime; solo se usan para importar una vez por phpMyAdmin.
+
+Lo único que **debe** existir: `vendor/` (autoloader), el `.env` de producción y las carpetas escribibles del paso 4.
 
 ## 4. Procedimiento
 
@@ -64,7 +82,7 @@ Notas:
 
 | Punto | Qué falta | Impacto en esta guía |
 |---|---|---|
-| T3 | Proxy seguro de soportes (hoy la URL `/uploads/soportes/` no coincide con la ruta de escritura) | `public/uploads` no se sube |
-| T4 | `php_flag` en `public/uploads/*.htaccess` (no soportado en InfinityFree) | se resuelve al no subir esa carpeta |
+| T3 | ✅ Resuelto: proxy `/soporte-proxy.php` (sesión obligatoria; sirve desde `uploads/soportes/`) | `public/uploads` no se sube |
+| T4 | ✅ Resuelto por diseño: `public/uploads` es local (ignorado por git) y no se sube | — |
 | T5 | `.env` de producción y orden SSL → `production` | pasos 5 y 7 |
 | T6 | Web-cron con token (worker de correos/respaldo) | sin él los correos quedan encolados |

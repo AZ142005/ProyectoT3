@@ -20,8 +20,8 @@ Dejar el proyecto desplegable en InfinityFree (plan gratuito), corrigiendo los 8
 
 - [x] T1 Autoload PSR-4 case-safe (cerrada 2026-10-13, commit `9a654ba`).
 - [x] T2 Layout de subida — documentado en `docs/despliegue-infinityfree.md` (mapa de subida, exclusiones y paso a paso).
-- [ ] T3 Proxy seguro de soportes (hoy la URL `/uploads/soportes/` no coincide con la ruta de escritura) + actualizar `app/views/residente/gastos.php`.
-- [ ] T4 Adaptar `public/uploads/*.htaccess` (`php_flag` no soportado en InfinityFree).
+- [x] T3 Proxy seguro de soportes — `public/soporte-proxy.php` (sesión obligatoria, basename, allowlist, MIME real) + URLs actualizadas en `residente/gastos.php` y `admin/gastos/index.php`; `BehaviorTest` #26 migrado al proxy.
+- [x] T4 Resuelto por diseño: `public/uploads` es local e ignorado por git (no se sube); la protección legacy quedó reemplazada por el proxy de T3.
 - [ ] T5 `.env` de producción (DB `sqlXXX`, claves nuevas, `MAIL_MODE=smtp`) + activar SSL antes de `ENVIRONMENT=production`.
 - [ ] T6 Web-cron con token para `scripts/process_notifications.php` (cola de correos) y respaldo; el plan gratuito no tiene cron.
 - [ ] T7 Exclusiones de subida: `php.ini`, `composer.phar`, `.codegraph/`, `tests/`, `odd/`, `.sdd/`, `.atl/`, docs, fixtures, caché local.
@@ -48,7 +48,8 @@ Cierre T1 (2026-10-13) — rama `deploy/infinityfree-fixes`, commit `9a654ba` (s
 - Referencias: 43 archivos actualizados (12 `scripts/`, 31 `tests/`) + `composer.json`; 188 líneas, solo case. `grep` case-sensitive de rutas viejas = 0 en `app/`, `public/`, `scripts/`, `tests/`, `composer.json` y `vendor/composer/`.
 - Autoloader: `dump-autoload` regeneró solo `autoload_files.php` y `autoload_static.php` (el resto quedó byte-idéntico); ambos apuntan a `app/Core/helpers.php`.
 - Verificación estática: PSR-4 case-check 70 clases OK / 0 problemas / 0 mismatch nombre-vs-clase; smoke de autoload por `class_exists` sobre las clases de `app/`: 70/70 OK (tras corregir el fallo de sintaxis, ver hallazgo); `php -l`: 116 archivos sin errores tras el fix.
-- Suites idénticas a línea base: completa 588 ✅ / 5 ❌ (mismas preexistentes); `--filter=SolicitudesCambioDatos` 49 passed / 3 errors (mismos); `--filter=UsuariosSolicitudesTabs` 34 passed / 0 errores (mismos).
+- Suites: completa 588 ✅ / 5 ❌ idéntica a la base (mismos 5 fallos preexistentes del merge); `--filter=SolicitudesCambioDatos` 63 passed / 0 errores (mejora tras corregir el hallazgo); `--filter=UsuariosSolicitudesTabs` 34 passed / 0 errores.
+- T3/T4 (2026-10-13, commit `21ed6d4`): proxy de soportes verificado — `php -l` OK; smokes CLI: 403 sin sesión, bytes idénticos al PDF (49001/49001, %PDF→%%EOF), 404 inexistente y extensión no permitida bloqueada; suite completa idéntica a la base (588/5).
 
 ### Hallazgo preexistente — CORREGIDO (commit `229278e`)
 
