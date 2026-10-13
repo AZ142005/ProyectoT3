@@ -47,12 +47,14 @@ Cierre T1 (2026-10-13) — rama `deploy/infinityfree-fixes`, commit `9a654ba` (s
 - Renombres: 71 archivos movidos con `git mv` en dos pasos (core→Core, controllers→Controllers, models→Models, services→Services); git los detecta como renames 100% puros; contenido byte-idéntico verificado por hash (`git hash-object` vs `HEAD`).
 - Referencias: 43 archivos actualizados (12 `scripts/`, 31 `tests/`) + `composer.json`; 188 líneas, solo case. `grep` case-sensitive de rutas viejas = 0 en `app/`, `public/`, `scripts/`, `tests/`, `composer.json` y `vendor/composer/`.
 - Autoloader: `dump-autoload` regeneró solo `autoload_files.php` y `autoload_static.php` (el resto quedó byte-idéntico); ambos apuntan a `app/Core/helpers.php`.
-- Verificación estática: PSR-4 case-check 70 clases OK / 0 problemas / 0 mismatch nombre-vs-clase; smoke de autoload por `class_exists` sobre las clases de `app/`: 69/70 OK; `php -l`: 116 archivos, 1 fallo ajeno (abajo).
+- Verificación estática: PSR-4 case-check 70 clases OK / 0 problemas / 0 mismatch nombre-vs-clase; smoke de autoload por `class_exists` sobre las clases de `app/`: 70/70 OK (tras corregir el fallo de sintaxis, ver hallazgo); `php -l`: 116 archivos sin errores tras el fix.
 - Suites idénticas a línea base: completa 588 ✅ / 5 ❌ (mismas preexistentes); `--filter=SolicitudesCambioDatos` 49 passed / 3 errors (mismos); `--filter=UsuariosSolicitudesTabs` 34 passed / 0 errores (mismos).
 
-### Hallazgo preexistente (ajeno a este cambio, pendiente de autorización)
+### Hallazgo preexistente — CORREGIDO (commit `229278e`)
 
-`app/Controllers/UsuarioAdminController.php` NO COMPILA (`syntax error, unexpected token "public"`, línea 336): en `cambiarRol()` falta `return;` + la llave de cierre del bloque "no ascender a auditor" (tras la línea 319, introducido en `e5ae382`). Verificado también sobre el blob de `HEAD` (existía antes del rename). Consecuencias: cualquier carga del controlador falla (`/admin/usuarios`), y causa los 3 errores de `--filter=SolicitudesCambioDatos`. Corrección propuesta: insertar `return;` + `}` tras el `$this->redirect('/admin/usuarios');` de ese bloque.
+`app/Controllers/UsuarioAdminController.php` no compilaba (`syntax error, unexpected token "public"`, línea 336): en `cambiarRol()` faltaban `return;` + la llave de cierre del bloque "no ascender a auditor" (introducido en `e5ae382`; presente también antes del rename). Bloqueaba toda carga de `/admin/usuarios` y causaba los 3 errores de `--filter=SolicitudesCambioDatos`. Corrección aplicada: restaurado el cierre original (fiel a `84de294`); la protección de "último administrador activo" sigue delegada a `cambiarRolSeguro()` (decisión de `e5ae382`, respetada).
+
+Verificación post-fix: `php -l` sin errores; smoke de autoload **70/70**; `--filter=SolicitudesCambioDatos` **63 passed / 0 errores** (antes 49 / 3); `--filter=UsuarioAdmin` 7 ✅ / 0 ❌; suite completa 588 ✅ / 5 ❌ idéntica a la base (los 5 fallos preexistentes del merge siguen pendientes de revisión del usuario).
 
 ### Espejo Engram
 
