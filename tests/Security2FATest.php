@@ -27,4 +27,16 @@ class Security2FATest extends TestCase {
             $this->assertTrue(ctype_digit($code));
         }
     }
+
+    /**
+     * Regresión post-merge: AuthController::procesar2fa recarga la cuenta con
+     * getActiveById() tras validar el OTP; el método faltaba en UsuariosModel
+     * y rompía el login 2FA de admin/auditor con Error 500.
+     */
+    public function testAuthModelsExposeGetActiveById() {
+        $this->assertTrue(method_exists(\App\Models\UsuariosModel::class, 'getActiveById'),
+            'UsuariosModel debe exponer getActiveById (usado por AuthController::procesar2fa)');
+        $this->assertTrue(method_exists(\App\Models\PersonasModel::class, 'getActiveById'),
+            'PersonasModel debe exponer getActiveById (usado por procesar2fa y PerfilController)');
+    }
 }

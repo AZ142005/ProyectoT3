@@ -24,6 +24,19 @@ class UsuariosModel extends BaseModel {
     }
 
     /**
+     * Obtiene un usuario activo (admin/auditor) por ID.
+     * Usado al recargar la cuenta tras validar el OTP (AuthController::procesar2fa).
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function getActiveById($id) {
+        $stmt = $this->db()->prepare("SELECT * FROM usuarios WHERE id = :id AND estado = 1 LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch();
+    }
+
+    /**
      * Obtiene un usuario activo (admin/auditor) por cédula o documento de identidad.
      *
      * @param string $cedula
