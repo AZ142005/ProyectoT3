@@ -242,9 +242,9 @@ $router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionContr
 $router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 
 // --- Módulo de Auditoría y Fiscalización de Solo Lectura (RF 8) ---
-$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/auditor/dashboard', [\App\Controllers\AuditorController::class, 'dashboard'], [UserRole::ADMIN]);
+$router->get('/auditor/log-transacciones', [\App\Controllers\AuditorController::class, 'logTransacciones'], [UserRole::ADMIN]);
+$router->get('/auditor/exportar-log', [\App\Controllers\AuditorController::class, 'exportarLog'], [UserRole::ADMIN]);
 
 // --- Extracción Asistida de Comprobantes (RF 15) ---
 $router->post('/pagos/analizar-comprobante', [\App\Controllers\PagoController::class, 'analizarComprobante'], [UserRole::RESIDENTE]);
