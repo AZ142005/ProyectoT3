@@ -19,7 +19,7 @@ Dejar el proyecto desplegable en InfinityFree (plan gratuito), corrigiendo los 8
 ## Checklist
 
 - [x] T1 Autoload PSR-4 case-safe (cerrada 2026-10-13, commit `9a654ba`).
-- [ ] T2 Layout de subida: `htdocs` ← contenido de `public/`; `app/`, `vendor/`, `uploads/`, `logs/`, `storage/`, `.env`, `scripts/` fuera del webroot.
+- [x] T2 Layout de subida — documentado en `docs/despliegue-infinityfree.md` (mapa de subida, exclusiones y paso a paso).
 - [ ] T3 Proxy seguro de soportes (hoy la URL `/uploads/soportes/` no coincide con la ruta de escritura) + actualizar `app/views/residente/gastos.php`.
 - [ ] T4 Adaptar `public/uploads/*.htaccess` (`php_flag` no soportado en InfinityFree).
 - [ ] T5 `.env` de producción (DB `sqlXXX`, claves nuevas, `MAIL_MODE=smtp`) + activar SSL antes de `ENVIRONMENT=production`.
