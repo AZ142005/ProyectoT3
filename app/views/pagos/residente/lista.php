@@ -5,7 +5,7 @@
             <h2 class="text-2xl font-bold">Mis Pagos</h2>
             <p class="text-sm opacity-90 mt-1">Unidad <?= e($residente['unidad_numero'] ?? 'N/A') ?> (<?= e($residente['torre'] ?? 'N/A') ?>) — todos los movimientos de la unidad</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             <a href="/perfil" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px]">account_circle</span>
                 Mi Perfil

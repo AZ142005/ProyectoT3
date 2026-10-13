@@ -34,7 +34,7 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
 <?php else: ?>
 <div class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
     <!-- Encabezado Residente -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
             <h2 class="text-2xl font-bold text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">account_circle</span>
@@ -42,7 +42,7 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
             </h2>
             <p class="text-sm text-on-surface-variant mt-1">Consulte su información registrada y solicite actualizaciones de datos.</p>
         </div>
-        <a href="/residente/dashboard" class="bg-slate-100 hover:bg-slate-200 text-on-surface text-xs font-bold px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-1">
+        <a href="/residente/dashboard" class="bg-slate-100 hover:bg-slate-200 text-on-surface text-xs font-bold px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-1 whitespace-nowrap">
             <span class="material-symbols-outlined text-sm">arrow_back</span> Volver al Panel
         </a>
     </div>

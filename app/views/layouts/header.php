@@ -55,6 +55,10 @@
             --color-institutional-brown-dark: #2d1a0c;
             --color-institutional-brown-light: #6d4c41;
             --bs-primary: #27ae60;
+            /* Bootstrap 5.3: sus utilidades (.bg-primary, .text-primary, .border-primary) usan
+               --bs-primary-rgb con !important y caen al azul por defecto (13,110,253) si no se
+               define aquí. RGB de #27ae60 para mantener la paleta institucional. */
+            --bs-primary-rgb: 39, 174, 96;
         }
 
         /* Ocultar icono nativo de revelar contraseña del navegador (Edge / IE) para evitar duplicación con el botón personalizado */

@@ -90,7 +90,7 @@ $origenForm = match($fromParam) {
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
                 <!-- Barra de Navegación y Descarga -->
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                     <div class="flex items-center gap-2">
                         <a href="<?= e($volverUrl) ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-sm">
                             <span class="material-symbols-outlined text-[16px]"><?= e($volverIcono) ?></span>
@@ -126,7 +126,7 @@ $origenForm = match($fromParam) {
     <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
     <!-- Encabezado Residente -->
-    <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center">
+    <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4">
         <div>
             <h2 class="text-2xl font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined">receipt_long</span>
@@ -134,7 +134,7 @@ $origenForm = match($fromParam) {
             </h2>
             <p class="text-sm text-slate-300 mt-1">Residente: <?= e($residenteNombre) ?> <?php if ($residenteCedula): ?>(C.I: <?= e($residenteCedula) ?>)<?php endif; ?></p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
             <?php if ($hasArchivo): ?>
                 <a href="<?= e($archivoDescargaUrl) ?>" download="<?= e($archivo) ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
                     <span class="material-symbols-outlined text-[18px]">download</span>
