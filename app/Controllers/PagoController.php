@@ -205,7 +205,7 @@ class PagoController extends Controller {
         try {
             $result = $pagoModel->crearPago($residenteId, $unidadId, $datos, $uniqueName);
         } catch (\Throwable $e) {
-            @unlink(UPLOADS_PATH . '/' . $uniqueName);
+            $this->eliminarComprobanteSiExiste($uniqueName);
             throw $e;
         }
         
@@ -226,6 +226,20 @@ class PagoController extends Controller {
             }
             Flash::error("No se pudo registrar el pago: es un duplicado o hubo un error de datos.");
             $this->redirect('/pagos/nuevo');
+        }
+    }
+
+    /**
+     * Elimina el comprobante persistido por esta solicitud (si existe), para no
+     * dejar huérfanos en uploads/comprobantes en las ramas de error de subir().
+     */
+    private function eliminarComprobanteSiExiste(?string $uniqueName): void {
+        if (!$uniqueName) {
+            return;
+        }
+        $rutaComprobante = UPLOADS_PATH . '/comprobantes/' . $uniqueName;
+        if (file_exists($rutaComprobante)) {
+            @unlink($rutaComprobante);
         }
     }
 
