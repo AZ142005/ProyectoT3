@@ -36,9 +36,6 @@
                 <a href="<?= e($appUrl ?? '#') ?>/pagos/subir" class="btn-action">📤 Volver a Subir Comprobante</a>
             </div>
         </div>
-        <div class="footer">
-            &copy; <?= date('Y') ?> Conjunto Residencial Las Mesetas de Morón. Todos los derechos reservados.
-        </div>
     </div>
 </body>
 </html>

@@ -39,9 +39,6 @@
 
             <p style="margin-top:24px; font-size:13px; color:#7f8c8d;">Gracias por mantener al día sus obligaciones con la comunidad.</p>
         </div>
-        <div class="footer">
-            &copy; <?= date('Y') ?> Conjunto Residencial Las Mesetas de Morón. Todos los derechos reservados.
-        </div>
     </div>
 </body>
 </html>

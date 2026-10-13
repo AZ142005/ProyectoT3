@@ -33,9 +33,6 @@
 
             <p style="font-size:12px; color:#95a5a6; border-top:1px solid #ecf0f1; padding-top:12px;">Publicado el: <?= e($fechaPublicacion ?? date('d/m/Y H:i')) ?></p>
         </div>
-        <div class="footer">
-            &copy; <?= date('Y') ?> Conjunto Residencial Las Mesetas de Morón. Todos los derechos reservados.
-        </div>
     </div>
 </body>
 </html>
