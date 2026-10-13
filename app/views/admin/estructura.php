@@ -405,7 +405,7 @@
                                                     // \\ → \\\\, ' → \\' y se eliminan saltos de línea.
                                                     $nombreEliminar = e(str_replace(['\\', "'", "\r", "\n"], ['\\\\', "\\'", '', ''], (string)$edificio['nombre']));
                                                     ?>
-                                                    <form method="POST" action="/admin/estructura/eliminar-edificio" style="display:inline" onsubmit="return confirm('¿Seguro que deseas eliminar el edificio «<?= $nombreEliminar ?>»? Se eliminarán también sus unidades sin propietario ni deudas. Esta acción no se puede deshacer.');">
+                                                    <form method="POST" action="/admin/estructura/eliminar-edificio" style="display:inline" onsubmit="return confirm('¿Seguro que deseas eliminar el edificio «<?= e($nombreEliminar) ?>»? Se eliminarán también sus unidades sin propietario ni deudas. Esta acción no se puede deshacer.');">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="tab" value="configuracion">
                                                         <input type="hidden" name="id" value="<?= e($edificio['id']) ?>">
