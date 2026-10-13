@@ -62,3 +62,18 @@ Diferencias vs el paquete del 13/10 15:51 — si ese ya se subió, basta re-subi
 - En el servidor: `QUEUE_AUTORUN=1` en `htdocs/.env` (guía §7) — sin él los correos quedan encolados.
 - Capturas de la QA disponibles en `%TEMP%\qa-mobile\out2` (post-fix) y `out` (pre-fix) mientras dure la sesión de Windows.
 - Aviso preexistente: la bandeja de notificaciones del residente de prueba tiene ~250 avisos sintéticos de tests (`RECHTEST…`/`DEP-TWIN…`); es data local de prueba, no código.
+
+## Ronda 2 (2026-10-13) — feedback en dispositivo real (commit `76f258f`)
+
+Reportado por el usuario: (a) logo del login muy grande y los botones deben caber en pantalla; (b) en pago sin sesión «los datos para pagar se cortan»; (c) revisar lo homólogo en el área del residente; (d) error de consola `login:192` (`<path> attribute d: Expected arc flag`); (e) quitar cualquier señalización de copyright.
+
+Hallazgos y correcciones:
+
+1. **SVG del ojo (`auth/login.php`)** — el path lucide `eye` estaba corrupto: al tercer arco le faltaban los flags `0 1` (`...19.876 0 1 1 0 .696...`; versión oficial verificada contra lucide-static: `...19.876 0 1 1 0 0 1 0 .696...`). Por eso el error de consola y el icono sin renderizar. Corregido y verificado: `getTotalLength()` = 52, consola sin errores.
+2. **Logo del login en móvil** — la regla de escritorio (191.92%, para calzar el texto con el botón) ocupaba media pantalla. Ahora: 62% (máx 240px) y 48% en pantallas de alto ≤700px, con paddings reducidos. Verificado: todo cabe sin scroll interno a 390×844 **y** 390×640 (`scrollHeight == clientHeight`).
+3. **Datos de pago cortados** (`pago_directo/index.php` **y** `pagos/residente/subir.php`) — dos causas: (i) `truncate` en `#infoNumero/#infoTitular/#infoDoc/#infoTelefono` → `break-all`/`break-words`; (ii) **colisión de espaciados Bootstrap/Tailwind**: `.p-5` de Bootstrap = 3rem (48px, `!important`) le gana al `p-5` de Tailwind (20px) y en móvil (`md:p-6` no aplica) comprimía el Paso 1 a 194px de ancho útil. Fix: `p-6` (24px, sin colisión) en las 3 tarjetas de esa vista; la tarjeta de datos pasa a 242px y el número completo se lee en 3 líneas.
+   - **Deuda técnica documentada (no tocada)**: la colisión existe para TODAS las utilidades 0–5 de espaciado en toda la app (`p-4` real 24px vs 16 pretendido, `px-4` 24 vs 16, `mb-4` 24 vs 16, etc.). Mitigación sistémica pendiente de decisión (normalizar con overrides en `header.php`, o migrar a un build real de Tailwind). No se recalibró toda la estética sin pedido explícito.
+4. **Copyright eliminado** — footer del login, `layouts/footer.php` (aplica a toda la app), `auth/register.php`, `auth/registro_exitoso.php` y `pago_directo/exito.php`. Verificación por texto: 0 coincidencias de `©`/«derechos reservados» en las vistas revisadas.
+5. **Placeholder del select de cuentas** — acortado a «-- Seleccione la cuenta oficial --» (se cortaba en móvil).
+
+Verificación: `php -l` OK (7 archivos); suite completa **599 ✅ / 0 ❌**; capturas y métricas móviles en `%TEMP%\qa-mobile\out4`/`out8` (login fits=true; cardW 194→242; número de cuenta completo).
