@@ -102,7 +102,7 @@ Checklist:
 - [x] T1: `SmtpMailer` — `Message-ID` con el dominio del remitente; estructura `multipart/alternative` (texto plano derivado + HTML) anidada en `multipart/mixed` cuando hay adjuntos.
 - [x] T2: plantilla OTP alineada (marca actual + pie "no responda a este correo").
 - [x] T3: tests (`EmailSmtpTest` estructura nueva + `EmailPlantillasTest` OTP) + suites verdes.
-- [ ] T4: prueba real de OTP a `azdeo142005@gmail.com` + aporte de evidencia.
+- [x] T4: prueba real de OTP a `azdeo142005@gmail.com` + aporte de evidencia.
 
 Resultados T1–T3 (2026-10-13, local, sin envíos reales; commit work-unit `fix(correo): multipart/alternative con texto plano, Message-ID del remitente y OTP alineado`):
 - `php -l` de los 4 archivos tocados: sin errores.
@@ -112,6 +112,7 @@ Resultados T1–T3 (2026-10-13, local, sin envíos reales; commit work-unit `fix
 - Suite completa (aborto conocido en `SecurityTest`): 67 clases / 588 ✅ / 5 ❌ / 2 ⏭; baseline sin estos cambios: 587 ✅ / 5 ❌ / 2 ⏭ (mismos fallos preexistentes de Pagos/Comprobantes/RBAC).
 - Sonda por reflexión de `construirMensaje` con `E_ALL`: sin warnings con HTML vacío, emojis ni entidades; texto plano vacío → `' '`; `Message-ID` con el dominio del `from_email` y fallback al `ehlo_host`.
 - Cobertura nueva: `Message-ID` del remitente, alternativa `text/plain` decodificada sin adjuntos, anidado `multipart/alternative` en `multipart/mixed` con cierre de ambos boundaries y PDF decodificado intacto.
-- T4 pendiente: requiere worker con envío real de OTP; no se ejecutaron envíos reales en esta tarea.
+- T4 ejecutada (2026-10-13): OTP real (código de prueba `483920`; QUEUE_ID 975) y carta reenviada con la estructura nueva (QUEUE_ID 976, `Carta-Deuda-Unidad-5-25.pdf` 117.086 bytes) — worker: "Correo enviado exitosamente" en ambos; BD: `enviado`, sin errores; cola en 0. Contenido verificado: OTP con el código presente + aviso de no responder + marca nueva; carta con adjunto `%PDF-` íntegro.
 
 Mitigaciones del lado del destinatario: marcar "No es spam", agregar el remitente a contactos y mantener envíos regulares (calentar la cuenta).
+- Nota de estado del repo (para sesiones futuras): la suite completa trae **5 fallos preexistentes del trabajo remoto reciente** (ajenos al correo, reproducidos con estos archivos en stash): `comprobantesModelHasSaldoAFavorLogic` y `aprobarLoteHasCascadeLoop` (esperan lógica de saldo a favor/cascada en `PagoModel`), `pagoDirectoAtribuidoApareceParaElResidenteDeLaUnidad` (falta columna `fecha_ingreso` en `personas` — la usa `PersonasModel`), `pagoControllerEliminaComprobanteHuerfanoEnRamaDeFallo` (orden de código en el controlador), `auditorModuleRoutesAreAdminOnly` (rutas `/auditor/*` habilitando rol Auditor). Pendiente de revisión del usuario.
