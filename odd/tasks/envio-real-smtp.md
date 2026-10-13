@@ -81,3 +81,10 @@ Ejecución: 2026-10-04. Implementación delegada; commits locales `7aa2529` (fea
 - **Pendiente único**: contraseña de aplicación correcta en `MAIL_PASS` → reencolar el ejemplo y correr el worker.
 - **Costo**: SMTP de Gmail y las contraseñas de aplicación son gratuitos; cuenta gratuita ≈ 500 destinatarios/día (excederlo bloquea temporalmente, no genera cobro). No se usa ninguna API facturable de Google.
 - **Servidor**: ver checklist en `.env.example` (claves MAIL_*, programar worker, migraciones, permisos de escritura en `app/logs`).
+
+### Cierre 2026-10-13 — envío real verificado ✅
+
+- Contraseña de aplicación (16 caracteres) aplicada en `MAIL_PASS` del `.env` local (gitignored; no se escribe en el repo).
+- Prueba de punta a punta: carta de ejemplo de la Unidad 5-25 (Bs. 144.801,73) → **texto breve + `Carta-Deuda-Unidad-5-25.pdf` (117.086 bytes, `%PDF-`)** encolada y despachada por el worker: `[QUEUE_ID: 904] Correo enviado exitosamente a azdeo142005@gmail.com` (1 procesado, 1 exitoso, 0 fallidos).
+- Verificación en BD: fila 904 `estado=enviado`, `intentos=1`, `error_mensaje=NULL`; cuerpo descifrado con el aviso "no responda"; adjunto con nombre/mime/tamaño correctos; cola en 0 pendientes.
+- El pipeline completo (UI "Enviar por Email" → cola cifrada → worker → SMTP Gmail con adjunto) queda operativo. Para producción: replicar las claves MAIL_* del `.env` en el servidor y programar el worker.
