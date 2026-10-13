@@ -113,7 +113,7 @@ class Auth {
             $stmt = $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
             $stmt->execute(['id' => (int) $user['id']]);
         } catch (\Exception $e) {
-            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+            Logger::warning('auth_update_ultimo_acceso', 'Failed to update ultimo_acceso: ' . $e->getMessage(), ['user_id' => (int) $user['id']]);
         }
     }
 
@@ -141,7 +141,7 @@ class Auth {
             $stmt = $db->prepare("UPDATE personas SET ultimo_acceso = NOW() WHERE id = :id");
             $stmt->execute(['id' => (int) $persona['id']]);
         } catch (\Exception $e) {
-            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+            Logger::warning('auth_update_ultimo_acceso', 'Failed to update ultimo_acceso: ' . $e->getMessage(), ['persona_id' => (int) $persona['id']]);
         }
     }
 
@@ -168,7 +168,7 @@ class Auth {
             $stmt = $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = :id");
             $stmt->execute(['id' => (int) $user['id']]);
         } catch (\Exception $e) {
-            error_log("[AUTH] Failed to update ultimo_acceso: " . $e->getMessage());
+            Logger::warning('auth_update_ultimo_acceso', 'Failed to update ultimo_acceso: ' . $e->getMessage(), ['user_id' => (int) $user['id']]);
         }
     }
 
@@ -190,7 +190,7 @@ class Auth {
                     JWT::blacklist($_SESSION['auth_jwt_jti'], (int)$_SESSION['auth_user']['id']);
                 }
             } catch (\Exception $e) {
-                error_log("[AUTH] Error revocando refresh tokens: " . $e->getMessage());
+                Logger::error('auth_revoke_refresh_tokens', 'Error revocando refresh tokens: ' . $e->getMessage(), ['user_id' => $_SESSION['auth_user']['id']]);
             }
         }
 

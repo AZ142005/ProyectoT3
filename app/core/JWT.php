@@ -152,7 +152,7 @@ class JWT {
                 }
             } catch (\Exception $e) {
                 if ($e instanceof InvalidArgumentException) throw $e;
-                // Si la BD no está disponible, no bloquear — el token expirará naturalmente
+                Logger::warning('jwt_blacklist_check', 'Fallo al verificar blacklist de JWT: ' . $e->getMessage(), ['jti' => $payload['jti'] ?? null]);
             }
         }
 
