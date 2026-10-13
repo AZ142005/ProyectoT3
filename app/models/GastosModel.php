@@ -283,10 +283,20 @@ class GastosModel extends BaseModel {
             $unidadesPorEdificio[$edId][] = $u;
         }
 
-        // 4. Calcular totales y cuotas por edificio
+        // 4. Calcular totales y cuotas por edificio (consulta agrupada para prevenir N+1)
+        $db = $this->db();
+        $stmtTotalesEd = $db->prepare("
+            SELECT edificio_id, ROUND(COALESCE(SUM(monto_total), 0), 2) AS total
+            FROM gastos_comunes
+            WHERE mes = :mes AND anio = :anio AND tipo_gasto = 'individual' AND deleted_at IS NULL
+            GROUP BY edificio_id
+        ");
+        $stmtTotalesEd->execute(['mes' => $mes, 'anio' => $anio]);
+        $totalesPorEdificioMap = $stmtTotalesEd->fetchAll(PDO::FETCH_KEY_PAIR);
+
         $edificiosCalculo = [];
         foreach ($unidadesPorEdificio as $edId => $listaUnidades) {
-            $totalEdificio = ($edId > 0) ? $this->obtenerTotalGastosPorEdificio($edId, $mes, $anio) : 0.00;
+            $totalEdificio = ($edId > 0) ? floatval($totalesPorEdificioMap[$edId] ?? 0.00) : 0.00;
             $countEd = count($listaUnidades);
             $cuotaEdificioUnidad = ($countEd > 0) ? round($totalEdificio / $countEd, 2) : 0.00;
 

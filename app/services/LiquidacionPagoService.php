@@ -10,6 +10,12 @@ use App\Models\MovimientosModel;
  */
 class LiquidacionPagoService {
 
+    private ?MovimientosModel $movModel;
+
+    public function __construct(?MovimientosModel $movModel = null) {
+        $this->movModel = $movModel;
+    }
+
     /**
      * Aplica un pago a las facturas pendientes de una unidad en orden cronológico (cascada)
      * y acredita cualquier excedente como saldo a favor en facturas y en movimientos_cuenta.
@@ -22,9 +28,10 @@ class LiquidacionPagoService {
      * @param string $concepto Concepto o referencia descriptiva del pago
      * @param int|null $referenciaId ID del pago o comprobante de origen
      * @param string|null $referenciaTipo Tipo de origen ('pago' | 'comprobante')
+     * @param MovimientosModel|null $movModel Instancia opcional para inyección de dependencias
      * @return array Resumen ['total_aplicado_deuda' => float, 'saldo_a_favor_generado' => float, 'facturas_afectadas' => array]
      */
-    public function aplicarPagoAUnidad(PDO $db, int $unidadId, float $montoTotal, string $concepto = '', ?int $referenciaId = null, ?string $referenciaTipo = null): array {
+    public function aplicarPagoAUnidad(PDO $db, int $unidadId, float $montoTotal, string $concepto = '', ?int $referenciaId = null, ?string $referenciaTipo = null, ?MovimientosModel $movModel = null): array {
         $montoTotal = round(floatval($montoTotal), 2);
         if ($montoTotal <= 0.00 || $unidadId <= 0) {
             return [
@@ -112,13 +119,13 @@ class LiquidacionPagoService {
         }
 
         // 4. Registro inmutable en el libro mayor (movimientos_cuenta)
-        $movModel = new MovimientosModel();
+        $movimientosModel = $movModel ?? $this->movModel ?? new MovimientosModel($db);
         $descripcion = "Abono por pago" . (!empty($concepto) ? " - {$concepto}" : "");
         if ($saldoAFavorGenerado > 0.009) {
             $descripcion .= " (Saldo a favor generado: " . formatearMoneda($saldoAFavorGenerado) . ")";
         }
 
-        $movModel->registrarMovimiento(
+        $movimientosModel->registrarMovimiento(
             $unidadId,
             'abono_pago',
             $montoTotal,

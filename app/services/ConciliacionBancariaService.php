@@ -5,6 +5,7 @@ use PDO;
 use Exception;
 use InvalidArgumentException;
 use App\Core\Database;
+use App\Core\Logger;
 use App\Models\ConciliacionModel;
 use App\Models\PagoModel;
 use App\Models\MovimientosModel;
@@ -140,27 +141,28 @@ class ConciliacionBancariaService {
         }
         $fecha = date('Y-m-d', $fechaTimestamp);
 
-        // Normalizar Monto (manejar formato 1.250,50 o 1250.50 o números negativos)
+        // Normalizar Monto (manejar formato 1.250,50, 1,250.50 o números negativos)
         $montoStr = trim($montoRaw);
-        $esNegativo = false;
-        if (str_starts_with($montoStr, '-') || str_starts_with($montoStr, '(')) {
-            $esNegativo = true;
-        }
+        $esNegativo = str_starts_with($montoStr, '-') || str_starts_with($montoStr, '(');
 
-        // Limpiar separadores de miles
-        $montoStr = str_replace([' ', '$', 'Bs.', 'Bs', '(', ')'], '', $montoStr);
+        // Limpiar símbolos monetarios, espacios y paréntesis contables
+        $montoStr = str_replace([' ', '$', 'Bs.', 'Bs', '(', ')', '-'], '', $montoStr);
         if (str_contains($montoStr, ',') && str_contains($montoStr, '.')) {
-            // Ejemplo 1.250,50 -> 1250.50
-            $montoStr = str_replace('.', '', $montoStr);
-            $montoStr = str_replace(',', '.', $montoStr);
+            if (strrpos($montoStr, ',') > strrpos($montoStr, '.')) {
+                // Formato europeo/latinoamericano: 1.250,50 -> 1250.50
+                $montoStr = str_replace('.', '', $montoStr);
+                $montoStr = str_replace(',', '.', $montoStr);
+            } else {
+                // Formato anglosajón/internacional: 1,250.50 -> 1250.50
+                $montoStr = str_replace(',', '', $montoStr);
+            }
         } elseif (str_contains($montoStr, ',')) {
             $montoStr = str_replace(',', '.', $montoStr);
         }
 
-        $monto = floatval($montoStr);
-        if ($esNegativo || $monto < 0) {
+        $monto = abs(floatval($montoStr));
+        if ($esNegativo) {
             $tipoMov = 'debito';
-            $monto = abs($monto);
         }
 
         if ($monto <= 0) {
@@ -440,7 +442,7 @@ class ConciliacionBancariaService {
             $db = $dbInstance ?: Database::getConnection();
             $pagosPendientes = $db->query($sqlPagos)->fetchAll(PDO::FETCH_ASSOC);
             if (count($pagosPendientes) >= 5000) {
-                error_log("[CONCILIACION] WARNING: 5000+ pagos pendientes — resultados truncados.");
+                Logger::warning('conciliacion_limite_pagos', '5000+ pagos pendientes — resultados truncados.');
             }
 
             // Referencias históricas ya conciliadas para detección de reclamos duplicados
@@ -805,14 +807,7 @@ class ConciliacionBancariaService {
             }
 
             if (!$extracto) {
-                $extracto = [
-                    'id'                  => $extractoId,
-                    'banco'               => 'banco',
-                    'fecha_movimiento'    => date('Y-m-d'),
-                    'referencia_bancaria' => 'REF-' . $extractoId,
-                    'monto'               => 0.0,
-                    'lote_importacion'    => 'LOTE-DIRECTO'
-                ];
+                throw new \App\Core\ConciliacionException("El extracto bancario ID {$extractoId} no fue encontrado.");
             }
 
             if ($esComprobante) {
@@ -829,7 +824,7 @@ class ConciliacionBancariaService {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
-            error_log("[CONCILIACION] Error en conciliarYaprobar: " . $e->getMessage());
+            Logger::error('conciliacion_aprobar', 'Error en conciliarYaprobar: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -857,6 +852,10 @@ class ConciliacionBancariaService {
             throw new Exception("El comprobante de pago ID {$comprobanteId} no fue encontrado.");
         }
 
+        if ((float)($extracto['monto'] ?? 0) > 0 && abs((float)$comprobante['monto'] - (float)$extracto['monto']) > 0.01) {
+            throw new \App\Core\ConciliacionException("El monto del comprobante no coincide con el monto del extracto bancario.");
+        }
+
         if (strtolower($comprobante['estado'] ?? '') === 'aprobado') {
             $conciliacionModel = new ConciliacionModel();
             $conciliacionModel->marcarConciliado($extracto['id'], $comprobanteId, $adminId);
@@ -867,55 +866,18 @@ class ConciliacionBancariaService {
             ];
         }
 
-        // Si tiene factura asociada, actualizar saldo de la factura
-        if (!empty($comprobante['factura_id'])) {
-            $stmtFacturaLock = $db->prepare("SELECT id, saldo, monto_pagado FROM facturas WHERE id = :factura_id FOR UPDATE");
-            $stmtFacturaLock->execute(['factura_id' => $comprobante['factura_id']]);
-            $factura = $stmtFacturaLock->fetch(PDO::FETCH_ASSOC);
-
-            if ($factura) {
-                $montoComp = floatval($comprobante['monto']);
-                $saldoFactura = floatval($factura['saldo']);
-                $nuevo_saldo = max($saldoFactura - $montoComp, 0);
-                $nuevo_pagado = floatval($factura['monto_pagado']) + $montoComp;
-                $saldoAFavor = $montoComp - $saldoFactura;
-
-                $stmtFactura = $db->prepare("UPDATE facturas SET saldo = :saldo, monto_pagado = :monto_pagado, estado = :estado WHERE id = :factura_id");
-                $stmtFactura->execute([
-                    'saldo'       => $nuevo_saldo,
-                    'monto_pagado'=> $nuevo_pagado,
-                    'estado'      => $nuevo_saldo <= 0 ? 'pagada' : 'pendiente',
-                    'factura_id'  => $comprobante['factura_id']
-                ]);
-
-                // Aplicar saldo a favor a la siguiente factura pendiente si corresponde
-                if ($saldoAFavor > 0.01 && !empty($comprobante['residente_id'])) {
-                    $stmtSiguiente = $db->prepare("
-                        SELECT f.id, f.saldo FROM facturas f
-                        INNER JOIN unidades u ON f.unidad_id = u.id
-                        WHERE u.propietario_id = :pid AND f.saldo > 0 AND f.id != :factura_id
-                        AND f.deleted_at IS NULL
-                        ORDER BY f.fecha_vencimiento ASC LIMIT 1
-                    ");
-                    $stmtSiguiente->execute(['pid' => $comprobante['residente_id'], 'factura_id' => $comprobante['factura_id']]);
-                    $siguienteFactura = $stmtSiguiente->fetch(PDO::FETCH_ASSOC);
-
-                    if ($siguienteFactura) {
-                        $abono = min($saldoAFavor, floatval($siguienteFactura['saldo']));
-                        $nuevoSaldoSig = floatval($siguienteFactura['saldo']) - $abono;
-                        $stmtAbono = $db->prepare("
-                            UPDATE facturas SET saldo = :saldo, monto_pagado = monto_pagado + :abono,
-                            estado = :estado WHERE id = :fid
-                        ");
-                        $stmtAbono->execute([
-                            'saldo'  => $nuevoSaldoSig,
-                            'abono'  => $abono,
-                            'estado' => $nuevoSaldoSig <= 0 ? 'pagada' : 'pendiente',
-                            'fid'    => $siguienteFactura['id']
-                        ]);
-                    }
-                }
-            }
+        // Liquidar facturas en cascada, registrar en libro mayor y generar saldo a favor si hay remanente
+        if (!empty($comprobante['unidad_id'])) {
+            $liquidacionService = new LiquidacionPagoService();
+            $refTexto = "Conciliación bancaria Ref. " . ($comprobante['referencia'] ?? $comprobanteId);
+            $liquidacionService->aplicarPagoAUnidad(
+                $db,
+                intval($comprobante['unidad_id']),
+                floatval($comprobante['monto']),
+                $refTexto,
+                $comprobanteId,
+                'comprobante'
+            );
         }
 
         // Actualizar comprobante de pago
@@ -945,22 +907,13 @@ class ConciliacionBancariaService {
         $conciliacionModel = new ConciliacionModel();
         $conciliacionModel->marcarConciliado($extracto['id'], $comprobanteId, $adminId);
 
-        // Registrar abono en el libro mayor de la unidad
-        if (!empty($comprobante['unidad_id'])) {
-            $movimientosModel = new MovimientosModel();
-            $movimientosModel->registrarMovimiento(
-                intval($comprobante['unidad_id']),
-                'abono_pago',
-                floatval($comprobante['monto']),
-                "Abono por pago conciliado Ref. " . $comprobante['referencia'],
-                $comprobanteId,
-                'comprobante'
-            );
-        }
-
-        $this->enviarNotificacionConciliacion($comprobante, $extracto);
-
         $db->commit();
+
+        try {
+            $this->enviarNotificacionConciliacion($comprobante, $extracto);
+        } catch (\Throwable $ne) {
+            Logger::warning('conciliacion_notificacion', 'Advertencia al despachar notificación de comprobante: ' . $ne->getMessage(), ['comprobante_id' => $comprobanteId]);
+        }
 
         return [
             'success' => true,
@@ -998,6 +951,14 @@ class ConciliacionBancariaService {
             ];
         }
 
+        if (!\App\Core\EstadoPago::puedeTransicionar($pago['estado'], 'APROBADO')) {
+            throw new \App\Core\ConciliacionException("Transición de estado inválida desde {$pago['estado']} a APROBADO.");
+        }
+
+        if ((float)($extracto['monto'] ?? 0) > 0 && abs((float)$pago['monto'] - (float)$extracto['monto']) > 0.01) {
+            throw new \App\Core\ConciliacionException("El monto del pago no coincide con el monto del extracto bancario.");
+        }
+
         // Aprobar el pago formalmente
         $stmtUpdatePago = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
         $stmtUpdatePago->execute(['id' => $pagoId]);
@@ -1016,25 +977,32 @@ class ConciliacionBancariaService {
             );
         }
 
-        // Registrar en log de auditoría
+        // Registrar en log de auditoría estandarizado
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
         $stmtLog = $db->prepare("
-            INSERT INTO log_auditoria (pago_id, admin_id, estado_anterior, estado_nuevo, motivo)
-            VALUES (:pago_id, :admin_id, :estado_ant, 'APROBADO', :motivo)
+            INSERT INTO log_auditoria (pago_id, admin_id, accion, tabla_afectada, registro_id, estado_anterior, estado_nuevo, motivo, ip_address)
+            VALUES (:pago_id, :admin_id, 'conciliacion_bancaria', 'pagos', :registro_id, :estado_ant, 'APROBADO', :motivo, :ip)
         ");
         $stmtLog->execute([
-            'pago_id'    => $pagoId,
-            'admin_id'   => $adminId,
-            'estado_ant' => $pago['estado'],
-            'motivo'     => "Conciliación bancaria exitosa (Lote: {$extracto['lote_importacion']})"
+            'pago_id'     => $pagoId,
+            'admin_id'    => $adminId,
+            'registro_id' => $pagoId,
+            'estado_ant'  => $pago['estado'],
+            'motivo'      => "Conciliación bancaria exitosa (Lote: {$extracto['lote_importacion']})",
+            'ip'          => $ip
         ]);
 
         // Vincular en extractos_bancarios
         $conciliacionModel = new ConciliacionModel();
         $conciliacionModel->marcarConciliado($extracto['id'], $pagoId, $adminId);
 
-        $this->enviarNotificacionConciliacion($pago, $extracto);
-
         $db->commit();
+
+        try {
+            $this->enviarNotificacionConciliacion($pago, $extracto);
+        } catch (\Throwable $ne) {
+            Logger::warning('conciliacion_notificacion', 'Advertencia al despachar notificación de pago: ' . $ne->getMessage(), ['pago_id' => $pagoId]);
+        }
 
         return [
             'success' => true,
@@ -1082,7 +1050,7 @@ class ConciliacionBancariaService {
                 );
             }
         } catch (\Throwable $e) {
-            error_log("[CONCILIACION] Advertencia al despachar notificación de conciliación: " . $e->getMessage());
+            Logger::warning('conciliacion_notificacion', "Advertencia al despachar notificación de conciliación: " . $e->getMessage());
         }
     }
 
@@ -1405,9 +1373,9 @@ class ConciliacionBancariaService {
      * Descomprime una cadena comprimida con zlib (FlateDecode).
      */
     private function descomprimirCadena(string $raw): string {
-        $decomp = @gzuncompress($raw);
+        $decomp = @gzuncompress($raw, 4194304);
         if ($decomp === false) {
-            $decomp = @gzinflate($raw);
+            $decomp = @gzinflate($raw, 4194304);
         }
         return ($decomp !== false) ? $decomp : $raw;
     }

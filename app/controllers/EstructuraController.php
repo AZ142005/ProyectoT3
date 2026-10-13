@@ -44,47 +44,23 @@ class EstructuraController extends Controller {
         $cacheFile = $cacheDir . '/data_' . $filtroEdificio . '.json';
         $cacheTtl = 60;
 
+        $datosValidos = false;
         if (file_exists($cacheFile)) {
             $cached = json_decode(file_get_contents($cacheFile), true);
             if (is_array($cached) && isset($cached['timestamp']) && (time() - $cached['timestamp']) < $cacheTtl) {
                 $edificios = $cached['edificios'];
                 $unidades  = $cached['unidades'];
-            } else {
-                $edificios = $edificiosModel->getAll();
-                $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
-                foreach ($unidades as &$u) {
-                    $residentes = $personasModel->getByUnidadId((int)$u['id'], true);
-                    foreach ($residentes as &$r) {
-                        $r['es_titular'] = ((int)($u['propietario_id'] ?? 0) === (int)$r['id']);
-                    }
-                    unset($r);
-                    $u['residentes'] = $residentes;
-                }
-                unset($u);
-
-                $unidadesPorEdificio = [];
-                foreach ($unidades as $u) {
-                    $edId = (int)($u['edificio_id'] ?? 0);
-                    $unidadesPorEdificio[$edId][] = $u;
-                }
-                foreach ($edificios as &$ed) {
-                    $edId = (int)$ed['id'];
-                    $ed['unidades_list'] = $unidadesPorEdificio[$edId] ?? [];
-                    $totalRes = 0;
-                    foreach ($ed['unidades_list'] as $u) {
-                        $totalRes += count($u['residentes'] ?? []);
-                    }
-                    $ed['total_residentes'] = $totalRes;
-                }
-                unset($ed);
-
-                file_put_contents($cacheFile, json_encode(['edificios' => $edificios, 'unidades' => $unidades, 'timestamp' => time()]));
+                $datosValidos = true;
             }
-        } else {
+        }
+
+        if (!$datosValidos) {
             $edificios = $edificiosModel->getAll();
             $unidades  = $unidadesModel->getAllWithEdificio($filtroEdificio);
+            $residentesMap = $personasModel->getResidentesAgrupadosPorUnidad($filtroEdificio);
+
             foreach ($unidades as &$u) {
-                $residentes = $personasModel->getByUnidadId((int)$u['id'], true);
+                $residentes = $residentesMap[(int)$u['id']] ?? [];
                 foreach ($residentes as &$r) {
                     $r['es_titular'] = ((int)($u['propietario_id'] ?? 0) === (int)$r['id']);
                 }

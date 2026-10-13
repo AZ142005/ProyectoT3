@@ -555,10 +555,6 @@ class ComprobantesModel extends BaseModel {
                 'comprobante'
             );
 
-            // Contexto contable para trazabilidad y compatibilidad de auditoría
-            $saldoAFavor = $resumenLiq['saldo_a_favor_generado'];
-            $siguienteFactura = count($resumenLiq['facturas_afectadas']) > 1 ? $resumenLiq['facturas_afectadas'][1] : null;
-            
             // Actualizar comprobante
             $stmtComprobante = $db->prepare("UPDATE comprobantes_pago SET estado = 'aprobado', observaciones = :observaciones WHERE id = :id");
             $stmtComprobante->execute([
