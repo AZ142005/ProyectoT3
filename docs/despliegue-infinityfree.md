@@ -124,7 +124,7 @@ Con token incorrecto responde 403; si el `.env` no tiene `CRON_TOKEN`, responde 
 
 ### Antes del primer disparo
 
-- **El dump actual trae 12 correos en `pendiente`** (residuos sintéticos de pruebas, `RECHTEST…`/`DEP-TWIN…`). Antes del primer disparo del cron, anularlos tras importar:
+- **El dump puede traer correos en `pendiente`** (residuos sintéticos de pruebas, `RECHTEST…`/`DEP-TWIN…`). Antes del primer disparo del cron, verificarlos y anularlos tras importar:
   `UPDATE notificaciones_cola SET estado='fallido', error_mensaje='Anulado pre-despliegue' WHERE estado='pendiente';`
 - Copiar `NOTIFICATION_ENCRYPT_KEY` idéntica a la local (los correos nuevos se cifran con la clave del servidor; la copia evita sorpresas con datos del dump).
 - Prueba de humo real: pedir un OTP desde el login del servidor → abrir la URL del cron a mano → verificar que llegó el correo y que la fila pasó a `enviado`.
