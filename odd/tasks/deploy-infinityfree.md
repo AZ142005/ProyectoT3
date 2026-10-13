@@ -19,7 +19,7 @@ Dejar el proyecto desplegable en InfinityFree (plan gratuito), corrigiendo los 8
 ## Checklist
 
 - [x] T1 Autoload PSR-4 case-safe (cerrada 2026-10-13, commit `9a654ba`).
-- [x] T2 Layout de subida — documentado en `docs/despliegue-infinityfree.md` (mapa de subida, exclusiones y paso a paso).
+- [x] T2 Layout de subida — documentado en `docs/despliegue-infinityfree.md`; **corregido 2026-10-13**: InfinityFree prohíbe archivos fuera de htdocs (open_basedir + borrado automático); layout definitivo = todo dentro de htdocs + `.htaccess` rewrite hacia `/public/` (receta oficial). Ajuste de código: en `index.php` el prefijo del script se descuenta solo si está presente en la URI.
 - [x] T3 Proxy seguro de soportes — `public/soporte-proxy.php` (sesión obligatoria, basename, allowlist, MIME real) + URLs actualizadas en `residente/gastos.php` y `admin/gastos/index.php`; `BehaviorTest` #26 migrado al proxy.
 - [x] T4 Resuelto por diseño: `public/uploads` es local e ignorado por git (no se sube); la protección legacy quedó reemplazada por el proxy de T3.
 - [ ] T5 `.env` de producción (DB `sqlXXX`, claves nuevas, `MAIL_MODE=smtp`) + activar SSL antes de `ENVIRONMENT=production`.

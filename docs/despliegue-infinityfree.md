@@ -3,32 +3,45 @@
 Complementa el seguimiento interno en `odd/tasks/deploy-infinityfree.md`.
 Estado: T1–T4 y T6 cerradas; T5/T7/T8 corresponden al momento del despliegue (secciones 3–5 de esta guía).
 
-## 1. Por qué este layout
+> **Revisión 2026-10-13 (layout definitivo):** InfinityFree **no permite archivos ni carpetas fuera de `htdocs`** (la creación se rechaza en el gestor web; `open_basedir` restringe PHP a `htdocs` y lo subido fuera se elimina). El layout correcto es **todo dentro de `htdocs/`** con `public/` como subcarpeta y un `.htaccess` de rewrite — receta oficial del hosting. Reemplaza al layout anterior (código fuera de htdocs), que no es aplicable aquí.
 
-- InfinityFree sirve **solo** la carpeta `htdocs` del dominio; no se puede cambiar el webroot.
-- El proyecto asume que `public/` es la raíz web, con el resto del código fuera de ella.
-- En el servidor eso se traduce así: el **contenido** de `public/` va dentro de `htdocs/`, y todo lo demás queda al lado de `htdocs/` (raíz de la cuenta), inaccesible desde el navegador.
-- Las rutas relativas del código ya soportan este layout (`public/index.php` usa `../vendor` y `../app`; `config.php` calcula `BASE_PATH = dirname(__DIR__, 2)`), por lo que **no requiere cambios de código**.
-- Beneficio de seguridad: `.env` (credenciales), `app/`, `vendor/` y los datos subidos quedan fuera del alcance web.
+## 1. Por qué este layout (revisado 2026-10-13)
 
-## 2. Mapa de subida
+- InfinityFree sirve **solo** `htdocs` como webroot (no configurable) y además **PHP está restringido a `htdocs`** (`open_basedir`): no puede leer ni escribir fuera de esa carpeta, y lo que se sube fuera se elimina. El layout "código fuera de htdocs" **no es posible** en este hosting; el gestor web directamente rechaza crear carpetas fuera ("Directory creation is only allowed in htdocs folders").
+- El proyecto asume que `public/` es la raíz web, con `app/`, `vendor/`, etc. como hermanos de `public/`. Eso se preserva si **todo el proyecto vive dentro de `htdocs/`**:
+  - `htdocs/public/` ← la carpeta `public/` completa.
+  - `htdocs/app/`, `htdocs/vendor/`, `htdocs/uploads/`, `htdocs/logs/`, `htdocs/storage/`, `htdocs/.env` ← dentro de htdocs.
+- Un **`.htaccess` nuevo en la raíz de `htdocs`** reescribe toda petición hacia `/public/` (receta oficial de InfinityFree para estructuras con carpeta pública):
 
-| En la PC | En el servidor | Contenido |
-|---|---|---|
-| `public/` (su contenido) | `htdocs/` | `index.php`, `.htaccess`, `comprobante-proxy.php`, `img/`, `js/`, favicons |
-| `app/` | raíz de la cuenta | todo el código (Core, Controllers, Models, Services, views, …) |
-| `vendor/` | raíz de la cuenta | autoloader (ya está versionado en el repo) |
-| `uploads/` | raíz de la cuenta | crear `uploads/comprobantes` y `uploads/soportes` |
-| `logs/` | raíz de la cuenta | crear vacía (la app escribe aquí en producción) |
-| `storage/` | raíz de la cuenta | crear `storage/backups`, `storage/logs`, `storage/cache` |
-| `scripts/` | raíz de la cuenta | opcional; herramientas CLI (no accesibles por web por estar fuera de `htdocs`) |
-| `.env` | raíz de la cuenta | NO se sube desde la PC: se crea en el servidor con los valores de producción (T5) |
-| `database/*.sql` | — | no se suben; el dump se importa por phpMyAdmin |
+  ```apache
+  RewriteEngine On
+  RewriteRule (.*) /public/$1 [L]
+  ```
+
+- **Protección por rewrite**: una URL sensible (`/.env`, `/app/...`, `/storage/...`) se reescribe a `/public/...` (que no existe) → 404. El `.env` queda dentro de htdocs pero inaccesible desde el navegador.
+- Las rutas relativas siguen funcionando igual (`public/index.php` usa `../app` y `../vendor`, ahora dentro de htdocs; `BASE_PATH = dirname(__DIR__, 2)` = `htdocs`). Único ajuste de código ya aplicado: `index.php` descuenta el prefijo del script solo si está presente en la URI (bajo este rewrite la URL pública no lleva `/public`).
+
+## 2. Mapa de subida (todo dentro de htdocs)
+
+El paquete `deploy-infinityfree-htdocs.zip` ya trae esta estructura lista: se sube **el contenido completo dentro de `htdocs/`**.
+
+| Dentro del paquete | Destino en el servidor |
+|---|---|
+| `.htaccess` (nuevo) | `htdocs/.htaccess` — rewrite hacia `/public/` |
+| `public/` (carpeta completa) | `htdocs/public/` — index.php, .htaccess, proxies, img/, js/, favicons |
+| `app/` | `htdocs/app/` |
+| `vendor/` | `htdocs/vendor/` |
+| `uploads/` | `htdocs/uploads/` (crear `comprobantes` y `soportes`) |
+| `logs/` | `htdocs/logs/` |
+| `storage/` | `htdocs/storage/` (`backups`, `logs`, `cache`) |
+| `scripts/` | `htdocs/scripts/` (opcional; herramientas CLI) |
+| `.env.example` | referencia; el `.env` real se crea en `htdocs/.env` (T5) |
+| `database/*.sql` | no se suben; el dump se importa por phpMyAdmin |
 
 Notas:
 
-- Subir el **contenido** de `public/`, no la carpeta `public` (la URL debe quedar `https://tudominio/`, no `https://tudominio/public/`).
-- `public/uploads/` es una carpeta local de desarrollo (ignorada por git) y **no se sube**: los soportes se guardan y sirven desde `uploads/soportes/` mediante el proxy seguro `/soporte-proxy.php`.
+- Las URLs del navegador **no cambian**: el rewrite hace que `https://tudominio/loquesea` se sirva desde `htdocs/public/loquesea`.
+- `public/uploads/` no existe en el paquete (era local): los soportes se guardan y sirven desde `htdocs/uploads/soportes/` mediante `/soporte-proxy.php`.
 
 ## 3. Qué NO subir
 
@@ -62,11 +75,8 @@ Lo único que **debe** existir: `vendor/` (autoloader), el `.env` de producción
 1. **Cuenta y dominio**: registrarse en InfinityFree y crear el dominio (sirve el subdominio gratuito).
 2. **Base de datos**: en el panel, crear la base MySQL y anotar host (`sqlXXX.infinityfree.com`), nombre, usuario y contraseña.
 3. **Importar**: en phpMyAdmin, importar `database/condominio_cobranzas (5).sql` (~0.44 MB; sin triggers ni `DEFINER`, importa limpio). El dump trae los usuarios y personas del entorno local: probar el primer acceso con esas credenciales. Si hiciera falta resetear una contraseña, se hace con un `UPDATE` por phpMyAdmin (el plan gratuito no tiene CLI/SSH, no se pueden correr los scripts de `scripts/`).
-4. **FTP**: con FileZilla, conectarse con el host y credenciales que indique el panel (la raíz FTP es la raíz de la cuenta: ahí se ve `htdocs`).
-   - Subir el contenido de `public/` → dentro de `htdocs/`.
-   - Subir `app/`, `vendor/`, `scripts/` → raíz de la cuenta.
-   - Crear las carpetas de la tabla del punto 2 (`uploads/comprobantes`, `uploads/soportes`, `logs`, `storage/backups`, `storage/logs`, `storage/cache`).
-5. **`.env` de producción**: crear el archivo en la raíz (fuera de `htdocs`) con los valores reales — ver punto T5 del seguimiento (host `sqlXXX`, claves de seguridad nuevas, `MAIL_MODE=smtp`).
+4. **FTP**: extraer `deploy-infinityfree-htdocs.zip` y subir **el contenido completo DENTRO de `htdocs/`** con FileZilla (host y credenciales del panel; la raíz FTP es la raíz de la cuenta, entrar a `htdocs/`). Se recomienda **vaciar antes `htdocs`** para no mezclar estados. El paquete incluye `public/` como subcarpeta, el `.htaccess` raíz nuevo, `app/`, `vendor/`, `uploads/`, `logs/`, `storage/` y `scripts/`.
+5. **`.env` de producción**: crear el archivo en `htdocs/.env` con los valores reales — ver T5 y la sección 7 (host `sqlXXX`, claves de seguridad nuevas, `MAIL_MODE=smtp`). Queda protegido por el rewrite (404 desde el navegador).
 6. **PHP**: en el panel, seleccionar PHP 8.3/8.4 (el código es compatible; no usa sintaxis más nueva).
 7. **SSL**: activar el certificado gratuito y esperar a que propague **antes** de poner `ENVIRONMENT=production` (la cookie de sesión es `secure` y sin HTTPS el login no funciona).
 8. **Pruebas rápidas**: cargar home y login; subir un comprobante real (valida el límite de 10 MB por archivo); abrir un soporte de gasto (valida el proxy de T3); revisar que se escriba `logs/`.
@@ -95,10 +105,10 @@ InfinityFree no tiene cron: la cola de correos (OTP de 2FA, cartas de deuda, avi
 
 | Archivo | Destino | Para qué |
 |---|---|---|
-| `public/cron-notificaciones.php` | `htdocs/cron-notificaciones.php` | Disparador web del worker (el archivo que llama el cron externo) |
-| `app/Services/NotificationQueueWorker.php` | raíz → `app/Services/` | Worker compartido (viaja con la carpeta `app/`) |
-| `app/Services/EmailService.php` + `SmtpMailer.php` | raíz → `app/Services/` | Transporte SMTP real (viajan con `app/`) |
-| `.env` del servidor | raíz de la cuenta | `MAIL_*` idénticas a tu entorno local + `CRON_TOKEN` nuevo |
+| `public/cron-notificaciones.php` | `htdocs/public/cron-notificaciones.php` | Disparador web del worker (la URL pública no cambia: el rewrite lo sirve igual) |
+| `app/Services/NotificationQueueWorker.php` | `htdocs/app/Services/` | Worker compartido (viaja con la carpeta `app/`) |
+| `app/Services/EmailService.php` + `SmtpMailer.php` | `htdocs/app/Services/` | Transporte SMTP real (viajan con `app/`) |
+| `.env` del servidor | `htdocs/.env` | `MAIL_*` idénticas a tu entorno local + `CRON_TOKEN` nuevo |
 
 El CLI `scripts/process_notifications.php` no es necesario en el servidor (solo se usa en local).
 
