@@ -1,6 +1,6 @@
 # ODD task: Respaldo único descargable con borrado tras descarga
 
-**Estado**: IMPLEMENTADO — pendiente verificación independiente (2026-10-17)
+**Estado**: COMPLETADO (2026-10-17) — verificación independiente cerrada (VERIFIED CON OBSERVACIONES; F1/F2 corregidos con `06527a6` y re-verificados RESUELTOS); espejo Engram sincronizado
 **Autorizado por**: usuario («unifica todo a un solo respaldo… una vez descargado se borre del sistema en una semana para evitar acumulación» + decisión «Todo al ciclo único»)
 **Ruta**: ODD delegated direct — writer único + verificador independiente
 
@@ -53,7 +53,7 @@ Commits sugeridos (work units, Conventional Commits):
 - [x] T5 — Controlador y vista: `RespaldoController::index()` (solo el vigente, `LIMIT 1`), `descargar()` y `descargarPurga()` setean `fecha_descarga = NOW()` tras validar; tarjeta única con botón; copys; render verificado en admin y auditor.
 - [x] T6 — Tests: nuevo `tests/RespaldoUnicoTest.php` (migración, reglas, estática de vista/controlador; DB con patrón skip) + ajustes a `RetencionDatosTest`/`BackupTest`. `php -l` a todo lo tocado.
 - [x] T7 — Verificación funcional: migración ×2 (idempotencia); `backup_database.php` real → exactamente 1 par de archivos en `storage/backups/`; sintéticos para: exporte descargado vencido (7 d) → borrado, exporte nunca descargado (>30 d) → borrado, exporte reciente → intacto, respaldo general descargado vencido → borrado por backstop (dry-run primero; sintéticos limpiados al final); suites verdes; smoke 302; `schtasks /Run /TN "Condominio-Retencion"` → Último resultado 0.
-- [ ] V — Verificación independiente (read-only) — patrón de la tarea anterior (diff, código, re-ejecución, evidencia).
+- [x] V — Verificación independiente (read-only) ejecutada por subagente independiente sobre `a4f3350..65dd91e`: **VERIFIED CON OBSERVACIONES** (sin blockers). Hallazgos altos F1 (SHA-256 muerto en la descarga del respaldo general) y F2 (reemplazo sin validar el archivo nuevo) → **corrección acotada `06527a6`** → re-verificación del delta: **F1/F2 RESUELTOS**; N1–N4 notas residuales. Detalle en las secciones «Corrección post-verificación» y «Cierre del orquestador».
 - [x] D — Doc: checkboxes + evidencia (commits, comandos, archivos); espejo Engram lo sincroniza el orquestador.
 
 ## Criterios de aceptación
@@ -141,6 +141,15 @@ La verificación independiente de `a4f3350..65dd91e` devolvió «VERIFIED CON OB
 - F1 empírico (harness CLI, fila id 31 del respaldo vigente): con `hash_sha256` corrupto en BD → `¡ALERTA DE INTEGRIDAD! El archivo de respaldo ha sido modificado. El checksum SHA-256 no coincide.` y `fecha_descarga` permanece NULL; con el hash real → transmite y marca `fecha_descarga = 2026-10-17 14:16:27` (NOW() de MySQL). Hash restaurado y `fecha_descarga` reseteado a NULL tras la prueba.
 - F2 empírico: ruta del nuevo `.sql.gz` colisionada con un directorio → `❌ ERROR EN GENERACIÓN DE RESPALDO: No se pudo escribir el archivo de respaldo: backup_2026-10-17_20-16-55.sql.gz`, `exit=1`, línea `[2026-10-17 20:16:55] [ERROR] No se pudo escribir el archivo de respaldo: backup_2026-10-17_20-16-55.sql.gz` en `storage/logs/backups.log` y el par anterior (`backup_2026-10-17_20-16-43.sql.gz` + `.sha256`) intacto; directorios de colisión eliminados después (estado final: 1 par vigente).
 - Asserts nuevos (estáticos, con orden verificado): `tests/RespaldoUnicoTest.php::testDescargarResuelveElHashDesdeHashSha256` (hash real desde `hash_sha256`, alias legado, orden resolución→comparación→marca→transmisión, header y alerta intactos) y guardas en `tests/BackupTest.php::testBackupDatabaseReemplazaSoloTrasRegistrarElNuevo` (escritura/tamaño/firma SHA-256 antes del bloque de borrado).
+
+### Cierre del orquestador (2026-10-17)
+
+- Verificación independiente (subagente read-only, rango `a4f3350..65dd91e`): **VERIFIED CON OBSERVACIONES** — sin blockers. Los hallazgos altos **F1** (la descarga del respaldo general validaba `checksum_sha256`, columna NULL en las filas reales: verificación de integridad muerta) y **F2** (el reemplazo borraba anteriores sin validar el archivo nuevo) derivaron en la **corrección acotada `06527a6`** (un solo commit con tests + doc). La re-verificación del delta dictaminó **F1/F2 RESUELTOS** sin hallazgos nuevos.
+- Notas residuales N1–N4 (no bloquean): escritura parcial/gzip no verificado en el pre-reemplazo; `.sha256` sin guarda propia de escritura; cobertura de tests estática para estos bordes; un `hash_sha256=''` insertado manualmente saltaría la comprobación (el generador ya no inserta vacíos).
+- Veredicto final de la feature: **cerrada** — panel con respaldo único + botón; ciclo 7/30 demostrado con sintéticos (dry-run + real); reemplazo con guardas y par anterior intacto ante fallo; integridad SHA-256 efectiva (alerta con hash corrupto, marca de descarga solo con hash válido); `storage/backups` = exactamente 1 par vigente + `purgas/` + `.htaccess`.
+- Commits totales de la tarea: `abca162`, `249c955`, `727a4f1`, `00a6383`, `65dd91e` (implementación) + `06527a6` (corrección F1/F2) + este cierre (`docs(odd)`). Todos locales en `main`, sin push.
+- RDD: activado (global); `review assess` → `unassessable/high` (runtime sin revisión nativa) → verificación funcional + verificador independiente (patrón aceptado del repo).
+- Espejo Engram sincronizado por el orquestador al cierre.
 
 ## Notas
 
