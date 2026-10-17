@@ -171,7 +171,7 @@
                                     <div>
                                         <p class="font-bold">Deudas ya enviadas</p>
                                         <p class="mt-0.5 text-xs text-yellow-600/90 leading-relaxed">
-                                            Ya se han enviado las deudas del mes actual de <strong><?= nombreMes($mes) ?> <?= e($anio) ?></strong>. Si decides presionar el botón «Re-enviar Deuda», se recalculará y duplicará la deuda mensual para los residentes. Utiliza esta acción únicamente si eliminaste las deudas anteriores.
+                                            Ya se han enviado las deudas de <strong><?= nombreMes($mes) ?> <?= e($anio) ?></strong>. Si presionas «Re-enviar Deuda», el sistema recalculará y <strong>actualizará</strong> las facturas del período (no se duplican): se conserva lo ya pagado y se aplican las deudas manuales guardadas.
                                         </p>
                                     </div>
                                 </div>
@@ -198,22 +198,200 @@
                                     </button>
                                 </form>
                         </div>
+
+                        <!-- Tarjeta de Deudas Manuales del período -->
+                        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-6">
+                            <div class="flex justify-between items-center pb-4 border-b border-background mb-4">
+                                <h3 class="text-lg font-bold text-on-surface flex items-center gap-2 mb-0">
+                                    <span class="material-symbols-outlined text-primary">edit_note</span>
+                                    <span>Deudas manuales — <?= nombreMes($mes) ?> <?= e($anio) ?></span>
+                                </h3>
+                                <span class="badge bg-slate-100 text-slate-700 border px-3 py-1.5 rounded-xl font-bold text-xs">
+                                    <?= count($deudasManuales) ?> unidades
+                                </span>
+                            </div>
+
+                            <?php if (empty($deudasManuales)): ?>
+                                <p class="text-sm text-on-surface-variant mb-0">No hay deudas manuales guardadas para este período. Usa «Nuevo Gasto» → «Deuda manual por unidad» para cargarlas: se aplicarán al enviar/re-enviar la deuda del mes.</p>
+                            <?php else: ?>
+                                <?php $totalDeudasManuales = 0.0; ?>
+                                <div class="table-responsive">
+                                    <table class="w-full text-left text-sm border-collapse">
+                                        <thead>
+                                            <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
+                                                <th class="py-2 px-3">Edificio</th>
+                                                <th class="py-2 px-3">Unidad</th>
+                                                <th class="py-2 px-3 text-right">Monto por unidad</th>
+                                                <th class="py-2 px-3 text-center">Quitar</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-background">
+                                            <?php foreach ($deudasManuales as $dm): ?>
+                                                <?php $totalDeudasManuales += floatval($dm['monto']); ?>
+                                                <tr class="hover:bg-background/40 transition-colors">
+                                                    <td class="py-2 px-3"><?= e($dm['edificio_nombre'] ?: 'Sin edificio') ?></td>
+                                                    <td class="py-2 px-3 font-semibold">Apto <?= e($dm['unidad_numero']) ?></td>
+                                                    <td class="py-2 px-3 text-right font-bold"><?= formatearMoneda($dm['monto']) ?></td>
+                                                    <td class="py-2 px-3 text-center">
+                                                        <form method="POST" action="/admin/gastos/deuda-manual/eliminar" class="d-inline">
+                                                            <?= csrf_field() ?>
+                                                            <input type="hidden" name="unidad_id" value="<?= e($dm['unidad_id']) ?>">
+                                                            <input type="hidden" name="mes" value="<?= e($mes) ?>">
+                                                            <input type="hidden" name="anio" value="<?= e($anio) ?>">
+                                                            <button type="submit" class="text-red-600 hover:text-red-700" title="Quitar deuda manual de esta unidad">
+                                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-4">
+                                    <p class="text-sm font-bold text-on-surface mb-0">Total del período: <?= formatearMoneda($totalDeudasManuales) ?></p>
+                                    <form method="POST" action="/admin/gastos/deuda-manual/limpiar" onsubmit="return confirm('¿Eliminar todas las deudas manuales de <?= nombreMes($mes) ?> <?= e($anio) ?>?');">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="mes" value="<?= e($mes) ?>">
+                                        <input type="hidden" name="anio" value="<?= e($anio) ?>">
+                                        <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl text-xs border border-red-200 transition-all inline-flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                                            <span>Limpiar período</span>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <?php if ($facturas_existentes > 0): ?>
+                                    <div class="bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-2xl p-3 text-xs mt-4 flex items-start gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-yellow-700 shrink-0">warning</span>
+                                        <span>Hay facturas emitidas para este período: presiona Re-enviar Deuda para aplicar los cambios.</span>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
 <!-- Modal para Registrar Nuevo Gasto -->
 <div class="modal fade" id="modalNuevoGasto" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content rounded-3 border-0 shadow-lg">
-            <form method="POST" action="/admin/gastos/guardar" enctype="multipart/form-data">
-                <?= csrf_field() ?>
-                <div class="modal-header bg-primary text-white py-3">
-                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
-                        <span class="material-symbols-outlined">receipt</span>
-                        Registrar Gasto del Conjunto
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined">receipt</span>
+                    Registrar Gasto o Deuda Manual
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pb-0">
+                <!-- Tipo de registro -->
+                <div class="row g-3 mb-3 bg-light p-2.5 rounded-3 border border-slate-200">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small text-dark">Tipo de registro <span class="text-danger">*</span></label>
+                        <select id="modal_tipo_registro" class="form-select" onchange="toggleTipoRegistroModal(this.value)">
+                            <option value="deuda_manual" selected>Deuda manual por unidad — se emite con Enviar/Re-enviar Deuda</option>
+                            <option value="gasto">Gasto del condominio (común o individual)</option>
+                        </select>
+                        <div class="form-text small text-muted">La deuda manual se aplica directo a las unidades elegidas (sin repartir); el gasto del condominio se prorratea entre las unidades al emitir la deuda del mes.</div>
+                    </div>
                 </div>
-                <div class="modal-body p-4">
+            </div>
+
+            <!-- MODO DEUDA MANUAL -->
+            <form id="formDeudaManual" method="POST" action="/admin/gastos/deuda-manual" data-modo="deuda_manual">
+                <?= csrf_field() ?>
+                <div class="modal-body p-4 pt-2">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">Alcance <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-4 pt-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="alcance" id="alcance_seleccion" value="seleccion" checked onchange="toggleAlcanceDeudaManual()">
+                                    <label class="form-check-label small fw-bold" for="alcance_seleccion">Selección libre</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="alcance" id="alcance_todo" value="todo" onchange="toggleAlcanceDeudaManual()">
+                                    <label class="form-check-label small fw-bold" for="alcance_todo">Todo el condominio</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-muted">Monto por unidad (Bs.) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" max="999999.99" name="monto_unidad" id="monto_unidad" required placeholder="0.00" class="form-control" oninput="actualizarContadorDeudaManual()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-muted">Mes <span class="text-danger">*</span></label>
+                            <select name="mes" required class="form-select">
+                                <?php for ($m = 1; $m <= 12; $m++): ?>
+                                    <option value="<?= e($m) ?>" <?= $m === intval($mes) ? 'selected' : '' ?>><?= e($m) ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-muted">Año <span class="text-danger">*</span></label>
+                            <input type="number" name="anio" value="<?= e($anio) ?>" min="2000" max="2100" required class="form-control">
+                        </div>
+                    </div>
+
+                    <?php
+                    $unidadesPorEdificioDeuda = [];
+                    foreach ($unidades ?? [] as $u) {
+                        $edIdGrupo = intval($u['edificio_id'] ?? 0);
+                        $unidadesPorEdificioDeuda[$edIdGrupo][] = $u;
+                    }
+                    ?>
+                    <div class="mb-3" id="bloquePickerDeudaManual">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <label class="form-label fw-bold small text-muted mb-0">Unidades y edificios</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="seleccionarTodoDeudaManual(true)">Seleccionar todo</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="seleccionarTodoDeudaManual(false)">Limpiar selección</button>
+                            </div>
+                        </div>
+                        <input type="text" id="buscadorUnidadesDeudaManual" class="form-control mb-2" placeholder="Buscar unidad o edificio...">
+                        <div class="max-h-64 overflow-y-auto p-3 bg-background rounded-xl border border-outline-variant" id="contenedorUnidadesDeudaManual">
+                            <?php if (empty($unidadesPorEdificioDeuda)): ?>
+                                <p class="text-xs text-on-surface-variant mb-0">No hay unidades activas registradas.</p>
+                            <?php else: ?>
+                                <?php foreach ($unidadesPorEdificioDeuda as $edIdGrupo => $unidadesGrupo): ?>
+                                    <?php $nombreGrupo = !empty($unidadesGrupo[0]['edificio_nombre']) ? $unidadesGrupo[0]['edificio_nombre'] : 'Sin edificio'; ?>
+                                    <div class="deuda-grupo py-2">
+                                        <?php if (intval($edIdGrupo) > 0): ?>
+                                            <label class="d-flex align-items-center gap-2 mb-1" style="cursor: pointer;">
+                                                <input type="checkbox" name="edificios[]" value="<?= e($edIdGrupo) ?>" class="form-check-input m-0 deuda-check-edificio">
+                                                <span class="text-xs font-bold text-on-surface-variant uppercase"><?= e($nombreGrupo) ?> (todo el edificio)</span>
+                                            </label>
+                                        <?php else: ?>
+                                            <p class="text-xs font-bold text-on-surface-variant uppercase mb-1"><?= e($nombreGrupo) ?></p>
+                                        <?php endif; ?>
+                                        <?php foreach ($unidadesGrupo as $u): ?>
+                                            <label class="deuda-unidad-item d-flex align-items-center gap-2 py-1.5 ps-3" style="cursor: pointer;" data-busqueda="<?= e(mb_strtolower($nombreGrupo . ' ' . $u['numero'])) ?>">
+                                                <input type="checkbox" name="unidades[]" value="<?= e($u['id']) ?>" class="form-check-input m-0 deuda-check-unidad" data-edificio="<?= e($edIdGrupo) ?>">
+                                                <span class="text-sm">Apto <?= e($u['numero']) ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-text small text-muted">Marca edificios completos y/o unidades puntuales: se combinan sin duplicarse.</div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
+                        <p class="text-sm font-bold text-blue-700 mb-0" id="contadorDeudaManual">0 unidades seleccionadas · Total a facturar Bs. 0,00</p>
+                        <p class="text-xs text-blue-600/90 mb-0 mt-1">El monto se aplica completo a cada unidad seleccionada (no se divide entre ellas). Al guardar se reemplaza el monto anterior de esas unidades en el período.</p>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Guardar Deuda Manual</button>
+                </div>
+            </form>
+
+            <!-- MODO GASTO CLÁSICO -->
+            <form id="formRegistrarGasto" method="POST" action="/admin/gastos/guardar" enctype="multipart/form-data" data-modo="gasto" style="display: none;">
+                <?= csrf_field() ?>
+                <div class="modal-body p-4 pt-2">
                     <!-- Tipología de Gasto -->
                     <div class="row g-3 mb-3 bg-light p-2.5 rounded-3 border border-slate-200">
                         <div class="col-md-6">
@@ -313,6 +491,120 @@ function toggleEdificioModal(tipo) {
         selectEd.value = '';
     }
 }
+
+function toggleTipoRegistroModal(tipo) {
+    const formDeuda = document.getElementById('formDeudaManual');
+    const formGasto = document.getElementById('formRegistrarGasto');
+    if (!formDeuda || !formGasto) {
+        return;
+    }
+    const esDeuda = tipo !== 'gasto';
+    formDeuda.style.display = esDeuda ? '' : 'none';
+    formGasto.style.display = esDeuda ? 'none' : '';
+    if (esDeuda) {
+        toggleAlcanceDeudaManual();
+    }
+}
+
+function toggleAlcanceDeudaManual() {
+    const bloque = document.getElementById('bloquePickerDeudaManual');
+    const alcanceTodo = document.getElementById('alcance_todo');
+    if (!bloque || !alcanceTodo) {
+        return;
+    }
+    bloque.style.display = alcanceTodo.checked ? 'none' : '';
+    actualizarContadorDeudaManual();
+}
+
+function unidadesDeudaSeleccionadas() {
+    const contenedor = document.getElementById('contenedorUnidadesDeudaManual');
+    const alcanceTodo = document.getElementById('alcance_todo');
+    if (!contenedor) {
+        return 0;
+    }
+    if (alcanceTodo && alcanceTodo.checked) {
+        return contenedor.querySelectorAll('.deuda-check-unidad').length;
+    }
+    return contenedor.querySelectorAll('.deuda-check-unidad:checked').length;
+}
+
+function actualizarContadorDeudaManual() {
+    const contador = document.getElementById('contadorDeudaManual');
+    const montoInput = document.getElementById('monto_unidad');
+    if (!contador) {
+        return;
+    }
+    const cantidad = unidadesDeudaSeleccionadas();
+    const monto = montoInput ? parseFloat(montoInput.value || '0') : 0;
+    const montoValido = isNaN(monto) ? 0 : monto;
+    const total = montoValido * cantidad;
+    contador.textContent = cantidad + ' unidades seleccionadas · Total a facturar Bs. ' +
+        total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function seleccionarTodoDeudaManual(marcar) {
+    const contenedor = document.getElementById('contenedorUnidadesDeudaManual');
+    if (!contenedor) {
+        return;
+    }
+    const casillas = contenedor.querySelectorAll('.deuda-check-unidad, .deuda-check-edificio');
+    for (let i = 0; i < casillas.length; i++) {
+        casillas[i].checked = !!marcar;
+    }
+    actualizarContadorDeudaManual();
+}
+
+(function () {
+    const contenedor = document.getElementById('contenedorUnidadesDeudaManual');
+    if (!contenedor) {
+        return;
+    }
+
+    const buscador = document.getElementById('buscadorUnidadesDeudaManual');
+
+    contenedor.querySelectorAll('.deuda-grupo').forEach(function (grupo) {
+        const checkEdificio = grupo.querySelector('.deuda-check-edificio');
+        const unidadesGrupo = grupo.querySelectorAll('.deuda-check-unidad');
+
+        if (checkEdificio) {
+            checkEdificio.addEventListener('change', function () {
+                unidadesGrupo.forEach(function (checkUnidad) {
+                    checkUnidad.checked = checkEdificio.checked;
+                });
+                actualizarContadorDeudaManual();
+            });
+        }
+
+        unidadesGrupo.forEach(function (checkUnidad) {
+            checkUnidad.addEventListener('change', function () {
+                if (checkEdificio) {
+                    const marcadas = grupo.querySelectorAll('.deuda-check-unidad:checked').length;
+                    checkEdificio.checked = unidadesGrupo.length > 0 && marcadas === unidadesGrupo.length;
+                }
+                actualizarContadorDeudaManual();
+            });
+        });
+    });
+
+    if (buscador) {
+        buscador.addEventListener('input', function () {
+            const termino = buscador.value.trim().toLowerCase();
+            contenedor.querySelectorAll('.deuda-grupo').forEach(function (grupo) {
+                let visibles = 0;
+                grupo.querySelectorAll('.deuda-unidad-item').forEach(function (item) {
+                    const coincide = termino === '' || (item.getAttribute('data-busqueda') || '').indexOf(termino) !== -1;
+                    item.style.display = coincide ? '' : 'none';
+                    if (coincide) {
+                        visibles++;
+                    }
+                });
+                grupo.style.display = visibles > 0 ? '' : 'none';
+            });
+        });
+    }
+
+    actualizarContadorDeudaManual();
+})();
 </script>
 
             </div>
