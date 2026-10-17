@@ -350,6 +350,30 @@ INSERT INTO `cuentas_bancarias` VALUES (1,'Banco de Venezuela','corriente','0102
 UNLOCK TABLES;
 
 --
+-- Table structure for table `deudas_manuales`
+--
+
+DROP TABLE IF EXISTS `deudas_manuales`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `deudas_manuales` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `unidad_id` int(11) NOT NULL,
+  `mes` tinyint(4) NOT NULL,
+  `anio` smallint(6) NOT NULL,
+  `monto` decimal(10,2) NOT NULL,
+  `admin_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_deuda_manual_unidad_periodo` (`unidad_id`,`mes`,`anio`),
+  KEY `idx_deuda_manual_periodo` (`mes`,`anio`),
+  CONSTRAINT `fk_deuda_manual_unidad` FOREIGN KEY (`unidad_id`) REFERENCES `unidades` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=158 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `edificios`
 --
 
