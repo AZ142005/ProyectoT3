@@ -125,6 +125,23 @@ El commit 3 incluye además la eliminación de los 6 archivos `storage/backups/b
 
 **Forecast de líneas autoradas**: 834 adiciones + 135 eliminaciones ≈ 969 líneas cambiadas (excede 400; `chain_strategy` stacked-to-main ya elegido; 4 commits de trabajo + 1 de docs).
 
+### Corrección post-verificación (F1/F2)
+
+La verificación independiente de `a4f3350..65dd91e` devolvió «VERIFIED CON OBSERVACIONES» con dos hallazgos ALTOS; corrección acotada en un solo commit (F3–F9 quedan como notas, sin tocar):
+
+- **F1 — SHA-256 muerto en la descarga del respaldo general** (`app/Controllers/RespaldoController.php`): `descargar()` verificaba solo `checksum_sha256`, columna NULL en las filas reales (`backup_database.php` inserta `hash_sha256`), así que la comprobación de integridad nunca se ejecutaba. **Fix**: resolver `$hashEsperado` con `checksum_sha256` como alias legado (solo si no es NULL) y `hash_sha256` como hash real; usarlo en la comparación y en el header `X-Checksum-SHA256`. El orden se mantiene: existencia → contención → integridad → marca `fecha_descarga = NOW()` → transmisión; el mensaje de alerta de integridad queda intacto. `descargarPurga()` no cambió (ya usaba `hash_sha256`).
+- **F2 — El reemplazo no validaba el nuevo archivo** (`scripts/backup_database.php`): el borrado de los `backup_*` anteriores podía ejecutarse con un archivo nuevo incompleto. **Fix**: guardas ANTES del bloque de borrado — `file_put_contents` del `.sql.gz` distinto de `false`, archivo existente con tamaño > 0 y `hash_file('sha256', ...)` distinto de `false`/`''`. Ante fallo, `fallarRespaldo()` registra `[ERROR]` en `storage/logs/backups.log`, imprime el error y `exit(1)` sin borrar el respaldo anterior.
+
+**Comandos y resultados de la corrección**
+
+- `php -l app/Controllers/RespaldoController.php` y `php -l scripts/backup_database.php` (más los tests tocados) → `No syntax errors detected`.
+- `php tests/run.php --filter=Backup` → `4 tests | ✅ 22 passed | ❌ 0 failed | ⚠ 0 errors | ⏭ 0 skipped`.
+- `php tests/run.php --filter=RespaldoUnico` → `13 tests | ✅ 70 passed | ❌ 0 failed | ⚠ 0 errors | ⏭ 0 skipped`.
+- `php tests/run.php --filter=RbacAuthorization` → `9 tests | ✅ 248 passed | ❌ 0 failed | ⚠ 0 errors | ⏭ 0 skipped`.
+- F1 empírico (harness CLI, fila id 31 del respaldo vigente): con `hash_sha256` corrupto en BD → `¡ALERTA DE INTEGRIDAD! El archivo de respaldo ha sido modificado. El checksum SHA-256 no coincide.` y `fecha_descarga` permanece NULL; con el hash real → transmite y marca `fecha_descarga = 2026-10-17 14:16:27` (NOW() de MySQL). Hash restaurado y `fecha_descarga` reseteado a NULL tras la prueba.
+- F2 empírico: ruta del nuevo `.sql.gz` colisionada con un directorio → `❌ ERROR EN GENERACIÓN DE RESPALDO: No se pudo escribir el archivo de respaldo: backup_2026-10-17_20-16-55.sql.gz`, `exit=1`, línea `[2026-10-17 20:16:55] [ERROR] No se pudo escribir el archivo de respaldo: backup_2026-10-17_20-16-55.sql.gz` en `storage/logs/backups.log` y el par anterior (`backup_2026-10-17_20-16-43.sql.gz` + `.sha256`) intacto; directorios de colisión eliminados después (estado final: 1 par vigente).
+- Asserts nuevos (estáticos, con orden verificado): `tests/RespaldoUnicoTest.php::testDescargarResuelveElHashDesdeHashSha256` (hash real desde `hash_sha256`, alias legado, orden resolución→comparación→marca→transmisión, header y alerta intactos) y guardas en `tests/BackupTest.php::testBackupDatabaseReemplazaSoloTrasRegistrarElNuevo` (escritura/tamaño/firma SHA-256 antes del bloque de borrado).
+
 ## Notas
 
 - Contexto: continúa `odd/tasks/respaldo-y-retencion-datos.md` (cierre VERIFIED con observaciones, 2026-10-17). Cambia su ventana de 366 días → 7/30 y simplifica la presentación a UN respaldo único.

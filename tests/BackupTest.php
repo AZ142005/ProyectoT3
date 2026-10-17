@@ -51,6 +51,27 @@ class BackupTest extends TestCase {
                 'el reemplazo debe ejecutarse SOLO después de registrar el nuevo respaldo (nunca borrar el anterior antes de que el nuevo esté completo)'
             );
         }
+
+        // Guardas de integridad del archivo nuevo ANTES del bloque de borrado:
+        // escritura completada, archivo con tamaño > 0 y firma SHA-256 válida.
+        $posEscritura = strpos($script, '$bytesEscritos = file_put_contents($rutaSqlGz, $gzData);');
+        $posGuardaEscritura = strpos($script, 'if ($bytesEscritos === false)');
+        $posGuardaTamano = strpos($script, 'filesize($rutaSqlGz) <= 0');
+        $posGuardaHash = strpos($script, "if (\$hashSha256 === false || \$hashSha256 === '')");
+        $this->assertTrue($posEscritura !== false, 'la escritura del .sql.gz debe capturar su resultado');
+        $this->assertTrue($posGuardaEscritura !== false, 'la escritura fallida debe abortar el respaldo');
+        $this->assertTrue($posGuardaTamano !== false, 'un archivo vacío o inexistente debe abortar el respaldo');
+        $this->assertTrue($posGuardaHash !== false, 'una firma SHA-256 inválida debe abortar el respaldo');
+        if ($posEscritura !== false && $posGuardaEscritura !== false && $posGuardaTamano !== false && $posGuardaHash !== false && $posReemplazo !== false) {
+            $this->assertTrue(
+                $posEscritura < $posGuardaEscritura && $posGuardaEscritura < $posReemplazo,
+                'la guarda de escritura debe ejecutarse antes del reemplazo'
+            );
+            $this->assertTrue($posGuardaTamano < $posReemplazo, 'la guarda de tamaño debe ejecutarse antes del reemplazo');
+            $this->assertTrue($posGuardaHash < $posReemplazo, 'la guarda de firma SHA-256 debe ejecutarse antes del reemplazo');
+        }
+        $this->assertStringContains('fallarRespaldo(', $script, 'las guardas deben abortar el respaldo sin reemplazar');
+        $this->assertStringContains('[ERROR]', $script, 'el fallo de guarda debe registrarse como ERROR en el log de respaldos');
     }
 
     public function testCleanupBackupsEliminaDescargadoVencidoYConservaReciente() {

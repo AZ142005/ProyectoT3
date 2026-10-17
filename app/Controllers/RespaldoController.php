@@ -100,10 +100,15 @@ class RespaldoController extends Controller {
 
         $rutaArchivo = $resolvedPath;
 
-        // 6E.3: Verificar integridad SHA-256 si el checksum está registrado
-        if (!empty($respaldo['checksum_sha256'])) {
+        // 6E.3: Verificar integridad SHA-256. Las filas reales del respaldo
+        // general registran el hash en hash_sha256; checksum_sha256 es un
+        // alias legado (NULL en esas filas) y solo manda si viniera poblado.
+        $hashEsperado = !empty($respaldo['checksum_sha256'])
+            ? (string)$respaldo['checksum_sha256']
+            : (string)($respaldo['hash_sha256'] ?? '');
+        if ($hashEsperado !== '') {
             $checksumActual = hash_file('sha256', $rutaArchivo);
-            if ($checksumActual !== $respaldo['checksum_sha256']) {
+            if ($checksumActual !== $hashEsperado) {
                 Flash::set('danger', '¡ALERTA DE INTEGRIDAD! El archivo de respaldo ha sido modificado. El checksum SHA-256 no coincide.');
                 $this->redirect('/admin/respaldos');
                 return;
@@ -122,7 +127,7 @@ class RespaldoController extends Controller {
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
-        header('X-Checksum-SHA256: ' . ($respaldo['checksum_sha256'] ?? hash_file('sha256', $rutaArchivo)));
+        header('X-Checksum-SHA256: ' . ($hashEsperado !== '' ? $hashEsperado : hash_file('sha256', $rutaArchivo)));
         header('Content-Length: ' . filesize($rutaArchivo));
         readfile($rutaArchivo);
         exit;

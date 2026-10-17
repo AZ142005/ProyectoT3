@@ -278,6 +278,35 @@ class RespaldoUnicoTest extends TestCase {
         }
     }
 
+    public function testDescargarResuelveElHashDesdeHashSha256(): void {
+        $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
+        $cuerpo = $this->cuerpoMetodo($ctrl, 'descargar');
+
+        // Las filas reales del respaldo general registran el hash en hash_sha256
+        // (checksum_sha256 es alias legado y llega NULL): el check no debe quedar muerto.
+        $this->assertStringContains("\$respaldo['hash_sha256']", $cuerpo, 'descargar() debe resolver el hash real desde hash_sha256');
+        $this->assertStringContains("\$respaldo['checksum_sha256']", $cuerpo, 'checksum_sha256 debe tratarse como alias legado');
+
+        // Orden: resolución del hash → comparación de integridad → marca → transmisión.
+        $posResolucion = strpos($cuerpo, '$hashEsperado =');
+        $posComparacion = strpos($cuerpo, "hash_file('sha256', \$rutaArchivo)");
+        $posMarca = strpos($cuerpo, 'UPDATE backups_log SET fecha_descarga = NOW()');
+        $posReadfile = strpos($cuerpo, 'readfile(');
+        $this->assertTrue($posResolucion !== false, 'descargar() debe resolver el hash esperado');
+        $this->assertTrue($posComparacion !== false, 'descargar() debe comparar el hash real del archivo');
+        $this->assertTrue($posMarca !== false, 'descargar() debe marcar la descarga');
+        $this->assertTrue($posReadfile !== false, 'descargar() debe transmitir el archivo');
+        if ($posResolucion !== false && $posComparacion !== false && $posMarca !== false && $posReadfile !== false) {
+            $this->assertTrue($posResolucion < $posComparacion, 'el hash esperado debe resolverse antes de comparar');
+            $this->assertTrue($posComparacion < $posMarca, 'la integridad debe verificarse antes de marcar la descarga');
+            $this->assertTrue($posMarca < $posReadfile, 'la marca debe ocurrir antes de transmitir');
+        }
+
+        // El header expone el hash resuelto y la alerta de integridad sigue intacta.
+        $this->assertStringContains("header('X-Checksum-SHA256: ' . (\$hashEsperado", $cuerpo, 'el header debe exponer el hash resuelto (no solo checksum_sha256)');
+        $this->assertStringContains('¡ALERTA DE INTEGRIDAD! El archivo de respaldo ha sido modificado', $cuerpo, 'el mensaje de alerta de integridad debe conservarse');
+    }
+
     public function testDescargaDeArchivoEliminadoFallaConMensajeAmable(): void {
         $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
 

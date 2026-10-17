@@ -36,6 +36,21 @@ if (!file_exists($htaccessFile)) {
 // El reemplazo del respaldo anterior se ejecuta al final, SOLO tras el éxito
 // completo (archivo + hash + registro en backups_log): respaldo único.
 
+/**
+ * Aborta el respaldo registrando el ERROR en el log si el archivo nuevo no
+ * quedó completo. Se invoca ANTES de cualquier reemplazo: el respaldo
+ * anterior jamás se borra si el nuevo no está íntegro.
+ */
+function fallarRespaldo(string $mensaje): void {
+    $logDir = dirname(__DIR__) . '/storage/logs';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0755, true);
+    }
+    @file_put_contents($logDir . '/backups.log', "[" . date('Y-m-d H:i:s') . "] [ERROR] " . $mensaje . "\n", FILE_APPEND | LOCK_EX);
+    echo "\n❌ ERROR EN GENERACIÓN DE RESPALDO: " . $mensaje . "\n";
+    exit(1);
+}
+
 try {
     $db = Database::getConnection();
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -122,16 +137,28 @@ try {
         echo "   ✔ Extracción completada mediante Fallback PDO ({$tablasCount} tablas procesadas).\n";
     }
 
-    // 2. Compresión GZIP
+    // 2. Compresión GZIP. Guarda: la escritura debe completarse y el archivo
+    //    debe existir con tamaño > 0 antes de considerar el respaldo válido.
     echo "2. Comprimiendo volcado SQL a formato .sql.gz...\n";
     $gzData = gzencode($sqlContenido, 9);
-    file_put_contents($rutaSqlGz, $gzData);
+    $bytesEscritos = file_put_contents($rutaSqlGz, $gzData);
+    if ($bytesEscritos === false) {
+        fallarRespaldo('No se pudo escribir el archivo de respaldo: ' . basename($rutaSqlGz));
+    }
+    clearstatcache(true, $rutaSqlGz);
+    if (!is_file($rutaSqlGz) || filesize($rutaSqlGz) <= 0) {
+        fallarRespaldo('El archivo de respaldo quedó vacío o no existe: ' . basename($rutaSqlGz));
+    }
     $tamanoBytes = filesize($rutaSqlGz);
     echo "   ✔ Archivo comprimido generado: " . basename($rutaSqlGz) . " (" . round($tamanoBytes / 1024, 2) . " KB).\n";
 
-    // 3. Firma de Integridad SHA-256
+    // 3. Firma de Integridad SHA-256. Guarda: sin firma válida el respaldo no
+    //    es íntegro y no debe reemplazar al anterior.
     echo "3. Generando firma criptográfica SHA-256...\n";
     $hashSha256 = hash_file('sha256', $rutaSqlGz);
+    if ($hashSha256 === false || $hashSha256 === '') {
+        fallarRespaldo('No se pudo calcular la firma SHA-256 del respaldo: ' . basename($rutaSqlGz));
+    }
     file_put_contents($rutaSha256, $hashSha256 . "  " . basename($rutaSqlGz) . "\n");
     echo "   ✔ Firma SHA-256: {$hashSha256}\n";
 
