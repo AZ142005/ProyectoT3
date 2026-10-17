@@ -222,7 +222,7 @@
 <!-- Modal Crear / Editar Cuenta Bancaria -->
 <div class="modal fade" id="modalCuenta" tabindex="-1" aria-labelledby="modalCuentaTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/cuentas-bancarias/guardar">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" id="cuentaId" value="0">
@@ -238,31 +238,31 @@
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label fw-bold small text-muted">Nombre del Banco <span class="text-danger">*</span></label>
-                            <input type="text" name="banco" id="campoBanco" class="form-control" required placeholder="Ej. Banco de Venezuela, Banesco, Mercantil">
+                            <label class="form-label fw-bold small text-on-surface-variant">Nombre del Banco <span class="text-danger">*</span></label>
+                            <input type="text" name="banco" id="campoBanco" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" required placeholder="Ej. Banco de Venezuela, Banesco, Mercantil">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted">Tipo de Cuenta <span class="text-danger">*</span></label>
-                            <select name="tipo_cuenta" id="campoTipoCuenta" class="form-select" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Tipo de Cuenta <span class="text-danger">*</span></label>
+                            <select name="tipo_cuenta" id="campoTipoCuenta" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
                                 <option value="corriente">Corriente</option>
                                 <option value="ahorro">Ahorro</option>
                             </select>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-bold small text-muted">Número de Cuenta (20 Dígitos) <span class="text-danger">*</span></label>
-                            <input type="text" name="numero_cuenta" id="campoNumeroCuenta" maxlength="20" minlength="20" class="form-control font-monospace" required placeholder="01020000000000000000" pattern="[0-9]{20}">
-                            <div class="form-text small text-muted">Ingrese exactamente los 20 dígitos numéricos continuos de la cuenta bancaria.</div>
+                            <label class="form-label fw-bold small text-on-surface-variant">Número de Cuenta (20 Dígitos) <span class="text-danger">*</span></label>
+                            <input type="text" name="numero_cuenta" id="campoNumeroCuenta" maxlength="20" minlength="20" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors font-monospace" required placeholder="01020000000000000000" pattern="[0-9]{20}">
+                            <div class="text-xs text-on-surface-variant">Ingrese exactamente los 20 dígitos numéricos continuos de la cuenta bancaria.</div>
                         </div>
 
                         <div class="col-md-7">
-                            <label class="form-label fw-bold small text-muted">Titular de la Cuenta <span class="text-danger">*</span></label>
-                            <input type="text" name="titular" id="campoTitular" class="form-control" required placeholder="Ej. Conjunto Residencias El Ávila">
+                            <label class="form-label fw-bold small text-on-surface-variant">Titular de la Cuenta <span class="text-danger">*</span></label>
+                            <input type="text" name="titular" id="campoTitular" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" required placeholder="Ej. Conjunto Residencias El Ávila">
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted">Tipo Doc. <span class="text-danger">*</span></label>
-                            <select name="tipo_identificacion" id="campoTipoIdentificacion" class="form-select" required>
+                            <label class="form-label fw-bold small text-on-surface-variant">Tipo Doc. <span class="text-danger">*</span></label>
+                            <select name="tipo_identificacion" id="campoTipoIdentificacion" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
                                 <option value="J">J (RIF Jurídico)</option>
                                 <option value="G">G (Gubernamental)</option>
                                 <option value="V">V (Cédula Venezolana)</option>
@@ -271,18 +271,18 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">RIF / Cédula <span class="text-danger">*</span></label>
-                            <input type="text" name="identificacion" id="campoIdentificacion" class="form-control" required placeholder="Ej. 12345678-0 o 12345678">
+                            <label class="form-label fw-bold small text-on-surface-variant">RIF / Cédula <span class="text-danger">*</span></label>
+                            <input type="text" name="identificacion" id="campoIdentificacion" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" required placeholder="Ej. 12345678-0 o 12345678">
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Teléfono Pago Móvil</label>
-                            <input type="text" name="telefono_pago_movil" id="campoTelefono" class="form-control" placeholder="Ej. 04121234567">
-                            <div class="form-text small text-muted">Requerido si habilita Pago Móvil en esta cuenta.</div>
+                            <label class="form-label fw-bold small text-on-surface-variant">Teléfono Pago Móvil</label>
+                            <input type="text" name="telefono_pago_movil" id="campoTelefono" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej. 04121234567">
+                            <div class="text-xs text-on-surface-variant">Requerido si habilita Pago Móvil en esta cuenta.</div>
                         </div>
 
                         <div class="col-md-6 d-flex flex-column justify-content-center">
-                            <span class="form-label fw-bold small text-muted mb-2">Canales de Pago Habilitados</span>
+                            <span class="form-label fw-bold small text-on-surface-variant mb-2">Canales de Pago Habilitados</span>
                             <div class="d-flex gap-4">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" name="permite_transferencia" value="1" id="checkTransf" checked>
@@ -296,20 +296,20 @@
                         </div>
 
                         <div class="col-12">
-                            <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                            <div class="form-check form-switch p-3 bg-background rounded-xl border border-outline-variant">
                                 <input class="form-check-input ms-0 me-3" type="checkbox" name="activa" value="1" id="checkActiva" checked>
-                                <label class="form-check-label fw-bold text-dark" for="checkActiva">
+                                <label class="form-check-label fw-bold text-on-surface" for="checkActiva">
                                     Cuenta Activa y Disponible para Residentes
                                 </label>
-                                <div class="small text-muted">Al desmarcar esta opción, los residentes no podrán ver ni seleccionar esta cuenta al reportar pagos.</div>
+                                <div class="text-xs text-on-surface-variant">Al desmarcar esta opción, los residentes no podrán ver ni seleccionar esta cuenta al reportar pagos.</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 px-4">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4" id="btnGuardarCuenta">Guardar Cuenta</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5" id="btnGuardarCuenta">Guardar Cuenta</button>
                 </div>
             </form>
         </div>
