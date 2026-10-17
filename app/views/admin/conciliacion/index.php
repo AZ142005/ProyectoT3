@@ -319,16 +319,16 @@
             <form method="POST" action="/admin/conciliacion/importar" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="modal-header bg-primary text-white py-3">
-                    <h5 class="modal-title fw-bold text-white flex-fill d-flex align-items-center gap-2">
-                        <span class="material-symbols-outlined text-white">upload_file</span>
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">upload_file</span>
                         <span>Importar Extracto Bancario</span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4 bg-white">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Entidad Bancaria <span class="text-danger">*</span></label>
-                        <select name="banco" required class="form-select">
+                        <label class="form-label fw-bold small text-on-surface-variant">Entidad Bancaria <span class="text-danger">*</span></label>
+                        <select name="banco" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                             <option value="venezuela">Banco de Venezuela (CSV / TXT / PDF)</option>
                             <option value="mercantil">Banco Mercantil (CSV / TXT)</option>
                             <option value="banesco">Banesco (CSV / TXT)</option>
@@ -338,14 +338,17 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Archivo de Extracto (.CSV, .TXT o .PDF) <span class="text-danger">*</span></label>
-                        <input type="file" name="archivo_extracto" required accept=".csv,.txt,.pdf" class="form-control">
-                        <div class="form-text small text-muted">Soporta estados de cuenta PDF de Banco de Venezuela y archivos CSV/TXT. Los débitos se clasificarán automáticamente como descartados.</div>
+                        <label class="form-label fw-bold small text-on-surface-variant">Archivo de Extracto (.CSV, .TXT o .PDF) <span class="text-danger">*</span></label>
+                        <input type="file" name="archivo_extracto" required accept=".csv,.txt,.pdf" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
+                        <div class="text-xs text-on-surface-variant">Soporta estados de cuenta PDF de Banco de Venezuela y archivos CSV/TXT. Los débitos se clasificarán automáticamente como descartados.</div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Procesar e Importar</button>
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                        Procesar e Importar
+                    </button>
                 </div>
             </form>
         </div>
@@ -514,44 +517,44 @@
 <!-- Modal para Rechazar Pago con Motivo Obligatorio -->
 <div class="modal fade" id="modalRechazarConciliacion" tabindex="-1" aria-labelledby="modalRechazarLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-3">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/conciliacion/rechazar" id="formRechazarConciliacion">
                 <?= csrf_field() ?>
                 <input type="hidden" name="pago_id" id="rechazoModalPagoId" value="">
                 <input type="hidden" name="origen_tipo" id="rechazoModalOrigenTipo" value="pago">
 
                 <div class="modal-header bg-danger text-white py-3">
-                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="modalRechazarLabel">
-                        <span class="material-symbols-outlined text-white">cancel</span>
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalRechazarLabel">
+                        <span class="material-symbols-outlined">cancel</span>
                         <span>Rechazar Pago</span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4 bg-white">
+                <div class="modal-body p-4">
                     <div class="alert alert-danger-subtle border border-danger-subtle text-danger mb-3 py-2 px-3 small rounded-3">
                         El pago será marcado como <strong>RECHAZADO</strong> y se notificará de inmediato al residente con el motivo especificado.
                     </div>
                     
                     <div class="mb-3 small">
-                        <span class="text-muted d-block fw-normal">Residente:</span>
-                        <strong id="rechazoModalResidente" class="text-dark fw-bold">-</strong>
-                        <span class="text-muted d-block mt-1 fw-normal">Referencia:</span>
-                        <strong id="rechazoModalReferencia" class="text-dark font-monospace fw-bold">-</strong>
+                        <span class="text-on-surface-variant d-block fw-normal">Residente:</span>
+                        <strong id="rechazoModalResidente" class="text-on-surface fw-bold">-</strong>
+                        <span class="text-on-surface-variant d-block mt-1 fw-normal">Referencia:</span>
+                        <strong id="rechazoModalReferencia" class="text-on-surface font-monospace fw-bold">-</strong>
                     </div>
 
                     <div class="mb-3">
-                        <label for="rechazoMotivo" class="form-label fw-bold small text-muted text-uppercase">
+                        <label for="rechazoMotivo" class="form-label fw-bold small text-on-surface-variant text-uppercase">
                             Motivo de Rechazo <span class="text-danger">*</span>
                         </label>
-                        <textarea class="form-control" id="rechazoMotivo" name="motivo" rows="3" required minlength="5"
+                        <textarea class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" id="rechazoMotivo" name="motivo" rows="3" required minlength="5"
                                   placeholder="Indique el motivo claro del rechazo (mínimo 5 caracteres)..."></textarea>
-                        <div class="form-text small text-muted">Mínimo 5 caracteres. Este texto será visible para el residente.</div>
+                        <div class="text-xs text-on-surface-variant">Mínimo 5 caracteres. Este texto será visible para el residente.</div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-3">
-                    <button type="button" class="btn btn-secondary btn-sm fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1">
-                        <span class="material-symbols-outlined fs-6">gavel</span>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">gavel</span>
                         <span>Confirmar Rechazo</span>
                     </button>
                 </div>
