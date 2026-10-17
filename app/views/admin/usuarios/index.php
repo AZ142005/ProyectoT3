@@ -548,14 +548,14 @@
 <!-- Modal para Reiniciar Contraseña -->
 <div class="modal fade" id="modalReiniciarPassword" tabindex="-1" aria-labelledby="modalReiniciarPasswordTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/usuarios/reiniciar-password">
                 <?= csrf_field() ?>
                 <input type="hidden" name="tipo_entidad" id="modalTipoEntidad" value="">
                 <input type="hidden" name="id" id="modalId" value="">
 
-                <div class="modal-header bg-warning-subtle text-warning-emphasis py-3 px-4 border-bottom">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalReiniciarPasswordTitle">
+                <div class="modal-header bg-warning-subtle text-warning-emphasis py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalReiniciarPasswordTitle">
                         <span class="material-symbols-outlined text-warning">lock_reset</span>
                         <span>Reiniciar Contraseña de Acceso</span>
                     </h5>
@@ -564,53 +564,53 @@
 
                 <div class="modal-body p-4">
                     <!-- Resumen del Usuario Objetivo -->
-                    <div class="bg-light p-3 rounded-3 border mb-4">
-                        <div class="small text-muted mb-1">Usuario seleccionado:</div>
-                        <div class="fw-bold fs-6 text-dark" id="modalNombreUsuario">-</div>
-                        <div class="small text-muted">
-                            Cédula: <span class="fw-semibold text-dark" id="modalCedulaUsuario">-</span> | 
-                            Rol: <span class="fw-semibold text-dark" id="modalRolUsuario">-</span>
+                    <div class="bg-background p-3 rounded-xl border border-outline-variant mb-4">
+                        <div class="small text-on-surface-variant mb-1">Usuario seleccionado:</div>
+                        <div class="fw-bold fs-6 text-on-surface" id="modalNombreUsuario">-</div>
+                        <div class="small text-on-surface-variant">
+                            Cédula: <span class="fw-semibold text-on-surface" id="modalCedulaUsuario">-</span> | 
+                            Rol: <span class="fw-semibold text-on-surface" id="modalRolUsuario">-</span>
                         </div>
                     </div>
 
-                    <p class="text-secondary small mb-3">
+                    <p class="text-on-surface-variant small mb-3">
                         Seleccione el método para asignar la nueva contraseña de acceso. Si la cuenta tenía bloqueo temporal, se reactivará de inmediato.
                     </p>
 
                     <!-- Opciones de Reinicio -->
                     <div class="mb-3">
-                        <div class="form-check p-3 rounded-3 border mb-2 cursor-pointer bg-white" onclick="document.getElementById('modoAuto').checked = true; toggleModoPassword();">
+                        <div class="form-check p-3 rounded-xl border border-outline-variant mb-2 cursor-pointer bg-background" onclick="document.getElementById('modoAuto').checked = true; toggleModoPassword();">
                             <input class="form-check-input" type="radio" name="modo_generacion" id="modoAuto" value="auto" checked onchange="toggleModoPassword()">
-                            <label class="form-check-label fw-bold text-dark" for="modoAuto">
+                            <label class="form-check-label fw-bold text-on-surface" for="modoAuto">
                                 Generar contraseña temporal segura automáticamente
                                 <span class="badge bg-success-subtle text-success ms-1 small">Recomendado</span>
                             </label>
-                            <small class="text-muted d-block mt-1">El sistema creará una clave aleatoria de 10 caracteres alfanuméricos y la mostrará en pantalla para copiarla.</small>
+                            <small class="text-xs text-on-surface-variant d-block mt-1">El sistema creará una clave aleatoria de 10 caracteres alfanuméricos y la mostrará en pantalla para copiarla.</small>
                         </div>
 
-                        <div class="form-check p-3 rounded-3 border cursor-pointer bg-white" onclick="document.getElementById('modoManual').checked = true; toggleModoPassword();">
+                        <div class="form-check p-3 rounded-xl border border-outline-variant cursor-pointer bg-background" onclick="document.getElementById('modoManual').checked = true; toggleModoPassword();">
                             <input class="form-check-input" type="radio" name="modo_generacion" id="modoManual" value="manual" onchange="toggleModoPassword()">
-                            <label class="form-check-label fw-bold text-dark" for="modoManual">
+                            <label class="form-check-label fw-bold text-on-surface" for="modoManual">
                                 Asignar contraseña manual
                             </label>
-                            <small class="text-muted d-block mt-1">Escriba una contraseña específica para este usuario.</small>
+                            <small class="text-xs text-on-surface-variant d-block mt-1">Escriba una contraseña específica para este usuario.</small>
                         </div>
                     </div>
 
                     <!-- Campo Contraseña Manual (condicional) -->
-                    <div id="campoPasswordManual" class="d-none mt-3 p-3 bg-light rounded-3 border">
-                        <label for="password_manual" class="form-label fw-bold small text-dark">Nueva Contraseña Manual *</label>
+                    <div id="campoPasswordManual" class="d-none mt-3 p-3 bg-background rounded-xl border border-outline-variant">
+                        <label for="password_manual" class="form-label fw-bold small text-on-surface-variant">Nueva Contraseña Manual *</label>
                         <input type="text" id="password_manual" name="password_manual" 
-                               class="form-control" 
+                               class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" 
                                placeholder="Mínimo 8 caracteres (letras y números)">
-                        <small class="text-muted d-block mt-1">Debe contener mínimo 8 caracteres, con al menos una letra y un número.</small>
+                        <small class="text-xs text-on-surface-variant d-block mt-1">Debe contener mínimo 8 caracteres, con al menos una letra y un número.</small>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 px-4 border-top">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning fw-bold text-dark d-inline-flex align-items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined fs-6">check_circle</span>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-amber-400 hover:bg-amber-500 text-amber-950 border border-amber-500/50 font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">check_circle</span>
                         <span>Confirmar Reinicio</span>
                     </button>
                 </div>
@@ -622,37 +622,37 @@
 <!-- Modal para Actualizar Datos de Residente -->
 <div class="modal fade" id="modalActualizarDatos" tabindex="-1" aria-labelledby="modalActualizarDatosTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/usuarios/actualizar-datos">
                 <?= csrf_field() ?>
                 <input type="hidden" name="tipo_entidad" id="modalActTipoEntidad" value="persona">
                 <input type="hidden" name="id" id="modalActId" value="">
 
-                <div class="modal-header bg-primary text-white py-3 px-4 border-bottom">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalActualizarDatosTitle">
-                        <span class="material-symbols-outlined text-white">edit</span>
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalActualizarDatosTitle">
+                        <span class="material-symbols-outlined">edit</span>
                         <span>Actualizar Datos de Contacto</span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body p-4">
-                    <div class="bg-light p-3 rounded-3 border mb-3">
-                        <div class="small text-muted mb-1">Residente seleccionado:</div>
-                        <div class="fw-bold fs-6 text-dark" id="modalActNombreUsuario">-</div>
-                        <div class="small text-muted">
-                            Cédula: <span class="fw-semibold text-dark" id="modalActCedulaUsuario">-</span>
+                    <div class="bg-background p-3 rounded-xl border border-outline-variant mb-3">
+                        <div class="small text-on-surface-variant mb-1">Residente seleccionado:</div>
+                        <div class="fw-bold fs-6 text-on-surface" id="modalActNombreUsuario">-</div>
+                        <div class="small text-on-surface-variant">
+                            Cédula: <span class="fw-semibold text-on-surface" id="modalActCedulaUsuario">-</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="act_telefono" class="form-label fw-bold small text-dark">Número Telefónico *</label>
+                        <label for="act_telefono" class="form-label fw-bold small text-on-surface-variant">Número Telefónico *</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light text-muted">
-                                <span class="material-symbols-outlined fs-6">phone</span>
+                            <span class="input-group-text bg-background text-on-surface-variant border border-outline-variant rounded-s-xl rounded-e-none">
+                                <span class="material-symbols-outlined text-[16px]">phone</span>
                             </span>
                             <input type="tel" id="act_telefono" name="telefono" 
-                                   class="form-control" 
+                                   class="w-full bg-background border border-outline-variant rounded-s-none rounded-e-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" 
                                    placeholder="Ej: 04121234567" 
                                    maxlength="11" 
                                    required 
@@ -660,27 +660,27 @@
                                    title="Ingrese un número telefónico venezolano de 11 dígitos (0412, 0414, 0424, 0416, 0426)"
                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                         </div>
-                        <small class="text-muted d-block mt-1">Formato de 11 dígitos (operadoras venezolanas: 0412, 0414, 0424, 0416, 0426).</small>
+                        <small class="text-xs text-on-surface-variant d-block mt-1">Formato de 11 dígitos (operadoras venezolanas: 0412, 0414, 0424, 0416, 0426).</small>
                     </div>
 
                     <div class="mb-2">
-                        <label for="act_email" class="form-label fw-bold small text-dark">Correo Electrónico *</label>
+                        <label for="act_email" class="form-label fw-bold small text-on-surface-variant">Correo Electrónico *</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light text-muted">
-                                <span class="material-symbols-outlined fs-6">mail</span>
+                            <span class="input-group-text bg-background text-on-surface-variant border border-outline-variant rounded-s-xl rounded-e-none">
+                                <span class="material-symbols-outlined text-[16px]">mail</span>
                             </span>
                             <input type="email" id="act_email" name="email" 
-                                   class="form-control" 
+                                   class="w-full bg-background border border-outline-variant rounded-s-none rounded-e-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" 
                                    required 
                                    placeholder="residente@ejemplo.com">
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 px-4 border-top">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined fs-6">save</span>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">save</span>
                         <span>Guardar Cambios</span>
                     </button>
                 </div>
@@ -692,15 +692,15 @@
 <!-- Modal para Eliminación con Doble Confirmación y Temporizador de 10s -->
 <div class="modal fade" id="modalEliminarUsuario" tabindex="-1" aria-labelledby="modalEliminarUsuarioTitle" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/usuarios/eliminar" id="formEliminarUsuario">
                 <?= csrf_field() ?>
                 <input type="hidden" name="tipo_entidad" id="modalElimTipoEntidad" value="persona">
                 <input type="hidden" name="id" id="modalElimId" value="">
 
                 <!-- Cabecera Paso 1 -->
-                <div id="headerEliminarPaso1" class="modal-header bg-danger-subtle text-danger-emphasis py-3 px-4 border-bottom">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalEliminarUsuarioTitle">
+                <div id="headerEliminarPaso1" class="modal-header bg-danger-subtle text-danger-emphasis py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalEliminarUsuarioTitle">
                         <span class="material-symbols-outlined text-danger">warning</span>
                         <span>Confirmar Eliminación de <span id="tituloEliminarEntidad">Residente</span> (1/2)</span>
                     </h5>
@@ -708,9 +708,9 @@
                 </div>
 
                 <!-- Cabecera Paso 2 -->
-                <div id="headerEliminarPaso2" class="modal-header bg-danger text-white py-3 px-4 border-bottom d-none">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                        <span class="material-symbols-outlined text-white">crisis_alert</span>
+                <div id="headerEliminarPaso2" class="modal-header bg-danger text-white py-3 d-none">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">crisis_alert</span>
                         <span>Advertencia de Seguridad Definitiva (2/2)</span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar" onclick="cancelarEliminacion()"></button>
@@ -718,12 +718,12 @@
 
                 <div class="modal-body p-4">
                     <!-- Resumen del Residente a Eliminar -->
-                    <div class="bg-light p-3 rounded-3 border mb-3">
-                        <div class="small text-muted mb-1">Cuenta a eliminar:</div>
-                        <div class="fw-bold fs-6 text-dark" id="modalElimNombreUsuario">-</div>
-                        <div class="small text-muted">
-                            Cédula: <span class="fw-semibold text-dark" id="modalElimCedulaUsuario">-</span> | 
-                            Ubicación: <span class="fw-semibold text-dark" id="modalElimUbicacionUsuario">-</span>
+                    <div class="bg-background p-3 rounded-xl border border-outline-variant mb-3">
+                        <div class="small text-on-surface-variant mb-1">Cuenta a eliminar:</div>
+                        <div class="fw-bold fs-6 text-on-surface" id="modalElimNombreUsuario">-</div>
+                        <div class="small text-on-surface-variant">
+                            Cédula: <span class="fw-semibold text-on-surface" id="modalElimCedulaUsuario">-</span> | 
+                            Ubicación: <span class="fw-semibold text-on-surface" id="modalElimUbicacionUsuario">-</span>
                         </div>
                     </div>
 
@@ -737,7 +737,7 @@
                                     Esta opción se utiliza en casos de venta del inmueble o cambio de propietario. La unidad quedará disponible para el registro del nuevo propietario.
                                 </div>
                             </div>
-                            <p class="text-secondary small mb-0">
+                            <p class="text-on-surface-variant small mb-0">
                                 Por integridad legal y contable, los registros históricos de pagos y facturas se conservarán intactos en el historial contable, pero el residente quedará totalmente desligado de la unidad y su acceso revocado.
                             </p>
                         </div>
@@ -749,7 +749,7 @@
                                     El acceso del usuario será revocado de inmediato y dejará de aparecer en el listado de usuarios.
                                 </div>
                             </div>
-                            <p class="text-secondary small mb-0">
+                            <p class="text-on-surface-variant small mb-0">
                                 Por integridad de la auditoría, el historial de acciones del usuario se conservará intacto, pero su acceso quedará revocado.
                             </p>
                         </div>
@@ -765,28 +765,28 @@
                             </div>
                         </div>
 
-                        <div class="text-center py-3 bg-light rounded-3 border mb-2">
-                            <div class="text-muted small mb-1">Tiempo de enfriamiento de seguridad:</div>
+                        <div class="text-center py-3 bg-background rounded-xl border border-outline-variant mb-2">
+                            <div class="text-on-surface-variant small mb-1">Tiempo de enfriamiento de seguridad:</div>
                             <div class="display-6 fw-bold text-danger font-monospace" id="contadorCooldown">10s</div>
-                            <small class="text-muted" id="cooldownHint">El botón de confirmación se habilitará al agotarse el tiempo...</small>
+                            <small class="text-xs text-on-surface-variant" id="cooldownHint">El botón de confirmación se habilitará al agotarse el tiempo...</small>
                         </div>
                     </div>
                 </div>
 
                 <!-- Footer Paso 1 -->
-                <div id="footerEliminarPaso1" class="modal-footer bg-light py-3 px-4 border-top">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-outline-danger fw-bold d-inline-flex align-items-center gap-1 shadow-sm" onclick="avanzarEliminarPaso2()">
+                <div id="footerEliminarPaso1" class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold px-5 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" onclick="avanzarEliminarPaso2()">
                         <span>Continuar a la Confirmación Final</span>
-                        <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
                     </button>
                 </div>
 
                 <!-- Footer Paso 2 -->
-                <div id="footerEliminarPaso2" class="modal-footer bg-light py-3 px-4 border-top d-none">
-                    <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal" onclick="cancelarEliminacion()">Cancelar</button>
-                    <button type="submit" id="btnConfirmarEliminar" class="btn btn-danger fw-bold d-inline-flex align-items-center gap-1 shadow-sm" disabled>
-                        <span class="material-symbols-outlined fs-6">delete_forever</span>
+                <div id="footerEliminarPaso2" class="modal-footer bg-light d-none">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal" onclick="cancelarEliminacion()">Cancelar</button>
+                    <button type="submit" id="btnConfirmarEliminar" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <span class="material-symbols-outlined text-[16px]">delete_forever</span>
                         <span id="btnConfirmarEliminarTexto">Confirmar Eliminación (10s)</span>
                     </button>
                 </div>
