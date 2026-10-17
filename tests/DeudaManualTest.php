@@ -304,6 +304,10 @@ class DeudaManualTest extends TestCase {
             $inicial = $this->facturaDe($db, $numero);
             $this->assertTrue($inicial !== false, 'Debe existir la factura inicial');
 
+            // Pago parcial simulado antes de la baja lógica: debe sobrevivir a la reactivación
+            $db->prepare("UPDATE facturas SET monto_pagado = 10.00, saldo = 30.00 WHERE id = :id")
+               ->execute(['id' => $inicial['id']]);
+
             $db->prepare("UPDATE facturas SET deleted_at = NOW() WHERE id = :id")
                ->execute(['id' => $inicial['id']]);
 
@@ -318,7 +322,10 @@ class DeudaManualTest extends TestCase {
                 'La reactivación debe reutilizar la misma fila, no crear otra');
             $this->assertNull($final['deleted_at'], 'La factura reactivada debe quedar activa');
             $this->assertEquals(45.00, (float)$final['monto_total'], 'La reactivación debe aplicar el monto nuevo');
-            $this->assertEquals(45.00, (float)$final['saldo'], 'El saldo debe reflejar el monto nuevo');
+            $this->assertEquals(10.00, (float)$final['monto_pagado'],
+                'La reactivación debe conservar lo ya pagado (10.00)');
+            $this->assertEquals(35.00, (float)$final['saldo'],
+                'El saldo debe ser max(0, nuevo - pagado) = 45.00 - 10.00');
             $this->assertEquals('pendiente', $final['estado'], 'Con saldo pendiente el estado debe ser pendiente');
         } finally {
             if ($db->inTransaction()) {
