@@ -46,5 +46,5 @@
 ## Cierre del orquestador (2026-10-17)
 
 - **Spot check**: `git show --stat` de `6cefd84`/`9e29206`/`50fae52` (1 archivo cada uno); grep dentro de los 6 modales: 0 restos de `form-control`/`form-select`/`btn btn-` (en usuarios queda 1 `form-select` en la tabla — fuera de modales — y el toggle `text-muted` del JS de cooldown, justificados).
-- **Tests re-corridos por el orquestador**: Conciliación, Rbac y Solicitudes — todos verdes (además de los del writer: UsuarioAdmin 36, Tabs 34, AuthEmail 47; harness de render 150 checks, 0 FAIL).
+- **Tests re-ejecutados por el orquestador**: Conciliación, Rbac y Solicitudes — todos verdes (además de los del writer: UsuarioAdmin 36, Tabs 34, AuthEmail 47; harness de render 150 checks, 0 FAIL).
 - QA visual en navegador pendiente (los harness de render no cargan el CDN de Tailwind).
