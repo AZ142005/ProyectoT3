@@ -225,14 +225,16 @@
     { "type": "image", "file": "docs/manual-capturas/10-cartelera-cargar.png", "caption": "Carga del Reporte de Cartelera: importación de deuda por unidad.", "desc_pendiente": "En Carga y Emisión pulse \"Cargar Reporte de Cartelera\" y capture la pantalla de carga; si ya subió un PDF de prueba, capture la previsualización." },
     { "type": "h2", "text": "7.1 Cómo acceder" },
     { "type": "p", "text": "Barra lateral → Carga y Emisión." },
-    { "type": "h2", "text": "7.2 Registrar un gasto" },
+    { "type": "h2", "text": "7.2 Carga manual de deuda" },
     { "type": "steps", "items": [
-      "En \"Registro de Gastos\", pulse \"Nuevo Gasto\".",
-      "Seleccione el \"Tipo / Alcance del Gasto\": \"Gasto Común (Global - Todo el Conjunto)\" o \"Gasto Individual (Afecta a un solo Edificio)\". Si es individual, indique el edificio.",
-      "Complete la \"Categoría de Gasto\", el \"Mes\", el \"Año\", el \"Proveedor / Empresa\", el \"Nro. Factura Fiscal\", el \"Monto Total (Bs.)\", la \"Fecha del Gasto\" y la \"Descripción del Gasto\".",
-      "Adjunte el \"Soporte Digital Adjunto (PDF, JPG, PNG)\": será la factura o recibo que verán los residentes como justificación.",
-      "Pulse \"Guardar Gasto\"."
+      "En \"Registro de Gastos\", pulse \"Nuevo Gasto\". El modal se abre con el tipo de registro \"Deuda manual por unidad\" seleccionado por defecto.",
+      "Elija el \"Alcance\": \"Todo el condominio\" o \"Selección libre\". En selección libre, marque edificios completos y/o unidades puntuales; puede buscarlas y usar \"Seleccionar todo\" o \"Limpiar selección\".",
+      "Indique el \"Monto por unidad (Bs.)\", el \"Mes\" y el \"Año\". El monto se aplica completo a cada unidad seleccionada (no se divide entre ellas); el contador muestra las unidades seleccionadas y el total a facturar.",
+      "Pulse \"Guardar Deuda Manual\". Si una unidad ya tenía un monto guardado en ese período, el nuevo monto lo reemplaza.",
+      "Revise la tarjeta \"Deudas manuales — (Mes) (Año)\" en \"Emisión de Deuda Mensual\": puede quitar una unidad (icono de papelera) o vaciar el período con \"Limpiar período\".",
+      "Pulse \"Enviar Deuda\" (o \"Re-enviar Deuda\" si el mes ya tiene deudas emitidas): las unidades con deuda manual se emiten por ese monto exacto (sustituye su cuota del mes); el resto mantiene su cuota prorrateada. Re-enviar actualiza las deudas del período sin duplicarlas."
     ] },
+    { "type": "p", "text": "Si necesita registrar un gasto del condominio (egreso con soporte), elija el tipo de registro \"Gasto del condominio (común o individual)\" en el mismo modal y complete sus datos; ese gasto se prorratea entre las unidades al emitir la deuda del mes." },
     { "type": "p", "text": "El \"Historial de Reportes\" muestra las cargas del último mes con el número de facturas creadas, actualizadas y omitidas, y el enlace \"Ver PDF\" cuando el soporte está disponible." },
     { "type": "h2", "text": "7.3 Emitir la deuda mensual" },
     { "type": "steps", "items": [
@@ -242,7 +244,7 @@
     ] },
     { "type": "p", "text": "El sistema calculará la cuota de cada unidad: fracción global (gastos comunes entre todas las unidades) más la fracción individual de su edificio, cuando exista." },
     { "type": "note", "variant": "info", "text": "Al emitir la deuda, el sistema busca automáticamente los saldos a favor de meses anteriores y los aplica como abono a la cuota del mes." },
-    { "type": "note", "variant": "warn", "text": "Si las deudas del mes ya fueron enviadas, el botón cambia a \"Re-enviar Deuda\" y la advertencia \"Deudas ya enviadas\" indica que la operación recalcula y duplica la deuda. Úselo únicamente si eliminó las deudas anteriores." },
+    { "type": "note", "variant": "warn", "text": "Si las deudas del mes ya fueron enviadas, el botón cambia a \"Re-enviar Deuda\" y la advertencia \"Deudas ya enviadas\" indica que el sistema recalculará y actualizará las facturas del período (no se duplican): se conserva lo ya pagado y se aplican las deudas manuales guardadas. Ya no es necesario eliminar las deudas anteriores." },
     { "type": "h2", "text": "7.4 Cargar el reporte de cartelera" },
     { "type": "steps", "items": [
       "Pulse \"Cargar Reporte de Cartelera\".",
