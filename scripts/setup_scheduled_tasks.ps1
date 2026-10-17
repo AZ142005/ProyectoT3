@@ -2,11 +2,12 @@
 .SYNOPSIS
     Registra las tareas programadas diarias de mantenimiento en el Programador de Tareas de Windows.
 .DESCRIPTION
-    Crea (o reemplaza con /F) cuatro tareas diarias:
+    Crea (o reemplaza con /F) cinco tareas diarias:
       - Condominio-Backup   23:30  -> scripts\cron_backup.ps1 (respaldo y rotación de la base de datos)
       - Condominio-Tokens   02:00  -> scripts\cleanup_tokens.php (tokens expirados y notificaciones)
       - Condominio-Logs     02:15  -> scripts\cleanup_logs.php (purga y rotación de logs)
       - Condominio-Uploads  02:30  -> scripts\cleanup_uploads.php (uploads huérfanos)
+      - Condominio-Retencion 02:45 -> scripts\cleanup_retencion.php (exportación + purga de datos acumulados)
     Tras registrarlas activa StartWhenAvailable: si la PC estaba apagada o suspendida
     a la hora programada, la tarea se ejecuta apenas vuelva a estar disponible.
     Uso:
@@ -38,6 +39,7 @@ $scriptsRequeridos = @(
     (Join-Path $root 'scripts\cleanup_tokens.php'),
     (Join-Path $root 'scripts\cleanup_logs.php'),
     (Join-Path $root 'scripts\cleanup_uploads.php'),
+    (Join-Path $root 'scripts\cleanup_retencion.php'),
     (Join-Path $root 'scripts\cron_backup.ps1')
 )
 foreach ($script in $scriptsRequeridos) {
@@ -47,17 +49,19 @@ foreach ($script in $scriptsRequeridos) {
 }
 
 # Comandos /TR (el ejecutable y la ruta del script van entre comillas dobles)
-$trBackup  = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $root 'scripts\cron_backup.ps1') + '"'
-$trTokens  = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_tokens.php') + '"'
-$trLogs    = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_logs.php') + '"'
-$trUploads = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_uploads.php') + '"'
+$trBackup    = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $root 'scripts\cron_backup.ps1') + '"'
+$trTokens    = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_tokens.php') + '"'
+$trLogs      = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_logs.php') + '"'
+$trUploads   = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_uploads.php') + '"'
+$trRetencion = '"' + $php + '" "' + (Join-Path $root 'scripts\cleanup_retencion.php') + '"'
 
 # Tareas diarias: nombre, hora y comando
 $tareas = @(
-    @{ Nombre = 'Condominio-Backup';  Hora = '23:30'; Tr = $trBackup },
-    @{ Nombre = 'Condominio-Tokens';  Hora = '02:00'; Tr = $trTokens },
-    @{ Nombre = 'Condominio-Logs';    Hora = '02:15'; Tr = $trLogs },
-    @{ Nombre = 'Condominio-Uploads'; Hora = '02:30'; Tr = $trUploads }
+    @{ Nombre = 'Condominio-Backup';    Hora = '23:30'; Tr = $trBackup },
+    @{ Nombre = 'Condominio-Tokens';    Hora = '02:00'; Tr = $trTokens },
+    @{ Nombre = 'Condominio-Logs';      Hora = '02:15'; Tr = $trLogs },
+    @{ Nombre = 'Condominio-Uploads';   Hora = '02:30'; Tr = $trUploads },
+    @{ Nombre = 'Condominio-Retencion'; Hora = '02:45'; Tr = $trRetencion }
 )
 
 if ($WhatIf) {
