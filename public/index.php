@@ -261,6 +261,11 @@ $router->get('/admin/respaldos', [\App\Controllers\RespaldoController::class, 'i
 $router->post('/admin/respaldos/generar', [\App\Controllers\RespaldoController::class, 'generarManual'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->get('/admin/respaldos/descargar/{id}', [\App\Controllers\RespaldoController::class, 'descargar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
+// --- Retención de datos acumulados (exportación y purga con respaldo previo) ---
+$router->post('/admin/respaldos/acumulados/exportar', [\App\Controllers\RespaldoController::class, 'exportarAcumulados'], [UserRole::ADMIN]);
+$router->post('/admin/respaldos/acumulados/purgar', [\App\Controllers\RespaldoController::class, 'purgarAcumulados'], [UserRole::ADMIN]);
+$router->get('/admin/respaldos/purgas/descargar/{id}', [\App\Controllers\RespaldoController::class, 'descargarPurga'], [UserRole::ADMIN, UserRole::AUDITOR]);
+
 // Auto-despacho de la cola de correos SIN cron externo (InfinityFree bloquea
 // los web-crons con su anti-bot). Con QUEUE_AUTORUN=1: al terminar la
 // respuesta, si hay correos pendientes, se despachan (lote de 5; lockfile

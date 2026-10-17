@@ -122,7 +122,7 @@ class RbacAuthorizationTest extends TestCase {
             'EstacionamientoController.php'    => ['index', 'guardar', 'asignar', 'eliminar', 'guardarVehiculo', 'eliminarVehiculo'],
             'ReporteController.php'            => ['morosidad', 'imprimirMorosidad', 'exportarCsv', 'generarCartaDeuda', 'enviarAvisoCobro'],
             'ComunicadoController.php'         => ['index', 'guardar', 'eliminar'],
-            'RespaldoController.php'           => ['index', 'generarManual', 'descargar'],
+            'RespaldoController.php'           => ['index', 'generarManual', 'descargar', 'exportarAcumulados', 'purgarAcumulados', 'descargarPurga'],
         ];
 
         $controllersDir = dirname(__DIR__) . '/app/controllers';
@@ -289,8 +289,9 @@ class RbacAuthorizationTest extends TestCase {
      * Modelo de permisos del Auditor como operador funcional: toda ruta /admin/*
      * habilita a UserRole::AUDITOR, salvo las exclusiones documentadas (creación
      * y edición de cuentas bancarias, alta de usuarios, cambio de roles,
-     * actualización de datos de contacto, procesamiento de cambios de datos y
-     * eliminación de edificios), que quedan solo-admin.
+     * actualización de datos de contacto, procesamiento de cambios de datos,
+     * eliminación de edificios, y exportación/purga de datos acumulados), que
+     * quedan solo-admin.
      */
     public function testAdminRoutesAllowAuditorExceptDocumentedExclusions(): void {
         $lines = explode("\n", $this->indexContent);
@@ -305,6 +306,8 @@ class RbacAuthorizationTest extends TestCase {
             '/admin/usuarios/procesar-solicitud-cambio',
             '/admin/usuarios/actualizar-datos',
             '/admin/estructura/eliminar-edificio',
+            '/admin/respaldos/acumulados/exportar',
+            '/admin/respaldos/acumulados/purgar',
         ];
         $sinRol = ['/admin/login', '/admin/logout'];
 

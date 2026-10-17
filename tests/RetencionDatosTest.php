@@ -173,4 +173,67 @@ class RetencionDatosTest extends TestCase {
             $servicio->estadisticas('pagos');
         }, 'estadisticas() debe validar la whitelist');
     }
+
+    // =====================================================================
+    // RUTAS, CONTROLADOR Y UI (estático, sin ejecución HTTP)
+    // =====================================================================
+
+    /** Extrae la línea exacta donde se declara una ruta en public/index.php. */
+    private function lineaRuta(string $uri): string {
+        foreach (explode("\n", (string)file_get_contents(dirname(__DIR__) . '/public/index.php')) as $linea) {
+            if (str_contains($linea, "'{$uri}'") || str_contains($linea, "\"{$uri}\"")) {
+                return $linea;
+            }
+        }
+        return '';
+    }
+
+    public function testRutasDeRetencionConRolesCorrectos(): void {
+        $exportar = $this->lineaRuta('/admin/respaldos/acumulados/exportar');
+        $this->assertStringContains('UserRole::ADMIN', $exportar, 'la ruta de exportación debe exigir ADMIN');
+        $this->assertFalse(str_contains($exportar, 'UserRole::AUDITOR'), 'la ruta de exportación no debe habilitar AUDITOR');
+
+        $purgar = $this->lineaRuta('/admin/respaldos/acumulados/purgar');
+        $this->assertStringContains('UserRole::ADMIN', $purgar, 'la ruta de purga debe exigir ADMIN');
+        $this->assertFalse(str_contains($purgar, 'UserRole::AUDITOR'), 'la ruta de purga no debe habilitar AUDITOR');
+
+        $descarga = $this->lineaRuta('/admin/respaldos/purgas/descargar/{id}');
+        $this->assertStringContains('UserRole::ADMIN', $descarga, 'la descarga de exportes debe permitir ADMIN');
+        $this->assertStringContains('UserRole::AUDITOR', $descarga, 'la descarga de exportes debe permitir AUDITOR (contrato del rol)');
+    }
+
+    public function testSidebarsIncluyenItemRespaldos(): void {
+        $admin = (string)file_get_contents(dirname(__DIR__) . '/app/views/layouts/admin_sidebar.php');
+        $auditor = (string)file_get_contents(dirname(__DIR__) . '/app/views/layouts/auditor_sidebar.php');
+
+        $this->assertEquals(2, substr_count($admin, "'route' => 'respaldos'"), 'el sidebar admin declara el ítem en sus DOS listas (base y variante pagos)');
+        $this->assertEquals(2, substr_count($admin, "'url' => '/admin/respaldos'"), 'el sidebar admin enlaza /admin/respaldos en ambas listas');
+        $this->assertEquals(1, substr_count($auditor, "'route' => 'respaldos'"), 'el sidebar auditor declara el ítem');
+        $this->assertStringContains("'icon' => 'backup'", $admin, 'el ítem usa el icono backup');
+        $this->assertStringContains("'label' => 'Respaldos'", $auditor, 'el ítem se rotula Respaldos');
+    }
+
+    public function testVistaRespaldosIncluyePanelDeRetencion(): void {
+        $vista = (string)file_get_contents(dirname(__DIR__) . '/app/views/admin/respaldos/index.php');
+
+        $this->assertStringContains('Datos acumulados', $vista, 'la card de retención debe estar presente');
+        $this->assertStringContains('Purgas y exportaciones', $vista, 'la card de bitácora debe estar presente');
+        $this->assertStringContains('/admin/respaldos/acumulados/exportar', $vista, 'form de exportación en la vista');
+        $this->assertStringContains('/admin/respaldos/acumulados/purgar', $vista, 'form de purga en la vista');
+        $this->assertStringContains('/admin/respaldos/purgas/descargar/', $vista, 'enlace de descarga de exportes');
+        $this->assertStringContains('csrf_field()', $vista, 'todo POST debe llevar CSRF');
+        $this->assertStringContains('return confirm(', $vista, 'la purga debe confirmarse en JS (operación destructiva)');
+        $this->assertStringContains("Auth::role() !== 'auditor'", $vista, 'los botones de acción se ocultan al auditor');
+    }
+
+    public function testControladorRespaldoExponeAccionesDeRetencion(): void {
+        $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
+        foreach (['exportarAcumulados', 'purgarAcumulados', 'descargarPurga'] as $metodo) {
+            $pos = strpos($ctrl, "function {$metodo}");
+            $this->assertTrue($pos !== false, "RespaldoController::{$metodo} debe existir");
+            if ($pos !== false) {
+                $this->assertStringContains('Auth::requireRole', substr($ctrl, $pos, 400), "{$metodo} debe exigir rol en sus primeras líneas");
+            }
+        }
+    }
 }
