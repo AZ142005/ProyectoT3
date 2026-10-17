@@ -187,6 +187,18 @@
                                 </div>
                             <?php endif; ?>
 
+                            <?php if (!empty($cartelera_existentes)): ?>
+                                <div class="bg-blue-50 text-blue-700 border border-blue-200 rounded-2xl p-4 text-sm mb-6 flex items-start gap-2.5">
+                                    <span class="material-symbols-outlined text-[22px] text-blue-700 shrink-0">info</span>
+                                    <div>
+                                        <p class="font-bold">Deudas de cartelera del período</p>
+                                        <p class="mt-0.5 text-xs text-blue-600/90 leading-relaxed">
+                                            Este período tiene <?= e($cartelera_existentes) ?> deudas de cartelera cargadas (importadas del reporte). No se tocan ni cuentan como deudas emitidas del sistema.<?php if (empty($facturas_existentes)): ?> Al presionar «Enviar Deuda» se emitirán además las cuotas/deudas manuales del sistema para este período.<?php endif; ?>
+                                        </p>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
                                 <form method="POST" action="/admin/gastos/generar-facturas" class="flex justify-center items-center pt-4 border-t border-background">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="mes" value="<?= e($mes) ?>">

@@ -104,6 +104,25 @@ class FacturasModel extends BaseModel {
     }
 
     /**
+     * Cuenta las deudas de cartelera (CART-…) activas de un período.
+     *
+     * Son deudas informativas importadas del reporte de cartelera: la emisión
+     * (Enviar/Re-enviar Deuda) no las toca, no bloquean el proceso y tampoco
+     * cuentan como deudas emitidas del sistema (esas son solo las FAC-…).
+     */
+    public function countCarteleraByPeriod($mes, $anio): int {
+        $stmt = $this->db()->prepare("
+            SELECT COUNT(*) as total
+            FROM facturas
+            WHERE mes = :mes AND anio = :anio
+              AND numero_factura LIKE 'CART-%'
+              AND deleted_at IS NULL
+        ");
+        $stmt->execute(['mes' => $mes, 'anio' => $anio]);
+        return intval($stmt->fetch()['total'] ?? 0);
+    }
+
+    /**
      * Emite (o re-emite) las deudas del período con upsert por numero_factura.
      *
      * Reglas:

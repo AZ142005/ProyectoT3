@@ -47,6 +47,7 @@ class GastoController extends Controller {
         // Datos para la sección de Emisión de Deuda
         $unidades = $unidadesModel->getActivas();
         $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
+        $cartelera_existentes = $facturasModel->countCarteleraByPeriod($mes, $anio);
         $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
         $deudasManuales = (new DeudasManualesModel())->obtenerPorPeriodo($mes, $anio);
 
@@ -69,6 +70,7 @@ class GastoController extends Controller {
             'mes'                 => $mes,
             'anio'                => $anio,
             'facturas_existentes' => $facturas_existentes,
+            'cartelera_existentes' => $cartelera_existentes,
             'distribucion'        => $distribucion,
             'deudasManuales'      => $deudasManuales,
             'totalGastosMes'      => $totalMes,
