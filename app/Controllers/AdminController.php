@@ -202,23 +202,19 @@ class AdminController extends Controller {
             $facturasModel = new FacturasModel();
 
             $unidades = $unidadesModel->getActivas();
-            $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
 
-            if ($facturas_existentes > 0) {
-                $error = "Ya existen deudas emitidas para el mes " . nombreMes($mes) . " de " . $anio;
-                Flash::error($error);
-            } else {
-                $stats = $facturasModel->crearFacturasMasivas($unidades, $mes, $anio);
-                if ($stats !== false) {
-                    $msgText = "Se enviaron {$stats['generadas']} deudas calculadas para el mes " . nombreMes($mes) . " de {$anio}.";
-                    if ($stats['con_saldo_favor'] > 0) {
-                        $msgText .= " Se aplicó saldo a favor en {$stats['con_saldo_favor']} unidades (Total usado: " . formatearMoneda($stats['total_saldo_favor_usado']) . ").";
-                    }
-                    Flash::success($msgText);
-                } else {
-                    $error = "Ocurrió un error inesperado al generar las facturas masivas.";
-                    Flash::error($error);
+            // Sin bloqueo por período: la re-emisión aplica upsert por numero_factura
+            // (actualiza/reactiva conservando lo pagado; las CART-… no se tocan).
+            $stats = $facturasModel->crearFacturasMasivas($unidades, $mes, $anio);
+            if ($stats !== false) {
+                $msgText = "Se emitieron {$stats['generadas']} deudas del mes " . nombreMes($mes) . " de {$anio} ({$stats['actualizadas']} actualizadas, {$stats['reactivadas']} reactivadas).";
+                if ($stats['con_saldo_favor'] > 0) {
+                    $msgText .= " Se aplicó saldo a favor en {$stats['con_saldo_favor']} unidades (Total usado: " . formatearMoneda($stats['total_saldo_favor_usado']) . ").";
                 }
+                Flash::success($msgText);
+            } else {
+                $error = "Ocurrió un error inesperado al generar las facturas masivas.";
+                Flash::error($error);
             }
 
             $this->redirect('/admin/gastos?tab=facturacion&mes=' . $mes . '&anio=' . $anio);

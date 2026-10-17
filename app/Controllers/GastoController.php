@@ -9,6 +9,7 @@ use App\Models\CategoriasGastosModel;
 use App\Models\UnidadesModel;
 use App\Models\FacturasModel;
 use App\Models\CarteleraModel;
+use App\Models\DeudasManualesModel;
 
 class GastoController extends Controller {
 
@@ -47,6 +48,7 @@ class GastoController extends Controller {
         $unidades = $unidadesModel->getActivas();
         $facturas_existentes = $facturasModel->countByPeriod($mes, $anio);
         $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
+        $deudasManuales = (new DeudasManualesModel())->obtenerPorPeriodo($mes, $anio);
 
         $paginacion = [
             'total'        => $historial['total'],
@@ -68,6 +70,7 @@ class GastoController extends Controller {
             'anio'                => $anio,
             'facturas_existentes' => $facturas_existentes,
             'distribucion'        => $distribucion,
+            'deudasManuales'      => $deudasManuales,
             'totalGastosMes'      => $totalMes,
             'layout'              => 'admin',
             'title'               => 'Carga y Emisión - Administrador'
@@ -227,6 +230,153 @@ class GastoController extends Controller {
         $gastosModel->eliminarGasto($id);
         Flash::set('success', 'Gasto común eliminado y soporte físico liberado del servidor.');
         $this->redirect('/admin/gastos?mes=' . intval($gasto['mes']) . '&anio=' . intval($gasto['anio']));
+    }
+
+    /**
+     * Guarda deuda manual (monto exacto por unidad) para un período.
+     *
+     * Alcance "todo": todas las unidades activas. Alcance "seleccion": unión sin
+     * duplicados de las unidades de los edificios elegidos más las unidades
+     * elegidas directamente. El monto se aplica completo a cada unidad (no se
+     * reparte) y reemplaza el monto anterior de esas unidades en el período.
+     * Lo guardado se materializa al enviar/re-enviar la deuda del período.
+     */
+    public function guardarDeudaManual() {
+        Auth::requireRole('admin');
+
+        $alcance = ($_POST['alcance'] ?? '') === 'todo' ? 'todo' : 'seleccion';
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
+        $montoRaw = $_POST['monto_unidad'] ?? null;
+        $monto = (is_scalar($montoRaw) && is_numeric($montoRaw)) ? floatval($montoRaw) : 0.0;
+        $adminId = Auth::id() ?? 1;
+
+        if ($mes < 1 || $mes > 12 || $anio < 2000 || $anio > 2100) {
+            Flash::set('danger', 'Período inválido para la deuda manual.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
+        if ($monto < 0.01 || $monto > 999999.99) {
+            Flash::set('danger', 'El monto por unidad debe estar entre Bs. 0,01 y Bs. 999.999,99.');
+            $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
+            return;
+        }
+
+        // Resolución de unidades: solo unidades activas, con deduplicación
+        $unidadesActivas = (new UnidadesModel())->getActivas();
+        $activasPorId = [];
+        $activasPorEdificio = [];
+        foreach ($unidadesActivas as $u) {
+            $uid = intval($u['id']);
+            $activasPorId[$uid] = $u;
+            $activasPorEdificio[intval($u['edificio_id'] ?? 0)][] = $uid;
+        }
+
+        $seleccion = [];
+        if ($alcance === 'todo') {
+            foreach (array_keys($activasPorId) as $uid) {
+                $seleccion[$uid] = true;
+            }
+        } else {
+            $edificiosRaw = $_POST['edificios'] ?? [];
+            foreach ((is_array($edificiosRaw) ? $edificiosRaw : []) as $edificioRaw) {
+                if (!is_scalar($edificioRaw) || !is_numeric($edificioRaw)) {
+                    continue;
+                }
+                foreach ($activasPorEdificio[intval($edificioRaw)] ?? [] as $uid) {
+                    $seleccion[$uid] = true;
+                }
+            }
+
+            $unidadesRaw = $_POST['unidades'] ?? [];
+            foreach ((is_array($unidadesRaw) ? $unidadesRaw : []) as $unidadRaw) {
+                if (!is_scalar($unidadRaw) || !is_numeric($unidadRaw)) {
+                    continue;
+                }
+                $uid = intval($unidadRaw);
+                if (isset($activasPorId[$uid])) {
+                    $seleccion[$uid] = true;
+                }
+            }
+        }
+
+        $unidadIds = array_keys($seleccion);
+        if (empty($unidadIds)) {
+            Flash::set('danger', 'Seleccione al menos una unidad o edificio con unidades activas.');
+            $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
+            return;
+        }
+
+        try {
+            $guardadas = (new DeudasManualesModel())->guardarLote($mes, $anio, $unidadIds, $monto, $adminId);
+            Flash::set('success', 'Deuda manual guardada: ' . $guardadas . ' unidades a ' . formatearMoneda($monto) . ' c/u. Se aplicará al enviar/re-enviar la deuda del período.');
+        } catch (\Throwable $e) {
+            error_log('[GASTO] Error al guardar deuda manual: ' . $e->getMessage());
+            Flash::set('danger', 'Ocurrió un error al guardar la deuda manual. Intente de nuevo.');
+        }
+
+        $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
+    }
+
+    /**
+     * Elimina (baja lógica) la deuda manual de una unidad en un período.
+     */
+    public function eliminarDeudaManual() {
+        Auth::requireRole('admin');
+
+        $unidadId = intval($_POST['unidad_id'] ?? 0);
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
+
+        if ($unidadId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > 2100) {
+            Flash::set('danger', 'Datos inválidos para eliminar la deuda manual.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
+        try {
+            if ((new DeudasManualesModel())->eliminar($unidadId, $mes, $anio)) {
+                Flash::set('success', 'Deuda manual eliminada. Se aplicará al enviar/re-enviar la deuda del período.');
+            } else {
+                Flash::set('danger', 'No se encontró una deuda manual activa para esa unidad en el período.');
+            }
+        } catch (\Throwable $e) {
+            error_log('[GASTO] Error al eliminar deuda manual: ' . $e->getMessage());
+            Flash::set('danger', 'Ocurrió un error al eliminar la deuda manual.');
+        }
+
+        $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
+    }
+
+    /**
+     * Elimina (baja lógica) todas las deudas manuales de un período.
+     */
+    public function eliminarDeudasManualesPeriodo() {
+        Auth::requireRole('admin');
+
+        $mes = $this->periodoDesdePost('mes', intval(date('n')));
+        $anio = $this->periodoDesdePost('anio', intval(date('Y')));
+
+        if ($mes < 1 || $mes > 12 || $anio < 2000 || $anio > 2100) {
+            Flash::set('danger', 'Período inválido para limpiar las deudas manuales.');
+            $this->redirect('/admin/gastos');
+            return;
+        }
+
+        try {
+            $eliminadas = (new DeudasManualesModel())->eliminarPeriodo($mes, $anio);
+            if ($eliminadas > 0) {
+                Flash::set('success', 'Se eliminaron ' . $eliminadas . ' deudas manuales del período. Se aplicará al enviar/re-enviar la deuda del período.');
+            } else {
+                Flash::set('info', 'No había deudas manuales guardadas para el período.');
+            }
+        } catch (\Throwable $e) {
+            error_log('[GASTO] Error al limpiar deudas manuales del período: ' . $e->getMessage());
+            Flash::set('danger', 'Ocurrió un error al limpiar las deudas manuales del período.');
+        }
+
+        $this->redirect('/admin/gastos?mes=' . $mes . '&anio=' . $anio);
     }
 
     /**

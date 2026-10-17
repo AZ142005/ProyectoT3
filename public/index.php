@@ -228,6 +228,9 @@ $router->post('/admin/cartelera/parsear', [\App\Controllers\CarteleraController:
 $router->post('/admin/cartelera/importar', [\App\Controllers\CarteleraController::class, 'importar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/guardar', [\App\Controllers\GastoController::class, 'guardar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/eliminar', [\App\Controllers\GastoController::class, 'eliminar'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/gastos/deuda-manual', [\App\Controllers\GastoController::class, 'guardarDeudaManual'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/gastos/deuda-manual/eliminar', [\App\Controllers\GastoController::class, 'eliminarDeudaManual'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->post('/admin/gastos/deuda-manual/limpiar', [\App\Controllers\GastoController::class, 'eliminarDeudasManualesPeriodo'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/generar-facturas', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'rendicionResidente'], [UserRole::RESIDENTE]);
 
