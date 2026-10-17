@@ -65,6 +65,7 @@ CREATE TABLE `backups_log` (
   `notas` text DEFAULT NULL,
   `admin_id` int(11) DEFAULT NULL,
   `fecha_respaldo` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_descarga` timestamp NULL DEFAULT NULL COMMENT 'Fecha de descarga del archivo; NULL si nunca se descargó (ciclo único 7/30 días)',
   PRIMARY KEY (`id`),
   KEY `idx_backups_fecha` (`fecha_respaldo`),
   KEY `idx_backups_estado` (`estado`,`fecha_respaldo`),
@@ -79,7 +80,7 @@ CREATE TABLE `backups_log` (
 
 LOCK TABLES `backups_log` WRITE;
 /*!40000 ALTER TABLE `backups_log` DISABLE KEYS */;
-INSERT INTO `backups_log` VALUES (1,'backup_2026-10-11_00-36-26.sql.gz',655559,'579af90da2492fc4bfd3c91adf98ae41c49335622f878062690e5064c7a845a9',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-10 22:36:26'),(2,'backup_2026-10-11_00-55-23.sql.gz',108391,'cca06b8ad3bd874557631890e767c4f6a6c252c82aca80bb17befb8e61cf8f71',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-10 22:55:23'),(3,'backup_2026-10-11_16-17-08.sql.gz',125854,'5021e1113ef417f2601d66946c84cc5f16209a96c090fd8397c14d6f5d008acb',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-11 14:17:08'),(4,'backup_2026-10-12_18-06-51.sql.gz',223875,'9379a29518ff9ddb77c3bb86dc0e4d90f7bfbb2b4ea710b4f7467b2e87fb865b',NULL,32,'mysqldump','exitoso',NULL,NULL,'2026-10-12 16:06:52');
+INSERT INTO `backups_log` VALUES (1,'backup_2026-10-11_00-36-26.sql.gz',655559,'579af90da2492fc4bfd3c91adf98ae41c49335622f878062690e5064c7a845a9',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-10 22:36:26',NULL),(2,'backup_2026-10-11_00-55-23.sql.gz',108391,'cca06b8ad3bd874557631890e767c4f6a6c252c82aca80bb17befb8e61cf8f71',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-10 22:55:23',NULL),(3,'backup_2026-10-11_16-17-08.sql.gz',125854,'5021e1113ef417f2601d66946c84cc5f16209a96c090fd8397c14d6f5d008acb',NULL,30,'mysqldump','exitoso',NULL,NULL,'2026-10-11 14:17:08',NULL),(4,'backup_2026-10-12_18-06-51.sql.gz',223875,'9379a29518ff9ddb77c3bb86dc0e4d90f7bfbb2b4ea710b4f7467b2e87fb865b',NULL,32,'mysqldump','exitoso',NULL,NULL,'2026-10-12 16:06:52',NULL);
 /*!40000 ALTER TABLE `backups_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -568,7 +569,8 @@ CREATE TABLE `historial_estado_abono` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_hist_mov` (`movimiento_id`),
-  KEY `idx_hist_res` (`resultado`)
+  KEY `idx_hist_res` (`resultado`),
+  KEY `idx_hist_creado` (`creado_en`)
 ) ENGINE=InnoDB AUTO_INCREMENT=241 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -894,6 +896,37 @@ LOCK TABLES `personas` WRITE;
 INSERT INTO `personas` VALUES (2,'87654321','Maria','Gomez','04127654321','maria@email.com',2,'propietario',1,'$2y$12$BYZ2woz8ROUt9MpQtWAVPupVAPEA1vYWT2pPI5TryyNg1f/aA1eae',1,'2026-09-30 11:45:41','2026-07-02 18:00:52',2,NULL,0),(207,'V-29999999','Residente','Prueba','0414-0000000','residente.prueba@conjunto.com',1,'propietario',1,'$2y$10$r56Hxvz7CoBjQtFX92qi9O6jdGudLaexzN/f14qhNIEKwtVrNd8/G',1,'2026-10-13 11:23:38','2026-10-02 20:28:08',0,NULL,0);
 /*!40000 ALTER TABLE `personas` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `purgas_log`
+--
+
+DROP TABLE IF EXISTS `purgas_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `purgas_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tipo` enum('exportacion','purga') NOT NULL DEFAULT 'purga',
+  `tabla` varchar(64) NOT NULL,
+  `fecha_corte` datetime DEFAULT NULL COMMENT 'Corte usado en el SELECT y el DELETE (NOW - días de retención)',
+  `registros_exportados` int(10) unsigned NOT NULL DEFAULT 0,
+  `registros_eliminados` int(10) unsigned NOT NULL DEFAULT 0,
+  `archivo` varchar(255) DEFAULT NULL COMMENT 'Nombre del .sql.gz generado en storage/backups/purgas/',
+  `tamano_bytes` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `hash_sha256` varchar(64) DEFAULT NULL COMMENT 'SHA-256 del archivo .sql.gz',
+  `modo` enum('manual','programado') NOT NULL DEFAULT 'manual',
+  `admin_id` int(11) DEFAULT NULL,
+  `estado` enum('exitoso','parcial','fallido') NOT NULL DEFAULT 'exitoso',
+  `notas` text DEFAULT NULL,
+  `fecha_ejecucion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_descarga` timestamp NULL DEFAULT NULL COMMENT 'Fecha de descarga del archivo; NULL si nunca se descargó (ciclo único 7/30 días)',
+  PRIMARY KEY (`id`),
+  KEY `idx_purgas_fecha` (`fecha_ejecucion`),
+  KEY `idx_purgas_tabla` (`tabla`,`fecha_ejecucion`),
+  KEY `admin_id` (`admin_id`),
+  CONSTRAINT `purgas_log_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `rate_limits`
