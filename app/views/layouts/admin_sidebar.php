@@ -13,6 +13,7 @@ $navItems = [
     ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
     ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
     ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Carta de Deuda'],
+    ['route' => 'respaldos',        'url' => '/admin/respaldos',          'icon' => 'backup',          'label' => 'Respaldos'],
 ];
 
 // Para la vista de pagos del admin, mantenemos consistente
@@ -28,6 +29,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
         ['route' => 'comunicados',      'url' => '/admin/comunicados',        'icon' => 'campaign',        'label' => 'Comunicados'],
         ['route' => 'usuarios',         'url' => '/admin/usuarios',           'icon' => 'group',           'label' => 'Usuarios'],
         ['route' => 'morosidad',        'url' => '/admin/reportes/morosidad', 'icon' => 'account_balance_wallet', 'label' => 'Carta de Deuda'],
+        ['route' => 'respaldos',        'url' => '/admin/respaldos',          'icon' => 'backup',          'label' => 'Respaldos'],
     ];
 }
 ?>

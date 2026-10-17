@@ -10,6 +10,7 @@ $navItems = [
     ['route' => 'comunicados',       'url' => '/admin/comunicados',         'icon' => 'campaign',       'label' => 'Comunicados'],
     ['route' => 'usuarios',          'url' => '/admin/usuarios',            'icon' => 'group',          'label' => 'Usuarios'],
     ['route' => 'morosidad',         'url' => '/admin/reportes/morosidad',  'icon' => 'account_balance_wallet', 'label' => 'Carta de Deuda'],
+    ['route' => 'respaldos',         'url' => '/admin/respaldos',           'icon' => 'backup',         'label' => 'Respaldos'],
 ];
 ?>
 <aside id="adminSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300 fixed md:sticky md:top-0 z-30 h-screen -translate-x-full md:translate-x-0 shrink-0">
