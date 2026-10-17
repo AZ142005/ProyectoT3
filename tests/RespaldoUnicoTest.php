@@ -207,4 +207,98 @@ class RespaldoUnicoTest extends TestCase {
             $db->exec('DELETE FROM backups_log WHERE id = ' . $id);
         }
     }
+
+    // =====================================================================
+    // PANEL: VISTA Y CONTROLADOR (estático, sin ejecución HTTP)
+    // =====================================================================
+
+    /** Extrae el cuerpo de un método público del controlador (hasta el siguiente). */
+    private function cuerpoMetodo(string $fuente, string $metodo): string {
+        $pos = strpos($fuente, "function {$metodo}(");
+        if ($pos === false) {
+            return '';
+        }
+        $resto = substr($fuente, $pos);
+        $fin = strpos($resto, "\n    public function");
+        return $fin === false ? $resto : substr($resto, 0, $fin);
+    }
+
+    public function testVistaMuestraSoloElRespaldoVigenteConBoton(): void {
+        $vista = (string)file_get_contents(dirname(__DIR__) . '/app/views/admin/respaldos/index.php');
+
+        $this->assertStringContains('Respaldo del sistema (vigente)', $vista, 'la tarjeta única de respaldo vigente debe estar presente');
+        $this->assertStringContains('Descargar respaldo', $vista, 'el botón único de descarga debe estar presente');
+        $this->assertStringContains('/admin/respaldos/descargar/', $vista, 'el botón debe apuntar a la ruta de descarga existente');
+        $this->assertFalse(str_contains($vista, 'Historial de Respaldos'), 'la tabla/historial de respaldos debe desaparecer');
+        $this->assertFalse(str_contains($vista, 'rotación autónoma de 7 días'), 'el copy viejo de rotación debe desaparecer');
+        $this->assertFalse(str_contains($vista, '366'), 'no debe quedar ninguna mención a 366 días');
+
+        // El botón es visible para admin y auditor: sin guard de rol en la tarjeta.
+        $pos = strpos($vista, 'Respaldo del sistema (vigente)');
+        $tarjeta = $pos === false ? '' : substr($vista, $pos, 3000);
+        $this->assertFalse(str_contains($tarjeta, "Auth::role() !== 'auditor'"), 'el botón de descarga del respaldo no debe ocultarse al auditor');
+    }
+
+    public function testVistaExplicaElCicloUnicoDeArchivos(): void {
+        $vista = (string)file_get_contents(dirname(__DIR__) . '/app/views/admin/respaldos/index.php');
+        $this->assertStringContains('7 días después de la descarga', $vista, 'el copy debe explicar la ventana de 7 días tras la descarga');
+        $this->assertStringContains('30 días', $vista, 'el copy debe explicar la ventana de 30 días sin descarga');
+        $this->assertStringContains('un solo respaldo vigente', $vista, 'el banner debe explicar que hay un único respaldo vigente');
+    }
+
+    public function testControladorIndexSoloPresentaElVigente(): void {
+        $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
+        $cuerpo = $this->cuerpoMetodo($ctrl, 'index');
+
+        $this->assertStringContains('ORDER BY b.id DESC', $cuerpo, 'index() debe ordenar por id descendente');
+        $this->assertStringContains('LIMIT 1', $cuerpo, 'index() debe presentar solo el respaldo vigente (LIMIT 1)');
+        $this->assertStringContains("'respaldo'", $cuerpo, 'index() debe pasar el respaldo vigente a la vista');
+        $this->assertFalse(str_contains($cuerpo, 'fetchAll'), 'index() ya no debe listar todo el historial de respaldos');
+    }
+
+    public function testControladorMarcaDescargaAntesDeTransmitir(): void {
+        $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
+
+        $descargar = $this->cuerpoMetodo($ctrl, 'descargar');
+        $posUpdate = strpos($descargar, 'UPDATE backups_log SET fecha_descarga = NOW()');
+        $posReadfile = strpos($descargar, 'readfile(');
+        $this->assertTrue($posUpdate !== false, 'descargar() debe marcar fecha_descarga con NOW() de MySQL');
+        $this->assertTrue($posReadfile !== false, 'descargar() debe transmitir el archivo');
+        if ($posUpdate !== false && $posReadfile !== false) {
+            $this->assertTrue($posUpdate < $posReadfile, 'la marca de descarga debe ocurrir ANTES de transmitir el respaldo');
+        }
+
+        $purga = $this->cuerpoMetodo($ctrl, 'descargarPurga');
+        $posUpdateP = strpos($purga, 'UPDATE purgas_log SET fecha_descarga = NOW()');
+        $posReadfileP = strpos($purga, 'readfile(');
+        $this->assertTrue($posUpdateP !== false, 'descargarPurga() debe marcar fecha_descarga con NOW() de MySQL');
+        $this->assertTrue($posReadfileP !== false, 'descargarPurga() debe transmitir el archivo');
+        if ($posUpdateP !== false && $posReadfileP !== false) {
+            $this->assertTrue($posUpdateP < $posReadfileP, 'la marca de descarga debe ocurrir ANTES de transmitir el exporte');
+        }
+    }
+
+    public function testDescargaDeArchivoEliminadoFallaConMensajeAmable(): void {
+        $ctrl = (string)file_get_contents(dirname(__DIR__) . '/app/Controllers/RespaldoController.php');
+
+        $casos = [
+            'descargar'      => 'El archivo físico de respaldo ya no existe',
+            'descargarPurga' => 'El archivo físico del exporte ya no existe',
+        ];
+        foreach ($casos as $metodo => $mensaje) {
+            $cuerpo = $this->cuerpoMetodo($ctrl, $metodo);
+            $this->assertStringContains($mensaje, $cuerpo, "{$metodo}() debe conservar el mensaje amable de archivo ausente");
+
+            $posExiste = strpos($cuerpo, 'file_exists(');
+            $posContencion = strpos($cuerpo, 'strpos($resolvedPath');
+            $this->assertTrue($posExiste !== false, "{$metodo}() debe comprobar la existencia del archivo");
+            $this->assertTrue($posContencion !== false, "{$metodo}() debe mantener la comprobación de contención de ruta");
+            if ($posExiste !== false && $posContencion !== false) {
+                $this->assertTrue(
+                    $posExiste < $posContencion,
+                    "{$metodo}() debe reportar el mensaje amable cuando el archivo ya no existe (existencia antes que contención de ruta)"
+                );
+            }
+        }
+    }
 }

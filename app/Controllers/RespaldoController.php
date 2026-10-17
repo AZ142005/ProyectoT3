@@ -14,6 +14,8 @@ class RespaldoController extends Controller {
 
     /**
      * Muestra el panel de administración de respaldos de base de datos.
+     * Política de respaldo único: solo se presenta el respaldo vigente
+     * (la fila más reciente de backups_log).
      */
     public function index() {
         Auth::requireRole([UserRole::ADMIN, UserRole::AUDITOR]);
@@ -24,8 +26,9 @@ class RespaldoController extends Controller {
             FROM backups_log b
             LEFT JOIN usuarios u ON b.admin_id = u.id
             ORDER BY b.id DESC
+            LIMIT 1
         ");
-        $respaldos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $respaldo = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
         // Retención de datos acumulados: estadísticas por tabla e historial de
         // exportes/purgas (listarPurgas devuelve [] si la migración no se aplicó).
@@ -34,7 +37,7 @@ class RespaldoController extends Controller {
         $purgas = $servicioRetencion->listarPurgas(25);
 
         $this->render('admin/respaldos/index', [
-            'respaldos' => $respaldos,
+            'respaldo'  => $respaldo,
             'retencion' => $retencion,
             'purgas'    => $purgas,
             'layout'    => 'admin',
@@ -72,16 +75,25 @@ class RespaldoController extends Controller {
 
         $backupDir = realpath(dirname(__DIR__, 2) . '/storage/backups');
         $rutaArchivo = $backupDir ? $backupDir . '/' . basename($respaldo['nombre_archivo']) : null;
-        $resolvedPath = $rutaArchivo ? realpath($rutaArchivo) : null;
 
-        if (!$backupDir || !$resolvedPath || strpos($resolvedPath, $backupDir) !== 0) {
+        if (!$backupDir || !$rutaArchivo) {
             Flash::set('danger', 'Ruta de respaldo no válida.');
             $this->redirect('/admin/respaldos');
             return;
         }
 
-        if (!file_exists($resolvedPath)) {
+        // Archivo ya eliminado del servidor (reemplazo diario o ciclo único):
+        // mensaje amable antes que cualquier otra validación de ruta.
+        if (!file_exists($rutaArchivo)) {
             Flash::set('danger', 'El archivo físico de respaldo ya no existe en el servidor (purgado por política de retención).');
+            $this->redirect('/admin/respaldos');
+            return;
+        }
+
+        // Contención de ruta (defensa en profundidad; basename ya la asegura).
+        $resolvedPath = realpath($rutaArchivo);
+        if (!$resolvedPath || strpos($resolvedPath, $backupDir) !== 0) {
+            Flash::set('danger', 'Ruta de respaldo no válida.');
             $this->redirect('/admin/respaldos');
             return;
         }
@@ -97,6 +109,12 @@ class RespaldoController extends Controller {
                 return;
             }
         }
+
+        // Ciclo único: marcar la descarga con el reloj de la base de datos
+        // (NOW() de MySQL) ANTES de transmitir; el archivo se eliminará del
+        // servidor 7 días después de esta descarga.
+        $marcar = $db->prepare("UPDATE backups_log SET fecha_descarga = NOW() WHERE id = :id");
+        $marcar->execute(['id' => (int)$respaldo['id']]);
 
         header('Content-Description: File Transfer');
         header('Content-Type: application/gzip');
@@ -198,16 +216,25 @@ class RespaldoController extends Controller {
 
         $dirExportes = realpath(dirname(__DIR__, 2) . '/storage/backups/purgas');
         $rutaArchivo = $dirExportes ? $dirExportes . '/' . basename($purga['archivo']) : null;
-        $resolvedPath = $rutaArchivo ? realpath($rutaArchivo) : null;
 
-        if (!$dirExportes || !$resolvedPath || strpos($resolvedPath, $dirExportes) !== 0) {
+        if (!$dirExportes || !$rutaArchivo) {
             Flash::set('danger', 'Ruta de exporte no válida.');
             $this->redirect('/admin/respaldos');
             return;
         }
 
-        if (!file_exists($resolvedPath)) {
-            Flash::set('danger', 'El archivo físico del exporte ya no existe (rotado por política de retención).');
+        // Archivo ya eliminado del servidor (ciclo único): mensaje amable
+        // antes que cualquier otra validación de ruta.
+        if (!file_exists($rutaArchivo)) {
+            Flash::set('danger', 'El archivo físico del exporte ya no existe (eliminado por política de retención).');
+            $this->redirect('/admin/respaldos');
+            return;
+        }
+
+        // Contención de ruta (defensa en profundidad; basename ya la asegura).
+        $resolvedPath = realpath($rutaArchivo);
+        if (!$resolvedPath || strpos($resolvedPath, $dirExportes) !== 0) {
+            Flash::set('danger', 'Ruta de exporte no válida.');
             $this->redirect('/admin/respaldos');
             return;
         }
@@ -221,6 +248,11 @@ class RespaldoController extends Controller {
                 return;
             }
         }
+
+        // Ciclo único: marcar la descarga con NOW() de MySQL ANTES de
+        // transmitir; el exporte se eliminará del servidor 7 días después.
+        $marcar = $db->prepare("UPDATE purgas_log SET fecha_descarga = NOW() WHERE id = :id");
+        $marcar->execute(['id' => (int)$purga['id']]);
 
         header('Content-Description: File Transfer');
         header('Content-Type: application/gzip');

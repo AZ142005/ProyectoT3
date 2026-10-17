@@ -224,6 +224,12 @@ class RetencionDatosTest extends TestCase {
         $this->assertStringContains('csrf_field()', $vista, 'todo POST debe llevar CSRF');
         $this->assertStringContains('return confirm(', $vista, 'la purga debe confirmarse en JS (operación destructiva)');
         $this->assertStringContains("Auth::role() !== 'auditor'", $vista, 'los botones de acción se ocultan al auditor');
+
+        // Ciclo único (respaldo-unico-descarga): tarjeta única + ventanas 7/30.
+        $this->assertStringContains('Respaldo del sistema (vigente)', $vista, 'la tarjeta del respaldo único vigente debe estar presente');
+        $this->assertStringContains('Descargar respaldo', $vista, 'el botón único de descarga debe estar presente');
+        $this->assertStringContains('7 días', $vista, 'el copy del ciclo único (7 días tras descarga) debe estar presente');
+        $this->assertFalse(str_contains($vista, '366'), 'la ventana de 366 días ya no debe aparecer en la vista');
     }
 
     public function testControladorRespaldoExponeAccionesDeRetencion(): void {
