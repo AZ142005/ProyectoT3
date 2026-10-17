@@ -1,7 +1,23 @@
 <?php
 namespace Tests;
 
+/**
+ * Tests del motor de respaldo único:
+ *  - directorio y scripts base;
+ *  - política de reemplazo (borrar los `backup_*` anteriores SOLO tras
+ *    registrar el nuevo respaldo; sin limpieza preventiva por antigüedad);
+ *  - limpieza standalone del respaldo general descargado-vencido (7 días).
+ */
 class BackupTest extends TestCase {
+
+    /** Conexión a BD o null (patrón skip del repo). */
+    private function conectar(): ?\PDO {
+        try {
+            return \App\Core\Database::getConnection();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 
     public function testStorageBackupsDirectoryExistsAndIsWritable() {
         $backupDir = dirname(__DIR__) . '/storage/backups';
@@ -18,26 +34,75 @@ class BackupTest extends TestCase {
         $this->assertTrue(file_exists(dirname(__DIR__) . '/scripts/cleanup_backups.php'));
     }
 
-    public function testBackupRetentionCleansOldFiles() {
+    public function testBackupDatabaseReemplazaSoloTrasRegistrarElNuevo() {
+        $script = (string)file_get_contents(dirname(__DIR__) . '/scripts/backup_database.php');
+
+        $this->assertStringContains('respaldo único', $script, 'el script debe documentar la política de respaldo único');
+        $this->assertStringContains("glob(\$backupDir . '/backup_*')", $script, 'el reemplazo debe barrer los archivos backup_* anteriores');
+        $this->assertFalse(str_contains($script, '7 * 86400'), 'ya no debe existir la limpieza preventiva por antigüedad (rotación de 7 días)');
+
+        $posRegistro = strpos($script, 'INSERT INTO backups_log');
+        $posReemplazo = strpos($script, "glob(\$backupDir . '/backup_*')");
+        $this->assertTrue($posRegistro !== false, 'el script debe registrar el respaldo en backups_log');
+        $this->assertTrue($posReemplazo !== false, 'el script debe reemplazar los backup_* anteriores');
+        if ($posRegistro !== false && $posReemplazo !== false) {
+            $this->assertTrue(
+                $posReemplazo > $posRegistro,
+                'el reemplazo debe ejecutarse SOLO después de registrar el nuevo respaldo (nunca borrar el anterior antes de que el nuevo esté completo)'
+            );
+        }
+    }
+
+    public function testCleanupBackupsEliminaDescargadoVencidoYConservaReciente() {
+        $db = $this->conectar();
+        if ($db === null) {
+            $this->skip('BD no disponible para la limpieza standalone de respaldos');
+            return;
+        }
+        $col = $db->query("SHOW COLUMNS FROM backups_log LIKE 'fecha_descarga'")->fetch();
+        if (!$col) {
+            $this->skip('Migración fecha_descarga pendiente en backups_log');
+            return;
+        }
+
         $backupDir = dirname(__DIR__) . '/storage/backups';
-        $testOldFile = $backupDir . '/backup_test_old.sql.gz';
-        $testRecentFile = $backupDir . '/backup_test_recent.sql.gz';
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0755, true);
+        }
 
-        file_put_contents($testOldFile, 'dummy data');
-        file_put_contents($testRecentFile, 'dummy data');
+        $marca = 'zztest_' . bin2hex(random_bytes(4));
+        $archivoVencido = "backup_{$marca}.sql.gz";
+        $archivoReciente = "backup_{$marca}_reciente.sql.gz";
+        $rutaVencido = $backupDir . '/' . $archivoVencido;
+        $rutaReciente = $backupDir . '/' . $archivoReciente;
 
-        // Simular archivo de 10 días de antigüedad
-        touch($testOldFile, time() - (10 * 86400));
-        // Archivo reciente (1 hora atrás)
-        touch($testRecentFile, time() - 3600);
+        file_put_contents($rutaVencido, 'dummy');
+        file_put_contents($rutaReciente, 'dummy');
 
-        // Ejecutar script de rotación
-        require dirname(__DIR__) . '/scripts/cleanup_backups.php';
+        $db->exec("
+            INSERT INTO backups_log
+                (nombre_archivo, tamano_bytes, hash_sha256, tablas_respaldadas, estado, notas, fecha_descarga)
+            VALUES
+                (" . $db->quote($archivoVencido) . ", 5, 'test', 1, 'exitoso', NULL, NOW() - INTERVAL 8 DAY)
+        ");
+        $idVencido = (int)$db->lastInsertId();
 
-        $this->assertFalse(file_exists($testOldFile));
-        $this->assertTrue(file_exists($testRecentFile));
+        try {
+            require dirname(__DIR__) . '/scripts/cleanup_backups.php';
 
-        // Limpieza del archivo de test
-        @unlink($testRecentFile);
+            $this->assertFalse(file_exists($rutaVencido), 'el respaldo descargado hace 8 días debe eliminarse');
+            $this->assertTrue(file_exists($rutaReciente), 'un archivo reciente sin descarga no debe tocarse');
+
+            $nota = (string)$db->query('SELECT notas FROM backups_log WHERE id = ' . $idVencido)->fetchColumn();
+            $this->assertStringContains('Archivo eliminado tras descarga', $nota, 'la fila de backups_log debe quedar anotada');
+        } finally {
+            if (is_file($rutaVencido)) {
+                @unlink($rutaVencido);
+            }
+            if (is_file($rutaReciente)) {
+                @unlink($rutaReciente);
+            }
+            $db->exec('DELETE FROM backups_log WHERE id = ' . $idVencido);
+        }
     }
 }
