@@ -7,7 +7,12 @@
  * no se borra nada.
  *
  * Sin registros elegibles la corrida es un no-op limpio (no genera archivo
- * ni fila de bitácora). Los exportes de más de 366 días se rotan.
+ * ni fila de bitácora).
+ *
+ * Ciclo único de archivos: los exportes de purga descargados se eliminan 7
+ * días después de su descarga (30 días si nunca se descargan) y el respaldo
+ * general descargado-vencido se elimina con el backstop de 7 días. Las filas
+ * de backups_log/purgas_log NUNCA se borran: quedan con nota.
  *
  * Configurar en crontab:
  *   crontab -e
@@ -96,9 +101,19 @@ try {
         }
     }
 
-    // Rotación de exportes de purga (> 366 días).
-    $rotados = $servicio->limpiarExportesAntiguos(366);
-    echo "  ✔ Rotación de exportes (>366d): {$rotados} archivo(s) eliminado(s).\n";
+    // Ciclo único de archivos: exportes de purga (7 d tras descarga / 30 d
+    // sin descarga) y backstop del respaldo general descargado-vencido (7 d).
+    $exportesLimpiados = $servicio->limpiarExportesPurgas($dryRun);
+    foreach ($exportesLimpiados['detalles'] as $d) {
+        echo "  ℹ [exporte] {$d['archivo']} → " . ($dryRun ? 'se eliminaría' : 'eliminado') . " ({$d['regla']}).\n";
+    }
+    echo "  ✔ Exportes de purga (7d tras descarga / 30d sin descarga): {$exportesLimpiados['eliminados']} archivo(s) " . ($dryRun ? 'por eliminar' : 'eliminado(s)') . ".\n";
+
+    $respaldoLimpiado = $servicio->limpiarRespaldoGeneralVencido($dryRun);
+    foreach ($respaldoLimpiado['detalles'] as $d) {
+        echo "  ℹ [respaldo] {$d['archivo']} → " . ($dryRun ? 'se eliminaría' : 'eliminado') . " ({$d['regla']}).\n";
+    }
+    echo "  ✔ Respaldo general descargado-vencido (7d): {$respaldoLimpiado['eliminados']} archivo(s) " . ($dryRun ? 'por eliminar' : 'eliminado(s)') . ".\n";
 
     echo '[' . date('Y-m-d H:i:s') . "] Retención completada. {$procesadas} tabla(s) procesada(s), {$exportados} exportado(s), {$eliminados} eliminado(s), {$fallidas} fallida(s).\n";
     exit($fallidas > 0 ? 1 : 0);

@@ -20,6 +20,12 @@ use App\Core\Database;
  *
  * Sin registros elegibles no se genera archivo ni fila de bitácora: la
  * corrida programada con 0 elegibles es un no-op limpio.
+ *
+ * Ciclo único de archivos (anti-acumulación): un archivo descargado se
+ * elimina del servidor LIMPIEZA_DIAS_TRAS_DESCARGA (7) días después de la
+ * descarga; un exporte de purga que nunca se descargó se elimina a los
+ * LIMPIEZA_DIAS_SIN_DESCARGAR (30) días. Las filas de backups_log y
+ * purgas_log NUNCA se borran: quedan como historial con nota.
  */
 class DataRetentionService {
 
@@ -37,6 +43,20 @@ class DataRetentionService {
         'historial_estado_abono' => ['col' => 'creado_en',    'dias' => 365],
         'rate_limits'            => ['col' => 'window_start', 'dias' => 30],
     ];
+
+    /**
+     * Ciclo único de limpieza de archivos (anti-acumulación).
+     *
+     * - Un archivo descargado (respaldo general o exporte de purga) se
+     *   elimina del servidor 7 días después de la descarga.
+     * - Un exporte de purga que nunca se descargó se elimina a los 30 días
+     *   desde su ejecución.
+     *
+     * Constantes configurables: las usan el panel, el CLI de retención y los
+     * scripts standalone (cleanup_backups.php) para aplicar las mismas reglas.
+     */
+    public const LIMPIEZA_DIAS_TRAS_DESCARGA = 7;
+    public const LIMPIEZA_DIAS_SIN_DESCARGAR = 30;
 
     /** @var PDO Conexión activa. */
     private PDO $db;
@@ -94,6 +114,42 @@ class DataRetentionService {
         $fecha = new \DateTime($ahora);
         $fecha->sub(new \DateInterval('P' . $dias . 'D'));
         return $fecha->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Regla pura del ciclo único: ¿la descarga está vencida? Un archivo con
+     * fecha de descarga anterior al corte ($ahora - $dias) debe eliminarse.
+     * Compara cadenas 'Y-m-d H:i:s' (orden lexicográfico = cronológico).
+     */
+    public static function vencidoTrasDescarga(
+        ?string $fechaDescarga,
+        string $ahora,
+        int $dias = self::LIMPIEZA_DIAS_TRAS_DESCARGA
+    ): bool {
+        if ($fechaDescarga === null || $fechaDescarga === '') {
+            return false;
+        }
+        return $fechaDescarga < self::calcularCorte($ahora, $dias);
+    }
+
+    /**
+     * Regla pura del ciclo único: ¿un exporte NUNCA descargado está vencido?
+     * Si existe fecha de descarga, esta regla no aplica (manda la de 7 días);
+     * sin descarga, vence a los $dias (30) desde su ejecución.
+     */
+    public static function vencidoSinDescargar(
+        ?string $fechaDescarga,
+        ?string $fechaEjecucion,
+        string $ahora,
+        int $dias = self::LIMPIEZA_DIAS_SIN_DESCARGAR
+    ): bool {
+        if ($fechaDescarga !== null && $fechaDescarga !== '') {
+            return false;
+        }
+        if ($fechaEjecucion === null || $fechaEjecucion === '') {
+            return false;
+        }
+        return $fechaEjecucion < self::calcularCorte($ahora, $dias);
     }
 
     // =====================================================================
@@ -241,28 +297,132 @@ class DataRetentionService {
     }
 
     /**
-     * Rotación de exportes de purga: elimina .sql.gz y .sha256 con más de
-     * $dias de antigüedad. Retorna cuántos archivos eliminó.
+     * Ciclo único de exportes de purga: elimina el archivo .sql.gz (y su
+     * .sha256 hermano) cuando la fila de purgas_log está vencida:
+     *  - descargado: fecha_descarga + LIMPIEZA_DIAS_TRAS_DESCARGA (7) < ahora, o
+     *  - nunca descargado: fecha_ejecucion + LIMPIEZA_DIAS_SIN_DESCARGAR (30) < ahora.
+     *
+     * Reemplaza la antigua rotación por antigüedad de archivo (366 días).
+     * Las filas de purgas_log NUNCA se borran: quedan como historial con nota
+     * («archivo eliminado tras descarga…» / «archivo eliminado sin descarga…»).
+     *
+     * @param bool $dryRun true = reporta sin borrar ni anotar.
+     * @return array{eliminados:int,detalles:array<int,array{id:int,archivo:string,regla:string}>}
      */
-    public function limpiarExportesAntiguos(int $dias = 366): int {
-        if ($dias < 1) {
-            $dias = 1;
-        }
-        if (!is_dir($this->dirExportes)) {
-            return 0;
+    public function limpiarExportesPurgas(bool $dryRun = false): array {
+        if (!$this->verificarPurgasLog() || !is_dir($this->dirExportes)) {
+            return ['eliminados' => 0, 'detalles' => []];
         }
 
-        $limite = time() - ($dias * 86400);
+        $ahora = (string)$this->db->query('SELECT NOW()')->fetchColumn();
+        $stmt = $this->db->query("
+            SELECT id, archivo, fecha_descarga, fecha_ejecucion, notas
+            FROM purgas_log
+            WHERE archivo IS NOT NULL AND archivo <> ''
+            ORDER BY id ASC
+        ");
+
         $eliminados = 0;
-        foreach ((array)glob($this->dirExportes . '/*') as $archivo) {
-            if (!is_file($archivo)) {
+        $detalles = [];
+        foreach ($stmt as $fila) {
+            $fechaDescarga = $fila['fecha_descarga'] ?? null;
+            $fechaEjecucion = $fila['fecha_ejecucion'] ?? null;
+
+            $trasDescarga = self::vencidoTrasDescarga($fechaDescarga, $ahora);
+            $sinDescargar = !$trasDescarga
+                && self::vencidoSinDescargar($fechaDescarga, $fechaEjecucion, $ahora);
+            if (!$trasDescarga && !$sinDescargar) {
                 continue;
             }
-            if (filemtime($archivo) < $limite && @unlink($archivo)) {
-                $eliminados++;
+
+            $archivo = basename((string)$fila['archivo']);
+            $ruta = $this->dirExportes . '/' . $archivo;
+            if (!is_file($ruta)) {
+                continue; // ya eliminado en una corrida anterior (o ausente)
             }
+
+            $regla = $trasDescarga ? 'descargado + 7 días' : 'sin descargar + 30 días';
+            if (!$dryRun) {
+                if (!@unlink($ruta)) {
+                    continue; // se reintenta en la próxima corrida
+                }
+                // El .sha256 hermano acompaña al exporte eliminado (si existe).
+                $rutaSha = $ruta . '.sha256';
+                if (is_file($rutaSha)) {
+                    @unlink($rutaSha);
+                }
+                $nota = $trasDescarga
+                    ? 'Archivo eliminado tras descarga (ciclo único: 7 días).'
+                    : 'Archivo eliminado sin descarga (ciclo único: 30 días).';
+                $this->anotarPurgasLog((int)$fila['id'], (string)($fila['notas'] ?? ''), $nota);
+            }
+
+            $eliminados++;
+            $detalles[] = ['id' => (int)$fila['id'], 'archivo' => $archivo, 'regla' => $regla];
         }
-        return $eliminados;
+
+        return ['eliminados' => $eliminados, 'detalles' => $detalles];
+    }
+
+    /**
+     * Backstop del respaldo general: si una fila de backups_log fue descargada
+     * y pasaron LIMPIEZA_DIAS_TRAS_DESCARGA (7) días, elimina el archivo físico
+     * (.sql.gz + .sha256) y anota la fila. El reemplazo diario de
+     * scripts/backup_database.php cubre el caso normal (respaldo único); este
+     * barrido protege cuando el respaldo dejó de generarse.
+     *
+     * Las filas de backups_log NUNCA se borran: quedan como historial con nota.
+     *
+     * @param bool $dryRun true = reporta sin borrar ni anotar.
+     * @return array{eliminados:int,detalles:array<int,array{id:int,archivo:string,regla:string}>}
+     */
+    public function limpiarRespaldoGeneralVencido(bool $dryRun = false): array {
+        if (!$this->tablaExiste('backups_log')) {
+            return ['eliminados' => 0, 'detalles' => []];
+        }
+
+        $ahora = (string)$this->db->query('SELECT NOW()')->fetchColumn();
+        $stmt = $this->db->query("
+            SELECT id, nombre_archivo, fecha_descarga, notas
+            FROM backups_log
+            WHERE fecha_descarga IS NOT NULL
+            ORDER BY id ASC
+        ");
+
+        $dirBackups = dirname(__DIR__, 2) . '/storage/backups';
+        $eliminados = 0;
+        $detalles = [];
+        foreach ($stmt as $fila) {
+            if (!self::vencidoTrasDescarga($fila['fecha_descarga'] ?? null, $ahora)) {
+                continue;
+            }
+
+            $archivo = basename((string)$fila['nombre_archivo']);
+            $ruta = $dirBackups . '/' . $archivo;
+            if (!is_file($ruta)) {
+                continue; // ya eliminado (reemplazo diario u otra corrida)
+            }
+
+            if (!$dryRun) {
+                if (!@unlink($ruta)) {
+                    continue; // se reintenta en la próxima corrida
+                }
+                $rutaSha = $ruta . '.sha256';
+                if (is_file($rutaSha)) {
+                    @unlink($rutaSha);
+                }
+                $this->anotarBackupsLog(
+                    (int)$fila['id'],
+                    (string)($fila['notas'] ?? ''),
+                    'Archivo eliminado tras descarga (ciclo único: 7 días).'
+                );
+            }
+
+            $eliminados++;
+            $detalles[] = ['id' => (int)$fila['id'], 'archivo' => $archivo, 'regla' => 'descargado + 7 días'];
+        }
+
+        return ['eliminados' => $eliminados, 'detalles' => $detalles];
     }
 
     // =====================================================================
@@ -623,6 +783,17 @@ class DataRetentionService {
         }
         $stmt = $this->db->prepare("UPDATE purgas_log SET " . implode(', ', $sets) . " WHERE id = :id");
         $stmt->execute($params);
+    }
+
+    /** Anota (append) en purgas_log la eliminación del archivo del ciclo único. */
+    private function anotarPurgasLog(int $id, string $notasActuales, string $nota): void {
+        $this->actualizarPurgasLog($id, ['notas' => trim($notasActuales . ' ' . $nota)]);
+    }
+
+    /** Anota (append) en backups_log la eliminación del archivo del ciclo único. */
+    private function anotarBackupsLog(int $id, string $notasActuales, string $nota): void {
+        $stmt = $this->db->prepare("UPDATE backups_log SET notas = :notas WHERE id = :id");
+        $stmt->execute(['notas' => trim($notasActuales . ' ' . $nota), 'id' => $id]);
     }
 
     /**
