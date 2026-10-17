@@ -1,6 +1,6 @@
 # ODD task: Manual de administrador — sección Respaldos actualizada
 
-**Estado**: COMPLETADO (2026-10-17)
+**Estado**: COMPLETADO (2026-10-17) — spot check del orquestador (V) cerrado; docx de admin regenerado con la sección nueva
 **Autorizado por**: usuario («añade (o cambia) la seccion en el manual de administrador (siguiendo la estructura que ya tienen los otros apartados en el documento)»)
 **Ruta**: ODD delegated direct — writer único (JSON + builder + build) + spot check del orquestador
 
@@ -34,7 +34,7 @@ Actualizar la sección «13. RESPALDOS» del manual de administrador (docx) para
 - [x] T3 — Build de la variante admin: copiar el docx actual a temp (respaldo), correr el build, verificar docx generado e idempotencia (segunda corrida), sin WINWORD residual.
 - [x] T4 — Verificación estructural del docx nuevo (Word COM): capítulos 1–13 presentes y en el mismo orden, cap. 14 ausente, sección 13 con 13.1/13.2/13.3; strings nuevos presentes; «Historial de Respaldos» / «rotación de 7 días» / «respaldos manuales» ausentes del cuerpo; «CAPTURA PENDIENTE» = 3.
 - [x] T5 — Actualizar este doc (checkboxes + evidencia) y commit `docs(manual): sección Respaldos de admin actualizada (respaldo único + retención) y build por variante` — SOLO `scripts/manual/contenido_manual.json`, `scripts/manual/build_manual.ps1` y este doc. Los .docx/.pdf NO se commitean.
-- [ ] V — Spot check del orquestador (readback estructural del docx final).
+- [x] V — Spot check del orquestador: el docx abre y la estructura es correcta (caps. 1–13 numerados, sin el 14; sección 13 con 13.1/13.2/13.3; `CAPTURA PENDIENTE` = 3; strings nuevos presentes y viejos ausentes). Detalle en el cierre.
 
 ## Criterios de aceptación
 
@@ -80,6 +80,14 @@ Actualizar la sección «13. RESPALDOS» del manual de administrador (docx) para
 
 ### T5 — Cierre
 - Commit único `docs(manual): sección Respaldos de admin actualizada (respaldo único + retención) y build por variante` con `scripts/manual/contenido_manual.json`, `scripts/manual/build_manual.ps1` y este documento; `.docx`/`.pdf` no se commitean.
+
+### Cierre del orquestador (2026-10-17)
+
+- **Spot check (V)**: el docx regenerado abre; 410 párrafos; capítulos 1–13 numerados y en orden, sin el capítulo 14; sección 13 con «13.1 Cómo acceder», «13.2 El respaldo del sistema» y «13.3 Datos acumulados y retención»; `CAPTURA PENDIENTE` = 3; cadenas viejas ausentes (`Historial de Respaldos` = 0); cadenas nuevas presentes (`Descargar respaldo` = 2, `Respaldo del sistema (vigente)` = 2, `Datos acumulados` = 3; «7 días»/«30 días» reconfirmados con regex independiente de tildes — la consola cp850 da falsos negativos con needles acentuados).
+- **Verificación de alcance**: commit `a994ee8` = solo `contenido_manual.json` + `build_manual.ps1` + este doc (binarios fuera, por diseño). Respaldo del docx anterior conservado en `%TEMP%\opencode\manual-admin-backup-OLD.docx`.
+- **Observación registrada**: el docx OLD no era un render fiel del JSON canónico (títulos sin numeración, sin «Control de Versiones», párrafos sin el prefijo «¿Para qué sirve? », redacciones más cortas). El regenerado es fiel a la fuente; las diferencias fuera de la sección 13 son drift previo del binario, no de este cambio.
+- **Decisiones**: variante `admin` = nodos hasta antes del cap. 14 (fidelidad al alcance del docx original); `(Residente).docx` y el manual combinado NO se tocaron; `-Variante` queda extensible para una futura variante residente.
+- RDD: activado (global); cambio de documentación → readback estructural (spot check de arriba), sin verificador pesado (proporcional).
 
 ## Notas
 
