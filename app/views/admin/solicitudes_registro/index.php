@@ -146,27 +146,33 @@
 <!-- Modal para Rechazar Solicitud de Registro -->
 <div class="modal fade" id="modalRechazarSolicitudRegistro" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content rounded-3 border-0 shadow">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
             <form method="POST" action="/admin/solicitudes-registro/rechazar">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" id="solicitudRegistroId" value="">
 
                 <div class="modal-header bg-danger text-white py-3">
-                    <h5 class="modal-title fw-bold">Rechazar Solicitud de Registro</h5>
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined">block</span>
+                        Rechazar Solicitud de Registro
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted small mb-3">
+                    <p class="text-on-surface-variant small mb-3">
                         Indique el motivo por el cual se rechaza la solicitud del residente <strong id="nombreSolicitanteRechazo"></strong>:
                     </p>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Motivo del Rechazo <span class="text-danger">*</span></label>
-                        <textarea name="motivo_rechazo" id="motivo_rechazo" rows="3" required placeholder="Ej. Documentación no coincide con el registro de propietarios..." class="form-control"></textarea>
+                        <label class="form-label fw-bold small text-on-surface-variant">Motivo del Rechazo <span class="text-danger">*</span></label>
+                        <textarea name="motivo_rechazo" id="motivo_rechazo" rows="3" required placeholder="Ej. Documentación no coincide con el registro de propietarios..." class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger fw-bold">Confirmar Rechazo</button>
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">gavel</span>
+                        <span>Confirmar Rechazo</span>
+                    </button>
                 </div>
             </form>
         </div>
