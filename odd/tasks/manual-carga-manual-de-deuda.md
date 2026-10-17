@@ -73,3 +73,10 @@ Renombrar la subsección «Registrar un gasto» del capítulo 7 («7. CARGA Y EM
 - El binario canónico de admin es la fuente de verdad de capturas/estilos; el JSON es la fuente versionada del variante regenerable. Los textos nuevos quedaron alineados en ambos.
 - Capturas: este cambio no introduce placeholders nuevos; `CAPTURA PENDIENTE` se mantiene en 3 (03-2fa, 10-cartelera, 18-respaldos).
 - RDD: activado (global); cambio de documentación → readback estructural (verificación de arriba).
+
+## Cierre del orquestador (2026-10-17)
+
+- **Spot check independiente (readback)**: docx del repo 2.604.035 B (mtime 17/10 17:41); `(Residente).docx` intacto (15/10 15:02, 1.994.070 B). Sobre `word\document.xml` (docx→zip→expand en temp; tags removidos para unir runs partidos): PRESENTES ×1 — `Carga manual de deuda`, `Guardar Deuda Manual`, `Deudas manuales`, `Limpiar período`, `Selección libre`, `no se divide`, `Historial de Reportes`, `no se duplican`, `Ya no es necesario eliminar las deudas anteriores`; ESPERADO-0 ×0 — `Registrar un gasto`, `Tipo / Alcance del Gasto`, `duplica la deuda`, `eliminó las deudas anteriores`; `CAPTURA PENDIENTE` = 3. JSON: `No error`, 312 nodos, strings nuevos presentes y viejos ausentes.
+- **Commit**: `dd75bbf` = solo `scripts/manual/contenido_manual.json` (+10/−8) + este doc; el `.docx` fuera por convención.
+- **Higiene**: 0 procesos WINWORD residuales.
+- RDD: activado (global); documentación → readback estructural del orquestador (sin verificador pesado, proporcional).
