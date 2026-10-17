@@ -1,6 +1,6 @@
 # ODD task: Respaldo y retención de datos acumulados
 
-**Estado**: COMPLETADO (2026-10-17) — writer cerrado; pendiente la verificación independiente (V)
+**Estado**: COMPLETADO (2026-10-17) — writer + verificación independiente (V) cerrados; espejo Engram sincronizado
 **Autorizado por**: usuario («Completo: respaldar y purgar»)
 **Ruta**: ODD delegated direct — writer único + verificador independiente
 
@@ -55,7 +55,7 @@ Hacer visible el apartado de Respaldos en los menús (admin/auditor) y convertir
 - [x] T6 — Automatización: entrada `Condominio-Retencion` (diaria 02:45) en `scripts/setup_scheduled_tasks.ps1` + registro real con schtasks + `schtasks /Run` con resultado 0. (`a125f75`; /Query OK, /Run → Último resultado 0)
 - [x] T7 — Tests: `tests/RetencionDatosTest.php` (serialización pura, whitelist, cálculo de cortes, rutas/sidebars/vista/controlador estáticos, stats con `try/catch → skip` si no hay BD) + actualización de `tests/RbacAuthorizationTest.php` (exclusiones admin-only para las 2 rutas POST; las GET siguen el contrato AUDITOR). `php -l` 10/10 OK. (`debad1b` + `49d9e02`; `--filter=RbacAuthorization` 248 asserts verdes, `--filter=Retencion` 73 asserts verdes)
 - [x] T8 — Verificación funcional: `--dry-run` real de las 3 tablas (0/0/9); E2E real sobre `rate_limits` (214→205 filas; export→purga→archivo + .sha256 + fila en `purgas_log` con conteos 9/9; ids purgados 18,19,20,21,22,23,24,25,27); smoke HTTP (GET /admin/respaldos sin sesión → 302 a login, puerto 8123). (evidencia completa abajo)
-- [ ] V — Verificación independiente (read-only): diff, re-ejecución de comandos clave, RBAC, y demostración del criterio «export fallido ⇒ nada borrado». (La demostración del criterio ya quedó adjunta abajo como evidencia del writer; V queda pendiente de ejecución por el verificador.)
+- [x] V — Verificación independiente (read-only) ejecutada por subagente independiente: **VERIFIED CON OBSERVACIONES** (sin blockers). Rango `44e5ce4..49299e1` con 12 archivos exactos; flujo export→verificación→DELETE auditado en código; RBAC/CSRF/containment OK; migración re-ejecutada (idempotente); E2E corroborado contra archivos+hashes y `purgas_log`; criterio «export fallido ⇒ nada borrado» corroborado (fila #3); suites re-ejecutadas verdes (248✅/73✅). Hallazgos F1–F7 en el cierre del Registro de evidencia.
 - [x] D — Doc: checkboxes + evidencia (commits, resultados por comando, exportes generados). Espejo Engram lo sincroniza el orquestador.
 
 ## Criterios de aceptación
@@ -91,6 +91,8 @@ Hacer visible el apartado de Respaldos en los menús (admin/auditor) y convertir
 
 Estrategia: `stacked-to-main` (commits directos en `main`, sin rama feature ni push). Líneas autoradas por slice: A1 81, A2 831, A3 108, B1 3, B2 363 (+3 eliminadas), B3 13 (+9 eliminadas). Total ≈ 1.399 inserciones.
 
+Nota de presupuesto: el tramo A (~1.020 líneas) superó el heurístico de 400 por tramo; sin hooks de PR en este repo, se conserva el corte por work-unit (skill `work-unit-commits`) y se registra el sobrepaso — no se recortó código para ajustarlo.
+
 ### Resultados exactos por comando (2026-10-17)
 
 1. **`php -l`** — 10/10 archivos PHP tocados sin errores de sintaxis:
@@ -124,6 +126,12 @@ Estrategia: `stacked-to-main` (commits directos en `main`, sin rama feature ni p
 - `rate_limits_purga_2026-10-17_19-06-51.sql.gz` (418 B) + `.sha256` — purga E2E de los 9 reales (fila #2).
 - `rate_limits_purga_2026-10-17_19-07-21.sql.gz` (353 B) + `.sha256` — purga de las 2 sintéticas de la demo de fallo (fila #4).
 - `purgas_log` final: 4 filas (#1 exportación, #2 y #4 purgas exitosas, #3 fallida de la demo del criterio).
+
+### Cierre del orquestador (2026-10-17)
+
+- Verificación independiente (subagente read-only): **VERIFIED CON OBSERVACIONES** — sin blockers. Hallazgos: **F1** desfase TZ PHP `Europe/Berlin` vs MySQL `America/Caracas` (nombre de archivo vs `fecha_ejecucion`/corte en la misma fila de bitácora; funcionalmente inocuo porque el corte es único y por reloj MySQL, confuso para operador); **F2** UPDATE posterior al DELETE sin try/catch (baja probabilidad, sin pérdida de datos); **F3–F7** notas: rotación de exportes sin archivos envejecidos que probar, DELETE sin batching a futuro, colisión teórica de nombre de archivo (resolución 1 s), containment por prefijo (patrón preexistente del repo), borde `hash_file=false` mitigado por relectura gzip.
+- RDD: activado (global); `review assess` → `unassessable/high` (inventario untracked exige declaración; runtime OpenCode V2 sin transporte de revisión nativa) → revisión nativa no disponible; se aplicó verificación funcional + verificador independiente (patrón aceptado del repo).
+- Espejo Engram sincronizado por el orquestador al cierre (este bloque + checkboxes).
 
 ## Notas
 
