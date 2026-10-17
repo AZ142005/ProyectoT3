@@ -297,14 +297,14 @@
             </div>
             <div class="modal-body p-4 pb-0">
                 <!-- Tipo de registro -->
-                <div class="row g-3 mb-3 bg-light p-2.5 rounded-3 border border-slate-200">
+                <div class="row g-3 mb-3 bg-background p-2.5 rounded-xl border border-outline-variant">
                     <div class="col-md-12">
-                        <label class="form-label fw-bold small text-dark">Tipo de registro <span class="text-danger">*</span></label>
-                        <select id="modal_tipo_registro" class="form-select" onchange="toggleTipoRegistroModal(this.value)">
+                        <label class="form-label fw-bold small text-on-surface-variant">Tipo de registro <span class="text-danger">*</span></label>
+                        <select id="modal_tipo_registro" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" onchange="toggleTipoRegistroModal(this.value)">
                             <option value="deuda_manual" selected>Deuda manual por unidad — se emite con Enviar/Re-enviar Deuda</option>
                             <option value="gasto">Gasto del condominio (común o individual)</option>
                         </select>
-                        <div class="form-text small text-muted">La deuda manual se aplica directo a las unidades elegidas (sin repartir); el gasto del condominio se prorratea entre las unidades al emitir la deuda del mes.</div>
+                        <div class="text-xs text-on-surface-variant">La deuda manual se aplica directo a las unidades elegidas (sin repartir); el gasto del condominio se prorratea entre las unidades al emitir la deuda del mes.</div>
                     </div>
                 </div>
             </div>
@@ -315,7 +315,7 @@
                 <div class="modal-body p-4 pt-2">
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Alcance <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold small text-on-surface-variant">Alcance <span class="text-danger">*</span></label>
                             <div class="d-flex gap-4 pt-1">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="alcance" id="alcance_seleccion" value="seleccion" checked onchange="toggleAlcanceDeudaManual()">
@@ -328,20 +328,20 @@
                             </div>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted">Monto por unidad (Bs.) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0.01" max="999999.99" name="monto_unidad" id="monto_unidad" required placeholder="0.00" class="form-control" oninput="actualizarContadorDeudaManual()">
+                            <label class="form-label fw-bold small text-on-surface-variant">Monto por unidad (Bs.) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" max="999999.99" name="monto_unidad" id="monto_unidad" required placeholder="0.00" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" oninput="actualizarContadorDeudaManual()">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted">Mes <span class="text-danger">*</span></label>
-                            <select name="mes" required class="form-select">
+                            <label class="form-label fw-bold small text-on-surface-variant">Mes <span class="text-danger">*</span></label>
+                            <select name="mes" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                 <?php for ($m = 1; $m <= 12; $m++): ?>
                                     <option value="<?= e($m) ?>" <?= $m === intval($mes) ? 'selected' : '' ?>><?= e($m) ?></option>
                                 <?php endfor; ?>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted">Año <span class="text-danger">*</span></label>
-                            <input type="number" name="anio" value="<?= e($anio) ?>" min="2000" max="2100" required class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Año <span class="text-danger">*</span></label>
+                            <input type="number" name="anio" value="<?= e($anio) ?>" min="2000" max="2100" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                     </div>
 
@@ -354,13 +354,13 @@
                     ?>
                     <div class="mb-3" id="bloquePickerDeudaManual">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                            <label class="form-label fw-bold small text-muted mb-0">Unidades y edificios</label>
+                            <label class="form-label fw-bold small text-on-surface-variant mb-0">Unidades y edificios</label>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="seleccionarTodoDeudaManual(true)">Seleccionar todo</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="seleccionarTodoDeudaManual(false)">Limpiar selección</button>
+                                <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" onclick="seleccionarTodoDeudaManual(true)">Seleccionar todo</button>
+                                <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" onclick="seleccionarTodoDeudaManual(false)">Limpiar selección</button>
                             </div>
                         </div>
-                        <input type="text" id="buscadorUnidadesDeudaManual" class="form-control mb-2" placeholder="Buscar unidad o edificio...">
+                        <input type="text" id="buscadorUnidadesDeudaManual" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors mb-2" placeholder="Buscar unidad o edificio...">
                         <div class="max-h-64 overflow-y-auto p-3 bg-background rounded-xl border border-outline-variant" id="contenedorUnidadesDeudaManual">
                             <?php if (empty($unidadesPorEdificioDeuda)): ?>
                                 <p class="text-xs text-on-surface-variant mb-0">No hay unidades activas registradas.</p>
@@ -386,7 +386,7 @@
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <div class="form-text small text-muted">Marca edificios completos y/o unidades puntuales: se combinan sin duplicarse.</div>
+                        <div class="text-xs text-on-surface-variant">Marca edificios completos y/o unidades puntuales: se combinan sin duplicarse.</div>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
@@ -395,8 +395,11 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Guardar Deuda Manual</button>
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">save</span>
+                        Guardar Deuda Manual
+                    </button>
                 </div>
             </form>
 
@@ -405,18 +408,18 @@
                 <?= csrf_field() ?>
                 <div class="modal-body p-4 pt-2">
                     <!-- Tipología de Gasto -->
-                    <div class="row g-3 mb-3 bg-light p-2.5 rounded-3 border border-slate-200">
+                    <div class="row g-3 mb-3 bg-background p-2.5 rounded-xl border border-outline-variant">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-dark">Tipo / Alcance del Gasto <span class="text-danger">*</span></label>
-                            <select name="tipo_gasto" id="modal_tipo_gasto" required class="form-select" onchange="toggleEdificioModal(this.value)">
+                            <label class="form-label fw-bold small text-on-surface-variant">Tipo / Alcance del Gasto <span class="text-danger">*</span></label>
+                            <select name="tipo_gasto" id="modal_tipo_gasto" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" onchange="toggleEdificioModal(this.value)">
                                 <option value="comun">Gasto Común (Global - Todo el Conjunto)</option>
                                 <option value="individual">Gasto Individual (Afecta a un solo Edificio)</option>
                             </select>
-                            <div class="form-text small text-muted">Los comunes se dividen entre todas las unidades; los individuales solo entre las del edificio.</div>
+                            <div class="text-xs text-on-surface-variant">Los comunes se dividen entre todas las unidades; los individuales solo entre las del edificio.</div>
                         </div>
                         <div class="col-md-6" id="modal_edificio_container" style="display: none;">
-                            <label class="form-label fw-bold small text-dark">Edificio / Torre Afectada <span class="text-danger">*</span></label>
-                            <select name="edificio_id" id="modal_edificio_id" class="form-select">
+                            <label class="form-label fw-bold small text-on-surface-variant">Edificio / Torre Afectada <span class="text-danger">*</span></label>
+                            <select name="edificio_id" id="modal_edificio_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                 <option value="">Seleccione un edificio...</option>
                                 <?php foreach ($edificios as $ed): ?>
                                     <option value="<?= e($ed['id']) ?>"><?= e($ed['nombre']) ?></option>
@@ -427,63 +430,66 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Categoría de Gasto <span class="text-danger">*</span></label>
-                            <select name="categoria_id" required class="form-select">
+                            <label class="form-label fw-bold small text-on-surface-variant">Categoría de Gasto <span class="text-danger">*</span></label>
+                            <select name="categoria_id" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                 <?php foreach ($categorias as $cat): ?>
                                     <option value="<?= e($cat['id']) ?>"><?= e($cat['nombre']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Mes <span class="text-danger">*</span></label>
-                            <select name="mes" required class="form-select">
+                            <label class="form-label fw-bold small text-on-surface-variant">Mes <span class="text-danger">*</span></label>
+                            <select name="mes" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                                 <?php for ($m = 1; $m <= 12; $m++): ?>
                                     <option value="<?= e($m) ?>" <?= $m === intval(date('n')) ? 'selected' : '' ?>><?= e($m) ?></option>
                                 <?php endfor; ?>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Año <span class="text-danger">*</span></label>
-                            <input type="number" name="anio" value="<?= date('Y') ?>" required class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Año <span class="text-danger">*</span></label>
+                            <input type="number" name="anio" value="<?= date('Y') ?>" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Proveedor / Empresa <span class="text-danger">*</span></label>
-                            <input type="text" name="proveedor" required placeholder="Ej: Hidroeléctrica / Bombas del Centro C.A." class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Proveedor / Empresa <span class="text-danger">*</span></label>
+                            <input type="text" name="proveedor" required placeholder="Ej: Hidroeléctrica / Bombas del Centro C.A." class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Nro. Factura Fiscal</label>
-                            <input type="text" name="nro_factura_proveedor" placeholder="Ej: FAC-009842" class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Nro. Factura Fiscal</label>
+                            <input type="text" name="nro_factura_proveedor" placeholder="Ej: FAC-009842" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Monto Total (Bs.) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="monto_total" required placeholder="0.00" class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Monto Total (Bs.) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="monto_total" required placeholder="0.00" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-muted">Fecha del Gasto <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha_gasto" value="<?= date('Y-m-d') ?>" required class="form-control">
+                            <label class="form-label fw-bold small text-on-surface-variant">Fecha del Gasto <span class="text-danger">*</span></label>
+                            <input type="date" name="fecha_gasto" value="<?= date('Y-m-d') ?>" required class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Descripción del Gasto <span class="text-danger">*</span></label>
-                        <textarea name="descripcion" rows="3" required placeholder="Describa el trabajo realizado o concepto..." class="form-control"></textarea>
+                        <label class="form-label fw-bold small text-on-surface-variant">Descripción del Gasto <span class="text-danger">*</span></label>
+                        <textarea name="descripcion" rows="3" required placeholder="Describa el trabajo realizado o concepto..." class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted">Soporte Digital Adjunto (PDF, JPG, PNG)</label>
-                        <input type="file" name="soporte_digital" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
-                        <div class="form-text small text-muted">Factura o recibo digital que podrán consultar los residentes como justificación.</div>
+                        <label class="form-label fw-bold small text-on-surface-variant">Soporte Digital Adjunto (PDF, JPG, PNG)</label>
+                        <input type="file" name="soporte_digital" accept=".pdf,.jpg,.jpeg,.png" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
+                        <div class="text-xs text-on-surface-variant">Factura o recibo digital que podrán consultar los residentes como justificación.</div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Guardar Gasto</button>
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">save</span>
+                        Guardar Gasto
+                    </button>
                 </div>
             </form>
         </div>
