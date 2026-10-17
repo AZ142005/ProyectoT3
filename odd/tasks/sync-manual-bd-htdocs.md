@@ -1,6 +1,6 @@
 # ODD task: Manual admin restaurado (solo sección Respaldos) + sync de dump y htdocs.zip
 
-**Estado**: COMPLETO — pendiente spot check del orquestador (2026-10-17)
+**Estado**: COMPLETO (2026-10-17) — spot check del orquestador (V) cerrado
 **Autorizado por**: usuario («devuelve el manual de administrador a su estado anterior a que lo tocaras, excepto por la seccion respaldos… asegura que los cambios implementados esten presentes en el repo base de datos (no cambies la estructura por temas de compatibilidad) y en el comprimido de htdocx (tampoco cambies nada innecesario de allí por los mismos temas)»)
 **Ruta**: ODD delegated direct — writer único (3 cirugías mínimas) + spot check del orquestador
 
@@ -23,7 +23,7 @@
 - [x] T3 — **htdocs.zip** (método: copiar a temp → `[System.IO.Compression.ZipFile]` Update → verificar → reemplazar el original; backup del original en temp): UPDATE (contenido = archivos actuales del repo) de `htdocs/app/Controllers/RespaldoController.php`, `htdocs/app/views/admin/respaldos/index.php`, `htdocs/app/views/layouts/admin_sidebar.php`, `htdocs/app/views/layouts/auditor_sidebar.php`, `htdocs/public/index.php`, `htdocs/scripts/backup_database.php`, `htdocs/scripts/cleanup_backups.php`, `htdocs/scripts/setup_scheduled_tasks.ps1`, `htdocs/scripts/manual/contenido_manual.json`, `htdocs/scripts/manual/build_manual.ps1`. ADD de `htdocs/app/Services/DataRetentionService.php`, `htdocs/scripts/cleanup_retencion.php`, `htdocs/scripts/migrate_retencion_datos_schema.php`, `htdocs/scripts/migrate_descarga_respaldo_schema.php`. NINGÚN otro cambio (no tests, no otros archivos).
 - [x] T4 — **Verificación**: (a) outline Word COM del híbrido → caps 1–13 con el look ORIGINAL (p. ej. «PANEL DE CONTROL FINANCIERO» sin «3.», sin «Control de Versiones», sin numeración nueva) y sección 13 = 13.1 Cómo acceder / 13.2 El respaldo del sistema / 13.3 Datos acumulados y retención; strings de la sección vieja ausentes («Historial de Respaldos», «rotación de 7 días») y nuevos presentes; conteo de «CAPTURA PENDIENTE» = 3; (b) dump: `git diff --numstat` del dump pequeño y conteniendo SOLO los 3 bloques + grep de presencia; (c) zip: manifiesto nombre→sha256 ANTES (297) y DESPUÉS (301); solo las 14 entradas objetivo difieren; entradas actualizadas = hashes de los archivos del repo; resto IDÉNTICO.
 - [x] T5 — **Cierre**: commits `chore(db): dump con purgas_log, fecha_descarga e idx_hist_creado` (solo el dump) y `docs(odd): manual restaurado (solo respaldos) y sync de dump/htdocs` (este doc, con evidencia). El zip y los .docx/.pdf NO se commitean.
-- [ ] V — Spot check del orquestador.
+- [x] V — Spot check del orquestador (independiente): docx híbrido 2.603.575 B sin PDF de admin, `CAPTURA PENDIENTE`=3, look original conservado y sección 13 nueva (13.1/13.2/13.3); dump +35/−2 con los 3 bloques (commit `d44075d`); `htdocs.zip` 301 entradas, 14 objetivo con hash = repo. Detalle en el cierre.
 
 ## Criterios de aceptación
 
@@ -102,3 +102,9 @@ L299 H2 [13.3 Datos acumulados y retención]
 ### Notas de entorno (Word COM, relevantes para futuras corridas)
 - `SaveAs2` cuelga en este entorno (ya documentado en `scripts/manual/build_manual.ps1`); se usó `Save()` in-place (verificado OK) + copia a nivel de archivo.
 - Instancias Word terminadas a la fuerza dejan entradas «DocumentRecovery» en el registro y archivos `~$`; abrir después un archivo con entrada pendiente cuelga el `Open` COM. Higiene aplicada: nombres de trabajo únicos por corrida, limpieza de `~$` propios, export del registro en `C:/Users/Amadeo/AppData/Local/Temp/opencode/word-resiliency-backup.reg`, y limpieza de las entradas de recovery propias. Sin procesos WINWORD residuales (la sesión Word del usuario con `(Residente).docx` no fue tocada).
+
+### Cierre del orquestador (2026-10-17)
+
+- Spot check (V) independiente del orquestador: **docx híbrido** — 2.603.575 bytes; `(Admin).pdf` eliminado; `CAPTURA PENDIENTE`=3; look ORIGINAL conservado fuera de la sección 13 («PANEL DE CONTROL FINANCIERO» sin numerar; «Control de Versiones» ausente) y sección 13 nueva completa (13.1 Cómo acceder / 13.2 El respaldo del sistema / 13.3 Datos acumulados y retención); strings viejos de la sección ausentes. **Dump** — commit `d44075d` (+35/−2): `purgas_log` (L907), `fecha_descarga` (L68 y L922), `idx_hist_creado` (L573); compatibilidad de importación demostrada por el writer en BD scratch (exit 0). **htdocs.zip** — 301 entradas; las 14 objetivo presentes con hash igual al repo (muestra re-verificada por el orquestador); backup del original conservado.
+- Desviación aceptada: `,NULL` en los INSERT de `backups_log` (4 filas) — necesaria para que el dump siga importando con la columna nueva (ERROR 1136 sin ella); coincide con la BD viva.
+- RDD: activado (global); cirugías de documentación/datos → readback estructural + spot checks (proporcional).
