@@ -6,12 +6,17 @@
 # Requirements: Windows PowerShell 5.1 + Microsoft Word installed.
 # Run:  powershell -ExecutionPolicy Bypass -File scripts\manual\build_manual.ps1
 #       powershell -ExecutionPolicy Bypass -File scripts\manual\build_manual.ps1 -OutputDir <folder>
+#       powershell -ExecutionPolicy Bypass -File scripts\manual\build_manual.ps1 -Variante admin
 #
-# -OutputDir (optional): writes "manual de usuario final.docx/.pdf" into that
-# folder (created if missing). When omitted, outputs go to <repo>\docs.
+# -OutputDir (optional): writes the manual into that folder (created if
+# missing). When omitted, outputs go to <repo>\docs.
+# -Variante (optional): 'full' (default) builds the complete manual as
+# "manual de usuario final.docx/.pdf". 'admin' builds "manual de usuario final
+# (Admin).docx/.pdf" with the nodes up to (excluding) the first h1 whose text
+# starts with "14." — i.e. the administrator guide (chapters 1-13).
 # =============================================================================
 
-param([string]$OutputDir = '')
+param([string]$OutputDir = '', [string]$Variante = 'full')
 
 $ErrorActionPreference = 'Stop'
 
@@ -52,6 +57,10 @@ if (-not [string]::IsNullOrEmpty($OutputDir)) {
 }
 $docxAbs    = Join-Path $docsDir 'manual de usuario final.docx'
 $pdfAbs     = Join-Path $docsDir 'manual de usuario final.pdf'
+if ($Variante -eq 'admin') {
+    $docxAbs = Join-Path $docsDir 'manual de usuario final (Admin).docx'
+    $pdfAbs  = Join-Path $docsDir 'manual de usuario final (Admin).pdf'
+}
 $logoAbs    = Join-Path $repoRoot 'public\img\logo_condominio.png'
 
 if (-not (Test-Path -LiteralPath $jsonPath)) { throw "No se encontro el archivo de contenido: $jsonPath" }
@@ -61,6 +70,16 @@ $rawJson = [System.IO.File]::ReadAllText($jsonPath, [System.Text.Encoding]::UTF8
 $data    = $rawJson | ConvertFrom-Json
 $meta    = $data.meta
 $nodos   = $data.nodos
+
+# Variant 'admin': keep the nodes up to (excluding) the first h1 "14. ..."
+if ($Variante -eq 'admin') {
+    $nodosAdmin = @()
+    foreach ($nodo in $nodos) {
+        if ($nodo.type -eq 'h1' -and ([string]$nodo.text).StartsWith('14.')) { break }
+        $nodosAdmin += $nodo
+    }
+    $nodos = $nodosAdmin
+}
 
 # Delete previous outputs (idempotency)
 Remove-Item -LiteralPath $docxAbs -Force -ErrorAction SilentlyContinue

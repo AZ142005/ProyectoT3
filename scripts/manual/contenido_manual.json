@@ -356,18 +356,24 @@
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "13. RESPALDOS" },
-    { "type": "p", "text": "¿Para qué sirve? Muestra las copias de seguridad de la base de datos que genera el servidor de forma automática, con su firma de integridad." },
-    { "type": "image", "file": "docs/manual-capturas/18-respaldos.png", "caption": "Respaldos automatizados del servidor: historial y firma SHA-256.", "desc_pendiente": "Con acceso de administrador, capture la pantalla de Respaldos mostrando el banner de automatización y el historial de respaldos." },
+    { "type": "p", "text": "¿Para qué sirve? Protege la información del sistema: muestra el respaldo vigente de la base de datos —generado automáticamente por el servidor— con su firma de integridad, y administra la retención de los datos que se acumulan." },
+    { "type": "image", "file": "docs/manual-capturas/18-respaldos.png", "caption": "Respaldo único del sistema con su botón de descarga y el panel de datos acumulados.", "desc_pendiente": "Con acceso de administrador, abra el módulo Respaldos y capture la tarjeta \"Respaldo del sistema (vigente)\" con su botón \"Descargar respaldo\", junto con la tarjeta \"Datos acumulados y retención\"." },
     { "type": "h2", "text": "13.1 Cómo acceder" },
-    { "type": "p", "text": "Ingrese como administrador y abra el módulo de Respaldos del panel administrativo (dirección /admin/respaldos)." },
-    { "type": "h2", "text": "13.2 Qué encontrará" },
+    { "type": "p", "text": "Barra lateral → Respaldos (disponible también para el rol auditor en modo consulta). La pantalla se titula \"Respaldos Automatizados del Servidor\" y su dirección es /admin/respaldos." },
+    { "type": "h2", "text": "13.2 El respaldo del sistema" },
     { "type": "bullets", "items": [
-      "Banner \"Respaldos 100% Automatizados en el Servidor\": la generación manual fue reemplazada por procesos desatendidos (Cron / Tareas Programadas).",
-      "Tabla \"Historial de Respaldos Generados por el Servidor\" con el nombre del archivo, la fecha y hora, el tamaño, el número de tablas y la firma SHA-256.",
-      "Botón \"Descargar\" en cada respaldo."
+      "Tarjeta \"Respaldo del sistema (vigente)\": nombre del archivo (.sql.gz), fecha y hora de generación, tamaño, número de tablas y firma SHA-256.",
+      "Botón \"Descargar respaldo\": entrega el archivo verificando su integridad con la firma SHA-256.",
+      "Un único respaldo vigente en storage/backups/ que el servidor regenera a diario de forma automática (CLI / Cron) y que reemplaza al respaldo anterior."
     ] },
-    { "type": "note", "variant": "info", "text": "Los respaldos (.sql.gz) se guardan automáticamente en el directorio seguro del servidor con rotación de 7 días. El módulo es de consulta y descarga: no genera respaldos manuales." },
-    { "type": "note", "variant": "warn", "text": "Si no encuentra el enlace \"Respaldos\" en su barra lateral, solicítelo al responsable técnico: en algunas instalaciones este módulo se abre directamente por su dirección." },
+    { "type": "h2", "text": "13.3 Datos acumulados y retención" },
+    { "type": "bullets", "items": [
+      "Tarjeta \"Datos acumulados y retención\": por cada tabla muestra las filas, el tamaño, el registro más antiguo, los registros elegibles y el corte de retención.",
+      "Botones \"Exportar\" y \"Respaldar y purgar\" (solo para el administrador): \"Exportar\" genera el .sql.gz de los registros elegibles sin borrar nada; \"Respaldar y purgar\" genera y verifica primero el respaldo y solo entonces elimina los registros anteriores al corte; si el respaldo falla, no se borra nada.",
+      "Tarjeta \"Purgas y exportaciones\": historial de exportaciones y purgas con su estado, y descarga del archivo verificada con SHA-256."
+    ] },
+    { "type": "note", "variant": "info", "text": "Ciclo de limpieza de archivos: los archivos descargados se eliminan del servidor 7 días después de la descarga; los exportes de purga que nunca se descargan se eliminan a los 30 días. El respaldo del sistema se regenera a diario y reemplaza al anterior; la bitácora de purgas y exportaciones se conserva." },
+    { "type": "note", "variant": "warn", "text": "La purga es definitiva, pero siempre va con un respaldo previo verificado: si el respaldo falla, no se elimina ningún registro. Exportar y purgar son acciones exclusivas del administrador; el auditor puede consultar el panel y descargar los archivos." },
 
     { "type": "pagebreak" },
     { "type": "h1", "text": "14. EL ROL AUDITOR (FISCALIZACIÓN)" },
