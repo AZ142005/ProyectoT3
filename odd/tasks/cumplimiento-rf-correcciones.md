@@ -26,7 +26,7 @@ RF 1, 3, 4, 5, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 
 | RF 9 | Bandeja de solicitudes de cambio de datos | ✅ Resuelto |
 | RF 13 | Previsualización de PDF al cargar | ✅ Resuelto |
 | RF 27 | Detección de montos discordantes en conciliación | ✅ Resuelto |
-| RF 33 | Servido de soportes de gastos (ruta rota → 404) | ⏸ Pausado (espera PDF maestro de ejemplo) |
+| RF 33 | Servido de soportes de gastos | ✅ Resuelto por proxy (13/10, commit `21ed6d4`) — reemplazado en el SRS por su versión 33A (decisión del usuario, 18/10) |
 
 Leyenda de estados: ⏸ Pendiente · ⏳ Opciones presentadas · 🔧 En implementación · ✅ Resuelto.
 
@@ -36,6 +36,7 @@ Leyenda de estados: ⏸ Pendiente · ⏳ Opciones presentadas · 🔧 En impleme
 |-----------|----------|--------|
 | RF 12 — Estacionamientos | **Obviado (cumplido por alcance)** | La unidad habitacional asociada al vehículo se considera el "dueño"; no se requiere selector de propietario. |
 | RF 36 — Notificaciones multicanal | **Obviado (limitación aceptada)** | Costo de la API de WhatsApp. El envío por email funciona (cola + worker); WhatsApp queda como enlace manual de click-to-chat. |
+| RF 21, 22 y 33 — texto del SRS | **Reemplazados (18/10/2026, decisión del usuario)** | 21B = historial de reportes de cartelera con facturas creadas/actualizadas/omitidas (demostrable hoy); 22A = deuda manual con alcance libre + envío/re-envío; 33A = previsualización + validación de sumas + trazabilidad de importaciones. Los originales quedaban no demostrables (21: gráfico sin conectar; 22/33: sin datos ni servido en su momento). Edición del docx SRS a cargo del usuario (pendiente). |
 
 ## 3. Orden de trabajo
 
@@ -121,6 +122,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **Evidencia**: `app/config/config.php:6`; `app/views/residente/gastos.php:122`; `app/views/admin/gastos/index.php:273`; `public/comprobante-proxy.php` (patrón existente para comprobantes).
 - **Propuesta preliminar**: proxy autenticado para soportes (patrón `comprobante-proxy.php`, validando rol/unidad) o alinear almacenamiento y URL.
 - **Decisión (2026-10-04)**: **Pausado** a pedido del usuario — está ligado al **PDF maestro de ejemplo**, que aún no está disponible. No tocar el área de gastos por ahora; las opciones A (proxy autenticado) y B (alinear almacenamiento) quedan documentadas para cuando se retome.
+- **Actualización (2026-10-18)**: el servido de soportes quedó resuelto con `public/soporte-proxy.php` (commit `21ed6d4`, 13/10 — proxy autenticado inline/descarga, sin traversal, MIME real). PERO el flujo **"PDF Maestro"** que extraía soportes/extractos por página fue **eliminado por diseño el 10/10** (`ca46f46`, limpieza del importador obsoleto — quedó sin entrada UI cuando la cartelera lo reemplazó); rutas, vista y `GastoParserService` siguen eliminados. El commit de seguridad `e5ae382` (13/10) **reintrodujo accidentalmente** `cargarMaestro/parsearMaestro/importarMaestro` en `GastoController` al partir de una copia vieja del archivo → **código zombie** (sin rutas; referencia a un servicio inexistente; Fatal si se re-activara una ruta) — candidato a re-limpiar. Estado real hoy: el soporte por gasto se carga **manualmente** (modal de registro; adjunto PDF/JPG/PNG ≤5MB); el **extracto exacto (texto+página) no tiene UI de captura**; el residente **SÍ** ve el soporte en `app/views/residente/gastos.php` ("Ver Justificación" + visor por proxy, con bloque «Extracto Exacto» para filas que tengan extracto). El reporte de cartelera **no** alimenta esto (solo facturas/deuda por unidad). RF 34 demo: 1 gasto de ejemplo con soporte para el visor; para el bloque textual, seed SQL o mini-UI de 2 campos. Recomendaciones revisadas y entregadas al usuario el 18/10 (ver Engram `srs/delta-rf-reemplazos`).
 
 ## 5. Bitácora
 
@@ -134,6 +136,7 @@ RF 3 → RF 8 → RF 9 → RF 13 → RF 27 → RF 33 → RF 2.
 - **2026-10-04 — RF 27 cerrado (✅)**: detección "Monto dispar" + saneo de bandeja (pago/alerta conservados, dedupe, fechas '—'). Commit `f4fb957`. Filtros re-verificados por el orquestador: ConciliacionMontoDispar 4/4, Conciliacion 43/43, Pago 32/32.
 - **2026-10-04 — Ajustes de plan (sesión de revisión)**: RF 33 pausado hasta contar con el PDF maestro de ejemplo; RF 2 reinterpretado por aclaración del usuario (el SRS debe leerse "datos" en lugar de "correo"). Sin cambios de código funcional.
 - **2026-10-04 — Ajuste estético**: badge de motivo en conciliación ("Monto dispar") corregido a clases Tailwind válidas (`bg-amber-100 text-amber-800 border-amber-200`; las anteriores `bg-warning/10`/`border-warning/20` no existen en el tema y dejaban el fondo transparente). Commit `0bddd64`.
+- **2026-10-18 — Sustituciones de RF definidas (usuario)**: reemplazos elegidos — RF 21→21B (historial de reportes de cartelera), RF 22→22A (deuda manual con alcance libre), RF 33→33A (previsualización/validación/trazabilidad de importaciones); los tres son 100% demostrables con lo implementado. Hallazgos de la verificación: (a) el proxy de soportes (`21ed6d4`) está vivo, pero la ingesta "PDF Maestro" fue eliminada por diseño (`ca46f46`, 10/10) y el commit de seguridad `e5ae382` dejó métodos zombie en `GastoController` — candidato a re-limpiar; (b) RF 34: el visor del residente está implementado; el extracto textual perdió su vía de captura con la limpieza del maestro (demo: seed SQL o mini-UI de 2 campos); (c) el reporte de cartelera no alimenta soportes/extractos (solo facturas). Delta de features implementadas sin RF identificado (respaldos, deuda manual, portal público, fiscalización auditor, aprobación de registros, rate limiting, vencimiento de comunicados, trazabilidad de importaciones, retención de datos) — detalle en Engram `srs/delta-rf-reemplazos`.
 
 ## 6. Evidencia clave de la auditoría
 
