@@ -394,17 +394,31 @@ if (!function_exists('app_url')) {
         $base = trim((string)($_ENV['APP_URL'] ?? ''));
 
         if ($base === '') {
-            $scheme = 'http';
-            if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-                // Primer valor de la lista enviada por el proxy (ej: "https, http").
-                $scheme = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
-            } elseif (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
-                $scheme = 'https';
+            // En producción se exige HTTPS y se ignora el Host de la petición:
+            // así el canonical/OG no puede envenenarse con un Host arbitrario.
+            // APP_URL sigue siendo la fuente recomendada para el dominio público.
+            $isProduction = defined('ENVIRONMENT') && ENVIRONMENT === 'production';
+            $scheme = $isProduction ? 'https' : 'http';
+
+            if (!$isProduction) {
+                if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+                    // Primer valor de la lista enviada por el proxy (ej: "https, http").
+                    $scheme = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+                } elseif (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+                    $scheme = 'https';
+                }
             }
-            $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+
+            $host = $isProduction
+                ? trim((string)($_SERVER['SERVER_NAME'] ?? ''))
+                : trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+            if ($host === '') {
+                $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+            }
             if ($host === '') {
                 $host = 'localhost';
             }
+
             $base = $scheme . '://' . $host;
         }
 
