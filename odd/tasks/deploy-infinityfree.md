@@ -69,3 +69,11 @@ Verificación post-fix: `php -l` sin errores; smoke de autoload **70/70**; `--fi
 - Verificación completa post-parche: re-comparación del zip contra el árbol → **0 diferencias** (230 archivos de texto normalizados + 5 binarios idénticos); marcadores verificados dentro del zip (regla monto ≥ deuda presente; rutas `/residente/estado-cuenta` eliminadas).
 - Respaldo del zip previo: `%TEMP%\qa-mobile\htdocs-antes-actualizacion.zip`.
 - Estado: **pendiente subir al hosting** (FileZilla → contenido de `htdocs/`). Delta respecto al paquete anterior: los 20 archivos actualizados + eliminar en el servidor los 7 obsoletos.
+
+### Actualización del paquete y verificación del dump (2026-10-18, rediseño de la landing)
+
+- Rediseño estético de la landing pública (`app/views/home/index.php`) con la foto `public/img/conjunto_las_mesetas.jpg` (segunda imagen del sitio) y retiro del aviso de copyright (commit `d1b42db`).
+- `htdocs.zip` re-parcheado in-place con el criterio habitual: reemplazo de `htdocs/app/views/home/index.php` (texto normalizado a LF) y alta de `htdocs/public/img/conjunto_las_mesetas.jpg` (binario). Se preservan `.env` de despliegue, placeholder de InfinityFree y estructura.
+- Verificación completa del paquete contra el árbol de trabajo (texto normalizado a LF + binarios idénticos): **240 archivos comparados / 0 diferencias / 0 faltantes / 0 obsoletos** en el alcance de código (`app/`, `public/`, `scripts/`, `vendor/`, `.env.example`). Total del paquete: 303 entradas.
+- Verificación del dump `database/condominio_cobranzas.sql` contra la BD local (MariaDB 10.4.32, XAMPP): **34/34 tablas, 382/382 columnas idénticas** (nombre, tipo, nulabilidad y auto_increment), índices y expresiones generadas equivalentes; 0 vistas/triggers/routines/events. No requirió cambios.
+- Los datos del dump siguen siendo la instantánea canónica (última regeneración 17/10, commit `6bacf88`); esta verificación cubrió esquema, no datos.
