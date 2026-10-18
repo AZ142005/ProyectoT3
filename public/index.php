@@ -7,6 +7,7 @@ use App\Controllers\AdminAuthController;
 use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\EstructuraController;
+use App\Controllers\HomeController;
 use App\Controllers\PagoController;
 use App\Controllers\PagoDirectoController;
 use App\Controllers\ResidenteController;
@@ -113,7 +114,7 @@ Security::validateCSRF();
 $router = new Router();
 
 // --- Módulo de Autenticación ---
-$router->any('/', [AuthController::class, 'login']);
+$router->get('/', [HomeController::class, 'index']);
 $router->any('/login', [AuthController::class, 'login']);
 $router->any('/auth/login', [AuthController::class, 'login']);
 $router->any('/auth/register', [AuthController::class, 'register']);

@@ -379,3 +379,41 @@ if (!function_exists('validarPassword')) {
         return true;
     }
 }
+
+if (!function_exists('app_url')) {
+    /**
+     * Construye la URL pública absoluta del sitio (canonical, Open Graph, sitemap).
+     *
+     * Usa APP_URL del entorno cuando está definida; en caso contrario deriva el
+     * esquema y el host de la petición actual (proxy inverso incluido).
+     *
+     * @param string $path Ruta relativa (ej: '/img/logo.png'). Vacío para la raíz.
+     * @return string URL absoluta; sin barra final cuando $path está vacío.
+     */
+    function app_url(string $path = ''): string {
+        $base = trim((string)($_ENV['APP_URL'] ?? ''));
+
+        if ($base === '') {
+            $scheme = 'http';
+            if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+                // Primer valor de la lista enviada por el proxy (ej: "https, http").
+                $scheme = strtolower(trim(explode(',', (string)$_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+            } elseif (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+                $scheme = 'https';
+            }
+            $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+            if ($host === '') {
+                $host = 'localhost';
+            }
+            $base = $scheme . '://' . $host;
+        }
+
+        $base = rtrim($base, '/');
+
+        if ($path === '') {
+            return $base;
+        }
+
+        return $base . '/' . ltrim($path, '/');
+    }
+}
