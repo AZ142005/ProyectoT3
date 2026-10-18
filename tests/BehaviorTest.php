@@ -1366,38 +1366,6 @@ class BehaviorTest extends TestCase {
             'Cap must be applied before SQL LIMIT clause');
     }
 
-    // --- 4.5: Optimizar conteo unidades (3 tests) ---
-
-    // 4.5a — rendicionResidente uses COUNT query
-    public function testRendicionResidenteUsesCountQuery(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
-        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
-        $this->assertTrue(count($m) > 1, 'rendicionResidente() must exist');
-        $this->assertStringContains('COUNT(*)', $m[1],
-            'Must use COUNT(*) SQL query');
-        $this->assertStringContains('unidades WHERE', $m[1],
-            'Must query unidades table directly');
-    }
-
-    // 4.5b — rendicionResidente does NOT call getActivas()
-    public function testRendicionResidenteDoesNotLoadFullArray(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
-        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
-        $this->assertTrue(count($m) > 1);
-        $this->assertTrue(strpos($m[1], 'getActivas()') === false,
-            'Must NOT call getActivas() to count units');
-    }
-
-    // 4.5c — rendicionResidente handles zero units gracefully
-    public function testRendicionResidenteHandlesZeroUnits(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/GastoController.php');
-        preg_match('/public function rendicionResidente\(\)(.*?)(?=public function|\Z)/s', $content, $m);
-        $this->assertStringContains('intval($stmtCount', $m[1],
-            'Must intval the COUNT result');
-        $this->assertStringContains('0.00', $m[1],
-            'Alicuota must default to 0.00 when no units');
-    }
-
     // --- 4.6: Límite diario ajustes (1 test) ---
 
     // 4.6a — Daily adjustment limit is 10

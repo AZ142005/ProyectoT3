@@ -232,7 +232,6 @@ $router->post('/admin/gastos/deuda-manual', [\App\Controllers\GastoController::c
 $router->post('/admin/gastos/deuda-manual/eliminar', [\App\Controllers\GastoController::class, 'eliminarDeudaManual'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/deuda-manual/limpiar', [\App\Controllers\GastoController::class, 'eliminarDeudasManualesPeriodo'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/generar-facturas', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN, UserRole::AUDITOR]);
-$router->get('/residente/gastos', [\App\Controllers\GastoController::class, 'rendicionResidente'], [UserRole::RESIDENTE]);
 
 // --- Módulo de Estado de Cuenta y Libro Mayor (RF 18, RF 19, RF 20, RF 24) ---
 $router->get('/residente/estado-cuenta', [\App\Controllers\EstadoCuentaController::class, 'index'], [UserRole::RESIDENTE]);

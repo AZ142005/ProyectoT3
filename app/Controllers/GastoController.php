@@ -382,64 +382,6 @@ class GastoController extends Controller {
     }
 
     /**
-     * Muestra la pantalla de Rendición de Cuentas y Justificación de Gastos para Residentes.
-     */
-    public function rendicionResidente() {
-        Auth::requireRole('residente');
-        $residente = $this->getAuthenticatedResidente();
-        $unidadId = intval($residente['unidad_id'] ?? 0);
-        $edificioId = intval($residente['edificio_id'] ?? 0);
-
-        $mes = !empty($_GET['mes']) ? intval($_GET['mes']) : intval(date('n'));
-        $anio = !empty($_GET['anio']) ? intval($_GET['anio']) : intval(date('Y'));
-
-        $gastosModel = new GastosModel();
-
-        // Obtener gastos del período: comunes globales + individuales de su edificio (o todos si no tiene edificio)
-        $gastos = $gastosModel->obtenerGastosPorPeriodo($mes, $anio, 200, $edificioId ?: null);
-        $totalesPorCategoria = $gastosModel->obtenerTotalesPorCategoria($mes, $anio);
-        $totalMes = $gastosModel->obtenerTotalGastoMes($mes, $anio);
-
-        // Optimización de conteo directo de unidades activas
-        $db = \App\Core\Database::getConnection();
-        $stmtCount = $db->query("SELECT COUNT(*) as cnt FROM unidades WHERE estado = 1");
-        $unidadesActivas = intval($stmtCount->fetch(\PDO::FETCH_ASSOC)['cnt'] ?? 0);
-        $alicuotaEstimada = ($unidadesActivas > 0) ? round($totalMes / $unidadesActivas, 2) : 0.00;
-
-        // Distribución dinámica de cuotas (Global + Edificio)
-        $distribucion = $gastosModel->calcularDistribucionCuotas($mes, $anio);
-        $infoUnidad = $distribucion['unidades'][$unidadId] ?? null;
-
-        $totalGlobal = $distribucion['total_global'] ?? 0.0;
-        $cuotaGlobal = $distribucion['cuota_global_unidad'] ?? 0.0;
-
-        $infoEdificio = $distribucion['edificios'][$edificioId] ?? null;
-        $totalEdificio = $infoEdificio['total_gastos_individual'] ?? 0.0;
-        $unidadesEdificio = $infoEdificio['total_unidades'] ?? 0;
-        $cuotaEdificio = $infoEdificio['cuota_individual_unidad'] ?? 0.0;
-
-        $cuotaTotalUnidad = $infoUnidad['cuota_total'] ?? round($cuotaGlobal + $cuotaEdificio, 2);
-
-        $this->render('residente/gastos', [
-            'gastos'              => $gastos,
-            'totalesPorCategoria' => $totalesPorCategoria,
-            'totalMes'            => $totalMes,
-            'totalGlobal'         => $totalGlobal,
-            'totalEdificio'       => $totalEdificio,
-            'unidadesActivas'     => $unidadesActivas,
-            'unidadesEdificio'    => $unidadesEdificio,
-            'cuotaGlobal'         => $cuotaGlobal,
-            'cuotaEdificio'       => $cuotaEdificio,
-            'cuotaTotalUnidad'    => $cuotaTotalUnidad,
-            'alicuotaEstimada'    => $cuotaTotalUnidad ?: $alicuotaEstimada,
-            'residente'           => $residente,
-            'mes'                 => $mes,
-            'anio'                => $anio,
-            'title'               => 'Rendición de Cuentas y Gastos'
-        ]);
-    }
-
-    /**
      * Normaliza un período (mes/año) recibido por POST: solo escalares numéricos.
      * Ausente o vacío => valor por defecto; array o texto inválido => 0 (será rechazado).
      */
