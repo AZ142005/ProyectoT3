@@ -1,7 +1,7 @@
 # SEO local — Landing pública del Conjunto Las Mesetas de Morón
 
 Fecha: 2026-10-18
-Estado: en progreso
+Estado: completado en rama `feat/seo-landing-las-mesetas` (sin PR)
 
 ## Objetivo
 
@@ -52,10 +52,12 @@ Posicionar el conjunto para búsquedas de marca en Venezuela (`conjunto las mese
 
 - Unidad 1 (commit `1d2a2b9`): landing en `/`, `HomeController`, `app_url()`, `APP_URL` documentada y tests de landing/helper. 518 líneas autoradas; por encima del heurístico de 400, pero es una unidad coherente (vista de 269 líneas). No se recortó contenido para ajustar el número.
 - Unidad 2 (commit `0d69f9d`): metadatos en `header.php`, `SeoController`, rutas `/robots.txt` y `/sitemap.xml`, `noindex` en login/registro/2FA/pago directo y tests de metadatos/rastreo.
+- Hardening (commit `f7d6fb0`): en producción, sin `APP_URL`, `app_url()` fuerza HTTPS y usa `SERVER_NAME` en vez del `Host` de la petición para evitar envenenamiento de canonical/OG. Desarrollo conserva el fallback por Host.
 - `php -l` sin errores en los 9 archivos PHP tocados.
 - `php tests/run.php --filter=SeoLanding`: 3 tests, 10 assertions, 0 fallos.
 - `php tests/run.php --filter=SeoMetadata`: 4 tests, 14 assertions, 0 fallos.
 - `php tests/run.php --filter=Seo`: 7 tests, 24 assertions, 0 fallos.
+- `app_url()` smoke: producción `https://lasmesetas.example.com/` ignorando `Host: evil.example.com`; desarrollo `http://127.0.0.1:8099/`; override con `APP_URL` correcto.
 - Smoke HTTP con `php -S 127.0.0.1:8099 -t public public/index.php`: `/` 200 con H1, canonical, `index,follow`; `/robots.txt` 200 con `Sitemap:`; `/sitemap.xml` 200 con un solo `<url>`; `/auth/login` 200 con `noindex,follow`.
 - Suite completa: aborta en `SecurityTest` como en la línea base documentada; los tests focalizados pasan.
 - Entrega: sin PR en esta sesión. Si se publica, la estrategia `ask-on-risk` queda pendiente por el presupuesto de revisión.
