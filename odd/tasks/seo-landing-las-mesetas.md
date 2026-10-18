@@ -51,10 +51,11 @@ Posicionar el conjunto para búsquedas de marca en Venezuela (`conjunto las mese
 ## Evidencia
 
 - Unidad 1 (commit `1d2a2b9`): landing en `/`, `HomeController`, `app_url()`, `APP_URL` documentada y tests de landing/helper. 518 líneas autoradas; por encima del heurístico de 400, pero es una unidad coherente (vista de 269 líneas). No se recortó contenido para ajustar el número.
-- Unidad 2: metadatos en `header.php`, `SeoController`, rutas `/robots.txt` y `/sitemap.xml`, `noindex` en login/registro/2FA/pago directo y tests de metadatos/rastreo.
+- Unidad 2 (commit `0d69f9d`): metadatos en `header.php`, `SeoController`, rutas `/robots.txt` y `/sitemap.xml`, `noindex` en login/registro/2FA/pago directo y tests de metadatos/rastreo.
 - `php -l` sin errores en los 9 archivos PHP tocados.
 - `php tests/run.php --filter=SeoLanding`: 3 tests, 10 assertions, 0 fallos.
-- `php tests/run.php --filter=SeoMetadata`: pendiente de ejecutar en la unidad 2.
+- `php tests/run.php --filter=SeoMetadata`: 4 tests, 14 assertions, 0 fallos.
+- `php tests/run.php --filter=Seo`: 7 tests, 24 assertions, 0 fallos.
 - Smoke HTTP con `php -S 127.0.0.1:8099 -t public public/index.php`: `/` 200 con H1, canonical, `index,follow`; `/robots.txt` 200 con `Sitemap:`; `/sitemap.xml` 200 con un solo `<url>`; `/auth/login` 200 con `noindex,follow`.
 - Suite completa: aborta en `SecurityTest` como en la línea base documentada; los tests focalizados pasan.
 - Entrega: sin PR en esta sesión. Si se publica, la estrategia `ask-on-risk` queda pendiente por el presupuesto de revisión.
