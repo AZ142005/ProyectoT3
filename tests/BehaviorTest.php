@@ -388,7 +388,7 @@ class BehaviorTest extends TestCase {
     public function testRefreshRevokesOldToken(): void {
         $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
         $content = file_get_contents($file);
-        preg_match('/public function refresh\(\)(.*?)(?=public function)/s', $content, $matches);
+        preg_match('/public function refresh\(\)(.*?)(?=public function|\Z)/s', $content, $matches);
         $this->assertNotNull($matches);
         $this->assertStringContains('revocado = 1', $matches[1],
             'refresh() must revoke old token');
@@ -543,21 +543,6 @@ class BehaviorTest extends TestCase {
     }
 
     // =====================================================================
-    // 30. IDOR API FIX — Verifica que estadoCuenta valida rol
-    // =====================================================================
-
-    public function testApiEstadoCuentaChecksRole(): void {
-        $file = dirname(__DIR__) . '/app/Controllers/ApiController.php';
-        $content = file_get_contents($file);
-        preg_match('/function estadoCuenta\(\)(.*?)(?=public function|$)/s', $content, $matches);
-        $this->assertTrue(count($matches) > 0, 'estadoCuenta() method must exist');
-        $this->assertStringContains('UserRole::RESIDENTE', $matches[1],
-            'estadoCuenta must validate role is RESIDENTE');
-        $this->assertStringContains('403', $matches[1],
-            'estadoCuenta must return 403 for non-resident users');
-    }
-
-    // =====================================================================
     // 31. OTP CROSS-SESSION RATE — Verifica user_id en key OTP
     // =====================================================================
 
@@ -660,19 +645,6 @@ class BehaviorTest extends TestCase {
         $content = file_get_contents($file);
         $this->assertStringContains('unidad_id = :uid AND id != :id', $content,
             'asignarAUnidad must check unicity of parking per unit');
-    }
-
-    // =====================================================================
-    // 39. PRINT LIMIT 500 — Verify imprimir() uses LIMIT 500
-    // =====================================================================
-
-    public function testEstadoCuentaImprimirUsesLimit500(): void {
-        $file = dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php';
-        $content = file_get_contents($file);
-        preg_match('/function imprimir\(\)(.*?)(?=public function|$)/s', $content, $matches);
-        $this->assertTrue(count($matches) > 0, 'imprimir() method must exist');
-        $this->assertStringContains(', 500)', $matches[1],
-            'imprimir() must use LIMIT 500 for movements');
     }
 
     // =====================================================================
@@ -1300,46 +1272,6 @@ class BehaviorTest extends TestCase {
             'Must check for invalid ID before any DB query');
         $this->assertStringContains('return;', $m[1],
             'Must return after redirect to prevent further execution');
-    }
-
-    // --- 4.2: Rate limiting impresión (4 tests) ---
-
-    // 4.2a — imprimir() has rate limiting
-    public function testImprimirEstadoCuentaHasRateLimiting(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
-        preg_match('/public function imprimir\(\)(.*?)(?=public function|\Z)/s', $content, $m);
-        $this->assertTrue(count($m) > 1, 'imprimir() must exist');
-        $this->assertStringContains('RateLimiter::attempt', $m[1],
-            'imprimir() must use RateLimiter');
-        $this->assertStringContains('imprimir_estado_', $m[1],
-            'Rate limit key must include imprimir_estado prefix');
-        $this->assertStringContains('Auth::id()', $m[1],
-            'Rate limit key must include user ID');
-    }
-
-    // 4.2b — Rate limit is 10 per hour
-    public function testImprimirRateLimitIs10PerHour(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
-        $this->assertStringContains('10, 3600', $content,
-            'Rate limit must be 10 requests per 3600 seconds');
-    }
-
-    // 4.2c — imprimir() redirects on rate limit
-    public function testImprimirRedirectsOnRateLimit(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
-        $this->assertStringContains('/residente/estado-cuenta', $content,
-            'Must redirect to estado-cuenta when rate limited');
-        $this->assertStringContains('return;', $content,
-            'Must return after redirect to stop execution');
-    }
-
-    // 4.2d — Rate limit shows remaining time
-    public function testImprimirRateLimitShowsRemainingTime(): void {
-        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/EstadoCuentaController.php');
-        $this->assertStringContains('secondsUntilAvailable', $content,
-            'Must calculate remaining time for user message');
-        $this->assertStringContains('minuto', $content,
-            'Must format remaining time in minutes');
     }
 
     // --- 4.3: LIMIT 500 cap (2 tests) ---

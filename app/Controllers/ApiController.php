@@ -3,13 +3,11 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\JWT;
-use App\Core\AuthMiddleware;
 use App\Core\Database;
 use App\Core\UserRole;
 use App\Core\RateLimiter;
 use App\Models\UsuariosModel;
 use App\Models\PersonasModel;
-use App\Models\MovimientosModel;
 use App\Models\OtpModel;
 use PDO;
 
@@ -322,54 +320,5 @@ class ApiController extends Controller {
             'refresh_token' => $newRefreshPlain,
             'expires_in'   => 7200
         ], 200);
-    }
-
-    /**
-     * Endpoint protegido: Consulta el estado de cuenta y balance para clientes API.
-     */
-    public function estadoCuenta() {
-        // Middleware de validación JWT
-        $payload = AuthMiddleware::validarJWT();
-
-        // IDOR fix: solo residentes pueden consultar su propio estado de cuenta
-        if (($payload['role'] ?? '') !== UserRole::RESIDENTE) {
-            $this->json(['success' => false, 'error' => 'Solo residentes pueden consultar su estado de deuda.'], 403);
-            return;
-        }
-
-        $personaId = (int)$payload['sub'];
-
-        // Rate limit: 30 consultas por minuto por usuario
-        $rateKey = 'api_estado_cuenta_' . $personaId;
-        if (!\App\Core\RateLimiter::attempt($rateKey, 30, 60)) {
-            $this->json(['success' => false, 'error' => 'Demasiadas solicitudes. Intente nuevamente en unos minutos.'], 429);
-            return;
-        }
-
-        $db = Database::getConnection();
-        $stmtU = $db->prepare("SELECT id, numero FROM unidades WHERE propietario_id = :pid LIMIT 1");
-        $stmtU->execute(['pid' => $personaId]);
-        $unidad = $stmtU->fetch(PDO::FETCH_ASSOC);
-
-        if (!$unidad) {
-            $this->json([
-                'success'      => true,
-                'saldo_actual' => 0.00,
-                'unidad'       => null,
-                'movimientos'  => []
-            ]);
-            return;
-        }
-
-        $movimientosModel = new MovimientosModel();
-        $saldo = $movimientosModel->obtenerSaldoActualUnidad((int)$unidad['id']);
-        $historial = $movimientosModel->obtenerHistorialUnidad((int)$unidad['id'], 1, 10);
-
-        $this->json([
-            'success'      => true,
-            'unidad'       => $unidad,
-            'saldo_actual' => $saldo,
-            'movimientos'  => $historial['datos']
-        ]);
     }
 }

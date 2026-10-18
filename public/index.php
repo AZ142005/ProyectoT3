@@ -233,10 +233,6 @@ $router->post('/admin/gastos/deuda-manual/eliminar', [\App\Controllers\GastoCont
 $router->post('/admin/gastos/deuda-manual/limpiar', [\App\Controllers\GastoController::class, 'eliminarDeudasManualesPeriodo'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/gastos/generar-facturas', [AdminController::class, 'generarFacturas'], [UserRole::ADMIN, UserRole::AUDITOR]);
 
-// --- Módulo de Estado de Cuenta y Libro Mayor (RF 18, RF 19, RF 20, RF 24) ---
-$router->get('/residente/estado-cuenta', [\App\Controllers\EstadoCuentaController::class, 'index'], [UserRole::RESIDENTE]);
-$router->get('/residente/estado-cuenta/imprimir', [\App\Controllers\EstadoCuentaController::class, 'imprimir'], [UserRole::RESIDENTE]);
-
 // --- Autenticación 2FA (RF 3) ---
 $router->get('/auth/verificar-2fa', [\App\Controllers\AuthController::class, 'verificar2faView']);
 $router->post('/auth/verificar-2fa', [\App\Controllers\AuthController::class, 'procesar2fa']);
@@ -246,7 +242,6 @@ $router->post('/perfil/2fa/toggle', [\App\Controllers\PerfilController::class, '
 // --- APIs con Autenticación JWT y Refresh Tokens (RF 6) ---
 $router->post('/api/v1/auth/login', [\App\Controllers\ApiController::class, 'login']);
 $router->post('/api/v1/auth/refresh', [\App\Controllers\ApiController::class, 'refresh']);
-$router->get('/api/v1/residente/estado-cuenta', [\App\Controllers\ApiController::class, 'estadoCuenta']);
 $router->post('/api/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 $router->post('/api/v1/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN]);
 
