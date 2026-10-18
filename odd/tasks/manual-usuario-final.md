@@ -15,12 +15,9 @@
 
 **Embebidas (21):** 01, 02(1), 02(2), 04, 05, 06, 07, 08, 09, 11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 25, 29.
 
-**Pendientes (7):**
-- [ ] `18-respaldos.png` (esencial)
-- [ ] `20-pago-directo-exito.png` (esencial)
-- [ ] `22-residente-historial.png` — capturar "Mis Pagos" (`/pagos`) con `residente.prueba@conjunto.com` (esencial)
-- [ ] `30-auditor-vista-lectura.png` (esencial)
-- [ ] `03-verificacion-2fa.png`, `10-cartelera-cargar.png`, `31-auditor-log.png` (opcionales)
+**Colocadas (18/10/2026, ver `odd/tasks/manual-capturas-faltantes.md`):** `03-verificacion-2fa.png` (fig. 2, ambos), `10-cartelera-cargar.png` (fig. 11, Admin), `18-respaldos.png` (fig. 19, Admin) y `22-residente-historial.png` (fig. 27, Residente) — capturadas de la interfaz real y ya embebidas en los docx vigentes.
+
+**Pendientes solo para la fuente JSON regenerable** (no hay figura ni placeholder en los docx actuales): `20-pago-directo-exito.png`, `30-auditor-vista-lectura.png`, `31-auditor-log.png`.
 
 **Eliminadas del plan:** 23, 26, 27, 28 (esta ronda) + sus figuras.
 
@@ -33,7 +30,7 @@
 - [x] T6a — Reestructura en dos partes + ajustes (2 figuras de registro; −23/26/27/28; auditor fusionado; sección "Mis Pagos" real; índice; nodo `part`).
 - [x] T6b — Datos de prueba sembrados para la captura 22 (seed idempotente).
 - [x] T6c — Ronda final: maquetación de figuras corregida (imagen+rótulo adyacentes) + intro condensada + registro como "solicitud de usuario" + PARTE II resumida + "Cómo iniciar sesión" en PARTE II + sin glosario/anexos (carta-ejemplo → Fig. 18 del cap. 12).
-- [ ] T6d — Incorporar las 7 capturas restantes (2FA, cartelera, respaldos, auditor, log, éxito, Mis Pagos) y regenerar.
+- [x] T6d — Capturas incorporadas: 4 en los docx vigentes (2FA, cartelera, respaldos, Mis Pagos; 18/10/2026); las otras 3 (auditor ×2 y éxito de pago) solo aplican a la fuente JSON regenerable.
 - [ ] T7 — Cierre: commit final + resumen en Engram.
 
 ## Regenerar
