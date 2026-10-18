@@ -49,7 +49,7 @@
                 <span class="material-symbols-outlined text-primary">inventory_2</span>
                 <h5 class="text-lg font-bold text-on-surface mb-0">Datos acumulados y retención</h5>
             </div>
-            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill small">
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill small text-wrap max-w-full">
                 Política: 365 días (auditoría e historial) · 30 días (rate limits)
             </span>
         </div>

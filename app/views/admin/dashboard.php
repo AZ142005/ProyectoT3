@@ -21,18 +21,18 @@ $anio = intval($anio ?? date('Y'));
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col min-w-0 bg-slate-50/50">
         <!-- Barra superior -->
-        <header class="bg-white border-b-2 border-institutional-brown/40 h-16 px-6 flex justify-between items-center shrink-0">
+        <header class="bg-white border-b-2 border-institutional-brown/40 md:h-16 px-6 max-md:py-2.5 flex flex-wrap justify-between items-center gap-y-2 shrink-0">
             <div class="flex items-center gap-3">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600 hover:bg-background rounded-lg flex items-center justify-center">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <div>
+                <div class="min-w-0">
                     <h1 class="text-xl font-bold text-on-surface mb-0">Panel de Control Financiero</h1>
                     <span class="text-xs text-on-surface-variant font-medium">Resumen general y estado económico del conjunto</span>
                 </div>
             </div>
             
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 w-full justify-end md:w-auto">
                 <!-- Selector de Período Rápido Permanente -->
                 <form method="GET" action="/admin/dashboard" class="d-flex align-items-center gap-1.5 mb-0">
                     <select name="mes" class="form-select form-select-sm text-xs font-semibold rounded-lg border-outline-variant bg-white" onchange="this.form.submit()">

@@ -50,9 +50,9 @@
                 <!-- Barra de Acciones del Contenido -->
                 <div class="flex justify-end items-center mb-3 flex-wrap gap-2">
                     <?php if (!empty($lotes)): ?>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap min-w-0">
                             <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote activo:</label>
-                            <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
+                            <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs max-w-full min-w-0" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
                                 <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
                                 <?php foreach ($lotes as $l): ?>
                                     <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>

@@ -301,8 +301,8 @@
                     <div class="col-md-12">
                         <label class="form-label fw-bold small text-on-surface-variant">Tipo de registro <span class="text-danger">*</span></label>
                         <select id="modal_tipo_registro" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer" onchange="toggleTipoRegistroModal(this.value)">
-                            <option value="deuda_manual" selected>Deuda manual por unidad — se emite con Enviar/Re-enviar Deuda</option>
-                            <option value="gasto">Gasto del condominio (común o individual)</option>
+                            <option value="deuda_manual" selected>Deuda manual por unidad</option>
+                            <option value="gasto">Gasto del condominio</option>
                         </select>
                         <div class="text-xs text-on-surface-variant">La deuda manual se aplica directo a las unidades elegidas (sin repartir); el gasto del condominio se prorratea entre las unidades al emitir la deuda del mes.</div>
                     </div>

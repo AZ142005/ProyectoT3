@@ -130,7 +130,7 @@
                             <?php foreach ($puestos as $p): ?>
                                 <tr class="hover:bg-background/40 transition-colors">
                                     <td class="py-4 px-4 font-mono text-xs font-bold text-on-surface">
-                                        Puesto #<?= e($p['numero']) ?>
+                                        <?= e($p['numero']) ?>
                                     </td>
                                     <td class="py-4 px-4">
                                         <?php if ($p['tipo'] === 'techado'): ?>
@@ -194,7 +194,7 @@
                                                         <div class="modal-header bg-primary text-white py-3">
                                                             <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2">
                                                                 <span class="material-symbols-outlined">link</span>
-                                                                Asignar Puesto #<?= e($p['numero']) ?>
+                                                                Asignar <?= e($p['numero']) ?>
                                                             </h5>
                                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
@@ -337,7 +337,7 @@
                         <select name="estacionamiento_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
                             <option value="">-- Sin Asignación Directa --</option>
                             <?php foreach ($puestos as $p): ?>
-                                <option value="<?= e($p['id']) ?>">Puesto #<?= e($p['numero']) ?> (<?= e($p['tipo']) ?>)</option>
+                                <option value="<?= e($p['id']) ?>"><?= e($p['numero']) ?> (<?= e($p['tipo']) ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>

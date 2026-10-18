@@ -160,7 +160,7 @@
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
-                                    <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
+                                    <table id="tablaDirectorioEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%; min-width: 820px;">
                                         <thead>
                                             <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
                                                 <th class="py-3 px-4" style="width: 40%;">Edificio</th>
@@ -467,7 +467,7 @@
                                 </div>
                             <?php else: ?>
                                 <div class="overflow-x-auto">
-                                    <table id="tablaConfiguracionEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%;">
+                                    <table id="tablaConfiguracionEdificios" class="w-full text-left text-sm border-collapse" style="table-layout: fixed; width: 100%; min-width: 820px;">
                                         <thead>
                                             <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
                                                 <th class="py-3 px-4" style="width: 45%;">Edificio</th>

@@ -135,7 +135,7 @@
                                     <small class="text-xs text-on-surface-variant text-capitalize"><?= e($c['tipo_cuenta']) ?></small>
                                 </td>
                                 <td class="py-4 px-4">
-                                    <span class="font-monospace fw-semibold text-on-surface bg-light px-2 py-1 rounded border">
+                                    <span class="font-monospace fw-semibold text-on-surface bg-light px-2 py-1 rounded border whitespace-nowrap">
                                         <?= e(chunk_split($c['numero_cuenta'], 4, ' ')) ?>
                                     </span>
                                 </td>
