@@ -61,3 +61,11 @@ Verificación post-fix: `php -l` sin errores; smoke de autoload **70/70**; `--fi
 ### Espejo Engram
 
 **Pendiente**: el servicio de memoria no respondió al cierre de la sesión (error de registro de sesión en `mem_save`, reintentado 3 veces). Reintentar sincronización del espejo (`odd/deploy-infinityfree/tasks`) cuando el servicio esté disponible.
+
+### Paquete `htdocs.zip` sincronizado con `main` (2026-10-18)
+
+- El zip traía el estado del **17/10 17:59**: le faltaba todo el trabajo posterior (retiro de Estado de Cuenta `9fc6fae`, limpieza zombie `afedcf1`, retiro de rendición/gastos del residente `4b71a8f`, fixes móviles admin `d173d06`, regla monto ≥ deuda `560ec09`, más `.env.example`/worker de cola) y traía **assets binarios viejos** (logo, fondo de login, favicon, apple-touch-icon) y logs runtime obsoletos.
+- Actualización por **parche in-place** (preserva `.env` de despliegue, el placeholder de InfinityFree, `storage/cache` y toda la estructura): **+20 archivos** (16 de texto normalizados a LF + 4 binarios) y **−7 obsoletos** (EstadoCuentaController, vistas `estado_cuenta*.php`, `residente/gastos.php`, `app/logs/*` — la carpeta se autocrea en runtime vía `NotificationQueueWorker`). Total: 297 entradas.
+- Verificación completa post-parche: re-comparación del zip contra el árbol → **0 diferencias** (230 archivos de texto normalizados + 5 binarios idénticos); marcadores verificados dentro del zip (regla monto ≥ deuda presente; rutas `/residente/estado-cuenta` eliminadas).
+- Respaldo del zip previo: `%TEMP%\qa-mobile\htdocs-antes-actualizacion.zip`.
+- Estado: **pendiente subir al hosting** (FileZilla → contenido de `htdocs/`). Delta respecto al paquete anterior: los 20 archivos actualizados + eliminar en el servidor los 7 obsoletos.
