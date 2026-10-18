@@ -11,6 +11,7 @@ use App\Controllers\HomeController;
 use App\Controllers\PagoController;
 use App\Controllers\PagoDirectoController;
 use App\Controllers\ResidenteController;
+use App\Controllers\SeoController;
 use App\Controllers\UsuarioAdminController;
 use App\Core\Auth;
 use App\Core\Logger;
@@ -112,6 +113,10 @@ Security::validateCSRF();
 
 // Instanciación y registro de rutas en el Router declarativo
 $router = new Router();
+
+// --- SEO público ---
+$router->get('/robots.txt', [SeoController::class, 'robots']);
+$router->get('/sitemap.xml', [SeoController::class, 'sitemap']);
 
 // --- Módulo de Autenticación ---
 $router->get('/', [HomeController::class, 'index']);

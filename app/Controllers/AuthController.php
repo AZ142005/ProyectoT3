@@ -130,7 +130,8 @@ class AuthController extends Controller {
             'error'      => $error,
             'showNav'    => false,
             'hideFooter' => true,
-            'title'      => 'Iniciar Sesión - Condominio Digital'
+            'title'      => 'Iniciar Sesión | Conjunto Las Mesetas de Morón',
+            'robots'     => 'noindex,follow'
         ]);
     }
 
@@ -171,7 +172,8 @@ class AuthController extends Controller {
         $this->render('auth/verificar_2fa', [
             'email'   => $_SESSION['2fa_pending']['email'],
             'showNav' => false,
-            'title'   => 'Verificación en Dos Pasos (2FA)'
+            'title'   => 'Verificación en Dos Pasos | Conjunto Las Mesetas de Morón',
+            'robots'  => 'noindex,nofollow'
         ]);
     }
 
@@ -398,7 +400,8 @@ class AuthController extends Controller {
             'error'                   => $error,
             'apartamentosDisponibles' => $apartamentosDisponibles,
             'showNav'                 => false,
-            'title'                   => 'Crear Cuenta - Condominio Digital'
+            'title'                   => 'Solicitud de Registro | Conjunto Las Mesetas de Morón',
+            'robots'                  => 'noindex,follow'
         ]);
     }
 
@@ -413,7 +416,8 @@ class AuthController extends Controller {
 
         $this->render('auth/registro_exitoso', [
             'showNav' => false,
-            'title'   => 'Registro Exitoso - Condominio Digital'
+            'title'   => 'Registro Exitoso | Conjunto Las Mesetas de Morón',
+            'robots'  => 'noindex,nofollow'
         ]);
     }
 

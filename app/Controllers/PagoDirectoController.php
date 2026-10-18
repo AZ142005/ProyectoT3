@@ -327,7 +327,8 @@ class PagoDirectoController extends Controller {
     public function exito(): void {
         $this->render('pago_directo/exito', [
             'showNav' => false,
-            'title'   => 'Pago Registrado - Condominio Digital'
+            'title'   => 'Pago Registrado | Conjunto Las Mesetas de Morón',
+            'robots'  => 'noindex,nofollow'
         ]);
     }
 
@@ -372,7 +373,8 @@ class PagoDirectoController extends Controller {
             'error'            => $error,
             'old'              => $old,
             'showNav'          => false,
-            'title'            => 'Pagar sin Iniciar Sesión - Condominio Digital'
+            'title'            => 'Pago sin Iniciar Sesión | Conjunto Las Mesetas de Morón',
+            'robots'           => 'noindex,follow'
         ]);
     }
 }
