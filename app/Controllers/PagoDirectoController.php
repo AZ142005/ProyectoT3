@@ -245,6 +245,9 @@ class PagoDirectoController extends Controller {
             $error = 'Ingrese un monto válido (mínimo Bs. 0,01).';
         } elseif ($monto > 999999.99) {
             $error = 'El monto no puede exceder Bs. 999.999,99.';
+        } elseif (($totalDeudaUnidad = (float) ((new FacturasModel())->getResumenFinancieroUnidad($unidadId)['total_deuda'] ?? 0)) > 0 && $monto < $totalDeudaUnidad) {
+            // Regla de negocio: el monto no puede ser menor a la deuda pendiente de la unidad.
+            $error = 'El monto registrado (' . formatearMoneda($monto) . ') no puede ser menor a la deuda pendiente de la unidad (' . formatearMoneda($totalDeudaUnidad) . ').';
         } elseif (!in_array($metodoPago, ['transferencia', 'pago_movil'], true)) {
             $error = 'Seleccione un método de pago válido.';
         } elseif ($referencia === '') {
