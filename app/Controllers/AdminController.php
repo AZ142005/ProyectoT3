@@ -143,10 +143,13 @@ class AdminController extends Controller {
 
             if ($accion === 'aprobar') {
                 if ($comprobantesModel->aprobar($id, $observaciones)) {
+                    if (!empty($comprobantesModel->ultimaAdvertencia)) {
+                        Flash::info($comprobantesModel->ultimaAdvertencia);
+                    }
                     Flash::success("Comprobante aprobado exitosamente.");
                     $this->redirect($urlRetorno);
                 } else {
-                    $error = "Error al intentar aprobar el comprobante.";
+                    $error = $comprobantesModel->ultimoError ?: "Error al intentar aprobar el comprobante.";
                 }
             } elseif ($accion === 'rechazar') {
                 if (empty($observaciones) || mb_strlen($observaciones) < 5) {

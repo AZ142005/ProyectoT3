@@ -747,6 +747,15 @@ class ConciliacionBancariaService {
     ): array {
         $db = Database::getConnection();
 
+        $lock = PagoModel::adquirirLockAprobacion($db);
+        if ($lock !== true) {
+            throw new \App\Core\ConciliacionException(
+                $lock === false
+                    ? 'Otro administrador está aprobando un pago. Intente nuevamente en unos segundos.'
+                    : 'No se pudo asegurar el bloqueo de aprobación. Intente nuevamente.'
+            );
+        }
+
         try {
             $db->beginTransaction();
 
@@ -826,6 +835,8 @@ class ConciliacionBancariaService {
             }
             Logger::error('conciliacion_aprobar', 'Error en conciliarYaprobar: ' . $e->getMessage());
             throw $e;
+        } finally {
+            PagoModel::liberarLockAprobacion($db);
         }
     }
 
@@ -865,6 +876,23 @@ class ConciliacionBancariaService {
                 'mensaje' => "El comprobante Ref. {$comprobante['referencia']} ya se encontraba aprobado. Extracto vinculado exitosamente."
             ];
         }
+
+        // Guardia global: misma referencia aprobada en otra unidad.
+        $refNorm = $comprobante['referencia_norm'] ?? PagoModel::normalizarReferenciaPago($comprobante['referencia'] ?? null);
+        $conflictoGlobal = PagoModel::buscarConflictoAprobadoGlobal(
+            $db,
+            $refNorm,
+            floatval($comprobante['monto']),
+            intval($comprobante['unidad_id']),
+            null,
+            $comprobanteId
+        );
+        if ($conflictoGlobal && $conflictoGlobal['monto_coincide']) {
+            throw new \App\Core\ConciliacionException(
+                'Duplicado económico en otra unidad: ' . PagoModel::describirConflictoAprobado($conflictoGlobal)
+            );
+        }
+        $advertenciaGlobal = $conflictoGlobal ? PagoModel::describirAdvertenciaConflicto($conflictoGlobal) : null;
 
         // Liquidar facturas en cascada, registrar en libro mayor y generar saldo a favor si hay remanente
         if (!empty($comprobante['unidad_id'])) {
@@ -915,9 +943,13 @@ class ConciliacionBancariaService {
             Logger::warning('conciliacion_notificacion', 'Advertencia al despachar notificación de comprobante: ' . $ne->getMessage(), ['comprobante_id' => $comprobanteId]);
         }
 
+        $mensaje = "Pago Ref. {$comprobante['referencia']} conciliado y aprobado exitosamente.";
+        if ($advertenciaGlobal !== null) {
+            $mensaje .= ' ' . $advertenciaGlobal;
+        }
         return [
             'success' => true,
-            'mensaje' => "Pago Ref. {$comprobante['referencia']} conciliado y aprobado exitosamente."
+            'mensaje' => $mensaje
         ];
     }
 
@@ -958,6 +990,23 @@ class ConciliacionBancariaService {
         if ((float)($extracto['monto'] ?? 0) > 0 && abs((float)$pago['monto'] - (float)$extracto['monto']) > 0.01) {
             throw new \App\Core\ConciliacionException("El monto del pago no coincide con el monto del extracto bancario.");
         }
+
+        // Guardia global: misma referencia aprobada en otra unidad.
+        $refNorm = $pago['referencia_norm'] ?? PagoModel::normalizarReferenciaPago($pago['referencia'] ?? null);
+        $conflictoGlobal = PagoModel::buscarConflictoAprobadoGlobal(
+            $db,
+            $refNorm,
+            floatval($pago['monto']),
+            intval($pago['unidad_id']),
+            $pagoId,
+            null
+        );
+        if ($conflictoGlobal && $conflictoGlobal['monto_coincide']) {
+            throw new \App\Core\ConciliacionException(
+                'Duplicado económico en otra unidad: ' . PagoModel::describirConflictoAprobado($conflictoGlobal)
+            );
+        }
+        $advertenciaGlobal = $conflictoGlobal ? PagoModel::describirAdvertenciaConflicto($conflictoGlobal) : null;
 
         // Aprobar el pago formalmente
         $stmtUpdatePago = $db->prepare("UPDATE pagos SET estado = 'APROBADO' WHERE id = :id");
@@ -1004,9 +1053,13 @@ class ConciliacionBancariaService {
             Logger::warning('conciliacion_notificacion', 'Advertencia al despachar notificación de pago: ' . $ne->getMessage(), ['pago_id' => $pagoId]);
         }
 
+        $mensaje = "Pago Ref. {$pago['referencia']} conciliado y aprobado exitosamente.";
+        if ($advertenciaGlobal !== null) {
+            $mensaje .= ' ' . $advertenciaGlobal;
+        }
         return [
             'success' => true,
-            'mensaje' => "Pago Ref. {$pago['referencia']} conciliado y aprobado exitosamente."
+            'mensaje' => $mensaje
         ];
     }
 

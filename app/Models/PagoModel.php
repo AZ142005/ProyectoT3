@@ -6,6 +6,8 @@ use App\Core\EstadoPago;
 use App\Services\LiquidacionPagoService;
 
 class PagoModel extends BaseModel {
+    private const LOCK_TIMEOUT = 3;
+
     /**
      * Normaliza la referencia de un pago para comparar identidad económica.
      *
@@ -35,6 +37,160 @@ class PagoModel extends BaseModel {
         }
 
         return $norm;
+    }
+
+    private static function prefijoLock(): string {
+        $db = defined('DB_NAME') ? (string)DB_NAME : 'default';
+        return 'pago_' . substr(sha1($db), 0, 12) . '_';
+    }
+
+    /**
+     * @return bool|null true=adquirido, false=ocupado/timeout, null=error
+     */
+    public static function adquirirLockAprobacion(PDO $db): ?bool {
+        return self::adquirirLock($db, self::prefijoLock() . 'aprobacion');
+    }
+
+    public static function liberarLockAprobacion(PDO $db): void {
+        self::liberarLock($db, self::prefijoLock() . 'aprobacion');
+    }
+
+    /**
+     * @return bool|null true=adquirido, false=ocupado/timeout, null=error
+     */
+    public static function adquirirLockHash(PDO $db, string $hash): ?bool {
+        if ($hash === '') {
+            return true;
+        }
+        return self::adquirirLock($db, self::prefijoLock() . 'file_' . substr(sha1($hash), 0, 24));
+    }
+
+    public static function liberarLockHash(PDO $db, string $hash): void {
+        if ($hash === '') {
+            return;
+        }
+        self::liberarLock($db, self::prefijoLock() . 'file_' . substr(sha1($hash), 0, 24));
+    }
+
+    private static function adquirirLock(PDO $db, string $nombre): ?bool {
+        try {
+            $stmt = $db->prepare("SELECT GET_LOCK(:nombre, " . self::LOCK_TIMEOUT . ")");
+            $stmt->execute(['nombre' => $nombre]);
+            $resultado = $stmt->fetchColumn();
+            if ($resultado === false || $resultado === null) {
+                return null;
+            }
+            return intval($resultado) === 1;
+        } catch (\Throwable $e) {
+            error_log('[PAGO_LOCK] No se pudo adquirir ' . $nombre . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private static function liberarLock(PDO $db, string $nombre): void {
+        try {
+            $stmt = $db->prepare("SELECT RELEASE_LOCK(:nombre)");
+            $stmt->execute(['nombre' => $nombre]);
+        } catch (\Throwable $e) {
+            error_log('[PAGO_LOCK] No se pudo liberar ' . $nombre . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Busca un pago o comprobante APROBADO con la misma referencia en OTRA unidad.
+     * Devuelve primero un conflicto con monto coincidente; si no hay, devuelve
+     * el primer conflicto con monto distinto (para advertencia, no bloqueo).
+     *
+     * @return array{tipo:string,id:int,unidad_id:int,unidad_numero:string,monto:float,monto_coincide:bool}|null
+     */
+    public static function buscarConflictoAprobadoGlobal(
+        PDO $db,
+        ?string $referenciaNorm,
+        float $monto,
+        int $unidadId,
+        ?int $excluirPagoId = null,
+        ?int $excluirComprobanteId = null
+    ): ?array {
+        $ref = trim((string)$referenciaNorm);
+        if ($ref === '' || $unidadId <= 0) {
+            return null;
+        }
+
+        $monto = round($monto, 2);
+        $candidatos = [];
+
+        $sqlPago = "SELECT p.id, p.unidad_id, p.monto,
+                           COALESCE(u.numero, CONCAT('ID ', p.unidad_id)) AS unidad_numero
+                    FROM pagos p
+                    LEFT JOIN unidades u ON p.unidad_id = u.id
+                    WHERE p.referencia_norm = :ref
+                      AND p.estado = 'APROBADO'
+                      AND p.unidad_id <> :unidad_id";
+        $paramsPago = ['ref' => $ref, 'unidad_id' => $unidadId];
+        if ($excluirPagoId !== null) {
+            $sqlPago .= " AND p.id <> :excluir_id";
+            $paramsPago['excluir_id'] = $excluirPagoId;
+        }
+        $sqlPago .= " LIMIT 20";
+        $stmtPago = $db->prepare($sqlPago);
+        $stmtPago->execute($paramsPago);
+        foreach ($stmtPago->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $candidatos[] = [
+                'tipo'            => 'pago',
+                'id'              => intval($row['id']),
+                'unidad_id'       => intval($row['unidad_id']),
+                'unidad_numero'   => (string)($row['unidad_numero'] ?? ('ID ' . intval($row['unidad_id']))),
+                'monto'           => floatval($row['monto']),
+                'monto_coincide'  => abs(floatval($row['monto']) - $monto) < 0.01,
+            ];
+        }
+
+        $sqlComp = "SELECT c.id, f.unidad_id, c.monto,
+                           COALESCE(u.numero, CONCAT('ID ', f.unidad_id)) AS unidad_numero
+                    FROM comprobantes_pago c
+                    INNER JOIN facturas f ON c.factura_id = f.id
+                    LEFT JOIN unidades u ON f.unidad_id = u.id
+                    WHERE c.referencia_norm = :ref
+                      AND c.estado = 'aprobado'
+                      AND f.unidad_id <> :unidad_id";
+        $paramsComp = ['ref' => $ref, 'unidad_id' => $unidadId];
+        if ($excluirComprobanteId !== null) {
+            $sqlComp .= " AND c.id <> :excluir_id";
+            $paramsComp['excluir_id'] = $excluirComprobanteId;
+        }
+        $sqlComp .= " LIMIT 20";
+        $stmtComp = $db->prepare($sqlComp);
+        $stmtComp->execute($paramsComp);
+        foreach ($stmtComp->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $candidatos[] = [
+                'tipo'            => 'comprobante',
+                'id'              => intval($row['id']),
+                'unidad_id'       => intval($row['unidad_id']),
+                'unidad_numero'   => (string)($row['unidad_numero'] ?? ('ID ' . intval($row['unidad_id']))),
+                'monto'           => floatval($row['monto']),
+                'monto_coincide'  => abs(floatval($row['monto']) - $monto) < 0.01,
+            ];
+        }
+
+        foreach ($candidatos as $c) {
+            if ($c['monto_coincide']) {
+                return $c;
+            }
+        }
+        return $candidatos[0] ?? null;
+    }
+
+    public static function describirConflictoAprobado(array $conflicto): string {
+        $origen = $conflicto['tipo'] === 'comprobante' ? 'el comprobante #' : 'el pago #';
+        return "La referencia ya está aprobada en la unidad {$conflicto['unidad_numero']} "
+            . "({$origen}{$conflicto['id']}, " . formatearMoneda(floatval($conflicto['monto'])) . ").";
+    }
+
+    public static function describirAdvertenciaConflicto(array $conflicto): string {
+        $origen = $conflicto['tipo'] === 'comprobante' ? 'el comprobante #' : 'el pago #';
+        return "La referencia también está aprobada en la unidad {$conflicto['unidad_numero']} "
+            . "({$origen}{$conflicto['id']}) pero con otro monto ("
+            . formatearMoneda(floatval($conflicto['monto'])) . "). Verifique que no sea el mismo pago.";
     }
 
     /**
@@ -98,6 +254,20 @@ class PagoModel extends BaseModel {
         $archivoHash = $datos['archivo_hash'] ?? null;
 
         $db = $this->db();
+
+        // Lock por hash de archivo: cierra la carrera TOCTOU entre dos subidas
+        // simultáneas del mismo comprobante. Si el lock no está disponible se
+        // continúa best-effort (el helper ya registra el error).
+        $hashLock = null;
+        if (!empty($archivoHash)) {
+            $lockHash = self::adquirirLockHash($db, (string)$archivoHash);
+            if ($lockHash === false) {
+                return false; // otra subida del mismo archivo está en curso
+            }
+            if ($lockHash === true) {
+                $hashLock = (string)$archivoHash;
+            }
+        }
 
         try {
             $db->beginTransaction();
@@ -201,6 +371,10 @@ class PagoModel extends BaseModel {
             }
             error_log("[PAGO] Error crearPago: " . $e->getMessage());
             throw $e;
+        } finally {
+            if ($hashLock !== null) {
+                self::liberarLockHash($db, $hashLock);
+            }
         }
     }
 
@@ -394,9 +568,11 @@ class PagoModel extends BaseModel {
      * @param string $motivo
      * @param int $adminId
      * @param string|null $ipAddress
-     * @return array{ok: bool, code: string, estado_actual: ?string, message: string}
+     * @return array{ok: bool, code: string, estado_actual: ?string, message: string, warning?: ?string}
      *         code: actualizado | sin_cambios | transicion_invalida |
-     *               duplicado_aprobado | no_encontrado | conflicto | error_bd
+     *               duplicado_aprobado | duplicado_otra_unidad |
+     *               aprobacion_en_curso | bloqueo_no_disponible |
+     *               no_encontrado | conflicto | error_bd
      */
     public function cambiarEstado($pagoId, $nuevoEstado, $motivo, $adminId, $ipAddress = null) {
         $pagoId = intval($pagoId);
@@ -406,6 +582,29 @@ class PagoModel extends BaseModel {
         // Reintentos acotados ante deadlock (1213) o lock wait timeout (1205).
         $maxIntentos = 3;
         for ($intento = 0; $intento < $maxIntentos; $intento++) {
+            $lockAdquirido = false;
+            $advertenciaGlobal = null;
+            if ($nuevoEstado === EstadoPago::APROBADO) {
+                $lock = self::adquirirLockAprobacion($db);
+                if ($lock === false) {
+                    return [
+                        'ok' => false,
+                        'code' => 'aprobacion_en_curso',
+                        'estado_actual' => null,
+                        'message' => 'Otro administrador está aprobando un pago. Intente nuevamente en unos segundos.'
+                    ];
+                }
+                if ($lock === null) {
+                    return [
+                        'ok' => false,
+                        'code' => 'bloqueo_no_disponible',
+                        'estado_actual' => null,
+                        'message' => 'No se pudo asegurar el bloqueo de aprobación. Intente nuevamente.'
+                    ];
+                }
+                $lockAdquirido = true;
+            }
+
             try {
                 $db->beginTransaction();
 
@@ -508,6 +707,40 @@ class PagoModel extends BaseModel {
                     }
                 }
 
+                // Guardia global: misma referencia aprobada en otra unidad.
+                // Mismo monto => doble crédito probable (se bloquea); monto
+                // distinto => se permite con advertencia para revisión manual.
+                if ($nuevoEstado === EstadoPago::APROBADO
+                    && $prev['referencia_norm'] !== null
+                    && $prev['referencia_norm'] !== '') {
+                    $conflictoGlobal = self::buscarConflictoAprobadoGlobal(
+                        $db,
+                        (string)$prev['referencia_norm'],
+                        floatval($prev['monto']),
+                        intval($prev['unidad_id']),
+                        $pagoId,
+                        null
+                    );
+
+                    if ($conflictoGlobal && $conflictoGlobal['monto_coincide']) {
+                        $motivoBloqueo = 'Duplicado económico en otra unidad: ' . self::describirConflictoAprobado($conflictoGlobal);
+                        $this->registrarIntentoBloqueado(
+                            $db, $pagoId, $adminId, $ipAddress, $estadoAnterior, $nuevoEstado, $motivoBloqueo
+                        );
+                        $db->commit();
+                        return [
+                            'ok' => false,
+                            'code' => 'duplicado_otra_unidad',
+                            'estado_actual' => $estadoAnterior,
+                            'message' => $motivoBloqueo
+                        ];
+                    }
+
+                    if ($conflictoGlobal) {
+                        $advertenciaGlobal = self::describirAdvertenciaConflicto($conflictoGlobal);
+                    }
+                }
+
                 // Compare-and-set defensivo: ya tenemos el lock, esto protege
                 // contra cualquier carrera residual.
                 $stmtUpd = $db->prepare("UPDATE pagos SET estado = :estado WHERE id = :id AND estado = :esperado");
@@ -569,7 +802,8 @@ class PagoModel extends BaseModel {
                     'ok'            => true,
                     'code'          => 'actualizado',
                     'estado_actual' => $nuevoEstado,
-                    'message'       => "El pago fue actualizado a estado {$nuevoEstado} exitosamente."
+                    'message'       => "El pago fue actualizado a estado {$nuevoEstado} exitosamente.",
+                    'warning'       => $advertenciaGlobal
                 ];
 
             } catch (\PDOException $e) {
@@ -611,6 +845,10 @@ class PagoModel extends BaseModel {
                     'estado_actual' => null,
                     'message'       => 'Hubo un error de base de datos al registrar el cambio de estado.'
                 ];
+            } finally {
+                if ($lockAdquirido) {
+                    self::liberarLockAprobacion($db);
+                }
             }
         }
 
@@ -710,7 +948,8 @@ class PagoModel extends BaseModel {
      *
      * @param array $pagoIds
      * @param int $adminId
-     * @return array ['procesados' => int, 'omitidos' => int, 'duplicados' => int]
+     * @return array ['procesados'=>int, 'omitidos'=>int, 'duplicados'=>int,
+     *               'advertencias'=>int, 'bloqueado'=>bool?, 'mensaje'=>string?]
      * @throws \Exception Si el lote excede el límite de 50 o falla la transacción
      */
     public function aprobarLote(array $pagoIds, int $adminId, $ipAddress = null): array {
@@ -723,7 +962,7 @@ class PagoModel extends BaseModel {
         $totalOriginal = count($ids);
 
         if ($totalOriginal === 0) {
-            return ['procesados' => 0, 'omitidos' => 0, 'duplicados' => 0];
+            return ['procesados' => 0, 'omitidos' => 0, 'duplicados' => 0, 'advertencias' => 0];
         }
 
         if ($totalOriginal > 50) {
@@ -736,6 +975,22 @@ class PagoModel extends BaseModel {
         $db = $this->db();
         $procesados = 0;
         $duplicados = 0;
+        $advertencias = 0;
+        $identidadesGlobales = [];
+
+        $lock = self::adquirirLockAprobacion($db);
+        if ($lock !== true) {
+            return [
+                'procesados' => 0,
+                'omitidos' => 0,
+                'duplicados' => 0,
+                'advertencias' => 0,
+                'bloqueado' => true,
+                'mensaje' => $lock === false
+                    ? 'Otro administrador está aprobando pagos. Intente nuevamente en unos segundos.'
+                    : 'No se pudo asegurar el bloqueo de aprobación. Intente nuevamente.'
+            ];
+        }
 
         try {
             $db->beginTransaction();
@@ -743,7 +998,7 @@ class PagoModel extends BaseModel {
             $inPlaceholders = implode(',', array_fill(0, count($ids), '?'));
             
             // Bloquear filas elegibles únicamente (PENDIENTE o EN REVISIÓN)
-            $sqlSelect = "SELECT id, estado, unidad_id, referencia_norm FROM pagos\n"
+            $sqlSelect = "SELECT id, estado, unidad_id, referencia_norm, monto FROM pagos\n"
                        . "WHERE id IN (" . $inPlaceholders . ")\n"
                        . "AND estado IN ('PENDIENTE', 'EN REVISIÓN')\n"
                        . "ORDER BY id ASC FOR UPDATE";
@@ -807,6 +1062,36 @@ class PagoModel extends BaseModel {
                             $esDuplicado = (bool)$stmtTwinComp->fetch(PDO::FETCH_ASSOC);
                         }
 
+                        // Guardia global dentro del lote: misma referencia y
+                        // mismo monto ya aprobada en otra unidad (o en otro pago
+                        // del propio lote). Monto distinto solo advierte.
+                        $montoPago = floatval($sqlPago['monto'] ?? 0);
+                        $identidadGlobal = $referenciaNorm . '|' . number_format($montoPago, 2, '.', '');
+
+                        if (!$esDuplicado && isset($identidadesGlobales[$identidadGlobal])) {
+                            $esDuplicado = true;
+                        }
+
+                        if (!$esDuplicado) {
+                            $conflictoGlobal = self::buscarConflictoAprobadoGlobal(
+                                $db,
+                                $referenciaNorm,
+                                $montoPago,
+                                intval($sqlPago['unidad_id']),
+                                intval($sqlPago['id']),
+                                null
+                            );
+                            if ($conflictoGlobal && $conflictoGlobal['monto_coincide']) {
+                                $esDuplicado = true;
+                            } elseif ($conflictoGlobal) {
+                                $advertencias++;
+                            }
+                        }
+
+                        if (!$esDuplicado) {
+                            $identidadesGlobales[$identidadGlobal] = true;
+                        }
+
                         if ($esDuplicado) {
                             $stmtLogBloqueo->execute([
                                 'pago_id'         => $sqlPago['id'],
@@ -860,7 +1145,8 @@ class PagoModel extends BaseModel {
             return [
                 'procesados' => $procesados,
                 'omitidos'   => $totalOriginal - $procesados - $duplicados,
-                'duplicados' => $duplicados
+                'duplicados' => $duplicados,
+                'advertencias' => $advertencias
             ];
         } catch (\Exception $e) {
             if ($db->inTransaction()) {
@@ -868,6 +1154,8 @@ class PagoModel extends BaseModel {
             }
             error_log("Error en aprobarLote: " . $e->getMessage());
             throw $e;
+        } finally {
+            self::liberarLockAprobacion($db);
         }
     }
 }

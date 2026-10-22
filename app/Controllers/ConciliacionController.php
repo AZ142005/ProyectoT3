@@ -441,6 +441,15 @@ class ConciliacionController extends Controller {
             if ($origenTipo === 'comprobante') {
                 $compModel = new \App\Models\ComprobantesModel();
                 $ok = $compModel->aprobar($pagoId, $observaciones);
+
+                if ($ok) {
+                    if (!empty($compModel->ultimaAdvertencia)) {
+                        Flash::set('info', $compModel->ultimaAdvertencia);
+                    }
+                    Flash::set('success', 'Pago verificado y aprobado exitosamente desde Conciliación.');
+                } else {
+                    Flash::set('danger', $compModel->ultimoError ?: 'No se pudo verificar el pago.');
+                }
             } else {
                 $pagoModel = new \App\Models\PagoModel();
                 $resultado = $pagoModel->cambiarEstado(
@@ -451,12 +460,15 @@ class ConciliacionController extends Controller {
                     $_SERVER['REMOTE_ADDR'] ?? null
                 );
                 $ok = !empty($resultado['ok']);
-            }
 
-            if ($ok) {
-                Flash::set('success', 'Pago verificado y aprobado exitosamente desde Conciliación.');
-            } else {
-                Flash::set('danger', 'No se pudo verificar el pago.');
+                if ($ok) {
+                    if (!empty($resultado['warning'])) {
+                        Flash::set('info', $resultado['warning']);
+                    }
+                    Flash::set('success', 'Pago verificado y aprobado exitosamente desde Conciliación.');
+                } else {
+                    Flash::set('danger', $resultado['message'] ?? 'No se pudo verificar el pago.');
+                }
             }
         } catch (\Exception $e) {
             error_log("[CONCILIACION] Error al verificar pago directo: " . $e->getMessage());

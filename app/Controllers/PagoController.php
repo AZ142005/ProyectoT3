@@ -476,6 +476,9 @@ class PagoController extends Controller {
             } else {
                 Flash::success("El pago fue actualizado a estado {$nuevoEstado} exitosamente.");
             }
+            if (!empty($resultado['warning'])) {
+                Flash::info($resultado['warning']);
+            }
         } else {
             Flash::error($resultado['message'] ?? "Hubo un error de base de datos al registrar el cambio de estado.");
         }
@@ -513,6 +516,12 @@ class PagoController extends Controller {
         try {
             $resultado = $pagoModel->aprobarLote($pagoIds, $adminId, $_SERVER['REMOTE_ADDR'] ?? null);
 
+            if (!empty($resultado['bloqueado'])) {
+                Flash::error($resultado['mensaje'] ?? 'No se pudo iniciar la aprobación. Intente nuevamente.');
+                $this->redirect('/pagos');
+                return;
+            }
+
             if ($resultado['procesados'] > 0) {
                 $mensaje = "Se aprobaron {$resultado['procesados']} pago(s) exitosamente.";
                 if (($resultado['duplicados'] ?? 0) > 0) {
@@ -520,6 +529,9 @@ class PagoController extends Controller {
                 }
                 if ($resultado['omitidos'] > 0) {
                     $mensaje .= " ({$resultado['omitidos']} pago(s) fueron omitidos por estar previamente procesados).";
+                }
+                if (($resultado['advertencias'] ?? 0) > 0) {
+                    $mensaje .= " {$resultado['advertencias']} pago(s) tienen la misma referencia en otra unidad con monto distinto; revíselos.";
                 }
                 Flash::success($mensaje);
             } else {

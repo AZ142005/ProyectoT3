@@ -5,6 +5,9 @@ use PDO;
 use App\Core\Auth;
 
 class ComprobantesModel extends BaseModel {
+    public ?string $ultimoError = null;
+    public ?string $ultimaAdvertencia = null;
+
     /**
      * Obtiene los comprobantes de pago recientes de un residente.
      *
@@ -452,8 +455,18 @@ class ComprobantesModel extends BaseModel {
      * @return bool
      */
     public function aprobar($id, $observaciones) {
+        $this->ultimoError = null;
+        $this->ultimaAdvertencia = null;
         $db = $this->db();
-        
+
+        $lock = PagoModel::adquirirLockAprobacion($db);
+        if ($lock !== true) {
+            $this->ultimoError = $lock === false
+                ? 'Otro administrador está aprobando un pago. Intente nuevamente en unos segundos.'
+                : 'No se pudo asegurar el bloqueo de aprobación. Intente nuevamente.';
+            return false;
+        }
+
         try {
             $db->beginTransaction();
             
@@ -498,7 +511,8 @@ class ComprobantesModel extends BaseModel {
                     'ref_norm'  => $refNorm,
                     'id'        => $id
                 ]);
-                if ($stmtTwinComp->fetch()) {
+                if ($twinComp = $stmtTwinComp->fetch(PDO::FETCH_ASSOC)) {
+                    $this->ultimoError = 'La referencia ya está aprobada para la misma unidad (comprobante #' . intval($twinComp['id']) . ').';
                     $db->rollBack();
                     return false;
                 }
@@ -515,9 +529,30 @@ class ComprobantesModel extends BaseModel {
                     'unidad_id' => $unidadId,
                     'ref_norm'  => $refNorm
                 ]);
-                if ($stmtTwinPago->fetch()) {
+                if ($twinPago = $stmtTwinPago->fetch(PDO::FETCH_ASSOC)) {
+                    $this->ultimoError = 'La referencia ya está aprobada para la misma unidad (pago #' . intval($twinPago['id']) . ').';
                     $db->rollBack();
                     return false;
+                }
+
+                // 3. Guardia global: misma referencia aprobada en otra unidad.
+                $conflictoGlobal = PagoModel::buscarConflictoAprobadoGlobal(
+                    $db,
+                    $refNorm,
+                    $montoComprobante,
+                    $unidadId,
+                    null,
+                    $id
+                );
+
+                if ($conflictoGlobal && $conflictoGlobal['monto_coincide']) {
+                    $this->ultimoError = 'Duplicado económico en otra unidad: ' . PagoModel::describirConflictoAprobado($conflictoGlobal);
+                    $db->rollBack();
+                    return false;
+                }
+
+                if ($conflictoGlobal) {
+                    $this->ultimaAdvertencia = PagoModel::describirAdvertenciaConflicto($conflictoGlobal);
                 }
             } else {
                 // Fallback sin referencia: misma fecha y mismo monto ya aprobado para esta unidad
@@ -538,6 +573,7 @@ class ComprobantesModel extends BaseModel {
                     'id'         => $id
                 ]);
                 if ($stmtTwinFallback->fetch()) {
+                    $this->ultimoError = 'Ya existe un pago aprobado para esta unidad con la misma fecha y monto.';
                     $db->rollBack();
                     return false;
                 }
@@ -585,6 +621,8 @@ class ComprobantesModel extends BaseModel {
             }
             error_log("Error al aprobar comprobante: " . $e->getMessage());
             return false;
+        } finally {
+            PagoModel::liberarLockAprobacion($db);
         }
     }
 

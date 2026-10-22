@@ -320,7 +320,7 @@ class PagoDirectoController extends Controller {
             @unlink($rutaComprobante);
         }
 
-        $this->renderFormulario('Ya existe un pago registrado con la misma información para esta unidad (o el comprobante ya fue reportado). Si ya lo reportó, espere la verificación de la administración.', $_POST);
+        $this->renderFormulario('Ya existe un pago registrado con la misma información para esta unidad o en otra unidad (o el comprobante ya fue reportado). Si ya lo reportó, espere la verificación de la administración.', $_POST);
     }
 
     /**
