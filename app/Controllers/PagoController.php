@@ -160,15 +160,6 @@ class PagoController extends Controller {
             return;
         }
 
-        // Regla de negocio: el monto no puede ser menor a la deuda pendiente de la unidad.
-        $resumenDeuda = (new \App\Models\FacturasModel())->getResumenFinancieroUnidad($unidadId);
-        $totalDeudaUnidad = (float) ($resumenDeuda['total_deuda'] ?? 0);
-        if ($totalDeudaUnidad > 0 && $monto < $totalDeudaUnidad) {
-            Flash::error('El monto registrado (' . formatearMoneda($monto) . ') no puede ser menor a la deuda pendiente de la unidad (' . formatearMoneda($totalDeudaUnidad) . ').');
-            $this->redirect('/pagos/nuevo');
-            return;
-        }
-
         if (empty($fecha_pago)) {
             Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');

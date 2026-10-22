@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <form id="formPago" data-deuda="<?= e(number_format((float) ($totalDeuda ?? 0), 2, '.', '')) ?>" method="POST" action="/pagos/subir" enctype="multipart/form-data" class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+    <form id="formPago" method="POST" action="/pagos/subir" enctype="multipart/form-data" class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <!-- Token CSRF Obligatorio -->
         <?= csrf_field() ?>
 
@@ -204,7 +204,6 @@
                             <input type="number" id="monto" name="monto" step="0.01" min="0.01" required placeholder="0.00"
                                    class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-black text-lg">
                         </div>
-                        <p id="errorMontoDeuda" class="hidden text-xs font-semibold text-red-600 mt-1.5">El monto no puede ser menor a la deuda pendiente de la unidad.</p>
                         <p class="text-xs text-slate-500 mt-0.5">
                             Cualquier pago que exceda su deuda o pago anticipado se acreditará automáticamente como <strong>Saldo a Favor</strong> para sus próximas cuotas.
                         </p>
@@ -853,26 +852,4 @@
         }
     });
 
-    // Regla de negocio: el monto no puede ser menor a la deuda pendiente de la unidad.
-    const formPago = document.getElementById('formPago');
-    const errorMontoDeuda = document.getElementById('errorMontoDeuda');
-    const montoInput = document.getElementById('monto');
-
-    if (formPago && errorMontoDeuda && montoInput) {
-        formPago.addEventListener('submit', function (e) {
-            const deuda = parseFloat(formPago.dataset.deuda || '0');
-            const monto = parseFloat(montoInput.value || '0');
-            if (deuda > 0 && monto < deuda) {
-                e.preventDefault();
-                errorMontoDeuda.textContent = 'El monto no puede ser menor a la deuda pendiente de la unidad (Bs. ' + deuda.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ').';
-                errorMontoDeuda.classList.remove('hidden');
-                montoInput.focus();
-                montoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        });
-
-        montoInput.addEventListener('input', function () {
-            errorMontoDeuda.classList.add('hidden');
-        });
-    }
 </script>

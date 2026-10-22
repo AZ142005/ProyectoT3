@@ -38,7 +38,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     $error = $errorValidacion;
     ?>
 
-        <form method="POST" action="/pago-directo/reportar" enctype="multipart/form-data" class="flex flex-col gap-6" id="formPagoDirecto" data-deuda="0">
+        <form method="POST" action="/pago-directo/reportar" enctype="multipart/form-data" class="flex flex-col gap-6" id="formPagoDirecto">
             <?= csrf_field() ?>
 
             <!-- Alerta de error -->
@@ -315,7 +315,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                                            value="<?= e($old['monto'] ?? '') ?>"
                                            class="w-full pl-12 pr-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-black text-lg">
                                 </div>
-                                <p id="errorMontoDeuda" class="hidden text-xs font-semibold text-red-600 mt-1.5">El monto no puede ser menor a la deuda pendiente de la unidad.</p>
                                 <div id="inconsistencia-monto"></div>
                                 <span class="text-[11px] text-slate-400">Monto exacto registrado en la operación.</span>
                             </div>
@@ -481,11 +480,8 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     var deudaSinFacturas = document.getElementById('deudaSinFacturas');
     var deudaSaldoFavor = document.getElementById('deudaSaldoFavor');
     var btnCopiarMonto = document.getElementById('btnCopiarMonto');
-    var montoInput = document.getElementById('monto');
     var bancoSelect = document.getElementById('banco_pagador');
     var cuentaSelect = document.getElementById('cuenta_bancaria_id');
-    var formPagoDirecto = document.getElementById('formPagoDirecto');
-    var errorMontoDeuda = document.getElementById('errorMontoDeuda');
 
     var ultimoTotal = 0;
 
@@ -582,9 +578,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         });
 
         ultimoTotal = total;
-
-        // Regla de negocio: reflejar la deuda vigente en el formulario para la validación en cliente.
-        if (formPagoDirecto) { formPagoDirecto.dataset.deuda = total; }
 
         deudaSinFacturas.classList.toggle('hidden', facturas.length > 0);
         btnCopiarMonto.classList.toggle('hidden', total <= 0);
@@ -712,25 +705,6 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
             el.addEventListener('change', function () { limpiarInconsistenciaCampo(target); });
         }
     });
-
-    // Regla de negocio: el monto no puede ser menor a la deuda pendiente de la unidad.
-    if (formPagoDirecto && errorMontoDeuda && montoInput) {
-        formPagoDirecto.addEventListener('submit', function (e) {
-            var deuda = parseFloat(formPagoDirecto.dataset.deuda || '0');
-            var monto = parseFloat(montoInput.value || '0');
-            if (deuda > 0 && monto < deuda) {
-                e.preventDefault();
-                errorMontoDeuda.textContent = 'El monto no puede ser menor a la deuda pendiente de la unidad (Bs. ' + deuda.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ').';
-                errorMontoDeuda.classList.remove('hidden');
-                montoInput.focus();
-                montoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        });
-
-        montoInput.addEventListener('input', function () {
-            errorMontoDeuda.classList.add('hidden');
-        });
-    }
 
     // ------------------------------------------------------------------
     // Extracción inteligente del comprobante (OCR en navegador + PDF)
