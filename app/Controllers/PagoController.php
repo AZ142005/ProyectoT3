@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Core\EstadoPago;
+use App\Core\MetodoPago;
 use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\PagoModel;
@@ -142,6 +143,7 @@ class PagoController extends Controller {
         $monto = floatval($_POST['monto'] ?? 0);
         $fecha_pago = $_POST['fecha_pago'] ?? '';
         $referencia = trim($_POST['referencia'] ?? '');
+        $metodo_pago = MetodoPago::normalizar($_POST['metodo_pago'] ?? '');
         $observaciones = trim($_POST['observaciones'] ?? '');
 
         // Validar cuenta receptora autorizada y activa
@@ -158,6 +160,21 @@ class PagoController extends Controller {
             Flash::error("El monto del pago debe estar entre Bs. 0,01 y Bs. 999.999,99.");
             $this->redirect('/pagos/nuevo');
             return;
+        }
+
+        if (!MetodoPago::esValido($metodo_pago)) {
+            Flash::error("Seleccione un método de pago válido.");
+            $this->redirect('/pagos/nuevo');
+            return;
+        }
+        if ($referencia === '' && MetodoPago::requiereReferencia($metodo_pago, $banco_pagador)) {
+            Flash::error("Ingrese el número de referencia del pago.");
+            $this->redirect('/pagos/nuevo');
+            return;
+        }
+        if ($referencia === '' && !MetodoPago::requiereReferencia($metodo_pago, $banco_pagador)) {
+            $notaReferencia = 'Sin número de referencia (' . MetodoPago::etiqueta($metodo_pago) . ' - ' . $banco_pagador . ').';
+            $observaciones = trim($observaciones . ' ' . $notaReferencia);
         }
 
         if (empty($fecha_pago)) {
@@ -195,6 +212,7 @@ class PagoController extends Controller {
         $datos = [
             'monto'              => $monto,
             'fecha_pago'         => $fecha_pago,
+            'metodo_pago'        => $metodo_pago,
             'referencia'         => $referencia,
             'observaciones'      => $observaciones,
             'banco_pagador'      => $banco_pagador,

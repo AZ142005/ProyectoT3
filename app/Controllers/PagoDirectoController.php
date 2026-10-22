@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\EstadoPago;
+use App\Core\MetodoPago;
 use App\Core\Flash;
 use App\Core\RateLimiter;
 use App\Models\CuentasBancariasModel;
@@ -225,12 +226,13 @@ class PagoDirectoController extends Controller {
         $bancoPagador     = $this->postString('banco_pagador');
         $bancoPagadorOtro = $this->postString('banco_pagador_otro');
         $monto            = round($this->postFloat('monto'), 2);
-        $metodoPago       = $this->postString('metodo_pago');
+        $metodoPago       = MetodoPago::normalizar($this->postString('metodo_pago'));
         $referencia       = $this->postString('referencia');
         $fechaPago        = $this->postString('fecha_pago');
         $observaciones    = $this->postString('observaciones');
 
         $esBancoOtro = (strtoupper($bancoPagador) === 'OTRO');
+        $bancoEfectivo = $esBancoOtro ? $bancoPagadorOtro : $bancoPagador;
 
         $unidad           = ($unidadId > 0) ? (new UnidadesModel())->getById($unidadId) : false;
         $cuentaReceptora  = ($cuentaBancariaId > 0) ? (new CuentasBancariasModel())->getActivaById($cuentaBancariaId) : false;
@@ -245,9 +247,9 @@ class PagoDirectoController extends Controller {
             $error = 'Ingrese un monto válido (mínimo Bs. 0,01).';
         } elseif ($monto > 999999.99) {
             $error = 'El monto no puede exceder Bs. 999.999,99.';
-        } elseif (!in_array($metodoPago, ['transferencia', 'pago_movil'], true)) {
+        } elseif (!MetodoPago::esValido($metodoPago)) {
             $error = 'Seleccione un método de pago válido.';
-        } elseif ($referencia === '') {
+        } elseif ($referencia === '' && MetodoPago::requiereReferencia($metodoPago, $bancoEfectivo)) {
             $error = 'Ingrese el número de referencia del pago.';
         } elseif ($esBancoOtro && $bancoPagadorOtro === '') {
             $error = 'Especifique el nombre del banco emisor.';
@@ -285,6 +287,9 @@ class PagoDirectoController extends Controller {
         }
 
         $observacionesCompletas = trim('Pago directo sin sesión (portal público). ' . $observaciones);
+        if ($referencia === '' && !MetodoPago::requiereReferencia($metodoPago, $bancoEfectivo)) {
+            $observacionesCompletas = trim($observacionesCompletas . ' Sin número de referencia (' . MetodoPago::etiqueta($metodoPago) . ' - ' . $bancoEfectivo . ').');
+        }
 
         $datos = [
             'monto'              => $monto,

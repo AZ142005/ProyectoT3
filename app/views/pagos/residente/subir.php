@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <form id="formPago" method="POST" action="/pagos/subir" enctype="multipart/form-data" class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+    <form id="formPago" method="POST" action="/pagos/subir" enctype="multipart/form-data" data-excepciones-referencia="<?= e(json_encode(\App\Core\MetodoPago::excepcionesReferencia())) ?>" class="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <!-- Token CSRF Obligatorio -->
         <?= csrf_field() ?>
 
@@ -210,6 +210,24 @@
                         <div id="inconsistencia-monto"></div>
                     </div>
 
+                    <!-- Método de Pago -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label for="metodo_pago" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Método de Pago <span class="text-red-500">*</span></label>
+                            <span id="badge-metodo_pago" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
+                                <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
+                            </span>
+                        </div>
+                        <select id="metodo_pago" name="metodo_pago" required
+                                class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium text-sm">
+                            <option value="">Seleccione un método...</option>
+                            <?php foreach (\App\Core\MetodoPago::etiquetas() as $valorMetodo => $etiquetaMetodo): ?>
+                                <option value="<?= e($valorMetodo) ?>"><?= e($etiquetaMetodo) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="inconsistencia-metodo_pago"></div>
+                    </div>
+
                     <!-- Banco Pagador (Origen) con Selector -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
@@ -269,7 +287,7 @@
                     <!-- Número de Referencia -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
-                            <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia</label>
+                            <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia <span id="referenciaAsterisco" class="text-red-500">*</span></label>
                             <span id="badge-referencia" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
@@ -277,6 +295,7 @@
                         <input type="text" id="referencia" name="referencia" placeholder="Ej. 12345678"
                                class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium text-sm">
                         <div id="inconsistencia-referencia"></div>
+                        <p id="referenciaAyuda" class="hidden text-[11px] text-emerald-700">No se requiere número de referencia para Pago Móvil BBVA Provincial.</p>
                     </div>
 
                     <!-- Observaciones -->
@@ -327,6 +346,50 @@
     let currentObjectURL = null;
     let archivoActual = null;
     let ultimosDatosExtraidos = null;
+
+    // Requisito dinámico de referencia: la regla vive en el servidor
+    // (App\Core\MetodoPago) y la vista la refleja vía data-excepciones-referencia.
+    const formPago = document.getElementById('formPago');
+    const excepcionesReferencia = (() => {
+        try { return JSON.parse(formPago?.dataset.excepcionesReferencia || '{}'); }
+        catch (e) { return {}; }
+    })();
+
+    function normalizarBancoJS(valor) {
+        return String(valor || '')
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function referenciaEsOpcional() {
+        const metodoEl = document.getElementById('metodo_pago');
+        const bancoEl = document.getElementById('banco_pagador');
+        const bancoOtroEl = document.getElementById('banco_pagador_otro');
+        if (!metodoEl || !bancoEl) return false;
+
+        const metodo = (metodoEl.value || '').toLowerCase();
+        const banco = (bancoEl.value === 'OTRO')
+            ? (bancoOtroEl ? bancoOtroEl.value : '')
+            : bancoEl.value;
+        const bancos = excepcionesReferencia[metodo] || [];
+        const bancoNorm = normalizarBancoJS(banco);
+        if (bancoNorm === '') return false;
+
+        return bancos.some(function (b) { return normalizarBancoJS(b) === bancoNorm; });
+    }
+
+    function actualizarRequisitoReferencia() {
+        const ref = document.getElementById('referencia');
+        const asterisco = document.getElementById('referenciaAsterisco');
+        const ayuda = document.getElementById('referenciaAyuda');
+        const opcional = referenciaEsOpcional();
+
+        if (ref) ref.required = !opcional;
+        if (asterisco) asterisco.classList.toggle('hidden', opcional);
+        if (ayuda) ayuda.classList.toggle('hidden', !opcional);
+    }
 
     // Manejo de Dropzone visual (Drag and Drop)
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -567,7 +630,25 @@
             }
         }
 
-        // 2. Banco Pagador (Origen)
+        // 2. Método de Pago
+        if (data.metodo_pago) {
+            const el = document.getElementById('metodo_pago');
+            if (el) {
+                const existe = Array.prototype.some.call(el.options, function (o) { return o.value === data.metodo_pago; });
+                const valActual = el.value.trim();
+                if (existe && valActual === '') {
+                    el.value = data.metodo_pago;
+                    marcarCampoAutollenado('metodo_pago');
+                    camposLlenados++;
+                } else if (existe && valActual !== data.metodo_pago) {
+                    el.value = data.metodo_pago;
+                    marcarCampoAutollenado('metodo_pago');
+                    camposActualizados++;
+                }
+            }
+        }
+
+        // 3. Banco Pagador (Origen)
         if (data.banco_pagador) {
             const el = document.getElementById('banco_pagador');
             if (el) {
@@ -606,7 +687,7 @@
             }
         }
 
-        // 3. Fecha de Pago
+        // 4. Fecha de Pago
         if (data.fecha_pago) {
             const el = document.getElementById('fecha_pago');
             if (el) {
@@ -623,7 +704,7 @@
             }
         }
 
-        // 4. Referencia
+        // 5. Referencia
         if (data.referencia) {
             const el = document.getElementById('referencia');
             if (el) {
@@ -644,7 +725,7 @@
             }
         }
 
-        // 5. Cuenta Oficial para el Pago
+        // 6. Cuenta Oficial para el Pago
         const selCuenta = document.getElementById('cuenta_bancaria_id');
         if (selCuenta && (data.cuenta_bancaria_id || data.banco_receptor)) {
             let matchedIndex = -1;
@@ -684,6 +765,9 @@
                 }
             }
         }
+
+        // Re-evaluar el requisito de referencia con los datos recién aplicados
+        actualizarRequisitoReferencia();
 
         // Renderizar advertencias de inconsistencias en tiempo real
         let totalInconsistencias = 0;
@@ -742,7 +826,7 @@
     }
 
     function limpiarInconsistencias() {
-        ['monto', 'banco_pagador', 'fecha_pago', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
+        ['monto', 'metodo_pago', 'banco_pagador', 'fecha_pago', 'referencia', 'cuenta_bancaria_id'].forEach(id => {
             limpiarInconsistenciaCampo(id);
             const b = document.getElementById(`badge-${id}`);
             if (b) {
@@ -850,6 +934,14 @@
         if (selBanco && selBanco.value === 'OTRO') {
             toggleBancoOtro(selBanco);
         }
+
+        const metodoSel = document.getElementById('metodo_pago');
+        if (metodoSel) metodoSel.addEventListener('change', actualizarRequisitoReferencia);
+        const bancoSelPago = document.getElementById('banco_pagador');
+        if (bancoSelPago) bancoSelPago.addEventListener('change', actualizarRequisitoReferencia);
+        const bancoOtroInput = document.getElementById('banco_pagador_otro');
+        if (bancoOtroInput) bancoOtroInput.addEventListener('input', actualizarRequisitoReferencia);
+        actualizarRequisitoReferencia();
     });
 
 </script>

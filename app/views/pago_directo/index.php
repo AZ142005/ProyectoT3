@@ -38,7 +38,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     $error = $errorValidacion;
     ?>
 
-        <form method="POST" action="/pago-directo/reportar" enctype="multipart/form-data" class="flex flex-col gap-6" id="formPagoDirecto">
+        <form method="POST" action="/pago-directo/reportar" enctype="multipart/form-data" data-excepciones-referencia="<?= e(json_encode(\App\Core\MetodoPago::excepcionesReferencia())) ?>" class="flex flex-col gap-6" id="formPagoDirecto">
             <?= csrf_field() ?>
 
             <!-- Alerta de error -->
@@ -355,15 +355,16 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                             <!-- Número de Referencia -->
                             <div class="flex flex-col gap-1.5">
                                 <div class="flex items-center justify-between">
-                                    <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia <span class="text-red-500">*</span></label>
+                                    <label for="referencia" class="text-xs font-bold text-slate-600 uppercase tracking-wide">Número de Referencia <span id="referenciaAsterisco" class="text-red-500">*</span></label>
                                     <span id="badge-referencia" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full items-center gap-0.5">
                                         <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                                     </span>
                                 </div>
-                                <input type="text" id="referencia" name="referencia" required maxlength="100" placeholder="Ej. 12345678"
+                                <input type="text" id="referencia" name="referencia" maxlength="100" placeholder="Ej. 12345678"
                                        value="<?= e($old['referencia'] ?? '') ?>"
                                        class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium text-sm">
                                 <div id="inconsistencia-referencia"></div>
+                                <p id="referenciaAyuda" class="hidden text-[11px] text-emerald-700">No se requiere número de referencia para Pago Móvil BBVA Provincial.</p>
                                 <span class="text-[11px] text-slate-400">Número de operación bancaria o confirmación.</span>
                             </div>
                         </div>
@@ -484,6 +485,50 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     var cuentaSelect = document.getElementById('cuenta_bancaria_id');
 
     var ultimoTotal = 0;
+
+    // Requisito dinámico de referencia: la regla vive en el servidor
+    // (App\Core\MetodoPago) y la vista la refleja vía data-excepciones-referencia.
+    var formPagoDirecto = document.getElementById('formPagoDirecto');
+    var excepcionesReferencia = (function () {
+        try { return JSON.parse(formPagoDirecto?.dataset.excepcionesReferencia || '{}'); }
+        catch (e) { return {}; }
+    })();
+
+    function normalizarBancoJS(valor) {
+        return String(valor || '')
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function referenciaEsOpcional() {
+        var metodoEl = document.getElementById('metodo_pago');
+        var bancoEl = document.getElementById('banco_pagador');
+        var bancoOtroEl = document.getElementById('banco_pagador_otro');
+        if (!metodoEl || !bancoEl) { return false; }
+
+        var metodo = (metodoEl.value || '').toLowerCase();
+        var banco = (bancoEl.value === 'OTRO')
+            ? (bancoOtroEl ? bancoOtroEl.value : '')
+            : bancoEl.value;
+        var bancos = excepcionesReferencia[metodo] || [];
+        var bancoNorm = normalizarBancoJS(banco);
+        if (bancoNorm === '') { return false; }
+
+        return bancos.some(function (b) { return normalizarBancoJS(b) === bancoNorm; });
+    }
+
+    function actualizarRequisitoReferencia() {
+        var ref = document.getElementById('referencia');
+        var asterisco = document.getElementById('referenciaAsterisco');
+        var ayuda = document.getElementById('referenciaAyuda');
+        var opcional = referenciaEsOpcional();
+
+        if (ref) { ref.required = !opcional; }
+        if (asterisco) { asterisco.classList.toggle('hidden', opcional); }
+        if (ayuda) { ayuda.classList.toggle('hidden', !opcional); }
+    }
 
     function formatearBs(valor) {
         var numero = Number(valor) || 0;
@@ -682,10 +727,20 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
     bancoSelect.addEventListener('change', function () {
         toggleBancoOtro(bancoSelect);
+        actualizarRequisitoReferencia();
     });
     cuentaSelect.addEventListener('change', function () {
         actualizarInfoCuenta(cuentaSelect);
     });
+
+    var metodoSelect = document.getElementById('metodo_pago');
+    if (metodoSelect) {
+        metodoSelect.addEventListener('change', actualizarRequisitoReferencia);
+    }
+    var bancoOtroInput = document.getElementById('banco_pagador_otro');
+    if (bancoOtroInput) {
+        bancoOtroInput.addEventListener('input', actualizarRequisitoReferencia);
+    }
 
     // Estado inicial: respeta los valores repoblados tras un error de validación
     if (edificioSelect.value) {
@@ -693,6 +748,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     }
     toggleBancoOtro(bancoSelect);
     actualizarInfoCuenta(cuentaSelect);
+    actualizarRequisitoReferencia();
     if (unidadSelect.value) {
         consultarDeuda(unidadSelect.value);
     }
@@ -1094,6 +1150,9 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                 }
             }
         }
+
+        // Re-evaluar el requisito de referencia con los datos recién aplicados
+        actualizarRequisitoReferencia();
 
         // Renderizar advertencias de inconsistencias en tiempo real
         let totalInconsistencias = 0;
