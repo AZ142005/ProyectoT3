@@ -33,25 +33,6 @@ class ConciliacionConcurrenciaTest extends TestCase {
         }
 
         $db->exec("
-            CREATE TABLE IF NOT EXISTS movimientos_bancarios (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                banco TEXT NOT NULL,
-                fecha TEXT NOT NULL,
-                fecha_movimiento TEXT,
-                referencia TEXT NOT NULL,
-                referencia_bancaria TEXT,
-                descripcion TEXT,
-                descripcion_banco TEXT,
-                importe REAL NOT NULL,
-                monto REAL,
-                tipo TEXT NOT NULL DEFAULT 'credito',
-                tipo_movimiento TEXT NOT NULL DEFAULT 'credito',
-                estado TEXT NOT NULL DEFAULT 'disponible',
-                lote_importacion TEXT,
-                creado_en TEXT DEFAULT CURRENT_TIMESTAMP,
-                actualizado_en TEXT DEFAULT CURRENT_TIMESTAMP
-            );
-
             CREATE TABLE IF NOT EXISTS extractos_bancarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 banco TEXT NOT NULL,
@@ -110,10 +91,6 @@ class ConciliacionConcurrenciaTest extends TestCase {
 
         // Crear abono disponible
         $db->exec("
-            INSERT INTO movimientos_bancarios (id, banco, fecha, referencia, importe, estado)
-            VALUES (101, 'Banesco', '2026-10-01', 'REF-101', 500.00, 'disponible')
-        ");
-        $db->exec("
             INSERT INTO extractos_bancarios (id, banco, fecha_movimiento, referencia_bancaria, monto, estado)
             VALUES (101, 'Banesco', '2026-10-01', 'REF-101', 500.00, 'disponible')
         ");
@@ -158,10 +135,6 @@ class ConciliacionConcurrenciaTest extends TestCase {
         $tempDb = tempnam(sys_get_temp_dir(), 'test_carrera_pagos_') . '.sqlite';
         $db = $this->crearBaseDatosPruebas($tempDb);
 
-        $db->exec("
-            INSERT INTO movimientos_bancarios (id, banco, fecha, referencia, importe, estado)
-            VALUES (202, 'Mercantil', '2026-10-01', 'REF-202', 350.00, 'disponible')
-        ");
         $db->exec("
             INSERT INTO extractos_bancarios (id, banco, fecha_movimiento, referencia_bancaria, monto, estado)
             VALUES (202, 'Mercantil', '2026-10-01', 'REF-202', 350.00, 'disponible')
@@ -249,10 +222,6 @@ class ConciliacionConcurrenciaTest extends TestCase {
         $db = $this->crearBaseDatosPruebas();
 
         $db->exec("
-            INSERT INTO movimientos_bancarios (id, banco, fecha, referencia, importe, estado)
-            VALUES (303, 'BNC', '2026-10-01', 'REF-303', 420.00, 'disponible')
-        ");
-        $db->exec("
             INSERT INTO extractos_bancarios (id, banco, fecha_movimiento, referencia_bancaria, monto, estado)
             VALUES (303, 'BNC', '2026-10-01', 'REF-303', 420.00, 'disponible')
         ");
@@ -320,8 +289,6 @@ class ConciliacionConcurrenciaTest extends TestCase {
 
         for ($i = 1; $i <= $totalPares; $i++) {
             $db->exec("
-                INSERT INTO movimientos_bancarios (id, banco, fecha, referencia, importe, estado)
-                VALUES ({$i}, 'BDV', '2026-10-01', 'REF-CARGA-{$i}', 100.00, 'disponible');
                 INSERT INTO extractos_bancarios (id, banco, fecha_movimiento, referencia_bancaria, monto, estado)
                 VALUES ({$i}, 'BDV', '2026-10-01', 'REF-CARGA-{$i}', 100.00, 'disponible');
             ");
@@ -335,11 +302,9 @@ class ConciliacionConcurrenciaTest extends TestCase {
         }
 
         // Comprobar Invariantes
-        $conciliadosMov = (int)$db->query("SELECT COUNT(*) FROM movimientos_bancarios WHERE estado = 'conciliado'")->fetchColumn();
         $conciliadosExt = (int)$db->query("SELECT COUNT(*) FROM extractos_bancarios WHERE estado = 'conciliado'")->fetchColumn();
         $totalVinculos  = (int)$db->query("SELECT COUNT(*) FROM conciliacion_abono_pago")->fetchColumn();
 
-        $this->assertEquals($totalPares, $conciliadosMov, "Todos los movimientos deben quedar en estado 'conciliado'.");
         $this->assertEquals($totalPares, $conciliadosExt, "Todos los extractos deben quedar en estado 'conciliado'.");
         $this->assertEquals($totalPares, $totalVinculos, "La cantidad de filas en conciliacion_abono_pago debe coincidir exactamente con el total de abonos.");
 

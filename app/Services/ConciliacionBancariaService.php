@@ -804,18 +804,6 @@ class ConciliacionBancariaService {
             $extracto = $stmtExt->fetch(PDO::FETCH_ASSOC);
 
             if (!$extracto) {
-                try {
-                    $stmtMov = $db->prepare("
-                        SELECT id, banco, fecha AS fecha_movimiento, referencia AS referencia_bancaria,
-                               descripcion AS descripcion_banco, importe AS monto, lote_importacion, estado
-                        FROM movimientos_bancarios WHERE id = :id
-                    ");
-                    $stmtMov->execute(['id' => $extractoId]);
-                    $extracto = $stmtMov->fetch(PDO::FETCH_ASSOC);
-                } catch (\Throwable $e) {}
-            }
-
-            if (!$extracto) {
                 throw new \App\Core\ConciliacionException("El extracto bancario ID {$extractoId} no fue encontrado.");
             }
 
@@ -1503,7 +1491,7 @@ class ConciliacionBancariaService {
         $db = $db ?: Database::getConnection();
         $divergencias = [];
 
-        // 1. Abonos en movimientos_bancarios o extractos_bancarios con estado = 'conciliado' sin vínculo en conciliacion_abono_pago
+        // 1. Abonos en extractos_bancarios con estado = 'conciliado' sin vínculo en conciliacion_abono_pago
         try {
             $stmtSinVinculo = $db->query("
                 SELECT 'extractos_bancarios' AS tabla, e.id, e.referencia_bancaria AS referencia, e.monto
@@ -1521,29 +1509,6 @@ class ConciliacionBancariaService {
                     'monto'         => $h['monto'],
                     'descripcion'   => "El abono ID {$h['id']} figura como conciliado pero no existe en conciliacion_abono_pago."
                 ];
-            }
-        } catch (\Throwable $e) {}
-
-        try {
-            $checkTable = $db->query("SELECT 1 FROM movimientos_bancarios LIMIT 1");
-            if ($checkTable !== false) {
-                $stmtSinVinculoMov = $db->query("
-                    SELECT 'movimientos_bancarios' AS tabla, m.id, m.referencia, m.importe
-                    FROM movimientos_bancarios m
-                    LEFT JOIN conciliacion_abono_pago c ON m.id = c.movimiento_id
-                    WHERE m.estado = 'conciliado' AND c.id IS NULL
-                ");
-                $huerfanosMov = $stmtSinVinculoMov ? $stmtSinVinculoMov->fetchAll(PDO::FETCH_ASSOC) : [];
-                foreach ($huerfanosMov as $h) {
-                    $divergencias[] = [
-                        'tipo'          => 'ABONO_CONCILIADO_SIN_VINCULO',
-                        'movimiento_id' => $h['id'],
-                        'tabla'         => $h['tabla'],
-                        'referencia'    => $h['referencia'],
-                        'monto'         => $h['importe'],
-                        'descripcion'   => "El movimiento bancario ID {$h['id']} figura como conciliado pero no existe en conciliacion_abono_pago."
-                    ];
-                }
             }
         } catch (\Throwable $e) {}
 

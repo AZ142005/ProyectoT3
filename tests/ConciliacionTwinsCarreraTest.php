@@ -54,9 +54,6 @@ class ConciliacionTwinsCarreraTest extends TestCase {
             $inExt = implode(',', array_map('intval', $extractoIds));
             $db->exec("DELETE FROM conciliacion_abono_pago WHERE movimiento_id IN ({$inExt})");
             $db->exec("DELETE FROM extractos_bancarios WHERE id IN ({$inExt})");
-            try {
-                $db->exec("DELETE FROM movimientos_bancarios WHERE id IN ({$inExt})");
-            } catch (\Throwable $e) {}
         }
     }
 

@@ -139,47 +139,6 @@ class ConciliacionModel extends BaseModel {
     }
 
     /**
-     * Obtiene movimientos bancarios disponibles desde la tabla canonical movimientos_bancarios.
-     */
-    public function obtenerMovimientosPendientes(?string $lote = null): array {
-        $db = $this->db();
-        $sql = "
-            SELECT m.*,
-                   m.id,
-                   COALESCE(m.fecha, m.fecha_movimiento) AS fecha,
-                   COALESCE(m.fecha_movimiento, m.fecha) AS fecha_movimiento,
-                   COALESCE(m.referencia, m.referencia_bancaria) AS referencia,
-                   COALESCE(m.referencia_bancaria, m.referencia) AS referencia_bancaria,
-                   COALESCE(m.descripcion, m.descripcion_banco) AS descripcion,
-                   COALESCE(m.descripcion_banco, m.descripcion) AS descripcion_banco,
-                   COALESCE(m.importe, m.monto) AS importe,
-                   COALESCE(m.monto, m.importe) AS monto,
-                   COALESCE(m.tipo, m.tipo_movimiento) AS tipo,
-                   COALESCE(m.tipo_movimiento, m.tipo) AS tipo_movimiento,
-                   m.estado
-            FROM movimientos_bancarios m
-            WHERE m.estado = 'disponible'
-              AND COALESCE(m.tipo, m.tipo_movimiento) = 'credito'
-              AND NOT EXISTS (
-                  SELECT 1 FROM conciliacion_abono_pago c
-                  WHERE c.movimiento_id = m.id
-              )
-        ";
-        $params = [];
-
-        if (!empty($lote)) {
-            $sql .= " AND m.lote_importacion = :lote";
-            $params['lote'] = $lote;
-        }
-
-        $sql .= " ORDER BY fecha DESC, id DESC";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    /**
      * Ejecuta la conciliación atómica y condicional (núcleo anti-race condition) con relación 1:1 estricta.
      *
      * @param int $movimientoId
@@ -255,70 +214,23 @@ class ConciliacionModel extends BaseModel {
                 ];
             }
 
-            // PASO 1: Intentar reservar atómicamente el movimiento bancario (UPDATE condicional)
-            $filasAfectadas = 0;
-
-            // Verificar si existe la tabla 'movimientos_bancarios'
-            $hasMovTable = false;
-            try {
-                $checkTable = $db->query("SELECT 1 FROM movimientos_bancarios LIMIT 1");
-                $hasMovTable = true;
-            } catch (\Throwable $e) {
-                $hasMovTable = false;
-            }
-
-            if ($hasMovTable) {
-                $stmtUpdateMov = $db->prepare("
-                    UPDATE movimientos_bancarios
-                       SET estado = 'conciliado',
-                           actualizado_en = CURRENT_TIMESTAMP
-                     WHERE id = :id
-                       AND estado = 'disponible'
-                ");
-                $stmtUpdateMov->execute(['id' => $movimientoId]);
-                $filasAfectadas = $stmtUpdateMov->rowCount();
-            }
-
-            // Si no se afectó en movimientos_bancarios o el movimiento reside en extractos_bancarios:
-            if ($filasAfectadas === 0) {
-                $stmtUpdateExt = $db->prepare("
-                    UPDATE extractos_bancarios
-                       SET estado = 'conciliado',
-                           estado_conciliacion = 'conciliado',
-                           pago_id = :pago_id,
-                           admin_id = :admin_id,
-                           actualizado_en = CURRENT_TIMESTAMP
-                     WHERE id = :id
-                       AND (estado = 'disponible' OR (estado IS NULL AND estado_conciliacion = 'pendiente'))
-                ");
-                $stmtUpdateExt->execute([
-                    'pago_id'  => $pagoId,
-                    'admin_id' => $usuarioId,
-                    'id'       => $movimientoId
-                ]);
-                $filasAfectadas = $stmtUpdateExt->rowCount();
-
-                if ($filasAfectadas > 0 && $hasMovTable) {
-                    $db->prepare("UPDATE movimientos_bancarios SET estado = 'conciliado', actualizado_en = CURRENT_TIMESTAMP WHERE id = :id")
-                       ->execute(['id' => $movimientoId]);
-                }
-            } else {
-                // Sincronizar también extractos_bancarios si fue afectado en movimientos_bancarios
-                $stmtSyncExt = $db->prepare("
-                    UPDATE extractos_bancarios
-                       SET estado = 'conciliado',
-                           estado_conciliacion = 'conciliado',
-                           pago_id = :pago_id,
-                           admin_id = :admin_id,
-                           actualizado_en = CURRENT_TIMESTAMP
-                     WHERE id = :id
-                ");
-                $stmtSyncExt->execute([
-                    'pago_id'  => $pagoId,
-                    'admin_id' => $usuarioId,
-                    'id'       => $movimientoId
-                ]);
-            }
+            // PASO 1: Reservar atómicamente el extracto bancario (UPDATE condicional)
+            $stmtUpdateExt = $db->prepare("
+                UPDATE extractos_bancarios
+                   SET estado = 'conciliado',
+                       estado_conciliacion = 'conciliado',
+                       pago_id = :pago_id,
+                       admin_id = :admin_id,
+                       actualizado_en = CURRENT_TIMESTAMP
+                 WHERE id = :id
+                   AND (estado = 'disponible' OR (estado IS NULL AND estado_conciliacion = 'pendiente'))
+            ");
+            $stmtUpdateExt->execute([
+                'pago_id'  => $pagoId,
+                'admin_id' => $usuarioId,
+                'id'       => $movimientoId
+            ]);
+            $filasAfectadas = $stmtUpdateExt->rowCount();
 
             // PASO 2: Comprobar filas afectadas. Si es 0, el abono no estaba disponible.
             if ($filasAfectadas === 0) {
@@ -326,20 +238,9 @@ class ConciliacionModel extends BaseModel {
                     $db->rollBack();
                 }
 
-                $estadoActual = null;
-                if ($hasMovTable) {
-                    try {
-                        $stmtCheckEstado = $db->prepare("SELECT estado FROM movimientos_bancarios WHERE id = :id");
-                        $stmtCheckEstado->execute(['id' => $movimientoId]);
-                        $estadoActual = $stmtCheckEstado->fetchColumn();
-                    } catch (\Throwable $e) {}
-                }
-
-                if ($estadoActual === false || $estadoActual === null) {
-                    $stmtCheckExt = $db->prepare("SELECT COALESCE(estado, estado_conciliacion) FROM extractos_bancarios WHERE id = :id");
-                    $stmtCheckExt->execute(['id' => $movimientoId]);
-                    $estadoActual = $stmtCheckExt->fetchColumn();
-                }
+                $stmtCheckExt = $db->prepare("SELECT COALESCE(estado, estado_conciliacion) FROM extractos_bancarios WHERE id = :id");
+                $stmtCheckExt->execute(['id' => $movimientoId]);
+                $estadoActual = $stmtCheckExt->fetchColumn();
 
                 if ($estadoActual === false || $estadoActual === null) {
                     $this->registrarAuditoriaIntento($db, $movimientoId, $pagoId, $usuarioId, 'rechazado', 'ABONO_NO_ENCONTRADO', 'El abono no existe en el sistema.', $ip);
