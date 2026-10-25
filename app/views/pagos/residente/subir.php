@@ -292,7 +292,7 @@
                                 <span class="material-symbols-outlined text-[12px]">magic_button</span> Auto-completado
                             </span>
                         </div>
-                        <input type="text" id="referencia" name="referencia" placeholder="Ej. 12345678"
+                        <input type="text" id="referencia" name="referencia" required minlength="4" maxlength="20" placeholder="Ej. 12345678"
                                class="w-full px-4 py-3 bg-white border border-outline-variant rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium text-sm">
                         <div id="inconsistencia-referencia"></div>
                         <p id="referenciaAyuda" class="hidden text-[11px] text-emerald-700">No se requiere número de referencia para Pago Móvil BBVA Provincial.</p>

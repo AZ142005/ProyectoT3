@@ -12,47 +12,24 @@ use App\Core\Controller;
 class SeoController extends Controller {
 
     /**
-     * Publica robots.txt con las directivas de rastreo y la referencia al sitemap.
+     * Publica robots.txt con las directivas de rastreo (Disallow: /admin) y la referencia Sitemap:
      */
     public function robots(): void {
         header('Content-Type: text/plain; charset=UTF-8');
-
-        echo "User-agent: *\n"
-            . "Allow: /\n"
-            . "Disallow: /admin\n"
-            . "Disallow: /residente\n"
-            . "Disallow: /auditor\n"
-            . "Disallow: /pagos\n"
-            . "Disallow: /perfil\n"
-            . "Disallow: /api\n"
-            . "Disallow: /auth/verificar-2fa\n"
-            . "Disallow: /auth/reenviar-otp\n"
-            . "Disallow: /auth/registro-exitoso\n"
-            . "Disallow: /auth/logout\n"
-            . "Disallow: /logout\n"
-            . "Disallow: /comprobante-proxy.php\n"
-            . "Disallow: /soporte-proxy.php\n"
-            . "Disallow: /cron-notificaciones.php\n"
-            . "\n"
-            . "Sitemap: " . app_url('/sitemap.xml') . "\n";
+        $sitemapUrl = app_url('/sitemap.xml');
+        require VIEWS_PATH . '/seo/robots.php';
+        exit;
     }
 
     /**
-     * Publica sitemap.xml con la página pública principal.
+     * Publica sitemap.xml con el contenedor urlset para la página pública principal.
      */
     public function sitemap(): void {
         header('Content-Type: application/xml; charset=UTF-8');
 
         // Escapado XML de la URL absoluta (ENT_XML1) para un documento válido.
         $homeUrl = htmlspecialchars(app_url('/'), ENT_QUOTES | ENT_XML1, 'UTF-8');
-
-        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
-            . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
-            . '  <url>' . "\n"
-            . '    <loc>' . $homeUrl . '</loc>' . "\n"
-            . '    <changefreq>monthly</changefreq>' . "\n"
-            . '    <priority>1.0</priority>' . "\n"
-            . '  </url>' . "\n"
-            . '</urlset>' . "\n";
+        require VIEWS_PATH . '/seo/sitemap.php';
+        exit;
     }
 }

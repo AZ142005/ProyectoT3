@@ -251,6 +251,8 @@ class PagoDirectoController extends Controller {
             $error = 'Seleccione un método de pago válido.';
         } elseif ($referencia === '' && MetodoPago::requiereReferencia($metodoPago, $bancoEfectivo)) {
             $error = 'Ingrese el número de referencia del pago.';
+        } elseif ($referencia !== '' && (strlen($referencia) < 4 || strlen($referencia) > 20)) {
+            $error = 'El número de referencia debe tener entre 4 y 20 caracteres.';
         } elseif ($esBancoOtro && $bancoPagadorOtro === '') {
             $error = 'Especifique el nombre del banco emisor.';
         } elseif (!\DateTime::createFromFormat('Y-m-d', $fechaPago) || date('Y-m-d', strtotime($fechaPago)) !== $fechaPago) {

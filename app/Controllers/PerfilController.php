@@ -25,10 +25,18 @@ class PerfilController extends Controller {
 
         if (in_array(($user['role'] ?? ''), ['admin', 'auditor'], true)) {
             $usuariosModel = new UsuariosModel();
-            $usuarioAdmin = $usuariosModel->getById((int)$user['id']);
+            $rawAdmin = $usuariosModel->getById((int)$user['id']);
+            if ($rawAdmin) {
+                $permitidosAdmin = ['id', 'nombre_completo', 'usuario', 'email', 'rol', 'telefono', 'cedula', 'two_factor_enabled'];
+                $usuarioAdmin = array_intersect_key($rawAdmin, array_flip($permitidosAdmin));
+            }
         } elseif ($personaId) {
             $personasModel = new PersonasModel();
-            $persona = $personasModel->getActiveById($personaId);
+            $rawPersona = $personasModel->getActiveById($personaId);
+            if ($rawPersona) {
+                $permitidosPersona = ['id', 'unidad_id', 'nombre', 'apellido', 'email', 'telefono', 'cedula', 'two_factor_enabled'];
+                $persona = array_intersect_key($rawPersona, array_flip($permitidosPersona));
+            }
 
             $solicitudesModel = new SolicitudesModel();
             $solicitudesModel->eliminarExpiradas((int)$personaId);

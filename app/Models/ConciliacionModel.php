@@ -399,7 +399,9 @@ class ConciliacionModel extends BaseModel {
                     'pago_id'  => $pagoId,
                     'admin_id' => $adminId
                 ]);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                \App\Core\Logger::warning('conciliacion_vincular_abono', 'No se pudo registrar vinculo en conciliacion_abono_pago: ' . $e->getMessage(), ['extracto_id' => $extractoId, 'pago_id' => $pagoId]);
+            }
         }
 
         return $ok;

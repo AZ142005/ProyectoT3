@@ -49,3 +49,9 @@ __pycache__/
 *.pyc
 ~$*.docx
 
+# Entorno de pruebas y artefactos temporales
+scratch/
+
+# Documentos temporales y bitacoras de trabajo en raiz
+/*.docx
+!/docs/*.docx

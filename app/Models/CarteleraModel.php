@@ -90,6 +90,14 @@ class CarteleraModel extends BaseModel
 
         $cacheEdificios = []; // prefijo => id
         $cacheUnidades = [];  // etiqueta => id
+        $cacheFacturas = [];  // numero_factura => ['id' => ..., 'deleted_at' => ..., 'monto_pagado' => ...]
+
+        // Pre-cargar en memoria las facturas existentes del año para evitar consultas N+1
+        $stmtPreCarga = $db->prepare("SELECT id, numero_factura, deleted_at, monto_pagado FROM facturas WHERE anio = :anio AND numero_factura LIKE 'CART-%'");
+        $stmtPreCarga->execute(['anio' => $anio]);
+        while ($rowF = $stmtPreCarga->fetch(\PDO::FETCH_ASSOC)) {
+            $cacheFacturas[$rowF['numero_factura']] = $rowF;
+        }
 
         $db->beginTransaction();
         try {
@@ -174,8 +182,7 @@ class CarteleraModel extends BaseModel
                 foreach ($items as $item) {
                     $numeroFactura = sprintf('CART-%s-%04d%02d', $unidad, $anio, $item['mes']);
 
-                    $stmtFacturaBuscar->execute(['numero' => $numeroFactura]);
-                    $existente = $stmtFacturaBuscar->fetch();
+                    $existente = $cacheFacturas[$numeroFactura] ?? false;
                     if ($existente !== false) {
                         // Soft-deleted: se respeta la baja lógica y no se resucita la deuda
                         if ($existente['deleted_at'] !== null) {
@@ -219,6 +226,11 @@ class CarteleraModel extends BaseModel
                     }
 
                     $facturaId = (int)$db->lastInsertId();
+                    $cacheFacturas[$numeroFactura] = [
+                        'id'           => $facturaId,
+                        'deleted_at'   => null,
+                        'monto_pagado' => 0.00
+                    ];
                     $resultado['facturas_creadas']++;
 
                     $stmtLog->execute([

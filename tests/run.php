@@ -8,7 +8,10 @@
 // Suppress all output before session config
 ob_start();
 
-// Configure sessions BEFORE anything else
+if (!defined('TEST_MODE')) {
+    define('TEST_MODE', true);
+}
+
 ini_set('session.use_cookies', '0');
 ini_set('session.cache_limiter', '');
 

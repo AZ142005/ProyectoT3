@@ -177,6 +177,15 @@ class PagoController extends Controller {
             $observaciones = trim($observaciones . ' ' . $notaReferencia);
         }
 
+        if ($referencia !== '') {
+            $longitudRef = strlen($referencia);
+            if ($longitudRef < 4 || $longitudRef > 20) {
+                Flash::error("El número de referencia debe tener entre 4 y 20 caracteres.");
+                $this->redirect('/pagos/nuevo');
+                return;
+            }
+        }
+
         if (empty($fecha_pago)) {
             Flash::error("La fecha de realización del pago es requerida.");
             $this->redirect('/pagos/nuevo');

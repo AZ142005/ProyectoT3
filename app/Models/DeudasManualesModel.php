@@ -120,7 +120,7 @@ class DeudasManualesModel extends BaseModel
     /**
      * Mapa unidad_id => monto de las deudas manuales activas de un período.
      *
-     * @return array<int, float>
+     * @return float[]
      */
     public function obtenerMapaPorPeriodo(int $mes, int $anio): array
     {

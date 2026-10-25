@@ -182,7 +182,7 @@
                                     <td class="py-3 px-4 text-center font-monospace"><?= number_format((int)$p['registros_exportados'], 0, ',', '.') ?></td>
                                     <td class="py-3 px-4 text-center font-monospace"><?= number_format((int)$p['registros_eliminados'], 0, ',', '.') ?></td>
                                     <td class="py-3 px-4 text-center">
-                                        <span class="badge border <?= $claseEstado ?> rounded-pill px-2.5 py-1"><?= e(ucfirst($p['estado'])) ?></span>
+                                        <span class="badge border <?= e($claseEstado) ?> rounded-pill px-2.5 py-1"><?= e(ucfirst($p['estado'])) ?></span>
                                     </td>
                                     <td class="py-3 px-4">
                                         <?php if (!empty($p['archivo'])): ?>

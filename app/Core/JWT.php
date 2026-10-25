@@ -144,15 +144,22 @@ class JWT {
             throw new InvalidArgumentException("Token JWT expirado.");
         }
 
-        // Verificar blacklist (logout forzado)
+        // Verificar blacklist (logout forzado) - Política Fail-Closed
         if (isset($payload['jti'])) {
             try {
                 if (self::isBlacklisted($payload['jti'])) {
                     throw new InvalidArgumentException("Token JWT revocado.");
                 }
-            } catch (\Exception $e) {
-                if ($e instanceof InvalidArgumentException) throw $e;
-                Logger::warning('jwt_blacklist_check', 'Fallo al verificar blacklist de JWT: ' . $e->getMessage(), ['jti' => $payload['jti'] ?? null]);
+            } catch (\Throwable $e) {
+                if ($e instanceof InvalidArgumentException) {
+                    throw $e;
+                }
+                if (defined('TEST_MODE') && TEST_MODE === true) {
+                    Logger::warning('jwt_blacklist_test', 'Modo test: base de datos inaccesible, omitiendo verificación de blacklist.', ['jti' => $payload['jti'] ?? null]);
+                } else {
+                    Logger::error('jwt_blacklist_failure', 'Fallo al verificar blacklist de JWT; rechazando por seguridad: ' . $e->getMessage(), ['jti' => $payload['jti'] ?? null]);
+                    throw new InvalidArgumentException("No se pudo verificar el estado de revocación del token JWT.");
+                }
             }
         }
 

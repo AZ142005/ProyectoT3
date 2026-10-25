@@ -245,9 +245,25 @@ class ComunicadoController extends Controller {
             'fechaPublicacion'    => date('d/m/Y H:i')
         ]);
 
-        foreach ($residentes as $res) {
-            $notifService->encolarNotificacion($res['email'], "📢 " . $titulo, $cuerpoHtml, $res['telefono'], 'email', 'normal');
-            $notifService->registrarNotificacionResidente($res['persona_id'], "Nuevo Comunicado: " . $titulo, substr(strip_tags($contenido), 0, 120) . "...", "info", "/residente/cartelera");
+        $iniciaTransaccion = !$db->inTransaction();
+        try {
+            if ($iniciaTransaccion) {
+                $db->beginTransaction();
+            }
+
+            foreach ($residentes as $res) {
+                $notifService->encolarNotificacion($res['email'], "📢 " . $titulo, $cuerpoHtml, $res['telefono'], 'email', 'normal');
+                $notifService->registrarNotificacionResidente($res['persona_id'], "Nuevo Comunicado: " . $titulo, substr(strip_tags($contenido), 0, 120) . "...", "info", "/residente/cartelera");
+            }
+
+            if ($iniciaTransaccion) {
+                $db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($iniciaTransaccion && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            \App\Core\Logger::error('comunicado_notificaciones_error', 'Error encolando notificaciones de comunicado: ' . $e->getMessage());
         }
     }
 }

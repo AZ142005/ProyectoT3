@@ -1510,7 +1510,9 @@ class ConciliacionBancariaService {
                     'descripcion'   => "El abono ID {$h['id']} figura como conciliado pero no existe en conciliacion_abono_pago."
                 ];
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \App\Core\Logger::warning('conciliacion_auditoria', 'Fallo al verificar extractos sin vinculo: ' . $e->getMessage());
+        }
 
         // 2. Vínculos en conciliacion_abono_pago cuyo movimiento no está en estado conciliado
         try {
@@ -1530,7 +1532,9 @@ class ConciliacionBancariaService {
                     'descripcion'   => "El vínculo ID {$inv['vinculo_id']} apunta al abono ID {$inv['movimiento_id']} que tiene estado '{$inv['estado_actual']}' en vez de 'conciliado'."
                 ];
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \App\Core\Logger::warning('conciliacion_auditoria', 'Fallo al verificar vinculos invalidos: ' . $e->getMessage());
+        }
 
         // 3. Chequeo de duplicados en conciliacion_abono_pago
         try {
@@ -1565,17 +1569,23 @@ class ConciliacionBancariaService {
                     'descripcion' => "El pago ID {$dp['pago_id']} aparece {$dp['total']} veces en conciliacion_abono_pago (violación de 1:1)."
                 ];
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \App\Core\Logger::warning('conciliacion_auditoria', 'Fallo al verificar duplicados en vinculos: ' . $e->getMessage());
+        }
 
         $totalConciliados = 0;
         try {
             $totalConciliados = (int)$db->query("SELECT COUNT(*) FROM extractos_bancarios WHERE estado = 'conciliado' OR estado_conciliacion = 'conciliado'")->fetchColumn();
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \App\Core\Logger::warning('conciliacion_auditoria', 'Fallo al contar extractos conciliados: ' . $e->getMessage());
+        }
 
         $totalVinculos = 0;
         try {
             $totalVinculos = (int)$db->query("SELECT COUNT(*) FROM conciliacion_abono_pago")->fetchColumn();
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \App\Core\Logger::warning('conciliacion_auditoria', 'Fallo al contar vinculos activos: ' . $e->getMessage());
+        }
 
         return [
             'ok'                       => (count($divergencias) === 0),
