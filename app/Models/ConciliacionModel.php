@@ -216,6 +216,78 @@ class ConciliacionModel extends BaseModel {
     }
 
     /**
+     * Obtiene los metadatos de un lote de importación para los reportes.
+     * Devuelve null cuando el lote no existe.
+     */
+    public function obtenerDatosLote(string $lote): ?array {
+        $db = $this->db();
+        $stmt = $db->prepare("
+            SELECT lote_importacion,
+                   GROUP_CONCAT(DISTINCT banco ORDER BY banco SEPARATOR ', ') AS banco,
+                   MIN(fecha_carga) AS fecha_importacion,
+                   MAX(fecha_carga) AS fecha_ultima_carga,
+                   COUNT(*) AS total_movimientos
+            FROM extractos_bancarios
+            WHERE lote_importacion = :lote
+            GROUP BY lote_importacion
+            LIMIT 1
+        ");
+        $stmt->execute(['lote' => $lote]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $fila === false ? null : $fila;
+    }
+
+    /**
+     * Obtiene una fila por cada extracto conciliado del historial, con los datos
+     * de la unidad y el residente vinculado al pago.
+     *
+     * El COALESCE entre pago.residente_id y unidad.propietario_id evita filas
+     * duplicadas cuando ambos apuntan a la misma persona. La fecha límite se
+     * aplica sobre fecha_carga para congelar el corte del reporte.
+     */
+    public function obtenerMovimientosConciliados(?string $fechaLimite = null): array {
+        $db = $this->db();
+        $sql = "
+            SELECT e.id,
+                   e.lote_importacion,
+                   e.banco,
+                   e.fecha_movimiento,
+                   e.referencia_bancaria,
+                   e.referencia,
+                   e.monto,
+                   e.actualizado_en,
+                   p.id AS pago_id,
+                   p.fecha_pago,
+                   p.referencia AS referencia_pago,
+                   u.numero AS unidad_numero,
+                   COALESCE(ed.nombre, 'Sin Torre') AS edificio_nombre,
+                   CONCAT(per.nombre, ' ', per.apellido) AS residente_nombre,
+                   per.cedula AS residente_cedula
+            FROM extractos_bancarios e
+            LEFT JOIN pagos p ON e.pago_id = p.id
+            LEFT JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN edificios ed ON u.edificio_id = ed.id
+            LEFT JOIN personas per ON per.id = COALESCE(p.residente_id, u.propietario_id)
+            WHERE (e.estado = 'conciliado'
+                   OR e.estado_conciliacion = 'conciliado'
+                   OR (e.pago_id IS NOT NULL AND e.pago_id > 0))
+        ";
+
+        $params = [];
+        if ($fechaLimite !== null && $fechaLimite !== '') {
+            $sql .= " AND e.fecha_carga <= :limite";
+            $params['limite'] = $fechaLimite;
+        }
+
+        $sql .= " ORDER BY e.fecha_movimiento ASC, e.id ASC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Consulta base de créditos disponibles no vinculados de un lote.
      */
     private function consultarDisponiblesPorLote(string $lote): array {
@@ -572,7 +644,7 @@ class ConciliacionModel extends BaseModel {
             FROM pagos p
             LEFT JOIN unidades u ON p.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
-            LEFT JOIN personas per ON p.residente_id = per.id OR u.propietario_id = per.id
+            LEFT JOIN personas per ON per.id = COALESCE(p.residente_id, u.propietario_id)
             LEFT JOIN cuentas_bancarias cb ON p.cuenta_bancaria_id = cb.id
             WHERE p.estado IN ('PENDIENTE', 'EN REVISIÓN')
 
@@ -591,7 +663,7 @@ class ConciliacionModel extends BaseModel {
             LEFT JOIN facturas f ON c.factura_id = f.id
             LEFT JOIN unidades u ON f.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
-            LEFT JOIN personas per ON c.residente_id = per.id OR u.propietario_id = per.id
+            LEFT JOIN personas per ON per.id = COALESCE(c.residente_id, u.propietario_id)
             WHERE c.estado IN ('pendiente', 'PENDIENTE')
             ORDER BY fecha_creacion DESC, id DESC
         ";

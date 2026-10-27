@@ -75,7 +75,7 @@
   Ruta: delegated writer (una sesión acotada). Superficies: `app/Models/ConciliacionModel.php`, `app/Services/ConciliacionBancariaService.php`, `tests/ConciliacionLoteUnicoTest.php`.  
   Incluye: `obtenerLoteActivo()`, filtro activo en `obtenerExtractosPendientes()`, `obtenerDisponiblesLote()` (crudo para reportes), `insertarExtracto()` con `adoptados`, `obtenerLotes()` con `es_activo` y métricas corregidas, cruce aceptando `pendiente`. Test-first: escribir `ConciliacionLoteUnicoTest`, observar RED, implementar, GREEN.
 
-- [ ] **T2 — Servicio de reportes históricos PDF/CSV**  
+- [x] **T2 — Servicio de reportes históricos PDF/CSV**  
   Ruta: delegated writer. Superficies: `app/Models/ConciliacionModel.php` (queries de reporte), `app/Services/ReporteConciliacionService.php`, `tests/ReporteConciliacionTest.php`.  
   Incluye: `obtenerMovimientosConciliados()`, `construir()`, `generarPdf()`, `generarCsv()`, `guardar()` (PDF+CSV+JSON), `listarHistoricos()`, `resolverArchivo()`, `directorioReportes()`, sanitización CSV anti-inyección. Test-first.
 
@@ -134,8 +134,14 @@
   - `check_purity`, `audit_security` y `php -l`: OK.
   - Verificación independiente: PASS WITH FINDINGS; se corrigieron el bug NULL de `estado`, la adopción atómica por lote esperado, la precedencia de estados del cruce y la consistencia de métricas. Quedan riesgos LOW aceptados: tabla vacía y desempate por id se validan por inspección; no se agregó un test de concurrencia de adopción.
 - **Ruta de delegación:** el agente `gentle-ai-worker` no está disponible en este entorno por restricción geográfica del proveedor; T1 se ejecutó con el agente general bajo las mismas superficies y fue re-verificado por `gentle-ai-verify`.
-- Commit T1: `feat(conciliacion): limita la bandeja al lote activo y adopta duplicados`.
-- T2, T3, T4 pendientes.
+- Commit T1: `264fdc6 feat(conciliacion): limita la bandeja al lote activo y adopta duplicados`.
+- **T2 completado y verificado.** Nuevo `ReporteConciliacionService` con `construir()`, PDF (FPDF/Windows-1252, tablas con corte de página), CSV (BOM UTF-8, `;`, anti-inyección), `guardar()` (PDF+CSV+JSON con limpieza compensatoria) y `listarHistoricos()`/`resolverArchivo()` con validación de metadatos, magic bytes y `realpath`. Se agregaron `obtenerDatosLote()` y `obtenerMovimientosConciliados()` al modelo; se corrigió el doble conteo de residente/propietario en `obtenerTodosPagosPendientes()` con `COALESCE`.
+  - `php tests/run.php --filter=ReporteConciliacionTest`: **12 tests, 90 aserciones, 0 fallos**.
+  - `php tests/run.php --filter=ReporteConciliacionDbTest`: **5 tests, 14 aserciones, 0 fallos**.
+  - Regresiones verdes: `ConciliacionLoteUnicoTest` (9/100), `ExtractosDuplicadosTest` (4/9), `ConciliacionCentralizadaTest` (6/45).
+  - Smoke real sobre el lote activo: conciliados=1, disponibles=86, pendientes=2; PDF 7.161 bytes con `%PDF`/`%%EOF`; CSV 6.179 bytes con BOM.
+  - Verificación independiente: PASS WITH FINDINGS; se corrigieron el doble conteo, el guard CSV, la validación de sidecars, la limpieza de archivos y la cobertura DB. Riesgos LOW aceptados: contenido PDF no se compara byte a byte más allá de encoding/EOF; fallo de `guardar()` no tiene test ejecutable de path de error.
+- T3, T4 pendientes.
 
 ## Próximo paso
-Ejecutar T2 (servicio de reportes PDF/CSV) con test-first.
+Ejecutar T3 (controlador, rutas, vista y cruce automático) con test-first.
