@@ -152,7 +152,9 @@
   - Filtros afectados verdes tras la suite: ReporteIntegracion 8/73, Reporte 13/94, ReporteDb 5/14, LoteUnico 9/100, FiltroMes 3/13, Simplificada 7/31, DetallePago 3/19, MontoDispar 4/29, Centralizada 6/45, Rbac 9/262, Duplicados 4/9.
   - Smoke real de importación (`generico_csv`): lote `LOTE-20261027-170624-b519` activo; cruce automático 0/0/0/1; reporte del saliente `LOTE-20260921-184531` con conteos 1 conciliado / 86 disponibles / 3 pendientes y totales idénticos al baseline; PDF 7.240 bytes y CSV 6.251 bytes con BOM, más JSON; descargas actual PDF/CSV y histórica verificadas por hash; limpieza dejó 294 filas, 1 lote y 1 conciliado, con el lote original activo.
   - `scratch/`: 0 archivos trackeados, 1.306 archivos intactos en disco, ignorada por `.gitignore:53` y `.git/info/exclude`.
-  - Git: pendiente de `fetch`/`rebase`/`merge --ff-only`/`push` en esta sesión.
+  - Git completado: `fetch` sin novedades (0 behind); `rebase origin/main` up to date; `main` fast-forward `6ef29db..d1ec644`; `push origin main` OK; `git rev-list --left-right --count origin/main...main` = `0 0`; historial lineal sin merge commits.
+  - `scratch/` verificada: 0 archivos trackeados, 1.306 archivos intactos en disco, `git status --ignored` muestra `!! scratch/` (ignorada por `.gitignore:53` y `.git/info/exclude`).
+  - MySQL temporal (XAMPP con `--skip-grant-tables`) detenido al cierre; servicio `mysql8` permanece `Stopped/Disabled`.
 
-## Próximo paso
-Ejecutar `git fetch origin`, `git rebase origin/main`, `git checkout main`, `git merge --ff-only feat/conciliacion-lote-unico-reportes`, `git push origin main` y verificar `git log -n 5 --oneline --graph` + `git status --ignored`.
+## Cierre
+Integración completada y publicada en `origin/main`. Commits: `264fdc6` (T1), `6d0c1f2` (T2), `b6b404d` (T3), `d1ec644` (docs T4) y el commit de cierre de esta bitácora. Sin cambios de esquema. Sin conflictos de rebase.
