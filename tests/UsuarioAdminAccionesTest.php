@@ -281,7 +281,7 @@ class UsuarioAdminAccionesTest extends TestCase {
         };
 
         // 1) Auto-eliminación bloqueada (sesión del propio auditor)
-        $_SESSION['auth_user'] = ['id' => $targetId, 'role' => 'auditor', 'name' => 'Auditor Borrar'];
+        $_SESSION['auth_user'] = ['id' => $targetId, 'role' => 'admin', 'name' => 'Auditor Borrar'];
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = ['tipo_entidad' => 'usuario', 'id' => $targetId];
         $ctrl->eliminar();

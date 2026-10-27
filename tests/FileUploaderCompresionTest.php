@@ -60,7 +60,7 @@ class FileUploaderCompresionTest extends TestCase {
             return [-1, -1, -1];
         }
         $px = imagecolorat($img, $x, $y);
-        imagedestroy($img);
+        unset($img);
         return [($px >> 16) & 0xFF, ($px >> 8) & 0xFF, $px & 0xFF];
     }
 
@@ -77,7 +77,7 @@ class FileUploaderCompresionTest extends TestCase {
             imagefilledrectangle($img, $x, $y, $x + random_int(1, 50), $y + random_int(1, 50), $color);
         }
         imagejpeg($img, $ruta, 100);
-        imagedestroy($img);
+        unset($img);
     }
 
     /**
@@ -110,7 +110,7 @@ class FileUploaderCompresionTest extends TestCase {
         imagefilledrectangle($img, 0, 0, $ancho - 1, 40, $transparente);
         imagefilledrectangle($img, 0, 0, 40, $alto - 1, $transparente);
         imagepng($img, $ruta);
-        imagedestroy($img);
+        unset($img);
     }
 
     /**
@@ -123,7 +123,7 @@ class FileUploaderCompresionTest extends TestCase {
         imagefilledrectangle($img, 0, 0, 15, 15, imagecolorallocate($img, 255, 0, 0));
         imagefilledrectangle($img, 16, 0, 31, 15, imagecolorallocate($img, 0, 0, 255));
         imagejpeg($img, $ruta, 90);
-        imagedestroy($img);
+        unset($img);
 
         // APP1 EXIF mínimo (TIFF little-endian) con solo el tag Orientation (0x0112)
         $tiff = "II\x2A\x00" . pack('V', 8);
@@ -176,7 +176,7 @@ class FileUploaderCompresionTest extends TestCase {
             $this->assertTrue($redecodificada !== false,
                 'El JPEG resultante debe decodificarse sin errores');
             if ($redecodificada !== false) {
-                imagedestroy($redecodificada);
+                unset($redecodificada);
             }
 
             $this->assertTrue(filesize($ruta) < $pesoAntes,

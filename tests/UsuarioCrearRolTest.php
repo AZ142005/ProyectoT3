@@ -160,7 +160,7 @@ class UsuarioCrearRolTest extends TestCase {
     }
 
     /**
-     * Degradar al último administrador activo debe bloquearse y no modificar el rol.
+     * Degradar al único administrador activo debe bloquearse y no modificar el rol.
      * Todo ocurre dentro de una transacción con rollback para restaurar el estado previo.
      */
     public function testCambiarRolBloqueaDegradarAlUltimoAdminActivo(): void {
@@ -183,12 +183,12 @@ class UsuarioCrearRolTest extends TestCase {
             $ctrl->cambiarRol();
 
             $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, 'Debe redirigir al bloquear la degradación');
-            $this->assertStringContains('último administrador activo', \App\Core\Flash::get('error'),
-                'Debe bloquear la degradación del último administrador activo');
+            $this->assertStringContains('único administrador activo', \App\Core\Flash::get('error'),
+                'Debe bloquear la degradación del único administrador activo');
 
             $stmt = $db->prepare("SELECT rol FROM usuarios WHERE id = :id");
             $stmt->execute(['id' => $targetId]);
-            $this->assertEquals('admin', $stmt->fetchColumn(), 'El rol del último administrador activo no debe cambiar');
+            $this->assertEquals('admin', $stmt->fetchColumn(), 'El rol del único administrador activo no debe cambiar');
         } finally {
             if ($db->inTransaction()) {
                 $db->rollBack();

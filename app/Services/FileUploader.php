@@ -165,7 +165,7 @@ class FileUploader {
             $nuevoAlto = max(1, (int)round($alto * $escala));
             $redimensionada = @imagescale($img, $nuevoAncho, $nuevoAlto, IMG_BICUBIC);
             if ($redimensionada !== false) {
-                imagedestroy($img);
+                unset($img);
                 $img = $redimensionada;
             }
         }
@@ -178,14 +178,14 @@ class FileUploader {
             imagefill($lienzo, 0, 0, imagecolorallocate($lienzo, 255, 255, 255));
             imagealphablending($lienzo, true);
             imagecopy($lienzo, $img, 0, 0, 0, 0, $ancho, $alto);
-            imagedestroy($img);
+            unset($img);
             $img = $lienzo;
         }
 
         // Codificar a temporal hermano y reemplazar solo si todo tuvo éxito
         $tmpConv = $ruta . '.conv';
         $codificada = @imagejpeg($img, $tmpConv, 82);
-        imagedestroy($img);
+        unset($img);
 
         if (!$codificada || !is_file($tmpConv) || @filesize($tmpConv) <= 0) {
             @unlink($tmpConv);
@@ -244,7 +244,7 @@ class FileUploader {
             return $img;
         }
 
-        imagedestroy($img);
+        unset($img);
         return $rotada;
     }
 

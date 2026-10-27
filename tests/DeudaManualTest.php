@@ -349,6 +349,18 @@ class DeudaManualTest extends TestCase {
         $anioCart = 2026;
 
         try {
+            // Fixture CART determinista: la suite no depende de carteleras reales.
+            $unidadCartId = $this->crearUnidad($db, 0.0);
+            $db->prepare("
+                INSERT INTO facturas
+                (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado)
+                VALUES (:numero, :unidad, :mes, :anio, '2026-10-01', '2026-10-10', 30.00, 0.00, 30.00, 'pendiente')
+            ")->execute([
+                'numero' => 'CART-TEST-' . mt_rand(100000, 999999),
+                'unidad' => $unidadCartId,
+                'mes'    => $mesCart,
+                'anio'   => $anioCart,
+            ]);
             // Período real con deudas CART importadas (las que no deben tocarse)
             $stmtCart = $db->prepare("
                 SELECT COUNT(*), COALESCE(SUM(saldo), 0)

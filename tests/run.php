@@ -26,6 +26,9 @@ try {
     // Config puede fallar si .env no existe
 }
 
+// La suite completa puede superar el límite web de 30s; el runner CLI no debe abortar.
+set_time_limit(0);
+
 // Auto-descubrir archivos de test
 $testFiles = glob(__DIR__ . '/*Test.php');
 $filter = $argv[1] ?? null;
