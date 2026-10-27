@@ -33,8 +33,9 @@
 
 ## Notas de cierre
 - El dump canónico ya contiene `notificaciones_cola.adjuntos` y `fecha_descarga`; la base local simplemente no tenía aplicadas las migraciones.
-- Los 2 objetos extra de la base local (`conciliacion_lotes`, `movimientos_bancarios`) son tablas legacy retiradas del dump; no bloquean la suite y no se eliminan sin autorización explícita para no destruir datos.
+- Los 2 objetos extra de la base local se retiraron el 2026-10-27 con la migración phase23, previo backup verificado en `storage/backups/retiro-tablas-20261027-173516.sql` (restauración de prueba: 0 filas en `conciliacion_lotes` y 294 en `movimientos_bancarios`). El esquema local quedó con 32 tablas, idéntico al dump, y la suite siguió verde (764/3433/0/0/5). El backup queda en la carpeta ignorada y protegida.
 - `SchemaDriftTest` falla si vuelve a faltar cualquiera de las tablas/columnas/índice migrados.
 
-## Próximo paso
-Commit en `fix/schema-drift-suite-verde`, merge fast-forward a `main`, push y verificación final de `git log`/`git status`.
+## Cierre
+- Backup verificado, phase23 ejecutada, tablas legacy retiradas y suite verde sobre `main`.
+- Esquema local: 32 tablas, alineado al dump canónico; `SchemaDriftTest` sigue pasando.
