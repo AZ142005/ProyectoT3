@@ -83,7 +83,7 @@
   Ruta: delegated writer. Superficies: `app/Controllers/ConciliacionController.php`, `app/views/admin/conciliacion/index.php`, `public/index.php`, `tests/ConciliacionReporteIntegracionTest.php`.  
   Incluye: snapshot antes de insertar, reporte al reemplazar, cruce automático, flash, lote activo por defecto, rutas de descarga, botones/modal/aviso, tests de wiring y seguridad de descarga. Test-first.
 
-- [ ] **T4 — Verificación y Git**  
+- [x] **T4 — Verificación y Git**  
   `php -l` en archivos tocados; `php scripts/check_purity.php`; `php scripts/audit_security.php`; `php tests/run.php` (con MySQL). Auditar `git status --ignored` (scratch intacta). `git fetch origin`; `git rebase origin/main`; resolver conflictos si aparecen; `git checkout main`; `git merge --ff-only feat/conciliacion-lote-unico-reportes`; `git push origin main`; `git log -n 5 --oneline --graph`. Apagar el MySQL temporal.
 
 ## Plan de pruebas (TDD)
@@ -146,7 +146,13 @@
   - Regresiones verdes: FiltroMes (3/13), Simplificada (7/31), DetallePagoVista (3/19), MontoDispar (4/29), Centralizada (6/45), Rbac (9/262), T2 (13/94 + 5/14), T1 (9/100).
   - `check_purity`, `audit_security`, `php -l`: OK. El render de `index()` ya no crea `storage/backups/reportes_conciliacion`; sólo `guardar()` lo hace.
   - Verificación independiente: PASS WITH FINDINGS; se corrigieron el falso mensaje de fallo en no-op, `?lote[]`, la creación de carpetas en GET, el desfase de zona horaria del corte, el flake de referencia y las etiquetas de botones. Riesgos LOW aceptados: el path no-op y las descargas no tienen test HTTP real (se hará smoke en T4); `fecha_corte` es metadato del snapshot síncrono.
-- T4 pendiente.
+- **T4 completado.** Verificación y smoke real:
+  - `check_purity`, `audit_security` y `php -l` sobre todos los archivos tocados: OK.
+  - Suite completa: **761 tests, 3.208 aserciones verdes, 34 fallos, 25 errores, 8 omitidos**. Baseline previo a T1: **741 tests, 3.066 verdes, 34 fallos, 25 errores, 8 omitidos**. Mismos fallos/errores/omisiones, +20 tests y +142 aserciones verdes. Causas preexistentes: tablas `cartas_deuda_envios`, `reportes_cartelera`, `deudas_manuales` ausentes; columna `notificaciones_cola.adjuntos` ausente; `imagedestroy()` deprecado en PHP 8.5; flakes de transacción/headers. Ninguna en archivos de Conciliación.
+  - Filtros afectados verdes tras la suite: ReporteIntegracion 8/73, Reporte 13/94, ReporteDb 5/14, LoteUnico 9/100, FiltroMes 3/13, Simplificada 7/31, DetallePago 3/19, MontoDispar 4/29, Centralizada 6/45, Rbac 9/262, Duplicados 4/9.
+  - Smoke real de importación (`generico_csv`): lote `LOTE-20261027-170624-b519` activo; cruce automático 0/0/0/1; reporte del saliente `LOTE-20260921-184531` con conteos 1 conciliado / 86 disponibles / 3 pendientes y totales idénticos al baseline; PDF 7.240 bytes y CSV 6.251 bytes con BOM, más JSON; descargas actual PDF/CSV y histórica verificadas por hash; limpieza dejó 294 filas, 1 lote y 1 conciliado, con el lote original activo.
+  - `scratch/`: 0 archivos trackeados, 1.306 archivos intactos en disco, ignorada por `.gitignore:53` y `.git/info/exclude`.
+  - Git: pendiente de `fetch`/`rebase`/`merge --ff-only`/`push` en esta sesión.
 
 ## Próximo paso
-Ejecutar T4: verificación completa, smoke de importación real, Git (fetch/rebase/merge ff-only/push) y auditoría de `scratch/`.
+Ejecutar `git fetch origin`, `git rebase origin/main`, `git checkout main`, `git merge --ff-only feat/conciliacion-lote-unico-reportes`, `git push origin main` y verificar `git log -n 5 --oneline --graph` + `git status --ignored`.
