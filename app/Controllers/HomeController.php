@@ -9,7 +9,7 @@ use App\Core\Controller;
  *
  * Expone los datos oficiales NAP (nombre, dirección, teléfono), los metadatos
  * SEO y el JSON-LD (Organization, ApartmentComplex, WebSite y FAQPage) que
- * permiten posicionar las búsquedas de marca del Conjunto Residencial
+ * permiten posicionar las búsquedas de marca del Condominio Conjunto
  * Las Mesetas de Morón y facilitar el acceso de los residentes al portal de pagos.
  */
 class HomeController extends Controller {
@@ -18,7 +18,7 @@ class HomeController extends Controller {
      * Renderiza la landing pública con metadatos SEO y datos estructurados.
      */
     public function index(): void {
-        $siteName = 'Conjunto Residencial Las Mesetas de Morón';
+        $siteName = 'Condominio Conjunto Las Mesetas de Morón';
         $addressLine = 'Av. Principal de Morón, Urb. Las Mesetas, Parroquia Mercedes Díaz';
         $cityLine = 'Valera, Estado Trujillo, Venezuela';
         $phone = '0271-2259170';
@@ -27,13 +27,13 @@ class HomeController extends Controller {
         $rif = 'J-400577870';
         $instagramUrl = 'https://www.instagram.com/conjunto.lasmesetas/';
         $facebookUrl = 'https://www.facebook.com/lasmesetasdmoron/';
-        $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Conjunto+Residencial+Las+Mesetas+de+Mor%C3%B3n%2C+Valera%2C+Trujillo%2C+Venezuela';
+        $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Condominio+Conjunto+Las+Mesetas+de+Mor%C3%B3n%2C+Valera%2C+Trujillo%2C+Venezuela';
 
         // Preguntas frecuentes: alimentan la sección visible y el JSON-LD FAQPage.
         $faqs = [
             [
                 'pregunta' => '¿El portal es oficial?',
-                'respuesta' => 'Sí. Es el portal de pagos de la administración del Conjunto Residencial Las Mesetas de Morón, ubicado en Valera, Estado Trujillo, Venezuela.',
+                'respuesta' => 'Sí. Es el portal de pagos de la administración del Condominio Conjunto Las Mesetas de Morón, ubicado en Valera, Estado Trujillo, Venezuela.',
             ],
             [
                 'pregunta' => '¿Cómo reporto mi pago?',
@@ -129,7 +129,7 @@ class HomeController extends Controller {
 
         $this->render('home/index', [
             'title' => 'Conjunto Las Mesetas de Morón | Pago de Condominio – Valera',
-            'description' => 'Portal oficial del Conjunto Residencial Las Mesetas de Morón, Valera, Trujillo. Consulta tu deuda y reporta tu pago en línea.',
+            'description' => 'Portal oficial del Condominio Conjunto Las Mesetas de Morón, Valera, Trujillo. Consulta tu deuda y reporta tu pago en línea.',
             'canonical' => '/',
             'robots' => 'index,follow',
             'ogImage' => app_url('/img/logo_condominio.png'),

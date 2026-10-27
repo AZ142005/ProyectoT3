@@ -2,7 +2,7 @@
 // Resolución de metadatos SEO de la página. Los controladores pueden
 // sobreescribirlos pasando title/description/robots/canonical/ogImage/jsonLd
 // a Controller::render(); aquí solo se aplican los valores por defecto.
-$metaTitle = $title ?? 'Conjunto Residencial Las Mesetas de Morón';
+$metaTitle = $title ?? 'Condominio Conjunto Las Mesetas de Morón';
 $metaDescription = $description ?? '';
 $metaRobots = $robots ?? (\App\Core\Auth::check() ? 'noindex,nofollow' : 'index,follow');
 $metaCanonical = $canonical ?? '';
@@ -33,7 +33,7 @@ $metaCanonicalUrl = $metaCanonical !== '' ? app_url($metaCanonical) : '';
     <?php endif; ?>
     <meta name="theme-color" content="#27ae60">
     <!-- Open Graph -->
-    <meta property="og:site_name" content="Conjunto Residencial Las Mesetas de Morón">
+    <meta property="og:site_name" content="Condominio Conjunto Las Mesetas de Morón">
     <meta property="og:locale" content="es_VE">
     <meta property="og:type" content="<?= e($metaOgType) ?>">
     <meta property="og:title" content="<?= e($metaTitle) ?>">
@@ -45,7 +45,7 @@ $metaCanonicalUrl = $metaCanonical !== '' ? app_url($metaCanonical) : '';
     <?php endif; ?>
     <?php if ($metaOgImageUrl !== ''): ?>
     <meta property="og:image" content="<?= e($metaOgImageUrl) ?>">
-    <meta property="og:image:alt" content="Logo del Conjunto Residencial Las Mesetas de Morón">
+    <meta property="og:image:alt" content="Logo del Condominio Conjunto Las Mesetas de Morón">
     <?php if ($metaOgImageWidth !== null): ?>
     <meta property="og:image:width" content="<?= e((string)$metaOgImageWidth) ?>">
     <?php endif; ?>

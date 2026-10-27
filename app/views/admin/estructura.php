@@ -432,7 +432,7 @@
                                         <h3 class="text-base font-bold text-on-surface">Paso 2: Creación y Alta de Unidades</h3>
                                         <span class="bg-background text-on-surface-variant text-xs font-bold px-2.5 py-1 rounded-full"><?= count($unidades) ?> creadas</span>
                                     </div>
-                                    <p class="text-xs text-on-surface-variant mt-1">Crea los apartamentos o locales para cada torre del conjunto residencial.</p>
+                                    <p class="text-xs text-on-surface-variant mt-1">Crea los apartamentos o locales para cada torre del Condominio Conjunto.</p>
                                 </div>
                                 <div class="flex items-center gap-3 flex-wrap">
                                     <div class="relative w-full sm:w-64">

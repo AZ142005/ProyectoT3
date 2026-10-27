@@ -1,7 +1,7 @@
 {
   "meta": {
     "titulo": "Manual de Usuario Final",
-    "sistema": "Sistema de Cobranzas y Gestión de Pagos — Conjunto Residencial \"Las Mesetas de Morón\" (Condominio Digital)",
+    "sistema": "Sistema de Cobranzas y Gestión de Pagos — Condominio Conjunto \"Las Mesetas de Morón\" (Condominio Digital)",
     "version": "1.0",
     "fecha": "Octubre 2026",
     "proyecto": "ProyectoT3",
@@ -49,7 +49,7 @@
 
     { "type": "h1", "text": "1. INTRODUCCIÓN" },
     { "type": "h2", "text": "1.1 ¿Qué es el sistema?" },
-    { "type": "p", "text": "Condominio Digital es el sistema web de cobranzas y gestión de pagos del Conjunto Residencial \"Las Mesetas de Morón\". La administración registra y verifica los pagos, los concilia con el extracto bancario, controla los gastos con sus facturas, emite la deuda mensual, publica comunicados y conserva la auditoría de las acciones importantes. El portal público permite reportar un pago sin iniciar sesión." },
+    { "type": "p", "text": "Condominio Digital es el sistema web de cobranzas y gestión de pagos del Condominio Conjunto \"Las Mesetas de Morón\". La administración registra y verifica los pagos, los concilia con el extracto bancario, controla los gastos con sus facturas, emite la deuda mensual, publica comunicados y conserva la auditoría de las acciones importantes. El portal público permite reportar un pago sin iniciar sesión." },
     { "type": "h2", "text": "1.2 ¿A quién está dirigido este manual?" },
     { "type": "p", "text": "El manual está dirigido a las tres clases de usuario del sistema." },
     { "type": "table",

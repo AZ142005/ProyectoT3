@@ -41,8 +41,8 @@
 
     <!-- Cabecera Oficial -->
     <div class="text-center mb-4 border-bottom pb-3">
-        <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" style="height:72px;width:auto;" class="mb-2">
-        <h2 class="fw-bold mb-1">CONJUNTO RESIDENCIAL "LAS MESETAS DE MORÓN"</h2>
+        <img src="/img/logo_condominio.png" alt="Condominio Conjunto Las Mesetas" style="height:72px;width:auto;" class="mb-2">
+        <h2 class="fw-bold mb-1">CONDOMINIO CONJUNTO "LAS MESETAS DE MORÓN"</h2>
         <h5 class="text-secondary fw-semibold mb-2">REPORTE OFICIAL DE DEUDA Y ESTADO FINANCIERO DE UNIDADES</h5>
         <p class="small text-muted mb-0">Fecha de Emisión: <?= date('d/m/Y H:i:s') ?> | Sistema de Cobranzas y Conjunto Digital</p>
     </div>

@@ -1,7 +1,7 @@
 # Cumplimiento RF — Contexto y Plan de Correcciones
 
 > **Documento vivo.** Se actualiza al cerrar cada pendiente: estado + bitácora + decisión/implementación.
-> Proyecto: Sistema Web de Administración de Cobranza — Conjunto Residencial "Las Mesetas de Morón".
+> Proyecto: Sistema Web de Administración de Cobranza — Condominio Conjunto "Las Mesetas de Morón".
 > Creado: 2026-10-03 (sesión de auditoría de cumplimiento RF).
 
 ## 1. Resumen de la auditoría

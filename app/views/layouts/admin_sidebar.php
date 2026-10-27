@@ -37,7 +37,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
     <div class="p-5 border-b border-[#4a2c11]/80 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <div class="bg-white/95 rounded-xl p-1 shadow-sm shrink-0">
-                <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" class="h-9 w-auto object-contain block">
+                <img src="/img/logo_condominio.png" alt="Condominio Conjunto Las Mesetas" class="h-9 w-auto object-contain block">
             </div>
             <div>
                 <h2 class="text-white font-bold text-base leading-tight">Conjunto</h2>

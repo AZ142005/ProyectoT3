@@ -21,7 +21,7 @@ $panelUrl = $panelUrl ?? null;
 <header class="sticky top-0 z-50 w-full border-b-2 border-institutional-brown bg-white/95 shadow-sm backdrop-blur">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6">
         <a href="/" class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden" aria-label="Ir al inicio">
-            <img src="/img/logo_condominio.png" alt="Logo del Conjunto Residencial Las Mesetas de Morón" width="570" height="437" class="h-10 w-auto shrink-0">
+            <img src="/img/logo_condominio.png" alt="Logo del Condominio Conjunto Las Mesetas de Morón" width="570" height="437" class="h-10 w-auto shrink-0">
             <span class="min-w-0">
                 <span class="block truncate font-extrabold leading-tight text-on-surface">
                     <span class="sm:hidden">Las Mesetas</span>
@@ -61,7 +61,7 @@ $panelUrl = $panelUrl ?? null;
 <!-- Hero principal: fotografía del conjunto con velo institucional -->
 <section class="relative isolate overflow-hidden border-b-4 border-institutional-brown bg-[#0f2a1d]">
     <img src="/img/conjunto_las_mesetas.jpg"
-         alt="Palmeras y áreas verdes del Conjunto Residencial Las Mesetas de Morón"
+         alt="Palmeras y áreas verdes del Condominio Conjunto Las Mesetas de Morón"
          width="1440" height="1440" fetchpriority="high"
          class="absolute inset-0 -z-20 h-full w-full object-cover object-center">
     <div class="absolute inset-0 -z-10 bg-gradient-to-r from-[#0b1f16]/95 via-[#0f2a1d]/80 to-[#0f2a1d]/25" aria-hidden="true"></div>
@@ -74,7 +74,7 @@ $panelUrl = $panelUrl ?? null;
             </span>
 
             <h1 class="mt-6 text-3xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.4rem]">
-                Conjunto Residencial<br class="hidden sm:block">
+                Condominio Conjunto<br class="hidden sm:block">
                 <span class="text-emerald-200">Las Mesetas de Morón</span>
             </h1>
 

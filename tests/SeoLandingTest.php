@@ -15,7 +15,7 @@ class SeoLandingTest extends TestCase {
     public function testLandingPublicaUsaNombreOficialYNap(): void {
         $landing = $this->readFile('app/views/home/index.php');
 
-        $this->assertStringContains('Conjunto Residencial Las Mesetas de Morón', $landing,
+        $this->assertStringContains('Condominio Conjunto Las Mesetas de Morón', $landing,
             "La landing debe usar el nombre oficial del conjunto");
         $this->assertStringContains('Valera', $landing,
             "La landing debe mencionar Valera");

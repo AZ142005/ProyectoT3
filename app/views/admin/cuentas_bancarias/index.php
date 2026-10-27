@@ -257,7 +257,7 @@
 
                         <div class="col-md-7">
                             <label class="form-label fw-bold small text-on-surface-variant">Titular de la Cuenta <span class="text-danger">*</span></label>
-                            <input type="text" name="titular" id="campoTitular" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" required placeholder="Ej. Conjunto Residencias El Ávila">
+                            <input type="text" name="titular" id="campoTitular" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" required placeholder="Ej. Condominio Conjunto Las Mesetas">
                         </div>
 
                         <div class="col-md-2">

@@ -384,7 +384,7 @@ try {
     $sel.TypeParagraph()
 
     Write-CenteredLine $sel ([string]$meta.sistema) 14
-    Write-CenteredLine $sel 'Conjunto Residencial "Las Mesetas de Morón" — Condominio Digital' 12
+    Write-CenteredLine $sel 'Condominio Conjunto "Las Mesetas de Morón" — Condominio Digital' 12
 
     Reset-BodyFormat $sel
     $sel.ParagraphFormat.Alignment = 1

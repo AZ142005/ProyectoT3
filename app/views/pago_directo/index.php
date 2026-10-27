@@ -15,7 +15,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     <div class="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-6 mb-8 shadow-md flex justify-between items-center flex-wrap gap-4 border-b-4 border-institutional-brown">
         <div class="flex items-center gap-3">
             <div class="bg-white rounded-xl p-1.5 shadow-sm shrink-0">
-                <img src="/img/logo_condominio.png" alt="Conjunto Residencial Las Mesetas" class="h-10 w-auto object-contain block">
+                <img src="/img/logo_condominio.png" alt="Condominio Conjunto Las Mesetas" class="h-10 w-auto object-contain block">
             </div>
             <div>
                 <h2 class="text-2xl font-bold">Pago de Conjunto</h2>

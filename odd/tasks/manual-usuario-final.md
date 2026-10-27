@@ -1,6 +1,6 @@
 # Manual de Usuario Final — plan y estado
 
-**Objetivo:** `docs/manual de usuario final.docx` (español) del Sistema de Cobranzas — Conjunto Residencial "Las Mesetas de Morón" (Condominio Digital): guía completa (PARTE I administrador/fiscalización, PARTE II residente) con capturas embebidas y pendientes marcadas; regenerable con `scripts/manual/build_manual.ps1` desde `scripts/manual/contenido_manual.json`.
+**Objetivo:** `docs/manual de usuario final.docx` (español) del Sistema de Cobranzas — Condominio Conjunto "Las Mesetas de Morón" (Condominio Digital): guía completa (PARTE I administrador/fiscalización, PARTE II residente) con capturas embebidas y pendientes marcadas; regenerable con `scripts/manual/build_manual.ps1` desde `scripts/manual/contenido_manual.json`.
 
 ## Estado (2026-10-12)
 

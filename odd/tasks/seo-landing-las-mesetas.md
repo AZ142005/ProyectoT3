@@ -9,7 +9,7 @@ Posicionar el conjunto para búsquedas de marca en Venezuela (`conjunto las mese
 
 ## Contexto verificado
 
-- Entidad oficial: **Conjunto Residencial "Las Mesetas de Morón"**.
+- Entidad oficial: **Condominio Conjunto "Las Mesetas de Morón"**.
 - Dirección: Av. Principal de Morón, Urb. Las Mesetas, Parroquia Mercedes Díaz, Valera, Estado Trujillo, Venezuela.
 - Teléfono: 0271-2259170. RIF: J-400577870. Correo: pagosjdclm@gmail.com.
 - Redes oficiales confirmadas por el usuario: Instagram `@conjunto.lasmesetas` y Facebook `lasmesetasdmoron`.
