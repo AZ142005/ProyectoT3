@@ -42,11 +42,18 @@ class ReporteConciliacionService {
     }
 
     /**
+     * Devuelve la ruta canónica del directorio de reportes sin crearlo.
+     */
+    private function rutaReportes(): string {
+        return BASE_PATH . '/storage/backups/reportes_conciliacion';
+    }
+
+    /**
      * Devuelve (y crea si hace falta) el directorio privado de reportes.
      * El .htaccess defensivo evita el acceso HTTP directo a los archivos.
      */
     public function directorioReportes(): string {
-        $dir = BASE_PATH . '/storage/backups/reportes_conciliacion';
+        $dir = $this->rutaReportes();
 
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
@@ -82,7 +89,10 @@ class ReporteConciliacionService {
             throw new \InvalidArgumentException('No existe el lote de importación indicado: ' . $lote);
         }
 
-        $conciliados = $this->model->obtenerMovimientosConciliados($fechaCorte);
+        // El snapshot se construye de forma sincrónica en el corte: se consultan
+        // todos los conciliados del instante sin filtrar por fecha_carga, porque
+        // date() de PHP y CURRENT_TIMESTAMP de MySQL pueden diferir por zona horaria.
+        $conciliados = $this->model->obtenerMovimientosConciliados();
         $disponibles = $this->model->obtenerDisponiblesLote($lote);
         $pendientes  = $this->model->obtenerTodosPagosPendientes();
 
@@ -380,7 +390,7 @@ class ReporteConciliacionService {
      * Ordena por fecha_corte descendente y, en empate, por nombre base descendente.
      */
     public function listarHistoricos(?string $directorio = null): array {
-        $dir = $directorio ?: $this->directorioReportes();
+        $dir = $directorio ?: $this->rutaReportes();
 
         if (!is_dir($dir)) {
             return [];
@@ -503,7 +513,7 @@ class ReporteConciliacionService {
             return null;
         }
 
-        $dir = $directorio ?: $this->directorioReportes();
+        $dir = $directorio ?: $this->rutaReportes();
         $dirReal = realpath($dir);
         if ($dirReal === false) {
             return null;

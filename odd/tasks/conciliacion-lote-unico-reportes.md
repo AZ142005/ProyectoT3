@@ -79,7 +79,7 @@
   Ruta: delegated writer. Superficies: `app/Models/ConciliacionModel.php` (queries de reporte), `app/Services/ReporteConciliacionService.php`, `tests/ReporteConciliacionTest.php`.  
   Incluye: `obtenerMovimientosConciliados()`, `construir()`, `generarPdf()`, `generarCsv()`, `guardar()` (PDF+CSV+JSON), `listarHistoricos()`, `resolverArchivo()`, `directorioReportes()`, sanitización CSV anti-inyección. Test-first.
 
-- [ ] **T3 — Integración controlador/rutas/vista y cruce automático**  
+- [x] **T3 — Integración controlador/rutas/vista y cruce automático**  
   Ruta: delegated writer. Superficies: `app/Controllers/ConciliacionController.php`, `app/views/admin/conciliacion/index.php`, `public/index.php`, `tests/ConciliacionReporteIntegracionTest.php`.  
   Incluye: snapshot antes de insertar, reporte al reemplazar, cruce automático, flash, lote activo por defecto, rutas de descarga, botones/modal/aviso, tests de wiring y seguridad de descarga. Test-first.
 
@@ -141,7 +141,12 @@
   - Regresiones verdes: `ConciliacionLoteUnicoTest` (9/100), `ExtractosDuplicadosTest` (4/9), `ConciliacionCentralizadaTest` (6/45).
   - Smoke real sobre el lote activo: conciliados=1, disponibles=86, pendientes=2; PDF 7.161 bytes con `%PDF`/`%%EOF`; CSV 6.179 bytes con BOM.
   - Verificación independiente: PASS WITH FINDINGS; se corrigieron el doble conteo, el guard CSV, la validación de sidecars, la limpieza de archivos y la cobertura DB. Riesgos LOW aceptados: contenido PDF no se compara byte a byte más allá de encoding/EOF; fallo de `guardar()` no tiene test ejecutable de path de error.
-- T3, T4 pendientes.
+- **T3 completado y verificado.** `index()` usa el lote activo por defecto, valida `?lote[]`, conserva el filtro de mes y pasa `loteActivo`/`loteExiste`/`loteEsActivo`/`reportesHistoricos`. `importarExtracto()` toma el snapshot del lote saliente antes de insertar, genera lote con sufijo aleatorio, persiste el reporte sólo si hubo filas nuevas/adoptadas, ejecuta el cruce automático sobre el lote activo resultante y conserva el lote anterior en importaciones no-op. Se agregaron descargas actual/histórica con `resolverArchivo`, `readfile` y cabeceras seguras; rutas GET protegidas; botones/modal/avisos en la vista.
+  - `php tests/run.php --filter=ConciliacionReporteIntegracionTest`: **8 tests, 73 aserciones, 0 fallos**.
+  - Regresiones verdes: FiltroMes (3/13), Simplificada (7/31), DetallePagoVista (3/19), MontoDispar (4/29), Centralizada (6/45), Rbac (9/262), T2 (13/94 + 5/14), T1 (9/100).
+  - `check_purity`, `audit_security`, `php -l`: OK. El render de `index()` ya no crea `storage/backups/reportes_conciliacion`; sólo `guardar()` lo hace.
+  - Verificación independiente: PASS WITH FINDINGS; se corrigieron el falso mensaje de fallo en no-op, `?lote[]`, la creación de carpetas en GET, el desfase de zona horaria del corte, el flake de referencia y las etiquetas de botones. Riesgos LOW aceptados: el path no-op y las descargas no tienen test HTTP real (se hará smoke en T4); `fecha_corte` es metadato del snapshot síncrono.
+- T4 pendiente.
 
 ## Próximo paso
-Ejecutar T3 (controlador, rutas, vista y cruce automático) con test-first.
+Ejecutar T4: verificación completa, smoke de importación real, Git (fetch/rebase/merge ff-only/push) y auditoría de `scratch/`.

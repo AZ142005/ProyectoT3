@@ -1,5 +1,10 @@
 <div class="flex flex-1 min-h-screen w-full">
     <?php 
+    $reportesHistoricos = $reportesHistoricos ?? [];
+    $loteActivo = $loteActivo ?? null;
+    $loteExiste = $loteExiste ?? false;
+    $loteEsActivo = $loteEsActivo ?? false;
+
     $activeRoute = 'conciliacion'; 
     if (\App\Core\Auth::role() === 'auditor') {
         require VIEWS_PATH . '/layouts/auditor_sidebar.php';
@@ -47,21 +52,45 @@
                 <!-- Mensajes Flash -->
                 <?php include VIEWS_PATH . '/components/flash_messages.php'; ?>
 
+                <?php if ($loteActual !== null && $loteActual !== '' && !$loteExiste): ?>
+                    <div class="alert alert-warning border border-warning-subtle rounded-3 mb-3 py-2 px-3 small" role="alert">
+                        El lote consultado no existe o no tiene movimientos; la bandeja se muestra sin extractos.
+                    </div>
+                <?php elseif ($loteExiste && !$loteEsActivo): ?>
+                    <div class="alert alert-info border border-info-subtle rounded-3 mb-3 py-2 px-3 small" role="alert">
+                        Lote histórico: los movimientos disponibles de este lote no se muestran en la bandeja. Descargue el reporte histórico.
+                    </div>
+                <?php endif; ?>
+
                 <!-- Barra de Acciones del Contenido -->
                 <div class="flex justify-end items-center mb-3 flex-wrap gap-2">
                     <?php if (!empty($lotes)): ?>
                         <div class="flex items-center gap-2 flex-wrap min-w-0">
-                            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote activo:</label>
+                            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote / Historial:</label>
                             <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs max-w-full min-w-0" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
-                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Todos los movimientos pendientes</option>
+                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Lote activo (último cargado)</option>
                                 <?php foreach ($lotes as $l): ?>
                                     <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
-                                        <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (int)$l['pendientes'] ?> pend.]
+                                        <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (($l['es_activo'] ?? 0)) ? (int)$l['pendientes'] . ' pend.' : 'histórico: ' . (int)$l['conciliados'] . ' conc.' ?>]
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     <?php endif; ?>
+                    <?php if (!empty($loteActivo)): ?>
+                        <a href="/admin/conciliacion/reporte/actual?formato=pdf" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl border border-red-200 text-xs transition-colors inline-flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                            <span>Reporte actual PDF</span>
+                        </a>
+                        <a href="/admin/conciliacion/reporte/actual?formato=csv" class="bg-green-50 hover:bg-green-100 text-green-700 font-bold px-4 py-2.5 rounded-xl border border-green-200 text-xs transition-colors inline-flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">table_view</span>
+                            <span>Reporte actual CSV</span>
+                        </a>
+                    <?php endif; ?>
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl border border-slate-200 text-xs transition-colors inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalReportesHistoricos">
+                        <span class="material-symbols-outlined text-[16px]">history</span>
+                        <span>Históricos (<?= count($reportesHistoricos) ?>)</span>
+                    </button>
                     <button type="button" class="bg-primary hover:bg-primary-hover text-white font-bold px-5 py-2.5 rounded-xl shadow-sm text-xs transition-all flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalImportarExtracto">
                         <span class="material-symbols-outlined text-[16px]">upload_file</span>
                         <span>Importar Extracto</span>
@@ -342,6 +371,10 @@
                         <input type="file" name="archivo_extracto" required accept=".csv,.txt,.pdf" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors">
                         <div class="text-xs text-on-surface-variant">Soporta estados de cuenta PDF de Banco de Venezuela y archivos CSV/TXT. Los débitos se clasificarán automáticamente como descartados.</div>
                     </div>
+
+                    <div class="alert alert-info-subtle border border-info-subtle rounded-3 py-2 px-3 text-xs mb-0" role="note">
+                        Al importar un nuevo extracto, el lote activo anterior deja de ser la fuente vigente y se genera automáticamente su reporte histórico PDF/CSV.
+                    </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
@@ -559,6 +592,74 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Reportes Históricos de Conciliación -->
+<div class="modal fade" id="modalReportesHistoricos" tabindex="-1" aria-labelledby="modalReportesHistoricosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalReportesHistoricosLabel">
+                    <span class="material-symbols-outlined">history</span>
+                    <span>Reportes Históricos de Conciliación</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <?php if (empty($reportesHistoricos)): ?>
+                    <div class="text-center py-5 text-on-surface-variant">
+                        <span class="material-symbols-outlined text-5xl d-block mb-2">folder_off</span>
+                        <p class="font-semibold mb-1">Aún no hay reportes históricos generados.</p>
+                        <p class="text-xs mb-0">Se crearán automáticamente al importar un nuevo lote.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr class="text-xs uppercase text-on-surface-variant font-bold">
+                                    <th class="py-3 px-3">Fecha de corte</th>
+                                    <th class="py-3 px-3">Lote de importación</th>
+                                    <th class="py-3 px-3">Banco</th>
+                                    <th class="py-3 px-3 text-end">Conciliados</th>
+                                    <th class="py-3 px-3 text-end">Disponibles</th>
+                                    <th class="py-3 px-3 text-end">Pendientes</th>
+                                    <th class="py-3 px-3 text-end">PDF</th>
+                                    <th class="py-3 px-3 text-end">CSV</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-background">
+                                <?php foreach ($reportesHistoricos as $r): ?>
+                                    <tr>
+                                        <td class="py-2.5 px-3 text-xs"><?= e($r['fecha_corte']) ?></td>
+                                        <td class="py-2.5 px-3 text-xs font-mono"><?= e($r['lote']) ?></td>
+                                        <td class="py-2.5 px-3 text-xs"><?= e($r['banco'] ?? '') ?></td>
+                                        <td class="py-2.5 px-3 text-xs text-end"><?= (int)($r['conteos']['conciliados'] ?? 0) ?></td>
+                                        <td class="py-2.5 px-3 text-xs text-end"><?= (int)($r['conteos']['disponibles'] ?? 0) ?></td>
+                                        <td class="py-2.5 px-3 text-xs text-end"><?= (int)($r['conteos']['pendientes'] ?? 0) ?></td>
+                                        <td class="py-2.5 px-3 text-xs text-end">
+                                            <a href="/admin/conciliacion/reporte/historico?archivo=<?= urlencode((string)$r['archivo_pdf']) ?>" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 rounded-lg border border-red-200 text-xs transition-colors inline-flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-[14px]">download</span>
+                                                <span>PDF (<?= number_format(((int)($r['tamano_pdf'] ?? 0)) / 1024, 1, ',', '.') ?> KB)</span>
+                                            </a>
+                                        </td>
+                                        <td class="py-2.5 px-3 text-xs text-end">
+                                            <a href="/admin/conciliacion/reporte/historico?archivo=<?= urlencode((string)$r['archivo_csv']) ?>" class="bg-green-50 hover:bg-green-100 text-green-700 font-bold px-3 py-1.5 rounded-lg border border-green-200 text-xs transition-colors inline-flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-[14px]">download</span>
+                                                <span>CSV (<?= number_format(((int)($r['tamano_csv'] ?? 0)) / 1024, 1, ',', '.') ?> KB)</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>

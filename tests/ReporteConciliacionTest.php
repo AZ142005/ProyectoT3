@@ -308,7 +308,7 @@ class ReporteConciliacionTest extends TestCase {
         $this->assertEquals($datos['disponibles'], $resultado['disponibles'], 'Debe exponer los disponibles del modelo');
         $this->assertEquals($datos['pendientes'], $resultado['pendientes'], 'Debe exponer los pendientes del modelo');
         $this->assertEquals('LOTE-T2-2026', $llamadas['lote'] ?? null, 'obtenerDatosLote debe recibir el lote solicitado');
-        $this->assertEquals('2026-01-31 23:59:59', $llamadas['limite'] ?? null, 'La consulta de conciliados debe recibir la fecha de corte');
+        $this->assertNull($llamadas['limite'] ?? null, 'construir no debe filtrar conciliados por fecha_carga (desfase de zona horaria PHP/MySQL)');
         $this->assertEquals('LOTE-T2-2026', $llamadas['lote_disponibles'] ?? null, 'Los disponibles deben consultarse por el lote solicitado');
     }
 
@@ -536,6 +536,23 @@ class ReporteConciliacionTest extends TestCase {
             $this->assertFileExists($guardado['ruta_json'], 'El JSON debe existir en el directorio temporal');
         } finally {
             $this->eliminarDirectorio($dir);
+        }
+    }
+
+    public function testListarYResolverNoCreanElDirectorioDeReportes(): void {
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'reporte_conciliacion_inexistente_' . bin2hex(random_bytes(6));
+
+        try {
+            $this->assertFalse(is_dir($dir), 'El directorio único de prueba no debe existir antes de la comprobación');
+
+            $servicio = new ReporteConciliacionService();
+            $this->assertEquals([], $servicio->listarHistoricos($dir), 'listarHistoricos debe devolver [] si el directorio no existe');
+            $this->assertNull($servicio->resolverArchivo('x.pdf', $dir), 'resolverArchivo debe devolver null si el directorio no existe');
+            $this->assertFalse(is_dir($dir), 'Listar o resolver no deben crear el directorio de reportes');
+        } finally {
+            if (is_dir($dir)) {
+                $this->eliminarDirectorio($dir);
+            }
         }
     }
 

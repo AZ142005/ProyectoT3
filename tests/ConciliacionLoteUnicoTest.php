@@ -581,8 +581,8 @@ class ConciliacionLoteUnicoTest extends TestCase {
 
     public function testCruceInteligenteAceptaEstadoPendiente(): void {
         $p = $this->prefijo();
-        $referencia = $p . '-CRUCE';
-        $referenciaConciliada = $p . '-CRUCE-CONC';
+        $referencia = $p . '-CRUCE-99112233';
+        $referenciaConciliada = $p . '-CRUCE-99112234';
 
         $movimientoPendiente = [
             'id'                  => 990001,

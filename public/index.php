@@ -212,6 +212,8 @@ $router->post('/admin/usuarios/cambiar-rol', [UsuarioAdminController::class, 'ca
 $router->post('/admin/usuarios/procesar-solicitud-cambio', [UsuarioAdminController::class, 'procesarSolicitudCambio'], [UserRole::ADMIN]);
 
 // --- Módulo de Conciliación Bancaria Inteligente (RF 26, RF 27, RF 28) ---
+$router->get('/admin/conciliacion/reporte/actual', [\App\Controllers\ConciliacionController::class, 'descargarReporteActual'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/conciliacion/reporte/historico', [\App\Controllers\ConciliacionController::class, 'descargarReporteHistorico'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->get('/admin/conciliacion', [\App\Controllers\ConciliacionController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/conciliacion/importar', [\App\Controllers\ConciliacionController::class, 'importarExtracto'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/conciliacion/conciliar', [\App\Controllers\ConciliacionController::class, 'conciliarPago'], [UserRole::ADMIN, UserRole::AUDITOR]);

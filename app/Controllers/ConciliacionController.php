@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Models\ConciliacionModel;
 use App\Services\ConciliacionBancariaService;
+use App\Services\ReporteConciliacionService;
 
 class ConciliacionController extends Controller {
 
@@ -19,7 +20,12 @@ class ConciliacionController extends Controller {
         $conciliacionService = new ConciliacionBancariaService();
 
         $lotes = $conciliacionModel->obtenerLotes();
-        $loteSeleccionado = $_GET['lote'] ?? ($lotes[0]['lote_importacion'] ?? null);
+        $loteActivo = $conciliacionModel->obtenerLoteActivo();
+        $loteRecibido = $_GET['lote'] ?? null;
+        $loteSeleccionado = (is_string($loteRecibido) && $loteRecibido !== '') ? $loteRecibido : $loteActivo;
+        $lotesPorNombre = array_column($lotes, 'lote_importacion');
+        $loteExiste = $loteSeleccionado !== null && in_array($loteSeleccionado, $lotesPorNombre, true);
+        $reportesHistoricos = (new ReporteConciliacionService())->listarHistoricos();
 
         $extractosPendientes = $conciliacionModel->obtenerExtractosPendientes($loteSeleccionado);
         $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractosPendientes);
@@ -136,9 +142,15 @@ class ConciliacionController extends Controller {
             'lote' => $loteSeleccionado ?? '',
         ];
 
+        $loteEsActivo = $loteExiste && $loteSeleccionado === $loteActivo;
+
         $this->render('admin/conciliacion/index', [
             'lotes'                 => $lotes,
             'loteActual'            => $loteSeleccionado,
+            'loteActivo'            => $loteActivo,
+            'loteExiste'            => $loteExiste,
+            'loteEsActivo'          => $loteEsActivo,
+            'reportesHistoricos'    => $reportesHistoricos,
             'resultadoCruce'        => $resultadoCruce,
             'pagosPendientes'       => $pagosPendientes,
             'mesPagosActual'        => $fechaMesActual->format('m/Y'),
@@ -205,20 +217,227 @@ class ConciliacionController extends Controller {
 
         try {
             $conciliacionService = new ConciliacionBancariaService();
+            $reporteService = new ReporteConciliacionService();
+            $conciliacionModel = new ConciliacionModel();
+
             $movimientos = $conciliacionService->parsearArchivo($file['tmp_name'], $banco);
 
-            $lote = 'LOTE-' . date('Ymd-His');
-            $conciliacionModel = new ConciliacionModel();
-            $stats = $conciliacionModel->insertarExtracto($movimientos, $banco, $lote);
+            // Snapshot del lote saliente antes de insertar el nuevo: congela el
+            // estado que se convertirá en reporte histórico.
+            $loteAnterior = $conciliacionModel->obtenerLoteActivo();
+            $fechaCorte = date('Y-m-d H:i:s');
 
-            $msg = "Extracto importado con éxito. Lote: {$lote}. Insertados: {$stats['insertados']} (Créditos), Débitos descartados: {$stats['debitos']}, Duplicados omitidos: {$stats['duplicados']}.";
-            Flash::set('success', $msg);
-            $this->redirect('/admin/conciliacion?lote=' . urlencode($lote));
+            $snapshotReporte = null;
+            if ($loteAnterior !== null) {
+                try {
+                    $snapshotReporte = $reporteService->construir($loteAnterior, $fechaCorte);
+                } catch (\Throwable $e) {
+                    error_log("[CONCILIACION] No se pudo construir el reporte del lote saliente: " . $e->getMessage());
+                    $snapshotReporte = null;
+                }
+            }
+
+            $lote = 'LOTE-' . date('Ymd-His') . '-' . bin2hex(random_bytes(2));
+            $stats = $conciliacionModel->insertarExtracto($movimientos, $banco, $lote);
+            $adoptados = (int)($stats['adoptados'] ?? 0);
+            $nuevos = (int)$stats['insertados'] + $adoptados;
+
+            $reporteGuardado = null;
+            if ($loteAnterior !== null && $snapshotReporte !== null && $nuevos > 0) {
+                try {
+                    $reporteGuardado = $reporteService->guardar($snapshotReporte);
+                } catch (\Throwable $e) {
+                    error_log("[CONCILIACION] No se pudo guardar el reporte del lote saliente: " . $e->getMessage());
+                    $reporteGuardado = null;
+                }
+            }
+
+            $loteActivo = $conciliacionModel->obtenerLoteActivo();
+
+            // Cruce automático sobre los disponibles del lote activo resultante.
+            $resultadoCruce = null;
+            $cruceError = false;
+            if ($nuevos > 0 && $loteActivo !== null) {
+                try {
+                    $extractos = $conciliacionModel->obtenerExtractosPendientes($loteActivo);
+                    $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractos);
+                } catch (\Throwable $e) {
+                    error_log("[CONCILIACION] Error en cruce automático tras importar: " . $e->getMessage());
+                    $cruceError = true;
+                }
+            }
+
+            $mensajeLote = $nuevos > 0
+                ? "Extracto importado con éxito. Lote: {$lote}."
+                : "Extracto procesado sin movimientos nuevos. Lote: {$lote}.";
+
+            $msg = $mensajeLote
+                . " Insertados: {$stats['insertados']} (Créditos), Adoptados: {$adoptados},"
+                . " Débitos descartados: {$stats['debitos']}, Duplicados omitidos: {$stats['duplicados']}.";
+
+            if ($nuevos === 0 && $loteAnterior !== null) {
+                $msg .= " Se mantiene el lote activo anterior: {$loteAnterior}.";
+            }
+
+            if ($resultadoCruce !== null) {
+                $msg .= ' Cruce automático: '
+                    . count($resultadoCruce['coincidencias_exactas']) . ' exactas, '
+                    . count($resultadoCruce['coincidencias_sugeridas']) . ' sugeridas, '
+                    . count($resultadoCruce['inconsistencias']) . ' inconsistencias, '
+                    . count($resultadoCruce['sin_coincidencia']) . ' sin coincidencia.';
+            } elseif ($cruceError) {
+                $msg .= ' El cruce automático no pudo completarse; los movimientos quedaron disponibles para revisión.';
+            }
+
+            if ($reporteGuardado !== null) {
+                $msg .= " Reporte histórico generado: {$reporteGuardado['archivo_pdf']} y {$reporteGuardado['archivo_csv']}.";
+            } elseif ($loteAnterior !== null && $nuevos > 0 && $snapshotReporte === null) {
+                $msg .= ' No se pudo construir el reporte histórico del lote anterior.';
+            } elseif ($loteAnterior !== null && $nuevos > 0 && $reporteGuardado === null) {
+                $msg .= ' No se pudo guardar el reporte histórico del lote anterior.';
+            }
+
+            Flash::set($nuevos > 0 ? 'success' : 'info', $msg);
+
+            $destino = $loteActivo !== null
+                ? '/admin/conciliacion?lote=' . urlencode($loteActivo)
+                : '/admin/conciliacion';
+            $this->redirect($destino);
         } catch (\Exception $e) {
             error_log("[CONCILIACION] Error importar extracto: " . $e->getMessage());
             Flash::set('danger', 'Error al procesar el archivo del extracto bancario. Verifique el formato e intente de nuevo.');
             $this->redirect('/admin/conciliacion');
         }
+    }
+
+    /**
+     * Genera bajo demanda y descarga el reporte de conciliación del lote activo.
+     */
+    public function descargarReporteActual() {
+        Auth::requireRole(['admin', 'auditor']);
+
+        $formatoRecibido = $_GET['formato'] ?? '';
+        $formato = is_string($formatoRecibido) ? strtolower(trim($formatoRecibido)) : '';
+        if (!in_array($formato, ['pdf', 'csv'], true)) {
+            Flash::set('danger', 'Formato de reporte no válido. Solicite PDF o CSV.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $reporteService = new ReporteConciliacionService();
+        $conciliacionModel = new ConciliacionModel();
+        $lote = $conciliacionModel->obtenerLoteActivo();
+
+        if ($lote === null) {
+            Flash::set('danger', 'No hay un lote activo para generar el reporte de conciliación.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        try {
+            $datos = $reporteService->construir($lote);
+            $contenido = ($formato === 'pdf')
+                ? $reporteService->generarPdf($datos)
+                : $reporteService->generarCsv($datos);
+        } catch (\Throwable $e) {
+            error_log("[CONCILIACION] Error al generar reporte actual: " . $e->getMessage());
+            Flash::set('danger', 'No se pudo generar el reporte de conciliación.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        if ($contenido === '') {
+            Flash::set('danger', 'El reporte generado está vacío.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $rutaTemporal = tempnam(sys_get_temp_dir(), 'concrep_');
+        if ($rutaTemporal === false) {
+            Flash::set('danger', 'No se pudo preparar el archivo temporal del reporte.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        register_shutdown_function(static function () use ($rutaTemporal): void {
+            if (is_file($rutaTemporal)) {
+                @unlink($rutaTemporal);
+            }
+        });
+
+        if (@file_put_contents($rutaTemporal, $contenido, LOCK_EX) === false) {
+            Flash::set('danger', 'No se pudo escribir el archivo temporal del reporte.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $loteSeguro = preg_replace('/[^A-Za-z0-9_-]/', '_', $lote);
+        $loteSeguro = is_string($loteSeguro) ? trim($loteSeguro, '._-') : '';
+        if ($loteSeguro === '') {
+            $loteSeguro = 'lote';
+        }
+
+        $nombre = 'reporte_conciliacion_' . $loteSeguro . '_' . date('Ymd-His') . '.' . $formato;
+        $mime = ($formato === 'pdf') ? 'application/pdf' : 'text/csv; charset=UTF-8';
+
+        $this->enviarArchivo($rutaTemporal, $nombre, $mime);
+    }
+
+    /**
+     * Descarga un reporte histórico previamente guardado en disco.
+     */
+    public function descargarReporteHistorico() {
+        Auth::requireRole(['admin', 'auditor']);
+
+        $reporteService = new ReporteConciliacionService();
+        $archivoRecibido = $_GET['archivo'] ?? '';
+        $archivo = is_string($archivoRecibido) ? $archivoRecibido : '';
+        $ruta = $reporteService->resolverArchivo($archivo);
+
+        if ($ruta === null) {
+            Flash::set('danger', 'El archivo de reporte solicitado no existe o no es válido.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $extension = strtolower(pathinfo($ruta, PATHINFO_EXTENSION));
+        $mimes = [
+            'pdf' => 'application/pdf',
+            'csv' => 'text/csv; charset=UTF-8',
+        ];
+
+        if (!isset($mimes[$extension])) {
+            Flash::set('danger', 'Formato de archivo de reporte no permitido.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $this->enviarArchivo($ruta, basename($ruta), $mimes[$extension]);
+    }
+
+    /**
+     * Transmite un archivo de reporte con cabeceras seguras de descarga.
+     */
+    private function enviarArchivo(string $ruta, string $nombre, string $mime): void {
+        if (!is_file($ruta) || !is_readable($ruta)) {
+            Flash::set('danger', 'El archivo de reporte no está disponible para descarga.');
+            $this->redirect('/admin/conciliacion');
+            return;
+        }
+
+        $nombreSeguro = preg_replace('/[^A-Za-z0-9._-]/', '_', basename($nombre));
+        if (!is_string($nombreSeguro) || $nombreSeguro === '') {
+            $nombreSeguro = 'reporte';
+        }
+
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: attachment; filename="' . $nombreSeguro . '"');
+        header('Content-Length: ' . (string)filesize($ruta));
+        header('Cache-Control: private, no-store, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+
+        readfile($ruta);
+        exit;
     }
 
     /**
