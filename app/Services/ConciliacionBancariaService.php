@@ -479,9 +479,20 @@ class ConciliacionBancariaService {
         $pagosEmparejadosKeys = [];
 
         foreach ($movimientosExtracto as $mov) {
-            // Exclusión dura en cruce inteligente: omitir movimientos no disponibles, ya conciliados o anulados
-            $estadoMov = strtolower(trim($mov['estado'] ?? ($mov['estado_conciliacion'] ?? 'disponible')));
-            if ($estadoMov === 'conciliado' || $estadoMov === 'anulado' || $estadoMov === 'descartado' || $estadoMov !== 'disponible') {
+            // Exclusión dura en cruce inteligente: se evalúan ambos campos de estado.
+            // Si cualquiera marca conciliado, anulado o descartado, el movimiento
+            // queda fuera. Luego se exige que el estado efectivo sea disponible o
+            // pendiente (compatibilidad con filas legacy).
+            $estadoMov = strtolower(trim((string)($mov['estado'] ?? '')));
+            $estadoConciliacionMov = strtolower(trim((string)($mov['estado_conciliacion'] ?? '')));
+            $estadosBloqueados = ['conciliado', 'anulado', 'descartado'];
+
+            if (in_array($estadoMov, $estadosBloqueados, true) || in_array($estadoConciliacionMov, $estadosBloqueados, true)) {
+                continue;
+            }
+
+            $estadoEfectivo = $estadoMov !== '' ? $estadoMov : ($estadoConciliacionMov !== '' ? $estadoConciliacionMov : 'disponible');
+            if (!in_array($estadoEfectivo, ['disponible', 'pendiente'], true)) {
                 continue;
             }
 

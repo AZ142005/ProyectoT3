@@ -10,18 +10,48 @@ class ConciliacionModel extends BaseModel {
     /**
      * Inserta un lote de movimientos bancarios validando duplicados y clasificando débitos/créditos.
      *
+     * Los duplicados no conciliados de un lote anterior se adoptan: se actualiza
+     * su lote, banco, descripciones y fecha de carga sin tocar estado, vínculo
+     * de pago ni administrador. Los duplicados conciliados nunca se modifican.
+     *
      * @param array $movimientos [['fecha' => 'Y-m-d', 'referencia' => '...', 'descripcion' => '...', 'monto' => float, 'tipo' => 'credito'|'debito']]
      * @param string $banco
      * @param string $lote
-     * @return array ['insertados' => int, 'duplicados' => int, 'debitos' => int]
+     * @return array ['insertados' => int, 'duplicados' => int, 'debitos' => int, 'adoptados' => int]
      */
     public function insertarExtracto(array $movimientos, string $banco, string $lote): array {
         $db = $this->db();
 
         $stmtCheck = $db->prepare("
-            SELECT id FROM extractos_bancarios 
+            SELECT id, estado, estado_conciliacion, pago_id, lote_importacion,
+                   EXISTS (
+                       SELECT 1 FROM conciliacion_abono_pago c
+                       WHERE c.movimiento_id = extractos_bancarios.id
+                   ) AS tiene_vinculo
+            FROM extractos_bancarios 
             WHERE referencia_bancaria = :ref AND fecha_movimiento = :fecha AND monto = :monto
             LIMIT 1
+        ");
+
+        // Adopción condicional y atómica: si entre el SELECT y el UPDATE la fila
+        // fue conciliada o vinculada, rowCount() será 0 y no se contará adopción.
+        $stmtAdopt = $db->prepare("
+            UPDATE extractos_bancarios
+               SET lote_importacion = :lote,
+                   banco = :banco,
+                   descripcion_banco = :desc_banco,
+                   descripcion = :descripcion,
+                   fecha_carga = CURRENT_TIMESTAMP,
+                   actualizado_en = CURRENT_TIMESTAMP
+             WHERE id = :id
+               AND lote_importacion = :lote_esperado
+               AND (estado IN ('disponible', 'pendiente') OR (estado IS NULL AND estado_conciliacion = 'pendiente'))
+               AND (estado_conciliacion IS NULL OR estado_conciliacion = 'pendiente')
+               AND (pago_id IS NULL OR pago_id = 0)
+               AND NOT EXISTS (
+                   SELECT 1 FROM conciliacion_abono_pago c
+                   WHERE c.movimiento_id = extractos_bancarios.id
+               )
         ");
 
         $sqlInsert = "
@@ -34,6 +64,7 @@ class ConciliacionModel extends BaseModel {
         $insertados = 0;
         $duplicados = 0;
         $debitos = 0;
+        $adoptados = 0;
 
         foreach ($movimientos as $mov) {
             $monto = floatval($mov['monto'] ?? 0);
@@ -49,9 +80,41 @@ class ConciliacionModel extends BaseModel {
                 'fecha' => $fecha,
                 'monto' => $montoAbs
             ]);
+            $existente = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
-            if ($stmtCheck->rowCount() > 0) {
+            if ($existente !== false) {
                 $duplicados++;
+
+                $estadoFila = $existente['estado'];
+                $estadoConciliacionFila = $existente['estado_conciliacion'];
+
+                // Nunca se toca una fila ya conciliada, por estado, pago o vínculo 1:1.
+                $conciliada = $estadoFila === 'conciliado'
+                    || $estadoConciliacionFila === 'conciliado'
+                    || !empty($existente['pago_id'])
+                    || (int)($existente['tiene_vinculo'] ?? 0) === 1;
+
+                $disponible = (in_array($estadoFila, ['disponible', 'pendiente'], true)
+                        || ($estadoFila === null && $estadoConciliacionFila === 'pendiente'))
+                    && ($estadoConciliacionFila === null || $estadoConciliacionFila === 'pendiente')
+                    && empty($existente['pago_id']);
+
+                // Un duplicado disponible de un lote anterior se adopta al lote nuevo.
+                if (!$conciliada && $disponible && $existente['lote_importacion'] !== $lote) {
+                    $stmtAdopt->execute([
+                        'lote'         => $lote,
+                        'banco'        => $banco,
+                        'desc_banco'   => $desc,
+                        'descripcion'   => $desc,
+                        'id'            => $existente['id'],
+                        'lote_esperado' => $existente['lote_importacion']
+                    ]);
+
+                    if ($stmtAdopt->rowCount() === 1) {
+                        $adoptados++;
+                    }
+                }
+
                 continue;
             }
 
@@ -95,15 +158,67 @@ class ConciliacionModel extends BaseModel {
         return [
             'insertados' => $insertados,
             'duplicados' => $duplicados,
-            'debitos'    => $debitos
+            'debitos'    => $debitos,
+            'adoptados'  => $adoptados
         ];
     }
 
     /**
-     * Obtiene los extractos bancarios pendientes de conciliación (solo créditos disponibles no vinculados).
-     * Aplica exclusión dura a nivel de consulta SQL (defensa en profundidad).
+     * Obtiene el lote de importación activo: el de mayor fecha_carga y, en
+     * empate, el de mayor id. Devuelve null cuando no hay extractos.
+     */
+    public function obtenerLoteActivo(): ?string {
+        $db = $this->db();
+        $stmt = $db->query("
+            SELECT lote_importacion
+            FROM extractos_bancarios
+            GROUP BY lote_importacion
+            ORDER BY MAX(fecha_carga) DESC, MAX(id) DESC
+            LIMIT 1
+        ");
+        $lote = $stmt->fetchColumn();
+
+        if ($lote === false || $lote === null || $lote === '') {
+            return null;
+        }
+
+        return (string)$lote;
+    }
+
+    /**
+     * Obtiene los extractos bancarios pendientes de conciliación del lote activo
+     * (solo créditos disponibles no vinculados). Aplica exclusión dura a nivel
+     * de consulta SQL (defensa en profundidad).
+     *
+     * Un lote histórico no se expone en la bandeja: si $lote difiere del activo
+     * devuelve []. Para reportes históricos usar obtenerDisponiblesLote().
      */
     public function obtenerExtractosPendientes(?string $lote = null): array {
+        $loteActivo = $this->obtenerLoteActivo();
+
+        if ($loteActivo === null) {
+            return [];
+        }
+
+        if ($lote !== null && $lote !== '' && $lote !== $loteActivo) {
+            return [];
+        }
+
+        return $this->consultarDisponiblesPorLote($loteActivo);
+    }
+
+    /**
+     * Obtiene los créditos disponibles de un lote concreto sin validar que sea
+     * el lote activo. Consulta cruda reutilizada por reportes históricos.
+     */
+    public function obtenerDisponiblesLote(string $lote): array {
+        return $this->consultarDisponiblesPorLote($lote);
+    }
+
+    /**
+     * Consulta base de créditos disponibles no vinculados de un lote.
+     */
+    private function consultarDisponiblesPorLote(string $lote): array {
         $db = $this->db();
         $sql = "
             SELECT m.*,
@@ -116,25 +231,19 @@ class ConciliacionModel extends BaseModel {
                    COALESCE(m.estado, 'disponible') AS estado
             FROM extractos_bancarios m
             WHERE (m.estado IN ('disponible', 'pendiente') OR (m.estado IS NULL AND m.estado_conciliacion = 'pendiente'))
-              AND m.estado NOT IN ('conciliado', 'anulado', 'descartado')
               AND (m.estado_conciliacion IS NULL OR m.estado_conciliacion = 'pendiente')
+              AND (m.pago_id IS NULL OR m.pago_id = 0)
               AND m.tipo_movimiento = 'credito'
+              AND m.lote_importacion = :lote
               AND NOT EXISTS (
                   SELECT 1 FROM conciliacion_abono_pago c
                   WHERE c.movimiento_id = m.id
               )
+            ORDER BY fecha_movimiento DESC, id DESC
         ";
-        $params = [];
-
-        if (!empty($lote)) {
-            $sql .= " AND m.lote_importacion = :lote";
-            $params['lote'] = $lote;
-        }
-
-        $sql .= " ORDER BY fecha_movimiento DESC, id DESC";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute(['lote' => $lote]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -223,7 +332,7 @@ class ConciliacionModel extends BaseModel {
                        admin_id = :admin_id,
                        actualizado_en = CURRENT_TIMESTAMP
                  WHERE id = :id
-                   AND (estado = 'disponible' OR (estado IS NULL AND estado_conciliacion = 'pendiente'))
+                   AND (estado IN ('disponible', 'pendiente') OR (estado IS NULL AND estado_conciliacion = 'pendiente'))
             ");
             $stmtUpdateExt->execute([
                 'pago_id'  => $pagoId,
@@ -409,20 +518,38 @@ class ConciliacionModel extends BaseModel {
 
     /**
      * Obtiene el listado de lotes importados con métricas de conciliación.
+     * Marca con es_activo el lote vigente y cuenta como pendientes solo los
+     * créditos realmente disponibles (sin vínculo de pago).
      */
     public function obtenerLotes(): array {
         $db = $this->db();
         $sql = "
-            SELECT lote_importacion, banco, MIN(fecha_carga) AS fecha_importacion,
+            SELECT e.lote_importacion, e.banco, MIN(e.fecha_carga) AS fecha_importacion,
                    COUNT(*) AS total_movimientos,
-                   SUM(CASE WHEN estado_conciliacion = 'conciliado' THEN 1 ELSE 0 END) AS conciliados,
-                   SUM(CASE WHEN estado_conciliacion = 'pendiente' AND tipo_movimiento = 'credito' THEN 1 ELSE 0 END) AS pendientes,
-                   SUM(CASE WHEN tipo_movimiento = 'debito' OR estado_conciliacion = 'descartado' THEN 1 ELSE 0 END) AS descartados
-            FROM extractos_bancarios
-            GROUP BY lote_importacion, banco
-            ORDER BY fecha_importacion DESC
+                   SUM(CASE WHEN e.estado = 'conciliado' OR e.estado_conciliacion = 'conciliado' THEN 1 ELSE 0 END) AS conciliados,
+                   SUM(CASE WHEN (e.estado IN ('disponible', 'pendiente') OR (e.estado IS NULL AND e.estado_conciliacion = 'pendiente'))
+                             AND (e.estado_conciliacion IS NULL OR e.estado_conciliacion = 'pendiente')
+                             AND e.tipo_movimiento = 'credito'
+                             AND (e.pago_id IS NULL OR e.pago_id = 0)
+                             AND vinculo.movimiento_id IS NULL
+                        THEN 1 ELSE 0 END) AS pendientes,
+                   SUM(CASE WHEN e.tipo_movimiento = 'debito' OR e.estado_conciliacion = 'descartado' THEN 1 ELSE 0 END) AS descartados
+            FROM extractos_bancarios e
+            LEFT JOIN (
+                SELECT DISTINCT movimiento_id FROM conciliacion_abono_pago
+            ) vinculo ON vinculo.movimiento_id = e.id
+            GROUP BY e.lote_importacion, e.banco
+            ORDER BY MAX(e.fecha_carga) DESC, MAX(e.id) DESC
         ";
-        return $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $lotes = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $loteActivo = $this->obtenerLoteActivo();
+
+        foreach ($lotes as &$lote) {
+            $lote['es_activo'] = ($loteActivo !== null && $lote['lote_importacion'] === $loteActivo) ? 1 : 0;
+        }
+        unset($lote);
+
+        return $lotes;
     }
 
     /**
