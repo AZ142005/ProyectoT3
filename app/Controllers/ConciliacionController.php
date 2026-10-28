@@ -20,14 +20,25 @@ class ConciliacionController extends Controller {
         $conciliacionService = new ConciliacionBancariaService();
 
         $lotes = $conciliacionModel->obtenerLotes();
-        $loteActivo = $conciliacionModel->obtenerLoteActivo();
+        $lotesVentana = $conciliacionModel->obtenerLotesVentana(3);
         $loteRecibido = $_GET['lote'] ?? null;
-        $loteSeleccionado = (is_string($loteRecibido) && $loteRecibido !== '') ? $loteRecibido : $loteActivo;
+        $loteSeleccionado = (is_string($loteRecibido) && $loteRecibido !== '') ? $loteRecibido : null;
         $lotesPorNombre = array_column($lotes, 'lote_importacion');
         $loteExiste = $loteSeleccionado !== null && in_array($loteSeleccionado, $lotesPorNombre, true);
+
+        $nombresVentana = array_column($lotesVentana, 'lote_importacion');
+        $loteEsActivo = $loteExiste && in_array($loteSeleccionado, $nombresVentana, true);
+
         $reportesHistoricos = (new ReporteConciliacionService())->listarHistoricos();
 
-        $extractosPendientes = $conciliacionModel->obtenerExtractosPendientes($loteSeleccionado);
+        if ($loteSeleccionado === null) {
+            $extractosPendientes = $conciliacionModel->obtenerExtractosPendientesVentana(3);
+        } elseif ($loteExiste) {
+            $extractosPendientes = $conciliacionModel->obtenerExtractosPendientes($loteSeleccionado);
+        } else {
+            $extractosPendientes = [];
+        }
+
         $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractosPendientes);
         $pagosPendientes = $conciliacionModel->obtenerTodosPagosPendientes();
 
@@ -142,12 +153,10 @@ class ConciliacionController extends Controller {
             'lote' => $loteSeleccionado ?? '',
         ];
 
-        $loteEsActivo = $loteExiste && $loteSeleccionado === $loteActivo;
-
         $this->render('admin/conciliacion/index', [
             'lotes'                 => $lotes,
+            'lotesVentana'          => $lotesVentana,
             'loteActual'            => $loteSeleccionado,
-            'loteActivo'            => $loteActivo,
             'loteExiste'            => $loteExiste,
             'loteEsActivo'          => $loteEsActivo,
             'reportesHistoricos'    => $reportesHistoricos,
@@ -222,17 +231,25 @@ class ConciliacionController extends Controller {
 
             $movimientos = $conciliacionService->parsearArchivo($file['tmp_name'], $banco);
 
-            // Snapshot del lote saliente antes de insertar el nuevo: congela el
-            // estado que se convertirá en reporte histórico.
-            $loteAnterior = $conciliacionModel->obtenerLoteActivo();
-            $fechaCorte = date('Y-m-d H:i:s');
+            // Ventana previa del banco: si ya tiene 3 lotes, el más antiguo
+            // saldrá de la ventana al entrar el nuevo lote. El snapshot se toma
+            // antes de insertar/adoptar para congelar su estado histórico.
+            $ventanaPrevia = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, 3);
+            $loteExpulsado = count($ventanaPrevia) >= 3
+                ? (string)($ventanaPrevia[count($ventanaPrevia) - 1]['lote_importacion'] ?? '')
+                : '';
+            if ($loteExpulsado === '') {
+                $loteExpulsado = null;
+            }
 
+            $fechaCorte = date('Y-m-d H:i:s');
             $snapshotReporte = null;
-            if ($loteAnterior !== null) {
+
+            if ($loteExpulsado !== null) {
                 try {
-                    $snapshotReporte = $reporteService->construir($loteAnterior, $fechaCorte);
+                    $snapshotReporte = $reporteService->construir($loteExpulsado, $fechaCorte);
                 } catch (\Throwable $e) {
-                    error_log("[CONCILIACION] No se pudo construir el reporte del lote saliente: " . $e->getMessage());
+                    error_log("[CONCILIACION] No se pudo construir el reporte del lote expulsado: " . $e->getMessage());
                     $snapshotReporte = null;
                 }
             }
@@ -243,23 +260,23 @@ class ConciliacionController extends Controller {
             $nuevos = (int)$stats['insertados'] + $adoptados;
 
             $reporteGuardado = null;
-            if ($loteAnterior !== null && $snapshotReporte !== null && $nuevos > 0) {
+            if ($loteExpulsado !== null && $snapshotReporte !== null && $nuevos > 0) {
                 try {
                     $reporteGuardado = $reporteService->guardar($snapshotReporte);
                 } catch (\Throwable $e) {
-                    error_log("[CONCILIACION] No se pudo guardar el reporte del lote saliente: " . $e->getMessage());
+                    error_log("[CONCILIACION] No se pudo guardar el reporte del lote expulsado: " . $e->getMessage());
                     $reporteGuardado = null;
                 }
             }
 
-            $loteActivo = $conciliacionModel->obtenerLoteActivo();
+            $ventanaPosterior = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, 3);
 
-            // Cruce automático sobre los disponibles del lote activo resultante.
+            // Cruce automático sobre todos los disponibles de la ventana.
             $resultadoCruce = null;
             $cruceError = false;
-            if ($nuevos > 0 && $loteActivo !== null) {
+            if ($nuevos > 0) {
                 try {
-                    $extractos = $conciliacionModel->obtenerExtractosPendientes($loteActivo);
+                    $extractos = $conciliacionModel->obtenerExtractosPendientesVentana(3);
                     $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractos);
                 } catch (\Throwable $e) {
                     error_log("[CONCILIACION] Error en cruce automático tras importar: " . $e->getMessage());
@@ -273,10 +290,22 @@ class ConciliacionController extends Controller {
 
             $msg = $mensajeLote
                 . " Insertados: {$stats['insertados']} (Créditos), Adoptados: {$adoptados},"
-                . " Débitos descartados: {$stats['debitos']}, Duplicados omitidos: {$stats['duplicados']}.";
+                . " Débitos descartados: {$stats['debitos']}, Duplicados omitidos: {$stats['duplicados']}."
+                . ' Ventana activa: ' . count($ventanaPosterior) . ' lote(s) del banco.';
 
-            if ($nuevos === 0 && $loteAnterior !== null) {
-                $msg .= " Se mantiene el lote activo anterior: {$loteAnterior}.";
+            if ($nuevos === 0) {
+                $msg .= ' La ventana no rotó porque no hubo movimientos nuevos.';
+            }
+
+            if ($loteExpulsado !== null && $nuevos > 0) {
+                $msg .= " Lote archivado: {$loteExpulsado}.";
+                if ($reporteGuardado !== null) {
+                    $msg .= " Reporte histórico generado: {$reporteGuardado['archivo_pdf']} y {$reporteGuardado['archivo_csv']}.";
+                } elseif ($snapshotReporte === null) {
+                    $msg .= ' No se pudo construir el reporte histórico del lote archivado.';
+                } else {
+                    $msg .= ' No se pudo guardar el reporte histórico del lote archivado.';
+                }
             }
 
             if ($resultadoCruce !== null) {
@@ -289,18 +318,10 @@ class ConciliacionController extends Controller {
                 $msg .= ' El cruce automático no pudo completarse; los movimientos quedaron disponibles para revisión.';
             }
 
-            if ($reporteGuardado !== null) {
-                $msg .= " Reporte histórico generado: {$reporteGuardado['archivo_pdf']} y {$reporteGuardado['archivo_csv']}.";
-            } elseif ($loteAnterior !== null && $nuevos > 0 && $snapshotReporte === null) {
-                $msg .= ' No se pudo construir el reporte histórico del lote anterior.';
-            } elseif ($loteAnterior !== null && $nuevos > 0 && $reporteGuardado === null) {
-                $msg .= ' No se pudo guardar el reporte histórico del lote anterior.';
-            }
-
             Flash::set($nuevos > 0 ? 'success' : 'info', $msg);
 
-            $destino = $loteActivo !== null
-                ? '/admin/conciliacion?lote=' . urlencode($loteActivo)
+            $destino = $nuevos > 0
+                ? '/admin/conciliacion?lote=' . urlencode($lote)
                 : '/admin/conciliacion';
             $this->redirect($destino);
         } catch (\Exception $e) {
@@ -326,16 +347,16 @@ class ConciliacionController extends Controller {
 
         $reporteService = new ReporteConciliacionService();
         $conciliacionModel = new ConciliacionModel();
-        $lote = $conciliacionModel->obtenerLoteActivo();
+        $lotesVentana = $conciliacionModel->obtenerLotesVentana(3);
 
-        if ($lote === null) {
-            Flash::set('danger', 'No hay un lote activo para generar el reporte de conciliación.');
+        if (empty($lotesVentana)) {
+            Flash::set('danger', 'No hay lotes en la ventana activa para generar el reporte de conciliación.');
             $this->redirect('/admin/conciliacion');
             return;
         }
 
         try {
-            $datos = $reporteService->construir($lote);
+            $datos = $reporteService->construirVentana($lotesVentana);
             $contenido = ($formato === 'pdf')
                 ? $reporteService->generarPdf($datos)
                 : $reporteService->generarCsv($datos);
@@ -371,7 +392,8 @@ class ConciliacionController extends Controller {
             return;
         }
 
-        $loteSeguro = preg_replace('/[^A-Za-z0-9_-]/', '_', $lote);
+        $etiquetaReporte = (string)($datos['lote'] ?? 'ventana');
+        $loteSeguro = preg_replace('/[^A-Za-z0-9_-]/', '_', $etiquetaReporte);
         $loteSeguro = is_string($loteSeguro) ? trim($loteSeguro, '._-') : '';
         if ($loteSeguro === '') {
             $loteSeguro = 'lote';

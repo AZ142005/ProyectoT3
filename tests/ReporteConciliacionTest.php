@@ -234,6 +234,108 @@ class ReporteConciliacionTest extends TestCase {
         return new ReporteConciliacionService($modelo);
     }
 
+    private function ventanaFixture(): array {
+        $datos = $this->datosFixture();
+
+        $datos['lotes'] = [
+            [
+                'lote_importacion'   => 'LOTE-VENT-A',
+                'banco'              => 'Banco Único',
+                'fecha_importacion'  => '2026-01-01 08:00:00',
+                'fecha_ultima_carga' => '2026-01-01 09:00:00',
+                'total_movimientos'  => 3,
+            ],
+            [
+                'lote_importacion'   => 'LOTE-VENT-B',
+                'banco'              => 'Banco Único',
+                'fecha_importacion'  => '2026-02-01 08:00:00',
+                'fecha_ultima_carga' => '2026-02-01 09:00:00',
+                'total_movimientos'  => 2,
+            ],
+        ];
+
+        $datos['disponibles_por_lote'] = [
+            'LOTE-VENT-A' => [
+                [
+                    'id'                  => 501,
+                    'lote_importacion'    => 'LOTE-VENT-A',
+                    'fecha_movimiento'    => '2026-02-10',
+                    'referencia_bancaria' => 'REF-VENT-A1',
+                    'descripcion'         => 'Disponible ventana A1',
+                    'monto'               => 120.00,
+                ],
+                [
+                    'id'                  => 502,
+                    'lote_importacion'    => 'LOTE-VENT-A',
+                    'fecha_movimiento'    => '2026-02-11',
+                    'referencia_bancaria' => 'REF-VENT-A2',
+                    'descripcion'         => 'Disponible ventana A2',
+                    'monto'               => 30.25,
+                ],
+            ],
+            'LOTE-VENT-B' => [
+                [
+                    'id'                  => 503,
+                    'lote_importacion'    => 'LOTE-VENT-B',
+                    'fecha_movimiento'    => '2026-02-12',
+                    'referencia_bancaria' => 'REF-VENT-B1',
+                    'descripcion'         => 'Disponible ventana B1',
+                    'monto'               => 49.75,
+                ],
+            ],
+        ];
+
+        return $datos;
+    }
+
+    private function servicioVentanaConFixture(array $datos, ?\ArrayObject $llamadas = null): ReporteConciliacionService {
+        $modelo = new class($datos, $llamadas) extends ConciliacionModel {
+            private array $datos;
+            private ?\ArrayObject $llamadas;
+
+            public function __construct(array $datos, ?\ArrayObject $llamadas) {
+                $this->datos = $datos;
+                $this->llamadas = $llamadas;
+            }
+
+            public function obtenerDatosLote(string $lote): ?array {
+                if ($this->llamadas !== null) {
+                    $lotesDatos = $this->llamadas['lotes_datos'] ?? [];
+                    $lotesDatos[] = $lote;
+                    $this->llamadas['lotes_datos'] = $lotesDatos;
+                }
+
+                foreach (($this->datos['lotes'] ?? []) as $fila) {
+                    if (($fila['lote_importacion'] ?? '') === $lote) {
+                        return $fila;
+                    }
+                }
+
+                return null;
+            }
+
+            public function obtenerDisponiblesLote(string $lote): array {
+                if ($this->llamadas !== null) {
+                    $lotesDisponibles = $this->llamadas['lotes_disponibles'] ?? [];
+                    $lotesDisponibles[] = $lote;
+                    $this->llamadas['lotes_disponibles'] = $lotesDisponibles;
+                }
+
+                return $this->datos['disponibles_por_lote'][$lote] ?? [];
+            }
+
+            public function obtenerMovimientosConciliados(?string $fechaLimite = null): array {
+                return $this->datos['conciliados'];
+            }
+
+            public function obtenerTodosPagosPendientes(): array {
+                return $this->datos['pendientes'];
+            }
+        };
+
+        return new ReporteConciliacionService($modelo);
+    }
+
     public function testCsvIncluyeBomSeccionesDelimitadorYTotales(): void {
         $servicio = new ReporteConciliacionService();
         $csv = $servicio->generarCsv($this->datosFixture());
@@ -243,8 +345,9 @@ class ReporteConciliacionTest extends TestCase {
         $this->assertStringContains('MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)', $csv, 'El CSV debe incluir la sección de disponibles');
         $this->assertStringContains('PAGOS REPORTADOS PENDIENTES DE CONCILIAR', $csv, 'El CSV debe incluir la sección de pendientes');
         $this->assertStringContains('Fecha;Unidad;Residente;Referencia;Lote;Monto', $csv, 'La cabecera de conciliados debe usar punto y coma');
-        $this->assertStringContains('Fecha;Referencia;Descripción;Monto', $csv, 'La cabecera de disponibles debe usar punto y coma');
+        $this->assertStringContains('Fecha;Lote;Referencia;Descripción;Monto', $csv, 'La cabecera de disponibles debe incluir el lote y usar punto y coma');
         $this->assertStringContains('Fecha;Unidad;Residente;Referencia;Origen;Monto', $csv, 'La cabecera de pendientes debe usar punto y coma');
+        $this->assertStringContains('2026-01-20;LOTE-T2-2026;REF-DISP-001;', $csv, 'La fila de disponibles debe identificar su lote');
         $this->assertStringContains("\t=SUM(A1:A2)", $csv, 'Una celda que inicia con = debe neutralizarse con tabulador');
         $this->assertStringContains('1.250,50', $csv, 'El total de conciliados debe formatearse con coma decimal');
         $this->assertStringContains('400,00', $csv, 'El total de disponibles debe formatearse con coma decimal');
@@ -324,6 +427,107 @@ class ReporteConciliacionTest extends TestCase {
         $this->expectException(\InvalidArgumentException::class, function () use ($servicio) {
             $servicio->construir('LOTE-INEXISTENTE');
         }, 'Un lote inexistente debe lanzar InvalidArgumentException');
+    }
+
+    public function testConstruirVentanaFusionaDisponiblesYCalculaMetadatos(): void {
+        $datos = $this->ventanaFixture();
+        $llamadas = new \ArrayObject();
+        $servicio = $this->servicioVentanaConFixture($datos, $llamadas);
+
+        $resultado = $servicio->construirVentana($datos['lotes'], '2026-03-31 23:59:59');
+
+        $this->assertEquals('Ventana de 2 lotes', $resultado['lote'], 'La etiqueta debe indicar la cantidad de lotes de la ventana');
+        $this->assertEquals('Banco Único', $resultado['banco'], 'El banco debe deduplicarse entre los lotes');
+        $this->assertEquals('2026-01-01 08:00:00', $resultado['fecha_importacion'], 'La fecha de importación debe ser la mínima de la ventana');
+        $this->assertEquals('2026-02-01 09:00:00', $resultado['fecha_ultima_carga'], 'La última carga debe ser la máxima de la ventana');
+        $this->assertEquals(5, $resultado['total_movimientos'], 'El total de movimientos debe sumar los lotes de la ventana');
+        $this->assertEquals('2026-03-31 23:59:59', $resultado['fecha_corte'], 'Debe respetar la fecha de corte recibida');
+        $this->assertEquals(['conciliados' => 2, 'disponibles' => 3, 'pendientes' => 2], $resultado['conteos'], 'Los conteos deben fusionar disponibles y usar conciliados/pendientes globales');
+        $this->assertEquals(['conciliados' => 1250.50, 'disponibles' => 200.00, 'pendientes' => 200.50], $resultado['totales'], 'Los totales deben sumar cada sección');
+        $this->assertEquals(
+            ['LOTE-VENT-A', 'LOTE-VENT-A', 'LOTE-VENT-B'],
+            array_column($resultado['disponibles'], 'lote_importacion'),
+            'Los disponibles deben fusionarse lote a lote conservando su lote de origen'
+        );
+        $this->assertEquals(['LOTE-VENT-A', 'LOTE-VENT-B'], $llamadas['lotes_disponibles'] ?? [], 'Debe consultar los disponibles de cada lote de la ventana');
+        $this->assertEquals($datos['conciliados'], $resultado['conciliados'], 'Los conciliados son globales');
+        $this->assertEquals($datos['pendientes'], $resultado['pendientes'], 'Los pendientes son globales');
+    }
+
+    public function testConstruirVentanaConUnSoloLoteUsaSuNombreYMetadatos(): void {
+        $datos = $this->ventanaFixture();
+        $llamadas = new \ArrayObject();
+        $servicio = $this->servicioVentanaConFixture($datos, $llamadas);
+
+        $resultado = $servicio->construirVentana(['LOTE-VENT-A'], '2026-03-31 23:59:59');
+
+        $this->assertEquals('LOTE-VENT-A', $resultado['lote'], 'Con un solo lote la etiqueta debe ser su nombre');
+        $this->assertEquals('Banco Único', $resultado['banco'], 'El banco debe resolverse desde los metadatos del lote');
+        $this->assertEquals('2026-01-01 08:00:00', $resultado['fecha_importacion'], 'La fecha debe provenir de los metadatos del lote');
+        $this->assertEquals(3, $resultado['total_movimientos'], 'El total debe provenir de los metadatos del lote');
+        $this->assertEquals(2, $resultado['conteos']['disponibles'], 'Debe incluir los disponibles del único lote');
+        $this->assertEquals(150.25, $resultado['totales']['disponibles'], 'Debe sumar los disponibles del único lote');
+        $this->assertEquals(['LOTE-VENT-A'], $llamadas['lotes_datos'] ?? [], 'Un nombre de lote debe resolverse con obtenerDatosLote');
+    }
+
+    public function testConstruirVentanaLanzaExcepcionSiNoHayLotes(): void {
+        $servicio = new ReporteConciliacionService();
+
+        $this->expectException(\InvalidArgumentException::class, function () use ($servicio) {
+            $servicio->construirVentana([]);
+        }, 'Una ventana sin lotes debe lanzar InvalidArgumentException');
+    }
+
+    public function testCsvDisponiblesIncluyeColumnaLote(): void {
+        $servicio = new ReporteConciliacionService();
+        $datos = $this->datosFixture();
+        $datos['disponibles'][0]['lote_importacion'] = 'LOTE-DISP-A';
+
+        $csv = $servicio->generarCsv($datos);
+
+        $this->assertStringContains('Fecha;Lote;Referencia;Descripción;Monto', $csv, 'La cabecera de disponibles debe incluir la columna Lote');
+        $this->assertStringContains('2026-01-20;LOTE-DISP-A;REF-DISP-001;', $csv, 'La fila de disponibles debe incluir el lote de origen');
+    }
+
+    public function testPdfDisponiblesIncluyeColumnaLote(): void {
+        $servicio = new ReporteConciliacionService();
+        $datos = $this->datosFixture();
+        $datos['disponibles'][0]['lote_importacion'] = 'LOTE-DISP-PDF-A';
+        $datos['disponibles'][1]['lote_importacion'] = 'LOTE-DISP-PDF-B';
+
+        $pdf = $servicio->generarPdf($datos);
+        $texto = $this->inflarStreamsDeTexto($pdf);
+
+        $this->assertStringContains('LOTE-DISP-PDF-A', $texto, 'El PDF de disponibles debe incluir el lote de su primera fila');
+        $this->assertStringContains('LOTE-DISP-PDF-B', $texto, 'El PDF de disponibles debe incluir el lote de su segunda fila');
+        $this->assertStringContains('REF-DISP-001', $texto, 'El PDF debe conservar la referencia de los disponibles');
+    }
+
+    public function testGuardarVentanaUsaEtiquetaYMetadatosDeVentana(): void {
+        $dir = $this->crearDirectorioTemporal();
+
+        try {
+            $datos = $this->ventanaFixture();
+            $servicio = $this->servicioVentanaConFixture($datos);
+            $reporte = $servicio->construirVentana($datos['lotes'], '2026-03-31 23:59:59');
+
+            $guardado = $servicio->guardar($reporte, $dir);
+
+            $this->assertStringContains('Ventana_de_2_lotes', $guardado['base'], 'El nombre base debe derivarse de la etiqueta de la ventana');
+            $this->assertFileExists($guardado['ruta_pdf'] ?? '', 'La ventana debe generar su PDF');
+            $this->assertFileExists($guardado['ruta_csv'] ?? '', 'La ventana debe generar su CSV');
+            $this->assertFileExists($guardado['ruta_json'] ?? '', 'La ventana debe generar su sidecar JSON');
+
+            $json = json_decode((string)@file_get_contents($guardado['ruta_json'] ?? ''), true);
+            $this->assertIsArray($json, 'El sidecar JSON de la ventana debe decodificar como arreglo');
+            if (is_array($json)) {
+                $this->assertEquals('Ventana de 2 lotes', $json['lote'] ?? null, 'El JSON debe guardar la etiqueta de la ventana');
+                $this->assertEquals('Banco Único', $json['banco'] ?? null, 'El JSON debe guardar el banco único');
+                $this->assertEquals(3, $json['conteos']['disponibles'] ?? null, 'El JSON debe guardar los disponibles fusionados');
+            }
+        } finally {
+            $this->eliminarDirectorio($dir);
+        }
     }
 
     public function testGuardarYListarHistoricosOrdenaPorFechaDeCorte(): void {

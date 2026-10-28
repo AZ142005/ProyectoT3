@@ -121,6 +121,119 @@ class ReporteConciliacionService {
     }
 
     /**
+     * Construye en memoria el reporte de la ventana activa (varios lotes).
+     *
+     * Los disponibles se fusionan lote a lote; los conciliados y pendientes son
+     * globales, igual que en construir(). La etiqueta del reporte es el nombre
+     * del lote único o "Ventana de N lotes".
+     *
+     * @param array<int, array<string, mixed>|string> $lotes Filas de obtenerLotesVentana() o nombres de lote
+     * @throws \InvalidArgumentException si la lista de lotes está vacía
+     */
+    public function construirVentana(array $lotes, ?string $fechaCorte = null): array {
+        $fechaCorte = $fechaCorte ?: date('Y-m-d H:i:s');
+
+        $nombres = [];
+        $bancos = [];
+        $fechasImportacion = [];
+        $fechasUltimaCarga = [];
+        $totalMovimientos = 0;
+        $disponibles = [];
+
+        foreach ($lotes as $lote) {
+            if (is_array($lote)) {
+                $nombre = (string)($lote['lote_importacion'] ?? '');
+                $banco = trim((string)($lote['banco'] ?? ''));
+                $fechaImportacion = (string)($lote['fecha_importacion'] ?? '');
+                $fechaUltimaCarga = (string)($lote['fecha_ultima_carga'] ?? '');
+                $totalLote = (int)($lote['total_movimientos'] ?? 0);
+            } else {
+                $nombre = (string)$lote;
+                $banco = '';
+                $fechaImportacion = '';
+                $fechaUltimaCarga = '';
+                $totalLote = 0;
+            }
+
+            if ($nombre === '' || isset($nombres[$nombre])) {
+                continue;
+            }
+            $nombres[$nombre] = true;
+
+            if ($banco === '' || $fechaImportacion === '' || $totalLote === 0) {
+                $datosLote = $this->model->obtenerDatosLote($nombre);
+                if ($datosLote !== null) {
+                    $banco = $banco !== '' ? $banco : (string)($datosLote['banco'] ?? '');
+                    $fechaImportacion = $fechaImportacion !== ''
+                        ? $fechaImportacion
+                        : (string)($datosLote['fecha_importacion'] ?? '');
+                    $fechaUltimaCarga = $fechaUltimaCarga !== ''
+                        ? $fechaUltimaCarga
+                        : (string)($datosLote['fecha_ultima_carga'] ?? '');
+                    $totalLote = $totalLote > 0 ? $totalLote : (int)($datosLote['total_movimientos'] ?? 0);
+                }
+            }
+
+            foreach (explode(',', $banco) as $bancoLote) {
+                $bancoLote = trim($bancoLote);
+                if ($bancoLote !== '') {
+                    $bancos[$bancoLote] = true;
+                }
+            }
+
+            if ($fechaImportacion !== '') {
+                $fechasImportacion[] = $fechaImportacion;
+            }
+            if ($fechaUltimaCarga !== '') {
+                $fechasUltimaCarga[] = $fechaUltimaCarga;
+            }
+            $totalMovimientos += $totalLote;
+
+            foreach ($this->model->obtenerDisponiblesLote($nombre) as $fila) {
+                if (!isset($fila['lote_importacion']) || $fila['lote_importacion'] === '') {
+                    $fila['lote_importacion'] = $nombre;
+                }
+                $disponibles[] = $fila;
+            }
+        }
+
+        if (empty($nombres)) {
+            throw new \InvalidArgumentException('La ventana de conciliación no contiene lotes.');
+        }
+
+        $cantidadLotes = count($nombres);
+        $etiqueta = $cantidadLotes === 1
+            ? (string)array_key_first($nombres)
+            : 'Ventana de ' . $cantidadLotes . ' lotes';
+
+        $conciliados = $this->model->obtenerMovimientosConciliados();
+        $pendientes  = $this->model->obtenerTodosPagosPendientes();
+
+        return [
+            'lote'               => $etiqueta,
+            'banco'              => implode(', ', array_keys($bancos)),
+            'fecha_importacion'  => empty($fechasImportacion) ? '' : min($fechasImportacion),
+            'fecha_ultima_carga' => empty($fechasUltimaCarga) ? '' : max($fechasUltimaCarga),
+            'total_movimientos'  => $totalMovimientos,
+            'fecha_corte'        => $fechaCorte,
+            'generado_en'        => date('Y-m-d H:i:s'),
+            'conteos'            => [
+                'conciliados' => count($conciliados),
+                'disponibles' => count($disponibles),
+                'pendientes'  => count($pendientes),
+            ],
+            'totales'            => [
+                'conciliados' => $this->sumarMontos($conciliados),
+                'disponibles' => $this->sumarMontos($disponibles),
+                'pendientes'  => $this->sumarMontos($pendientes),
+            ],
+            'conciliados'       => $conciliados,
+            'disponibles'       => $disponibles,
+            'pendientes'        => $pendientes,
+        ];
+    }
+
+    /**
      * Genera el reporte completo en CSV (UTF-8 con BOM y delimitador ';').
      */
     public function generarCsv(array $datos): string {
@@ -178,10 +291,11 @@ class ReporteConciliacionService {
 
         $this->filaCsv($handle, []);
         $this->filaCsv($handle, ['MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)']);
-        $this->filaCsv($handle, ['Fecha', 'Referencia', 'Descripción', 'Monto']);
+        $this->filaCsv($handle, ['Fecha', 'Lote', 'Referencia', 'Descripción', 'Monto']);
         foreach (($datos['disponibles'] ?? []) as $fila) {
             $this->filaCsv($handle, [
                 $fila['fecha_movimiento'] ?? '',
+                $fila['lote_importacion'] ?? '',
                 $fila['referencia_bancaria'] ?? $fila['referencia'] ?? '',
                 $fila['descripcion'] ?? $fila['descripcion_banco'] ?? '',
                 $this->formatearMonto($fila['monto'] ?? 0),
@@ -277,10 +391,10 @@ class ReporteConciliacionService {
         $this->dibujarSeccion(
             $pdf,
             'MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)',
-            ['Fecha', 'Referencia', 'Descripción', 'Monto'],
+            ['Fecha', 'Lote', 'Referencia', 'Descripción', 'Monto'],
             $this->filasDisponibles($datos['disponibles'] ?? []),
-            [22.0, 45.0, 92.9, 32.0],
-            ['L', 'L', 'L', 'R']
+            [20.0, 36.0, 40.0, 70.9, 25.0],
+            ['L', 'L', 'L', 'L', 'R']
         );
 
         $this->dibujarSeccion(
@@ -743,6 +857,7 @@ class ReporteConciliacionService {
             $descripcion = $fila['descripcion'] ?? $fila['descripcion_banco'] ?? '';
             $filas[] = [
                 (string)($fila['fecha_movimiento'] ?? ''),
+                (string)($fila['lote_importacion'] ?? ''),
                 (string)($fila['referencia_bancaria'] ?? $fila['referencia'] ?? ''),
                 (string)$descripcion,
                 $this->formatearMonto($fila['monto'] ?? 0),

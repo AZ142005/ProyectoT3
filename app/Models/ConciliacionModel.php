@@ -186,25 +186,79 @@ class ConciliacionModel extends BaseModel {
     }
 
     /**
-     * Obtiene los extractos bancarios pendientes de conciliación del lote activo
-     * (solo créditos disponibles no vinculados). Aplica exclusión dura a nivel
-     * de consulta SQL (defensa en profundidad).
+     * Obtiene la ventana activa de un banco: los lotes más recientes por
+     * MAX(fecha_carga) y, en empate, MAX(id). El más nuevo se lista primero.
+     */
+    public function obtenerLotesVentanaPorBanco(string $banco, int $limite = 3): array {
+        $banco = trim($banco);
+        if ($banco === '') {
+            return [];
+        }
+
+        $limite = max(1, $limite);
+        $lotes = $this->consultarLotesOrdenados($banco);
+
+        return array_slice($lotes, 0, $limite);
+    }
+
+    /**
+     * Obtiene la ventana activa de todos los bancos (los N lotes más recientes
+     * de cada banco), ordenada globalmente del más nuevo al más antiguo.
+     */
+    public function obtenerLotesVentana(int $limite = 3): array {
+        $limite = max(1, $limite);
+        $lotes = $this->consultarLotesOrdenados(null);
+        $porBanco = [];
+        $ventana = [];
+
+        foreach ($lotes as $lote) {
+            $banco = (string)($lote['banco'] ?? '');
+            $porBanco[$banco] = ($porBanco[$banco] ?? 0) + 1;
+
+            if ($porBanco[$banco] <= $limite) {
+                $ventana[] = $lote;
+            }
+        }
+
+        return $ventana;
+    }
+
+    /**
+     * Obtiene los créditos disponibles de todos los lotes de la ventana activa,
+     * con las mismas exclusiones duras de la bandeja (estado, pago y vínculo 1:1).
+     */
+    public function obtenerExtractosPendientesVentana(int $limite = 3): array {
+        $nombres = array_column($this->obtenerLotesVentana($limite), 'lote_importacion');
+
+        return $this->consultarDisponiblesPorLotes($nombres);
+    }
+
+    /**
+     * Obtiene los extractos bancarios pendientes de conciliación de la ventana
+     * activa (solo créditos disponibles no vinculados). Aplica exclusión dura a
+     * nivel de consulta SQL (defensa en profundidad).
      *
-     * Un lote histórico no se expone en la bandeja: si $lote difiere del activo
-     * devuelve []. Para reportes históricos usar obtenerDisponiblesLote().
+     * Sin lote explícito devuelve todos los disponibles de la ventana. Con un
+     * lote explícito sólo lo expone si pertenece a la ventana; un lote fuera de
+     * la ventana devuelve []. Para reportes históricos usar
+     * obtenerDisponiblesLote().
      */
     public function obtenerExtractosPendientes(?string $lote = null): array {
-        $loteActivo = $this->obtenerLoteActivo();
+        $nombresVentana = array_column($this->obtenerLotesVentana(3), 'lote_importacion');
 
-        if ($loteActivo === null) {
+        if (empty($nombresVentana)) {
             return [];
         }
 
-        if ($lote !== null && $lote !== '' && $lote !== $loteActivo) {
+        if ($lote === null || $lote === '') {
+            return $this->consultarDisponiblesPorLotes($nombresVentana);
+        }
+
+        if (!in_array($lote, $nombresVentana, true)) {
             return [];
         }
 
-        return $this->consultarDisponiblesPorLote($loteActivo);
+        return $this->consultarDisponiblesPorLote($lote);
     }
 
     /**
@@ -288,10 +342,65 @@ class ConciliacionModel extends BaseModel {
     }
 
     /**
+     * Consulta base de lotes agrupados por lote y banco, ordenados por recencia.
+     * El filtro por banco es opcional.
+     */
+    private function consultarLotesOrdenados(?string $banco = null): array {
+        $db = $this->db();
+        $sql = "
+            SELECT e.lote_importacion, e.banco,
+                   MIN(e.fecha_carga) AS fecha_importacion,
+                   MAX(e.fecha_carga) AS fecha_ultima_carga,
+                   MAX(e.id) AS ultimo_id,
+                   COUNT(*) AS total_movimientos
+            FROM extractos_bancarios e
+        ";
+        $params = [];
+
+        if ($banco !== null && $banco !== '') {
+            $sql .= " WHERE e.banco = :banco";
+            $params['banco'] = $banco;
+        }
+
+        $sql .= "
+            GROUP BY e.lote_importacion, e.banco
+            ORDER BY MAX(e.fecha_carga) DESC, MAX(e.id) DESC
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Consulta base de créditos disponibles no vinculados de un lote.
      */
     private function consultarDisponiblesPorLote(string $lote): array {
+        return $this->consultarDisponiblesPorLotes([$lote]);
+    }
+
+    /**
+     * Consulta base de créditos disponibles no vinculados de varios lotes.
+     */
+    private function consultarDisponiblesPorLotes(array $lotes): array {
+        $nombres = [];
+        foreach ($lotes as $lote) {
+            if (!is_string($lote) && !is_int($lote)) {
+                continue;
+            }
+            $lote = (string)$lote;
+            if ($lote !== '' && !in_array($lote, $nombres, true)) {
+                $nombres[] = $lote;
+            }
+        }
+
+        if (empty($nombres)) {
+            return [];
+        }
+
         $db = $this->db();
+        $marcadores = implode(',', array_fill(0, count($nombres), '?'));
         $sql = "
             SELECT m.*,
                    m.id,
@@ -306,7 +415,7 @@ class ConciliacionModel extends BaseModel {
               AND (m.estado_conciliacion IS NULL OR m.estado_conciliacion = 'pendiente')
               AND (m.pago_id IS NULL OR m.pago_id = 0)
               AND m.tipo_movimiento = 'credito'
-              AND m.lote_importacion = :lote
+              AND m.lote_importacion IN ({$marcadores})
               AND NOT EXISTS (
                   SELECT 1 FROM conciliacion_abono_pago c
                   WHERE c.movimiento_id = m.id
@@ -315,7 +424,7 @@ class ConciliacionModel extends BaseModel {
         ";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute(['lote' => $lote]);
+        $stmt->execute($nombres);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -590,8 +699,9 @@ class ConciliacionModel extends BaseModel {
 
     /**
      * Obtiene el listado de lotes importados con métricas de conciliación.
-     * Marca con es_activo el lote vigente y cuenta como pendientes solo los
-     * créditos realmente disponibles (sin vínculo de pago).
+     * Marca con es_activo los lotes que pertenecen a la ventana de su banco y
+     * cuenta como pendientes solo los créditos realmente disponibles (sin
+     * vínculo de pago).
      */
     public function obtenerLotes(): array {
         $db = $this->db();
@@ -614,10 +724,16 @@ class ConciliacionModel extends BaseModel {
             ORDER BY MAX(e.fecha_carga) DESC, MAX(e.id) DESC
         ";
         $lotes = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-        $loteActivo = $this->obtenerLoteActivo();
+        $activos = [];
+
+        foreach ($this->obtenerLotesVentana(3) as $loteVentana) {
+            $clave = (string)($loteVentana['banco'] ?? '') . '|' . (string)($loteVentana['lote_importacion'] ?? '');
+            $activos[$clave] = true;
+        }
 
         foreach ($lotes as &$lote) {
-            $lote['es_activo'] = ($loteActivo !== null && $lote['lote_importacion'] === $loteActivo) ? 1 : 0;
+            $clave = (string)($lote['banco'] ?? '') . '|' . (string)($lote['lote_importacion'] ?? '');
+            $lote['es_activo'] = isset($activos[$clave]) ? 1 : 0;
         }
         unset($lote);
 

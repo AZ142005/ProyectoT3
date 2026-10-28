@@ -1,7 +1,8 @@
 <div class="flex flex-1 min-h-screen w-full">
     <?php 
     $reportesHistoricos = $reportesHistoricos ?? [];
-    $loteActivo = $loteActivo ?? null;
+    $lotes = $lotes ?? [];
+    $lotesVentana = $lotesVentana ?? [];
     $loteExiste = $loteExiste ?? false;
     $loteEsActivo = $loteEsActivo ?? false;
 
@@ -68,23 +69,23 @@
                         <div class="flex items-center gap-2 flex-wrap min-w-0">
                             <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote / Historial:</label>
                             <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs max-w-full min-w-0" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
-                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Lote activo (último cargado)</option>
+                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Ventana activa (3 lotes por banco)</option>
                                 <?php foreach ($lotes as $l): ?>
                                     <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
-                                        <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) [<?= (($l['es_activo'] ?? 0)) ? (int)$l['pendientes'] . ' pend.' : 'histórico: ' . (int)$l['conciliados'] . ' conc.' ?>]
+                                        <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) <?= (($l['es_activo'] ?? 0)) ? '[en ventana]' : '[histórico]' ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     <?php endif; ?>
-                    <?php if (!empty($loteActivo)): ?>
+                    <?php if (!empty($lotesVentana)): ?>
                         <a href="/admin/conciliacion/reporte/actual?formato=pdf" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl border border-red-200 text-xs transition-colors inline-flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                            <span>Reporte actual PDF</span>
+                            <span>Reporte de la ventana PDF</span>
                         </a>
                         <a href="/admin/conciliacion/reporte/actual?formato=csv" class="bg-green-50 hover:bg-green-100 text-green-700 font-bold px-4 py-2.5 rounded-xl border border-green-200 text-xs transition-colors inline-flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[16px]">table_view</span>
-                            <span>Reporte actual CSV</span>
+                            <span>Reporte de la ventana CSV</span>
                         </a>
                     <?php endif; ?>
                     <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl border border-slate-200 text-xs transition-colors inline-flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalReportesHistoricos">
@@ -373,7 +374,7 @@
                     </div>
 
                     <div class="alert alert-info-subtle border border-info-subtle rounded-3 py-2 px-3 text-xs mb-0" role="note">
-                        Al importar un nuevo extracto, el lote activo anterior deja de ser la fuente vigente y se genera automáticamente su reporte histórico PDF/CSV.
+                        Se conservan los 3 lotes más recientes por banco. Al entrar un cuarto lote, el más antiguo se archiva automáticamente y se genera su reporte histórico PDF/CSV.
                     </div>
                 </div>
                 <div class="modal-footer bg-light">

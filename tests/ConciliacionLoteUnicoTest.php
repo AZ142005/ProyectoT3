@@ -165,10 +165,12 @@ class ConciliacionLoteUnicoTest extends TestCase {
         }
     }
 
-    public function testPendientesSoloDelLoteActivoYHistoricoDevuelveVacio(): void {
+    public function testPendientesSoloDeLaVentanaYHistoricoDevuelveVacio(): void {
         $db = $this->conexion();
         $p = $this->prefijo();
         $loteHistorico = $p . '-HIST';
+        $loteRelleno1 = $p . '-FILL1';
+        $loteRelleno2 = $p . '-FILL2';
         $loteActivo = $p . '-ACT';
         $pasado = '2020-01-01 00:00:00';
         $futuro = date('Y-m-d H:i:s', time() + 7200);
@@ -177,6 +179,11 @@ class ConciliacionLoteUnicoTest extends TestCase {
             // H1 se inserta primero (id menor) pero tiene la fecha de movimiento más reciente.
             $this->insertarFila($db, $loteHistorico, $p . '-H1', fechaCarga: $pasado, fechaMovimiento: '2099-01-11');
             $this->insertarFila($db, $loteHistorico, $p . '-H2', estado: 'pendiente', fechaCarga: $pasado, fechaMovimiento: '2099-01-10');
+
+            // Dos lotes de relleno más recientes dejan al histórico fuera de la ventana.
+            // Sólo tienen filas conciliadas, así que no aportan disponibles.
+            $this->insertarFila($db, $loteRelleno1, $p . '-F1', estado: 'conciliado', estadoConciliacion: 'conciliado', fechaCarga: '2021-01-01 00:00:00', fechaMovimiento: '2099-03-01');
+            $this->insertarFila($db, $loteRelleno2, $p . '-F2', estado: 'conciliado', estadoConciliacion: 'conciliado', fechaCarga: '2022-01-01 00:00:00', fechaMovimiento: '2099-03-02');
 
             $this->insertarFila($db, $loteActivo, $p . '-A1', fechaCarga: $futuro, fechaMovimiento: '2099-02-01');
             $this->insertarFila(
@@ -224,14 +231,29 @@ class ConciliacionLoteUnicoTest extends TestCase {
 
             $pendientesGlobales = $model->obtenerExtractosPendientes(null);
             $referenciasGlobales = array_column($pendientesGlobales, 'referencia_bancaria');
-            $this->assertEquals(2, count($pendientesGlobales), 'Sin lote explícito solo deben salir los disponibles reales del lote activo');
-            $this->assertTrue(in_array($p . '-A1', $referenciasGlobales, true), 'El disponible del lote activo debe aparecer');
-            $this->assertTrue(in_array($p . '-A3', $referenciasGlobales, true), 'La fila legacy con estado NULL y conciliación pendiente debe aparecer');
+            $referenciasPropias = array_values(array_filter(
+                $referenciasGlobales,
+                static fn(string $referencia): bool => str_starts_with($referencia, $p . '-')
+            ));
+            sort($referenciasPropias);
+            $esperadas = [$p . '-A1', $p . '-A3'];
+            sort($esperadas);
+
+            $this->assertEquals($esperadas, $referenciasPropias, 'Sin lote explícito solo deben salir los disponibles reales de los lotes en ventana');
+            $this->assertFalse(in_array($p . '-H1', $referenciasGlobales, true), 'El disponible del lote fuera de la ventana no debe aparecer');
+            $this->assertFalse(in_array($p . '-H2', $referenciasGlobales, true), 'El disponible del lote fuera de la ventana no debe aparecer');
             $this->assertFalse(in_array($p . '-A2', $referenciasGlobales, true), 'Una fila conciliada no debe aparecer');
             $this->assertFalse(in_array($p . '-A4', $referenciasGlobales, true), 'Una fila anulada no debe aparecer');
             $this->assertFalse(in_array($p . '-A5', $referenciasGlobales, true), 'Una fila con pago_id vinculado no debe aparecer');
 
-            $this->assertEquals(0, count($model->obtenerExtractosPendientes($loteHistorico)), 'Un lote histórico no debe mostrar pendientes en la bandeja');
+            $pendientesVentana = $model->obtenerExtractosPendientesVentana(3);
+            $referenciasVentana = array_column($pendientesVentana, 'referencia_bancaria');
+            $this->assertTrue(in_array($p . '-A1', $referenciasVentana, true), 'El disponible del lote activo debe aparecer en la ventana');
+            $this->assertTrue(in_array($p . '-A3', $referenciasVentana, true), 'La fila legacy del lote activo debe aparecer en la ventana');
+            $this->assertFalse(in_array($p . '-H1', $referenciasVentana, true), 'El lote histórico no debe aportar disponibles a la ventana');
+            $this->assertFalse(in_array($p . '-H2', $referenciasVentana, true), 'El lote histórico no debe aportar disponibles a la ventana');
+
+            $this->assertEquals(0, count($model->obtenerExtractosPendientes($loteHistorico)), 'Un lote fuera de la ventana no debe mostrar pendientes en la bandeja');
 
             $pendientesActivos = $model->obtenerExtractosPendientes($loteActivo);
             $this->assertEquals(2, count($pendientesActivos), 'El lote activo explícito debe devolver sus disponibles reales');
@@ -439,6 +461,8 @@ class ConciliacionLoteUnicoTest extends TestCase {
         $db = $this->conexion();
         $p = $this->prefijo();
         $loteViejo = $p . '-A-HIST';
+        $loteRelleno1 = $p . '-M-RELL1';
+        $loteRelleno2 = $p . '-N-RELL2';
         $loteActivo = $p . '-Z-ACT';
         $pasado = '2020-01-01 00:00:00';
         $futuro = date('Y-m-d H:i:s', time() + 7200);
@@ -494,6 +518,10 @@ class ConciliacionLoteUnicoTest extends TestCase {
             $idVinculado = $this->insertarFila($db, $loteViejo, $p . '-L9', fechaCarga: $pasado, monto: 109.00);
             $this->vincular($db, $idVinculado, $pagoLibre);
 
+            // Dos lotes de relleno más recientes dejan al lote viejo fuera de la ventana.
+            $this->insertarFila($db, $loteRelleno1, $p . '-R1', estado: 'conciliado', estadoConciliacion: 'conciliado', fechaCarga: '2021-01-01 00:00:00', monto: 110.00);
+            $this->insertarFila($db, $loteRelleno2, $p . '-R2', estado: 'conciliado', estadoConciliacion: 'conciliado', fechaCarga: '2022-01-01 00:00:00', monto: 111.00);
+
             $this->insertarFila($db, $loteActivo, $p . '-L6', fechaCarga: $futuro, monto: 106.00);
 
             $model = new ConciliacionModel();
@@ -518,8 +546,15 @@ class ConciliacionLoteUnicoTest extends TestCase {
             }
 
             $this->assertEquals(1, $filaActiva['es_activo'], 'El lote más reciente debe marcarse como activo');
-            $this->assertEquals(0, $filaVieja['es_activo'], 'Un lote histórico no debe marcarse como activo');
+            $this->assertEquals(0, $filaVieja['es_activo'], 'Un lote fuera de la ventana no debe marcarse como activo');
             $this->assertTrue($indiceActivo < $indiceViejo, 'El lote más reciente debe listarse primero');
+
+            foreach ([$loteRelleno1, $loteRelleno2] as $loteRelleno) {
+                $this->assertTrue(isset($porLote[$loteRelleno]), 'obtenerLotes debe incluir los lotes de relleno');
+                if (isset($porLote[$loteRelleno])) {
+                    $this->assertEquals(1, $porLote[$loteRelleno][0]['es_activo'], 'Todo lote dentro de la ventana debe marcarse activo');
+                }
+            }
 
             $this->assertTrue(isset($lotes[0]), 'obtenerLotes debe devolver al menos un lote');
             if (isset($lotes[0])) {

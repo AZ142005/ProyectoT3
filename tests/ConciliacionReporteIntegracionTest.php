@@ -36,14 +36,6 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         }
     }
 
-    private function loteActivoRequerido(): string {
-        $lote = (new \App\Models\ConciliacionModel())->obtenerLoteActivo();
-        if ($lote === null) {
-            throw new \RuntimeException('No hay un lote activo para verificar la integración de reportes.');
-        }
-        return $lote;
-    }
-
     /**
      * Renderiza ConciliacionController::index() con sesión admin simulada y
      * restaura todos los superglobales que toca.
@@ -120,11 +112,11 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         }
     }
 
-    public function testIndexUsaLoteActivoEHistoricosYConservaFiltroMes(): void {
+    public function testIndexUsaVentanaEHistoricosYConservaFiltroMes(): void {
         $cuerpo = $this->extraerMetodo(BASE_PATH . '/app/Controllers/ConciliacionController.php', 'index');
         $this->assertTrue($cuerpo !== '', 'ConciliacionController::index() debe existir');
 
-        foreach (['obtenerLoteActivo', 'listarHistoricos', 'loteActivo', 'loteExiste', 'loteEsActivo', 'reportesHistoricos'] as $token) {
+        foreach (['obtenerLotesVentana', 'obtenerExtractosPendientesVentana', 'listarHistoricos', 'lotesVentana', 'loteExiste', 'loteEsActivo', 'reportesHistoricos'] as $token) {
             $this->assertStringContains($token, $cuerpo, "index() debe contener {$token}");
         }
 
@@ -156,12 +148,12 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         $this->assertTrue($cuerpo !== '', 'ConciliacionController::importarExtracto() debe existir');
 
         $pasos = [
-            'obtenerLoteActivo'          => strpos($cuerpo, 'obtenerLoteActivo'),
-            'construir'                  => strpos($cuerpo, 'construir('),
-            'insertarExtracto'           => strpos($cuerpo, 'insertarExtracto('),
-            'guardar'                    => strpos($cuerpo, 'guardar('),
-            'obtenerExtractosPendientes' => strpos($cuerpo, 'obtenerExtractosPendientes('),
-            'ejecutarCruceInteligente'   => strpos($cuerpo, 'ejecutarCruceInteligente('),
+            'obtenerLotesVentanaPorBanco'       => strpos($cuerpo, 'obtenerLotesVentanaPorBanco'),
+            'construir'                         => strpos($cuerpo, 'construir('),
+            'insertarExtracto'                  => strpos($cuerpo, 'insertarExtracto('),
+            'guardar'                           => strpos($cuerpo, 'guardar('),
+            'obtenerExtractosPendientesVentana' => strpos($cuerpo, 'obtenerExtractosPendientesVentana('),
+            'ejecutarCruceInteligente'          => strpos($cuerpo, 'ejecutarCruceInteligente('),
         ];
 
         $anterior = -1;
@@ -174,26 +166,40 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             $anterior = $posicion;
         }
 
+        $this->assertStringContains('obtenerLotesVentanaPorBanco($banco, 3)', $cuerpo,
+            'La importación debe consultar la ventana del banco antes de insertar');
         $this->assertStringContains('adoptados', $cuerpo,
             'El flujo de importación debe contabilizar los extractos adoptados');
+        $this->assertStringContains('$nuevos = (int)$stats[\'insertados\'] + $adoptados;', $cuerpo,
+            'Los movimientos nuevos deben sumar insertados y adoptados');
 
-        $posGuardBuildFallido = strpos($cuerpo, '$loteAnterior !== null && $nuevos > 0 && $snapshotReporte === null');
-        $posGuardSaveFallido = strpos($cuerpo, '$loteAnterior !== null && $nuevos > 0 && $reporteGuardado === null');
-        $posMensajeBuildFallido = strpos($cuerpo, 'No se pudo construir el reporte histórico del lote anterior.');
-        $posMensajeSaveFallido = strpos($cuerpo, 'No se pudo guardar el reporte histórico del lote anterior.');
+        $posGuardSnapshot = strpos($cuerpo, '$loteExpulsado !== null && $snapshotReporte !== null && $nuevos > 0');
+        $posGuardar = strpos($cuerpo, '$reporteGuardado = $reporteService->guardar(');
+        $posGuardArchivado = strpos($cuerpo, 'if ($loteExpulsado !== null && $nuevos > 0)');
+        $posMensajeBuildFallido = strpos($cuerpo, 'No se pudo construir el reporte histórico del lote archivado.');
+        $posMensajeSaveFallido = strpos($cuerpo, 'No se pudo guardar el reporte histórico del lote archivado.');
+        $posNoRota = strpos($cuerpo, 'La ventana no rotó porque no hubo movimientos nuevos.');
 
-        $this->assertTrue($posGuardBuildFallido !== false, 'La falla de construcción del reporte debe estar guardada por $nuevos > 0');
-        $this->assertTrue($posGuardSaveFallido !== false, 'La falla de guardado del reporte debe estar guardada por $nuevos > 0');
+        $this->assertTrue($posGuardSnapshot !== false, 'El guardado del reporte histórico debe estar condicionado a la expulsión y a $nuevos > 0');
+        $this->assertTrue($posGuardar !== false, 'Debe existir el guardado del reporte del lote expulsado');
+        $this->assertTrue($posGuardArchivado !== false, 'Debe existir la rama que informa el lote archivado');
         $this->assertTrue($posMensajeBuildFallido !== false, 'Debe existir el mensaje de falla de construcción del reporte');
         $this->assertTrue($posMensajeSaveFallido !== false, 'Debe existir el mensaje de falla de guardado del reporte');
+        $this->assertTrue($posNoRota !== false, 'El no-op debe informar que la ventana no rotó');
 
-        if ($posGuardBuildFallido !== false && $posMensajeBuildFallido !== false) {
-            $this->assertTrue($posGuardBuildFallido < $posMensajeBuildFallido,
-                'El mensaje de construcción fallida debe estar dentro de su rama protegida por $nuevos > 0');
+        if ($posGuardSnapshot !== false && $posGuardar !== false) {
+            $this->assertTrue($posGuardSnapshot < $posGuardar,
+                'El guardado del reporte debe ejecutarse dentro de la guarda de expulsión y movimientos nuevos');
         }
-        if ($posGuardSaveFallido !== false && $posMensajeSaveFallido !== false) {
-            $this->assertTrue($posGuardSaveFallido < $posMensajeSaveFallido,
-                'El mensaje de guardado fallido debe estar dentro de su rama protegida por $nuevos > 0');
+        if ($posGuardArchivado !== false) {
+            if ($posMensajeBuildFallido !== false) {
+                $this->assertTrue($posGuardArchivado < $posMensajeBuildFallido,
+                    'El mensaje de construcción fallida debe estar dentro de su rama protegida');
+            }
+            if ($posMensajeSaveFallido !== false) {
+                $this->assertTrue($posGuardArchivado < $posMensajeSaveFallido,
+                    'El mensaje de guardado fallido debe estar dentro de su rama protegida');
+            }
         }
 
         $this->assertStringContains('Extracto procesado sin movimientos nuevos. Lote:', $cuerpo,
@@ -215,7 +221,7 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         $this->assertMatchesRegex('/^\s*\{\s*Auth::requireRole\(\[\'admin\', \'auditor\'\]\);/', $historico,
             'descargarReporteHistorico() debe iniciar con la guardia admin/auditor');
 
-        foreach (['construir', 'generarPdf', 'generarCsv'] as $token) {
+        foreach (['obtenerLotesVentana', 'construirVentana', 'generarPdf', 'generarCsv'] as $token) {
             $this->assertStringContains($token, $actual, "descargarReporteActual() debe usar {$token}");
         }
         $this->assertStringContains('resolverArchivo', $historico,
@@ -234,8 +240,12 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             'modalReportesHistoricos',
             'reporte/actual?formato=pdf',
             'reporte/actual?formato=csv',
-            'Reporte actual PDF',
-            'Reporte actual CSV',
+            'Reporte de la ventana PDF',
+            'Reporte de la ventana CSV',
+            'Ventana activa (3 lotes por banco)',
+            '[en ventana]',
+            '[histórico]',
+            'Se conservan los 3 lotes más recientes por banco',
             'Históricos (',
             'urlencode',
             "e(\$r['fecha_corte']",
@@ -253,72 +263,102 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             'La vista no debe introducir la columna literal >Lote<');
     }
 
-    public function testIndexRenderizaLoteActivoSeleccionadoYControlesDeReporte(): void {
+    public function testIndexRenderizaVentanaSeleccionadaYControlesDeReporte(): void {
         $this->conexionBd();
-        $loteActivo = $this->loteActivoRequerido();
 
         $html = $this->renderizarIndex(null);
 
-        $patron = '/<option value="' . preg_quote(e($loteActivo), '/') . '"[^>]*selected/';
-        $this->assertMatchesRegex($patron, $html, 'El lote activo debe quedar seleccionado por defecto');
+        $this->assertMatchesRegex(
+            '/<option value=""\s+selected>Ventana activa \(3 lotes por banco\)<\/option>/',
+            $html,
+            'La ventana debe quedar seleccionada por defecto'
+        );
         $this->assertStringContains('id="modalReportesHistoricos"', $html,
             'El render debe incluir el modal de reportes históricos');
         $this->assertStringContains('/admin/conciliacion/reporte/actual?formato=pdf', $html,
-            'El render debe incluir el enlace al reporte actual PDF');
+            'El render debe incluir el enlace al reporte de la ventana PDF');
         $this->assertStringContains('/admin/conciliacion/reporte/actual?formato=csv', $html,
-            'El render debe incluir el enlace al reporte actual CSV');
+            'El render debe incluir el enlace al reporte de la ventana CSV');
+        $this->assertStringContains('Reporte de la ventana PDF', $html,
+            'El render debe rotular el botón PDF como reporte de la ventana');
+        $this->assertStringContains('Reporte de la ventana CSV', $html,
+            'El render debe rotular el botón CSV como reporte de la ventana');
         $this->assertStringContains('Históricos (', $html,
             'El render debe incluir el botón de históricos');
+        $this->assertFalse(str_contains($html, '>Lote<'),
+            'El render no debe introducir la columna literal >Lote<');
     }
 
-    public function testIndexToleraLoteComoArregloYSeleccionaElActivo(): void {
+    public function testIndexToleraLoteComoArregloYSeleccionaLaVentana(): void {
         $this->conexionBd();
-        $loteActivo = $this->loteActivoRequerido();
 
         $html = $this->renderizarIndex(['x']);
 
-        $patron = '/<option value="' . preg_quote(e($loteActivo), '/') . '"[^>]*selected/';
-        $this->assertMatchesRegex($patron, $html, 'Un lote recibido como arreglo debe caer al lote activo sin lanzar TypeError');
+        $this->assertMatchesRegex(
+            '/<option value=""\s+selected>Ventana activa \(3 lotes por banco\)<\/option>/',
+            $html,
+            'Un lote recibido como arreglo debe caer a la ventana sin lanzar TypeError'
+        );
     }
 
     public function testIndexRenderizaAvisoHistoricoYExcluyeDisponiblesDeLoteViejo(): void {
         $db = $this->conexionBd();
-        $loteActivo = $this->loteActivoRequerido();
 
         $sufijo = bin2hex(random_bytes(4));
-        $loteTemporal = 'LOTE-TEST-T3-HIST-' . $sufijo;
+        $prefijo = 'LOTE-TEST-T3-HIST-' . $sufijo;
+        $banco = 'Banco Test T3 ' . $sufijo;
+        $loteViejo = $prefijo . '-L1';
         $referencia = 'T3HIST' . $sufijo;
-
-        $this->assertNotEquals($loteActivo, $loteTemporal, 'El lote temporal debe ser distinto del activo');
+        $lotes = [$loteViejo, $prefijo . '-L2', $prefijo . '-L3', $prefijo . '-L4'];
+        $fechas = [
+            '2020-01-01 00:00:00',
+            '2020-01-02 00:00:00',
+            '2020-01-03 00:00:00',
+            '2020-01-04 00:00:00',
+        ];
 
         $stmt = $db->prepare("
             INSERT INTO extractos_bancarios
             (lote_importacion, banco, fecha_movimiento, referencia_bancaria, referencia,
              descripcion_banco, descripcion, monto, tipo_movimiento,
              estado_conciliacion, estado, fecha_carga)
-            VALUES (:lote, 'Banco Test T3', '2020-01-02', :ref1, :ref2,
+            VALUES (:lote, :banco, '2020-01-02', :ref1, :ref2,
                     'Movimiento historico T3', 'Movimiento historico T3', 123.45, 'credito',
-                    'pendiente', 'disponible', '2020-01-01 00:00:00')
+                    :estado_conciliacion, :estado, :fecha_carga)
         ");
-        $stmt->execute([
-            'lote' => $loteTemporal,
-            'ref1' => $referencia,
-            'ref2' => $referencia,
-        ]);
 
         try {
-            $html = $this->renderizarIndex($loteTemporal);
+            foreach ($lotes as $indice => $lote) {
+                $esViejo = $indice === 0;
+                $referenciaLote = $esViejo ? $referencia : $prefijo . '-REF' . $indice;
+
+                $stmt->execute([
+                    'lote'                => $lote,
+                    'banco'               => $banco,
+                    'ref1'                => $referenciaLote,
+                    'ref2'                => $referenciaLote,
+                    'estado_conciliacion' => $esViejo ? 'pendiente' : 'conciliado',
+                    'estado'              => $esViejo ? 'disponible' : 'conciliado',
+                    'fecha_carga'         => $fechas[$indice],
+                ]);
+            }
+
+            $html = $this->renderizarIndex($loteViejo);
 
             $this->assertStringContains(
                 'Lote histórico: los movimientos disponibles de este lote no se muestran en la bandeja. Descargue el reporte histórico.',
                 $html,
-                'Al consultar un lote histórico debe mostrarse el aviso informativo'
+                'Al consultar un lote fuera de la ventana debe mostrarse el aviso informativo'
             );
             $this->assertFalse(str_contains($html, $referencia),
-                'Los disponibles de un lote histórico no deben aparecer en la bandeja');
+                'Los disponibles de un lote fuera de la ventana no deben aparecer en la bandeja');
+            $this->assertStringContains('[histórico]', $html,
+                'El lote fuera de la ventana debe etiquetarse como histórico en el selector');
+            $this->assertStringContains('[en ventana]', $html,
+                'Los lotes de la ventana deben etiquetarse como tales en el selector');
         } finally {
-            $db->prepare('DELETE FROM extractos_bancarios WHERE lote_importacion = :lote')
-               ->execute(['lote' => $loteTemporal]);
+            $db->prepare('DELETE FROM extractos_bancarios WHERE lote_importacion LIKE :lote')
+               ->execute(['lote' => $prefijo . '%']);
         }
     }
 }
