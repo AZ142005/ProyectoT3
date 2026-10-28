@@ -166,18 +166,24 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             $anterior = $posicion;
         }
 
-        $this->assertStringContains('obtenerLotesVentanaPorBanco($banco, 3)', $cuerpo,
+        $this->assertStringContains('obtenerLotesVentanaPorBanco($banco, CONCILIACION_VENTANA_LOTES)', $cuerpo,
             'La importación debe consultar la ventana del banco antes de insertar');
         $this->assertStringContains('adoptados', $cuerpo,
             'El flujo de importación debe contabilizar los extractos adoptados');
-        $this->assertStringContains('$nuevos = (int)$stats[\'insertados\'] + $adoptados;', $cuerpo,
+        $this->assertStringContains('$insertados = (int)$stats[\'insertados\'];', $cuerpo,
+            'La importación debe separar los insertados de los adoptados');
+        $this->assertStringContains('$nuevos = $insertados + $adoptados;', $cuerpo,
             'Los movimientos nuevos deben sumar insertados y adoptados');
 
-        $posGuardSnapshot = strpos($cuerpo, '$loteExpulsado !== null && $snapshotReporte !== null && $nuevos > 0');
+        $posGuardSnapshot = strpos($cuerpo, '$loteArchivado !== null && $snapshotReporte !== null');
         $posGuardar = strpos($cuerpo, '$reporteGuardado = $reporteService->guardar(');
-        $posGuardArchivado = strpos($cuerpo, 'if ($loteExpulsado !== null && $nuevos > 0)');
+        $posGuardArchivado = strpos($cuerpo, 'if ($loteArchivado !== null)');
         $posMensajeBuildFallido = strpos($cuerpo, 'No se pudo construir el reporte histórico del lote archivado.');
         $posMensajeSaveFallido = strpos($cuerpo, 'No se pudo guardar el reporte histórico del lote archivado.');
+        $posInsertados = strpos($cuerpo, '$insertados = (int)$stats[\'insertados\'];');
+        $posLoteArchivado = strpos($cuerpo, '$loteArchivado = ($loteExpulsado !== null');
+        $posNombresPost = strpos($cuerpo, '$nombresVentanaPosterior = array_column($ventanaPosterior');
+        $posReimport = strpos($cuerpo, 'el extracto se reimport');
         $posNoRota = strpos($cuerpo, 'La ventana no rotó porque no hubo movimientos nuevos.');
 
         $this->assertTrue($posGuardSnapshot !== false, 'El guardado del reporte histórico debe estar condicionado a la expulsión y a $nuevos > 0');
@@ -186,6 +192,15 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         $this->assertTrue($posMensajeBuildFallido !== false, 'Debe existir el mensaje de falla de construcción del reporte');
         $this->assertTrue($posMensajeSaveFallido !== false, 'Debe existir el mensaje de falla de guardado del reporte');
         $this->assertTrue($posNoRota !== false, 'El no-op debe informar que la ventana no rotó');
+
+        $this->assertTrue($posInsertados !== false, 'La importación debe separar insertados de adoptados');
+        $this->assertTrue($posLoteArchivado !== false, 'Debe existir el cálculo del lote realmente archivado');
+        $this->assertTrue($posNombresPost !== false, 'Debe compararse contra la ventana posterior');
+        $this->assertStringContains('!in_array($loteExpulsado, $nombresVentanaPosterior, true)', $cuerpo,
+            'No se debe archivar un lote que sigue en la ventana');
+        $this->assertStringContains('&& $nuevos > 0', $cuerpo,
+            'La rotación debe considerar insertados y adoptados, confirmando la ventana posterior');
+        $this->assertTrue($posReimport !== false, 'La reimportación debe informar que la ventana no rotó');
 
         if ($posGuardSnapshot !== false && $posGuardar !== false) {
             $this->assertTrue($posGuardSnapshot < $posGuardar,
@@ -242,10 +257,12 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             'reporte/actual?formato=csv',
             'Reporte de la ventana PDF',
             'Reporte de la ventana CSV',
-            'Ventana activa (3 lotes por banco)',
+            'Ventana activa (',
+            'lotes por banco',
             '[en ventana]',
             '[histórico]',
-            'Se conservan los 3 lotes más recientes por banco',
+            'Se conservan los ',
+            'recientes por banco',
             'Históricos (',
             'urlencode',
             "e(\$r['fecha_corte']",
@@ -269,7 +286,7 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         $html = $this->renderizarIndex(null);
 
         $this->assertMatchesRegex(
-            '/<option value=""\s+selected>Ventana activa \(3 lotes por banco\)<\/option>/',
+            '/<option value=""\s+selected>Ventana activa \(' . preg_quote((string)CONCILIACION_VENTANA_LOTES, '/') . ' lotes por banco\)<\/option>/',
             $html,
             'La ventana debe quedar seleccionada por defecto'
         );
@@ -281,6 +298,8 @@ class ConciliacionReporteIntegracionTest extends TestCase {
             'El render debe incluir el enlace al reporte de la ventana CSV');
         $this->assertStringContains('Reporte de la ventana PDF', $html,
             'El render debe rotular el botón PDF como reporte de la ventana');
+        $this->assertStringContains('Se conservan los ' . CONCILIACION_VENTANA_LOTES . ' lotes', $html,
+            'La nota de importación debe usar el límite configurado');
         $this->assertStringContains('Reporte de la ventana CSV', $html,
             'El render debe rotular el botón CSV como reporte de la ventana');
         $this->assertStringContains('Históricos (', $html,
@@ -295,7 +314,7 @@ class ConciliacionReporteIntegracionTest extends TestCase {
         $html = $this->renderizarIndex(['x']);
 
         $this->assertMatchesRegex(
-            '/<option value=""\s+selected>Ventana activa \(3 lotes por banco\)<\/option>/',
+            '/<option value=""\s+selected>Ventana activa \(' . preg_quote((string)CONCILIACION_VENTANA_LOTES, '/') . ' lotes por banco\)<\/option>/',
             $html,
             'Un lote recibido como arreglo debe caer a la ventana sin lanzar TypeError'
         );

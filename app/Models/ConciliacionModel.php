@@ -189,6 +189,11 @@ class ConciliacionModel extends BaseModel {
      * Obtiene la ventana activa de un banco: los lotes más recientes por
      * MAX(fecha_carga) y, en empate, MAX(id). El más nuevo se lista primero.
      */
+    private function limiteVentana(): int {
+        $limite = defined('CONCILIACION_VENTANA_LOTES') ? (int)CONCILIACION_VENTANA_LOTES : 3;
+        return max(1, $limite);
+    }
+
     public function obtenerLotesVentanaPorBanco(string $banco, int $limite = 3): array {
         $banco = trim($banco);
         if ($banco === '') {
@@ -244,7 +249,7 @@ class ConciliacionModel extends BaseModel {
      * obtenerDisponiblesLote().
      */
     public function obtenerExtractosPendientes(?string $lote = null): array {
-        $nombresVentana = array_column($this->obtenerLotesVentana(3), 'lote_importacion');
+        $nombresVentana = array_column($this->obtenerLotesVentana($this->limiteVentana()), 'lote_importacion');
 
         if (empty($nombresVentana)) {
             return [];
@@ -726,7 +731,7 @@ class ConciliacionModel extends BaseModel {
         $lotes = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         $activos = [];
 
-        foreach ($this->obtenerLotesVentana(3) as $loteVentana) {
+        foreach ($this->obtenerLotesVentana($this->limiteVentana()) as $loteVentana) {
             $clave = (string)($loteVentana['banco'] ?? '') . '|' . (string)($loteVentana['lote_importacion'] ?? '');
             $activos[$clave] = true;
         }

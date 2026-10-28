@@ -290,7 +290,7 @@ class ReporteConciliacionService {
         }
 
         $this->filaCsv($handle, []);
-        $this->filaCsv($handle, ['MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)']);
+        $this->filaCsv($handle, ['MOVIMIENTOS DISPONIBLES SIN RECLAMAR']);
         $this->filaCsv($handle, ['Fecha', 'Lote', 'Referencia', 'Descripción', 'Monto']);
         foreach (($datos['disponibles'] ?? []) as $fila) {
             $this->filaCsv($handle, [
@@ -390,7 +390,7 @@ class ReporteConciliacionService {
 
         $this->dibujarSeccion(
             $pdf,
-            'MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)',
+            'MOVIMIENTOS DISPONIBLES SIN RECLAMAR',
             ['Fecha', 'Lote', 'Referencia', 'Descripción', 'Monto'],
             $this->filasDisponibles($datos['disponibles'] ?? []),
             [20.0, 36.0, 40.0, 70.9, 25.0],

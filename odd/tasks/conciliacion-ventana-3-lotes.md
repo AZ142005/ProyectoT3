@@ -5,6 +5,10 @@
 - Si la importación es mensual, equivale a 3 meses. No se agrega `periodo`; si luego se necesita calendario exacto, se hace una segunda etapa con una columna de período.
 - No se modifica el esquema ni se agregan rutas.
 
+## Configuración
+- `CONCILIACION_VENTANA_LOTES` en `.env` (default 3, rango 1..12; un valor inválido cae a 3).
+- Documentada en `.env.example` y usada por el controlador, el modelo y la UI.
+
 ## Reglas de negocio
 1. **Ventana** = por banco, los 3 `lote_importacion` más recientes. Un lote pertenece a un banco.
 2. `obtenerLotesVentana(int $limite = 3)` devuelve los lotes de la ventana (todos los bancos). `obtenerLotesVentanaPorBanco(string $banco, int $limite = 3)` para la importación.
@@ -17,6 +21,7 @@
    - Insertar/adoptar como hoy. Si el nuevo lote no aporta filas (`insertados + adoptados = 0`), la ventana no rota y no se guarda reporte.
    - Si hubo expulsión y filas nuevas, persistir el reporte histórico del lote expulsado.
    - Los primeros 3 lotes de un banco no generan reporte histórico.
+   - La rotación se decide por filas nuevas **o adoptadas** (`$nuevos > 0`), pero se confirma contra la ventana posterior: un lote que sigue dentro de la ventana no se archiva.
    - El cruce automático se ejecuta sobre `obtenerExtractosPendientesVentana(3)`, no sólo el lote nuevo.
    - El flash informa la ventana y, si hubo, el lote archivado.
 7. **Reporte actual** = reporte de la ventana (3 lotes). **Históricos** = reportes de lotes expulsados.
@@ -39,10 +44,10 @@
 - Ajustes en tests de conciliación/reportes afectados.
 
 ## Tareas
-- [ ] **T1 — Modelo ventana.** `obtenerLotesVentana`, `obtenerLotesVentanaPorBanco`, `obtenerExtractosPendientesVentana`, `obtenerExtractosPendientes` limitado a la ventana, `obtenerLotes` con `es_activo` de ventana. Tests de modelo.
-- [ ] **T2 — Reporte de ventana.** `construirVentana`, columna Lote en disponibles, metadata/nombre de archivo, tests de CSV/PDF/construcción.
-- [ ] **T3 — Importación/UI.** Snapshot y archivado del lote expulsado, cruce sobre la ventana, flash, `index()` con ventana por defecto, selector/botones/avisos, tests de integración.
-- [ ] **T4 — Suite completa y cierre.** `php tests/run.php` verde, `check_purity`, `audit_security`, `php -l`; commit y entrega.
+- [x] **T1 — Modelo ventana.** `obtenerLotesVentana`, `obtenerLotesVentanaPorBanco`, `obtenerExtractosPendientesVentana`, `obtenerExtractosPendientes` limitado a la ventana, `obtenerLotes` con `es_activo` de ventana. Tests de modelo.
+- [x] **T2 — Reporte de ventana.** `construirVentana`, columna Lote en disponibles, metadata/nombre de archivo, tests de CSV/PDF/construcción.
+- [x] **T3 — Importación/UI.** Snapshot y archivado del lote expulsado, cruce sobre la ventana, flash, `index()` con ventana por defecto, selector/botones/avisos, tests de integración.
+- [x] **T4 — Suite completa y cierre.** `php tests/run.php` verde, `check_purity`, `audit_security`, `php -l`; commit y entrega.
 
 ## Criterios de aceptación
 1. Con 4 lotes del mismo banco, los 3 más recientes son la ventana; el más viejo queda fuera y sus disponibles no aparecen en la bandeja ni en el cruce.
@@ -55,3 +60,9 @@
 ## Evidencia inicial
 - `main` en `03a92fa`, suite 764/3433/0/0/5, esquema local alineado al dump (32 tablas).
 - Feature branch: `feat/conciliacion-ventana-3-lotes`.
+
+## Evidencia final
+- Ventana implementada y verificada: 771 tests / 3.514 aserciones antes de la config; 772 / 3.528 con `CONCILIACION_VENTANA_LOTES`; suite completa con 0 fallos, 0 errores y 5 omitidos.
+- Configuración: `CONCILIACION_VENTANA_LOTES` en `.env` (default 3, rango 1..12, valor inválido -> 3), documentada en `.env.example`; usada por controlador, modelo y vista.
+- Verificación independiente: PASS WITH FINDINGS; se corrigió el archivado falso (sólo se archiva el lote que realmente sale de la ventana posterior) y se ajustó la rotación para contar insertados + adoptados. Riesgos LOW aceptados: no hay test conductual de importación, los tests asumen ventana 3 y el fallback inválido de config no se ejecuta en runtime.
+- Sin cambios de esquema ni rutas nuevas. Feature branch `feat/conciliacion-ventana-3-lotes`.

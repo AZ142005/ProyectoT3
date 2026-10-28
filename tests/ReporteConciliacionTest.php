@@ -342,7 +342,7 @@ class ReporteConciliacionTest extends TestCase {
 
         $this->assertTrue(str_starts_with($csv, "\xEF\xBB\xBF"), 'El CSV debe iniciar con BOM UTF-8');
         $this->assertStringContains('MOVIMIENTOS CONCILIADOS', $csv, 'El CSV debe incluir la sección de conciliados');
-        $this->assertStringContains('MOVIMIENTOS DISPONIBLES SIN RECLAMAR (LOTE SALIENTE)', $csv, 'El CSV debe incluir la sección de disponibles');
+        $this->assertStringContains('MOVIMIENTOS DISPONIBLES SIN RECLAMAR', $csv, 'El CSV debe incluir la sección de disponibles');
         $this->assertStringContains('PAGOS REPORTADOS PENDIENTES DE CONCILIAR', $csv, 'El CSV debe incluir la sección de pendientes');
         $this->assertStringContains('Fecha;Unidad;Residente;Referencia;Lote;Monto', $csv, 'La cabecera de conciliados debe usar punto y coma');
         $this->assertStringContains('Fecha;Lote;Referencia;Descripción;Monto', $csv, 'La cabecera de disponibles debe incluir el lote y usar punto y coma');

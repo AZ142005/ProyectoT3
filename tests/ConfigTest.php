@@ -214,4 +214,16 @@ class ConfigTest extends TestCase {
             $this->passed++;
         }
     }
+
+    public function testVentanaLotesConfiguradaEnRango(): void {
+        $this->assertTrue(defined("CONCILIACION_VENTANA_LOTES"),
+            "CONCILIACION_VENTANA_LOTES debe estar definida");
+        $limite = (int)CONCILIACION_VENTANA_LOTES;
+        $this->assertTrue($limite >= 1, "La ventana debe tener al menos 1 lote");
+        $this->assertTrue($limite <= 12, "La ventana no debe superar 12 lotes");
+        $config = file_get_contents(dirname(__DIR__) . '/app/config/config.php');
+        $this->assertStringContains('ctype_digit', $config,
+            "La configuración debe validar estrictamente el valor de la ventana");
+    }
+
 }

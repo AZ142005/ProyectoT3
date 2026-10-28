@@ -20,7 +20,7 @@ class ConciliacionController extends Controller {
         $conciliacionService = new ConciliacionBancariaService();
 
         $lotes = $conciliacionModel->obtenerLotes();
-        $lotesVentana = $conciliacionModel->obtenerLotesVentana(3);
+        $lotesVentana = $conciliacionModel->obtenerLotesVentana(CONCILIACION_VENTANA_LOTES);
         $loteRecibido = $_GET['lote'] ?? null;
         $loteSeleccionado = (is_string($loteRecibido) && $loteRecibido !== '') ? $loteRecibido : null;
         $lotesPorNombre = array_column($lotes, 'lote_importacion');
@@ -32,7 +32,7 @@ class ConciliacionController extends Controller {
         $reportesHistoricos = (new ReporteConciliacionService())->listarHistoricos();
 
         if ($loteSeleccionado === null) {
-            $extractosPendientes = $conciliacionModel->obtenerExtractosPendientesVentana(3);
+            $extractosPendientes = $conciliacionModel->obtenerExtractosPendientesVentana(CONCILIACION_VENTANA_LOTES);
         } elseif ($loteExiste) {
             $extractosPendientes = $conciliacionModel->obtenerExtractosPendientes($loteSeleccionado);
         } else {
@@ -156,6 +156,7 @@ class ConciliacionController extends Controller {
         $this->render('admin/conciliacion/index', [
             'lotes'                 => $lotes,
             'lotesVentana'          => $lotesVentana,
+            'limiteVentana'         => CONCILIACION_VENTANA_LOTES,
             'loteActual'            => $loteSeleccionado,
             'loteExiste'            => $loteExiste,
             'loteEsActivo'          => $loteEsActivo,
@@ -231,11 +232,11 @@ class ConciliacionController extends Controller {
 
             $movimientos = $conciliacionService->parsearArchivo($file['tmp_name'], $banco);
 
-            // Ventana previa del banco: si ya tiene 3 lotes, el más antiguo
+            // Ventana previa del banco: si ya alcanzó el límite configurado, el más antiguo
             // saldrá de la ventana al entrar el nuevo lote. El snapshot se toma
             // antes de insertar/adoptar para congelar su estado histórico.
-            $ventanaPrevia = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, 3);
-            $loteExpulsado = count($ventanaPrevia) >= 3
+            $ventanaPrevia = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, CONCILIACION_VENTANA_LOTES);
+            $loteExpulsado = count($ventanaPrevia) >= CONCILIACION_VENTANA_LOTES
                 ? (string)($ventanaPrevia[count($ventanaPrevia) - 1]['lote_importacion'] ?? '')
                 : '';
             if ($loteExpulsado === '') {
@@ -256,27 +257,38 @@ class ConciliacionController extends Controller {
 
             $lote = 'LOTE-' . date('Ymd-His') . '-' . bin2hex(random_bytes(2));
             $stats = $conciliacionModel->insertarExtracto($movimientos, $banco, $lote);
+            $insertados = (int)$stats['insertados'];
             $adoptados = (int)($stats['adoptados'] ?? 0);
-            $nuevos = (int)$stats['insertados'] + $adoptados;
+            $nuevos = $insertados + $adoptados;
+
+            $ventanaPosterior = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, CONCILIACION_VENTANA_LOTES);
+            $nombresVentanaPosterior = array_column($ventanaPosterior, 'lote_importacion');
+
+            // Sólo se archiva el candidato si el extracto aportó movimientos
+            // nuevos y el lote realmente salió de la ventana posterior. Una
+            // reimportación que sólo adopta filas no rota la ventana.
+            $loteArchivado = ($loteExpulsado !== null
+                && $nuevos > 0
+                && !in_array($loteExpulsado, $nombresVentanaPosterior, true))
+                ? $loteExpulsado
+                : null;
 
             $reporteGuardado = null;
-            if ($loteExpulsado !== null && $snapshotReporte !== null && $nuevos > 0) {
+            if ($loteArchivado !== null && $snapshotReporte !== null) {
                 try {
                     $reporteGuardado = $reporteService->guardar($snapshotReporte);
                 } catch (\Throwable $e) {
-                    error_log("[CONCILIACION] No se pudo guardar el reporte del lote expulsado: " . $e->getMessage());
+                    error_log("[CONCILIACION] No se pudo guardar el reporte del lote archivado: " . $e->getMessage());
                     $reporteGuardado = null;
                 }
             }
-
-            $ventanaPosterior = $conciliacionModel->obtenerLotesVentanaPorBanco($banco, 3);
 
             // Cruce automático sobre todos los disponibles de la ventana.
             $resultadoCruce = null;
             $cruceError = false;
             if ($nuevos > 0) {
                 try {
-                    $extractos = $conciliacionModel->obtenerExtractosPendientesVentana(3);
+                    $extractos = $conciliacionModel->obtenerExtractosPendientesVentana(CONCILIACION_VENTANA_LOTES);
                     $resultadoCruce = $conciliacionService->ejecutarCruceInteligente($extractos);
                 } catch (\Throwable $e) {
                     error_log("[CONCILIACION] Error en cruce automático tras importar: " . $e->getMessage());
@@ -295,10 +307,12 @@ class ConciliacionController extends Controller {
 
             if ($nuevos === 0) {
                 $msg .= ' La ventana no rotó porque no hubo movimientos nuevos.';
+            } elseif ($insertados === 0 && $loteArchivado === null) {
+                $msg .= ' La ventana no rotó: el extracto se reimportó sobre lotes existentes.';
             }
 
-            if ($loteExpulsado !== null && $nuevos > 0) {
-                $msg .= " Lote archivado: {$loteExpulsado}.";
+            if ($loteArchivado !== null) {
+                $msg .= " Lote archivado: {$loteArchivado}.";
                 if ($reporteGuardado !== null) {
                     $msg .= " Reporte histórico generado: {$reporteGuardado['archivo_pdf']} y {$reporteGuardado['archivo_csv']}.";
                 } elseif ($snapshotReporte === null) {
@@ -347,7 +361,7 @@ class ConciliacionController extends Controller {
 
         $reporteService = new ReporteConciliacionService();
         $conciliacionModel = new ConciliacionModel();
-        $lotesVentana = $conciliacionModel->obtenerLotesVentana(3);
+        $lotesVentana = $conciliacionModel->obtenerLotesVentana(CONCILIACION_VENTANA_LOTES);
 
         if (empty($lotesVentana)) {
             Flash::set('danger', 'No hay lotes en la ventana activa para generar el reporte de conciliación.');

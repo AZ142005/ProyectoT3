@@ -5,6 +5,7 @@
     $lotesVentana = $lotesVentana ?? [];
     $loteExiste = $loteExiste ?? false;
     $loteEsActivo = $loteEsActivo ?? false;
+    $limiteVentana = $limiteVentana ?? (defined('CONCILIACION_VENTANA_LOTES') ? (int)CONCILIACION_VENTANA_LOTES : 3);
 
     $activeRoute = 'conciliacion'; 
     if (\App\Core\Auth::role() === 'auditor') {
@@ -69,7 +70,7 @@
                         <div class="flex items-center gap-2 flex-wrap min-w-0">
                             <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Lote / Historial:</label>
                             <select class="px-3 py-2.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs max-w-full min-w-0" onchange="window.location.href = '/admin/conciliacion' + (this.value ? '?lote=' + encodeURIComponent(this.value) : '')">
-                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Ventana activa (3 lotes por banco)</option>
+                                <option value="" <?= empty($loteActual) ? 'selected' : '' ?>>Ventana activa (<?= (int)$limiteVentana ?> lotes por banco)</option>
                                 <?php foreach ($lotes as $l): ?>
                                     <option value="<?= e($l['lote_importacion']) ?>" <?= ($loteActual === $l['lote_importacion']) ? 'selected' : '' ?>>
                                         <?= e($l['lote_importacion']) ?> (<?= e($l['banco']) ?>) <?= (($l['es_activo'] ?? 0)) ? '[en ventana]' : '[histórico]' ?>
@@ -374,7 +375,7 @@
                     </div>
 
                     <div class="alert alert-info-subtle border border-info-subtle rounded-3 py-2 px-3 text-xs mb-0" role="note">
-                        Se conservan los 3 lotes más recientes por banco. Al entrar un cuarto lote, el más antiguo se archiva automáticamente y se genera su reporte histórico PDF/CSV.
+                        Se conservan los <?= (int)$limiteVentana ?> lotes más recientes por banco. Al superar ese límite, el más antiguo se archiva automáticamente y se genera su reporte histórico PDF/CSV.
                     </div>
                 </div>
                 <div class="modal-footer bg-light">

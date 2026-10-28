@@ -29,6 +29,15 @@ define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 define('DB_NAME', $_ENV['DB_NAME'] ?? 'condominio_cobranzas');
 define('ENVIRONMENT', $_ENV['ENVIRONMENT'] ?? 'development');
 
+// Ventana de conciliación: lotes activos por banco (rango 1-12, default 3).
+// Un valor inválido cae al default para no romper la bandeja.
+$ventanaRaw = trim((string)($_ENV['CONCILIACION_VENTANA_LOTES'] ?? '3'));
+$ventanaLotes = ctype_digit($ventanaRaw) ? (int)$ventanaRaw : 3;
+if ($ventanaLotes < 1 || $ventanaLotes > 12) {
+    $ventanaLotes = 3;
+}
+define('CONCILIACION_VENTANA_LOTES', $ventanaLotes);
+
 // Crear directorio de logs si no existe
 $logDir = dirname(LOG_PATH);
 if (!file_exists($logDir)) {
