@@ -213,14 +213,13 @@
                                     <th class="py-3 px-4">Usuario / Nombre</th>
                                     <th class="py-3 px-4">Contacto</th>
                                     <th class="py-3 px-4">Rol / Ubicación</th>
-                                    <th class="py-3 px-4">Estado</th>
                                     <th class="py-3 px-4 text-end" style="width: 180px;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-background">
                                 <?php if (empty($usuarios)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center py-12 text-on-surface-variant">
+                                        <td colspan="5" class="text-center py-12 text-on-surface-variant">
                                             <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">person_search</span>
                                             <p class="mb-0 fw-semibold">No se encontraron usuarios registrados que coincidan con la búsqueda.</p>
                                         </td>
@@ -284,21 +283,6 @@
                                                             <span class="material-symbols-outlined fs-6">save</span>
                                                         </button>
                                                     </form>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="py-4 px-4">
-                                                <?php if (!empty($u['esta_bloqueado'])): ?>
-                                                    <span class="badge bg-danger rounded-pill px-3 py-1.5" title="Bloqueado por 5 intentos fallidos">
-                                                        <span class="material-symbols-outlined fs-6 align-middle">lock</span> Bloqueado
-                                                    </span>
-                                                <?php elseif ((int)$u['estado'] === 1): ?>
-                                                    <span class="badge bg-success rounded-pill px-3 py-1.5">
-                                                        <span class="material-symbols-outlined fs-6 align-middle">check_circle</span> Activo
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-secondary rounded-pill px-3 py-1.5">
-                                                        Inactivo
-                                                    </span>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="py-4 px-4 text-end">
