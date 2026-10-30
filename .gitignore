@@ -55,3 +55,16 @@ scratch/
 # Documentos temporales y bitacoras de trabajo en raiz
 /*.docx
 !/docs/*.docx
+
+# Artefactos de despliegue y datos sensibles de carga
+/htdocs.zip
+/database/htdocs.zip
+/database/condominio_cobranzas_old.sql
+/scripts/*_filas.json
+/scripts/asignar_cedulas_y_claves.php
+/scripts/importar_propietarios_por_unidad.php
+/scripts/ejecutar_carga_cartelera.php
+/scripts/revertir_pago_prueba_1_25.php
+/scripts/eliminar_pago_prueba_1_01.php
+
+/database/condominio_cobranzas_vacio.sql
