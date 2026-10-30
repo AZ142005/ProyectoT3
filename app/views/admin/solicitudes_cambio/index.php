@@ -152,9 +152,9 @@
                                                                    placeholder="Motivo (obligatorio al rechazar)"
                                                                    onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
                                                             <div class="d-flex gap-1 justify-content-end">
-                                                                <button type="submit" name="accion" value="aprobar"
+                                                                <button type="button"
                                                                         class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                                                                        onclick="return confirm('¿Aprobar y aplicar el cambio de datos de <?= e($s['residente_nombre']) ?>?');">
+                                                                        onclick="abrirModalAprobarCambio(<?= (int)$s['id'] ?>, <?= e(json_encode($s['residente_nombre'], JSON_UNESCAPED_UNICODE)) ?>)">
                                                                     <span class="material-symbols-outlined text-[16px] align-middle">check</span>
                                                                     Aprobar
                                                                 </button>
@@ -190,7 +190,50 @@
                     </div>
                 </div>
 
+<!-- Modal para Aprobar Cambio de Datos -->
+<div class="modal fade" id="modalAprobarCambioDatos" tabindex="-1" aria-labelledby="modalAprobarCambioDatosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
+            <form method="POST" action="/admin/usuarios/procesar-solicitud-cambio">
+                <?= csrf_field() ?>
+                <input type="hidden" name="id" id="aprobarCambioId" value="">
+                <input type="hidden" name="accion" value="aprobar">
+
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalAprobarCambioDatosLabel">
+                        <span class="material-symbols-outlined">manage_accounts</span>
+                        Aprobar Cambio de Datos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-on-surface-variant small mb-3">
+                        ¿Confirmas la aprobación y aplicación del cambio de datos de <strong id="aprobarCambioNombre"></strong>?
+                    </p>
+                    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-xs">
+                        <span class="material-symbols-outlined text-[18px] align-middle me-1">check_circle</span>
+                        Se aplicarán los cambios solicitados y se notificará al residente.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                        <span>Confirmar Aprobación</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+    function abrirModalAprobarCambio(id, nombre) {
+        document.getElementById('aprobarCambioId').value = id;
+        document.getElementById('aprobarCambioNombre').textContent = nombre;
+        new bootstrap.Modal(document.getElementById('modalAprobarCambioDatos')).show();
+    }
+
     /**
      * Exige el motivo únicamente al rechazar; aprobar no lo requiere.
      */

@@ -247,6 +247,9 @@ class SolicitudesCambioDatosTest extends TestCase {
         $this->assertStringContains('value="rechazar"', $partial, "El formulario debe ofrecer la acción rechazar");
         $this->assertStringContains('name="motivo"', $partial, "El formulario debe incluir el campo motivo");
         $this->assertStringContains('validarRechazoCambio', $partial, "El rechazo debe exigir motivo en cliente");
+        $this->assertStringContains('modalAprobarCambioDatos', $partial, "El partial debe incluir el modal de aprobación");
+        $this->assertStringContains('modal-dialog-centered', $partial, "El modal de aprobación debe estar centrado");
+        $this->assertStringContains('abrirModalAprobarCambio', $partial, "El partial debe abrir el modal de aprobación");
 
         // Controlador y ruta registrados
         $this->assertStringContains('procesarSolicitudCambio', $controlador, "El controlador debe exponer procesarSolicitudCambio");

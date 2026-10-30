@@ -109,14 +109,10 @@
                                                 </td>
                                                 <td class="py-4 px-4 text-end">
                                                     <?php if ($s['estado'] === 'pendiente'): ?>
-                                                        <form method="POST" action="/admin/solicitudes-registro/aprobar" class="d-inline">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="id" value="<?= e($s['id']) ?>">
-                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" onclick="return confirm('¿Aprobar el registro de <?= e($s['nombre']) ?> <?= e($s['apellido']) ?> en el Apto. <?= e($s['unidad_numero']) ?>? Se activará su cuenta de residente.');">
-                                                                <span class="material-symbols-outlined text-[16px] align-middle">check</span>
-                                                                Aprobar
-                                                            </button>
-                                                        </form>
+                                                        <button type="button" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" onclick="abrirModalAprobarRegistro(<?= (int)$s['id'] ?>, <?= e(json_encode($s['nombre'] . ' ' . $s['apellido'], JSON_UNESCAPED_UNICODE)) ?>, <?= e(json_encode($s['unidad_numero'], JSON_UNESCAPED_UNICODE)) ?>)">
+                                                            <span class="material-symbols-outlined text-[16px] align-middle">check</span>
+                                                            Aprobar
+                                                        </button>
                                                         <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ms-1" onclick="abrirModalRechazoRegistro(<?= e($s['id']) ?>, '<?= e(addslashes($s['nombre'] . ' ' . $s['apellido'])) ?>')">
                                                             <span class="material-symbols-outlined text-[16px] align-middle">close</span>
                                                             Rechazar
@@ -179,7 +175,50 @@
     </div>
 </div>
 
+<!-- Modal para Aprobar Solicitud de Registro -->
+<div class="modal fade" id="modalAprobarSolicitudRegistro" tabindex="-1" aria-labelledby="modalAprobarSolicitudRegistroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
+            <form method="POST" action="/admin/solicitudes-registro/aprobar">
+                <?= csrf_field() ?>
+                <input type="hidden" name="id" id="aprobarRegistroId" value="">
+
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalAprobarSolicitudRegistroLabel">
+                        <span class="material-symbols-outlined">how_to_reg</span>
+                        Aprobar Solicitud de Registro
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-on-surface-variant small mb-3">
+                        ¿Confirmas la aprobación del registro de <strong id="aprobarRegistroNombre"></strong> en el Apto. <strong id="aprobarRegistroUnidad"></strong>?
+                    </p>
+                    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-xs">
+                        <span class="material-symbols-outlined text-[18px] align-middle me-1">check_circle</span>
+                        Se activará su cuenta de residente y podrá iniciar sesión.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                        <span>Confirmar Aprobación</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+    function abrirModalAprobarRegistro(id, nombre, unidad) {
+        document.getElementById('aprobarRegistroId').value = id;
+        document.getElementById('aprobarRegistroNombre').textContent = nombre;
+        document.getElementById('aprobarRegistroUnidad').textContent = unidad;
+        new bootstrap.Modal(document.getElementById('modalAprobarSolicitudRegistro')).show();
+    }
+
     function abrirModalRechazoRegistro(id, nombre) {
         document.getElementById('solicitudRegistroId').value = id;
         document.getElementById('nombreSolicitanteRechazo').textContent = nombre;

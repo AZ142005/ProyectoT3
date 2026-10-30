@@ -44,6 +44,9 @@ class UsuariosSolicitudesTabsTest extends TestCase {
         $this->assertStringContains('/admin/solicitudes-registro/rechazar', $content, "El partial debe conservar el POST de rechazo");
         $this->assertStringContains('csrf_field()', $content, "El partial debe conservar los tokens CSRF");
         $this->assertStringContains('abrirModalRechazoRegistro', $content, "El partial debe conservar el modal de rechazo");
+        $this->assertStringContains('modalAprobarSolicitudRegistro', $content, "El partial debe incluir el modal de aprobación");
+        $this->assertStringContains('modal-dialog-centered', $content, "El modal de aprobación debe estar centrado");
+        $this->assertStringContains('abrirModalAprobarRegistro', $content, "El partial debe abrir el modal de aprobación");
         $this->assertStringContains("'tab' => 'solicitudes'", $content, "El partial debe construir los filtros con la pestaña de solicitudes");
     }
 
