@@ -385,4 +385,23 @@ class AuthTest extends TestCase {
         $this->assertStringContains("Correo electrónico o contraseña incorrectos", $content,
             "AuthController debe retornar mensaje genérico de error ante credenciales incorrectas");
     }
+
+    public function testRegisterViewTieneCascadaEdificioUnidad(): void {
+        $view = file_get_contents(dirname(__DIR__) . '/app/views/auth/register.php');
+
+        $this->assertStringContains('id="edificio_registro"', $view,
+            'El registro debe tener un selector de edificio');
+        $this->assertStringContains('data-edificio', $view,
+            'Las opciones de apartamento deben identificar su edificio');
+        $this->assertStringContains('aplicarFiltroUnidades', $view,
+            'El registro debe filtrar los apartamentos según el edificio');
+        $this->assertStringContains('id="unidad_id"', $view,
+            'El selector de apartamento debe conservar el name unidad_id');
+
+        $controller = file_get_contents(dirname(__DIR__) . '/app/Controllers/AuthController.php');
+        $this->assertStringContains('edificiosDisponibles', $controller,
+            'El controlador debe preparar los edificios con apartamentos disponibles');
+        $this->assertStringContains('unidadDisponible', $controller,
+            'El backend debe validar que la unidad siga disponible');
+    }
 }

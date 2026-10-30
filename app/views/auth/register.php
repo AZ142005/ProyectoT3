@@ -125,35 +125,66 @@
                     </div>
                 </div>
 
-                <!-- Selector Dinámico de Apartamentos Disponibles -->
-                <div class="flex flex-col gap-1.5">
-                    <label for="unidad_id" class="text-sm font-bold text-on-surface">Apartamento / Unidad *</label>
-                    <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[20px]">apartment</span>
-                        <select id="unidad_id" name="unidad_id" required
-                                class="w-full pl-11 pr-10 py-3 bg-background border-2 border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium appearance-none cursor-pointer">
-                            <option value="">-- Selecciona el apartamento que vas a habitar --</option>
-                            <?php if (!empty($apartamentosDisponibles)): ?>
-                                <?php foreach ($apartamentosDisponibles as $apto): ?>
-                                    <option value="<?= e($apto['id']) ?>" <?= ((int)($_POST['unidad_id'] ?? 0) === (int)$apto['id']) ? 'selected' : '' ?>>
-                                        <?= e($apto['edificio_nombre']) ?> — Apto. <?= e($apto['numero']) ?>
+                <?php
+                $oldUnidad = is_scalar($_POST['unidad_id'] ?? null) ? (string)$_POST['unidad_id'] : '';
+                $oldEdificio = is_scalar($_POST['edificio_registro'] ?? null) ? (string)$_POST['edificio_registro'] : '';
+                foreach (($apartamentosDisponibles ?? []) as $apto) {
+                    if ((string)$apto['id'] === $oldUnidad) {
+                        $oldEdificio = (string)$apto['edificio_id'];
+                        break;
+                    }
+                }
+                $edificiosDisponibles = $edificiosDisponibles ?? [];
+                ?>
+
+                <!-- Selector en cascada: primero edificio, luego apartamento -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="edificio_registro" class="text-sm font-bold text-on-surface">Edificio *</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[20px]">location_city</span>
+                            <select id="edificio_registro" name="edificio_registro" required
+                                    <?= empty($edificiosDisponibles) ? 'disabled' : '' ?>
+                                    class="w-full pl-11 pr-10 py-3 bg-background border-2 border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                                <option value=""><?= empty($edificiosDisponibles) ? 'Sin edificios disponibles' : '-- Selecciona el edificio --' ?></option>
+                                <?php foreach ($edificiosDisponibles as $edificioId => $edificioNombre): ?>
+                                    <option value="<?= e($edificioId) ?>" <?= ($oldEdificio === (string)$edificioId) ? 'selected' : '' ?>>
+                                        <?= e($edificioNombre) ?>
                                     </option>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="" disabled>No hay apartamentos disponibles actualmente para registro</option>
-                            <?php endif; ?>
-                        </select>
-                        <span class="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-[20px]">expand_more</span>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-[20px]">expand_more</span>
+                        </div>
                     </div>
-                    <?php if (empty($apartamentosDisponibles)): ?>
-                        <p class="text-xs text-amber-700 mt-1 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">warning</span>
-                            Todos los apartamentos se encuentran ocupados o con solicitudes en trámite. Contacta a administración.
-                        </p>
-                    <?php else: ?>
-                        <p class="text-xs text-on-surface-variant/80 mt-0.5">Solo se muestran los inmuebles vacantes sin solicitudes previas en curso.</p>
-                    <?php endif; ?>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="unidad_id" class="text-sm font-bold text-on-surface">Apartamento / Unidad *</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[20px]">apartment</span>
+                            <select id="unidad_id" name="unidad_id" required disabled
+                                    class="w-full pl-11 pr-10 py-3 bg-background border-2 border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                                <option value=""><?= empty($apartamentosDisponibles) ? 'No hay apartamentos disponibles' : '-- Primero selecciona el edificio --' ?></option>
+                                <?php foreach ($apartamentosDisponibles as $apto): ?>
+                                    <option value="<?= e($apto['id']) ?>"
+                                            data-edificio="<?= e($apto['edificio_id']) ?>"
+                                            <?= ($oldUnidad === (string)$apto['id']) ? 'selected' : '' ?>>
+                                        <?= e($apto['numero']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-[20px]">expand_more</span>
+                        </div>
+                    </div>
                 </div>
+
+                <?php if (empty($apartamentosDisponibles)): ?>
+                    <p class="text-xs text-amber-700 mt-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">warning</span>
+                        Todos los apartamentos se encuentran ocupados o con solicitudes en trámite. Contacta a administración.
+                    </p>
+                <?php else: ?>
+                    <p class="text-xs text-on-surface-variant/80 mt-0.5">Selecciona el edificio y luego el inmueble vacante. Solo se muestran unidades sin solicitudes previas en curso.</p>
+                <?php endif; ?>
 
                 <!-- Campo Email -->
                 <div class="flex flex-col gap-1.5">
@@ -427,6 +458,65 @@ document.addEventListener('DOMContentLoaded', function () {
                 return false;
             }
         });
+    }
+
+    // Cascada Edificio -> Apartamento (solo unidades disponibles)
+    var edificioRegistro = document.getElementById('edificio_registro');
+    var unidadRegistro = document.getElementById('unidad_id');
+    if (edificioRegistro && unidadRegistro) {
+        var todasLasUnidades = Array.prototype.slice.call(
+            unidadRegistro.querySelectorAll('option[data-edificio]')
+        );
+        var unidadInicial = <?= json_encode($oldUnidad ?? '', JSON_UNESCAPED_UNICODE) ?>;
+
+        function aplicarFiltroUnidades() {
+            var edificioId = edificioRegistro.value;
+            var seleccionActual = unidadRegistro.value;
+
+            unidadRegistro.innerHTML = '';
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = edificioId
+                ? '-- Selecciona el apartamento --'
+                : '-- Primero selecciona el edificio --';
+            unidadRegistro.appendChild(placeholder);
+
+            if (!edificioId) {
+                unidadRegistro.disabled = true;
+                return;
+            }
+
+            todasLasUnidades.forEach(function (opcion) {
+                if (opcion.getAttribute('data-edificio') === edificioId) {
+                    unidadRegistro.appendChild(opcion);
+                }
+            });
+            unidadRegistro.disabled = false;
+
+            if (seleccionActual) {
+                var existe = Array.prototype.some.call(unidadRegistro.options, function (opcion) {
+                    return opcion.value === seleccionActual;
+                });
+                if (existe) {
+                    unidadRegistro.value = seleccionActual;
+                }
+            }
+        }
+
+        edificioRegistro.addEventListener('change', function () {
+            unidadRegistro.value = '';
+            aplicarFiltroUnidades();
+        });
+
+        aplicarFiltroUnidades();
+        if (unidadInicial) {
+            var opcionInicial = Array.prototype.find.call(unidadRegistro.options, function (opcion) {
+                return opcion.value === unidadInicial;
+            });
+            if (opcionInicial) {
+                unidadRegistro.value = unidadInicial;
+            }
+        }
     }
 });
 </script>

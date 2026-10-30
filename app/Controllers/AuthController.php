@@ -299,6 +299,10 @@ class AuthController extends Controller {
         $success = '';
         $unidadesModel = new UnidadesModel();
         $apartamentosDisponibles = $unidadesModel->getDisponibles();
+        $edificiosDisponibles = [];
+        foreach ($apartamentosDisponibles as $apto) {
+            $edificiosDisponibles[(int)$apto['edificio_id']] = $apto['edificio_nombre'];
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!RateLimiter::attempt('register', 5, 3600)) {
@@ -330,8 +334,18 @@ class AuthController extends Controller {
                 $password          = trim($_POST['password'] ?? '');
                 $password_confirm  = trim($_POST['password_confirm'] ?? '');
 
+                $unidadDisponible = false;
+                foreach ($apartamentosDisponibles as $apto) {
+                    if ((int)$apto['id'] === $unidadId) {
+                        $unidadDisponible = true;
+                        break;
+                    }
+                }
+
                 if (empty($nombre) || empty($apellido) || empty($cedulaNumero) || empty($email) || empty($password) || empty($password_confirm) || $unidadId <= 0) {
                     $error = 'Todos los campos marcados con (*) son obligatorios.';
+                } elseif (!$unidadDisponible) {
+                    $error = 'El apartamento seleccionado ya no está disponible para registro. Selecciona otro.';
                 } elseif (!in_array($cedulaTipo, ['V', 'E', 'J', 'G'], true)) {
                     $error = 'Tipo de documento no válido (debe seleccionar V, E, J o G).';
                 } elseif (strlen($cedulaNumero) < 5 || strlen($cedulaNumero) > 8 || !ctype_digit($cedulaNumero)) {
@@ -399,6 +413,7 @@ class AuthController extends Controller {
         $this->render('auth/register', [
             'error'                   => $error,
             'apartamentosDisponibles' => $apartamentosDisponibles,
+            'edificiosDisponibles'    => $edificiosDisponibles,
             'showNav'                 => false,
             'title'                   => 'Solicitud de Registro | Conjunto Las Mesetas de Morón',
             'robots'                  => 'noindex,follow'
