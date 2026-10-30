@@ -1,191 +1,466 @@
 <?php
+
 namespace App\Models;
 
+
+
 use PDO;
+
 use Exception;
 
+
+
 class EstacionamientosModel extends BaseModel {
+
     protected string $table = 'estacionamientos';
+
+
 
     public const TIPOS_VALIDOS = ['techado', 'descubierto', 'visitante'];
 
-    /**
-     * Aplica el filtro por defecto WHERE deleted_at IS NULL
-     */
-    protected function baseQuery(string $sql, bool $incluirEliminados = false): string {
-        if (!$incluirEliminados) {
-            $sqlPrefix = (strpos($sql, 'WHERE') !== false) ? ' AND ' : ' WHERE ';
-            $sql .= $sqlPrefix . "(e.deleted_at IS NULL OR e.deleted_at = '')";
-        }
-        return $sql;
-    }
+
 
     /**
-     * Listado completo con JOIN a edificios, unidades y datos del vehículo asignado.
+
+     * Aplica el filtro por defecto WHERE deleted_at IS NULL
+
      */
+
+    protected function baseQuery(string $sql, bool $incluirEliminados = false): string {
+
+        if (!$incluirEliminados) {
+
+            $sqlPrefix = (strpos($sql, 'WHERE') !== false) ? ' AND ' : ' WHERE ';
+
+            $sql .= $sqlPrefix . "(e.deleted_at IS NULL OR e.deleted_at = '')";
+
+        }
+
+        return $sql;
+
+    }
+
+
+
+    /**
+
+     * Listado completo con JOIN a edificios, unidades y datos del vehículo asignado.
+
+     */
+
     public function listarConDetalles(bool $incluirEliminados = false): array {
+
         $sql = "SELECT e.*, 
+
                        ed.nombre AS edificio_nombre, 
+
                        u.numero AS unidad_numero,
+
+                       COALESCE(
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_prop.nombre, ''), ' ', COALESCE(p_prop.apellido, ''))), ''),
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_res.nombre, ''), ' ', COALESCE(p_res.apellido, ''))), ''),
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_veh.nombre, ''), ' ', COALESCE(p_veh.apellido, ''))), '')
+
+                       ) AS persona_nombre,
+
+                       COALESCE(p_prop.telefono, p_res.telefono, p_veh.telefono) AS persona_telefono,
+
                        v.id AS vehiculo_id,
+
+                       v.tipo_vehiculo AS vehiculo_tipo,
+
                        v.placa AS vehiculo_placa,
+
                        v.marca AS vehiculo_marca,
-                       v.modelo AS vehiculo_modelo
+
+                       v.modelo AS vehiculo_modelo,
+
+                       v.color AS vehiculo_color
+
                 FROM estacionamientos e
+
                 LEFT JOIN edificios ed ON e.edificio_id = ed.id
+
                 LEFT JOIN unidades u ON e.unidad_id = u.id
-                LEFT JOIN vehiculos v ON v.estacionamiento_id = e.id
-                       AND (v.deleted_at IS NULL OR v.deleted_at = '')";
+
+                LEFT JOIN personas p_prop ON u.propietario_id = p_prop.id
+
+                LEFT JOIN personas p_res ON p_res.id = (
+
+                    SELECT p2.id FROM personas p2 
+
+                    WHERE p2.unidad_id = u.id 
+
+                    ORDER BY p2.id ASC 
+
+                    LIMIT 1
+
+                )
+
+                LEFT JOIN vehiculos v ON v.id = (
+
+                    SELECT v2.id FROM vehiculos v2 
+
+                    WHERE (v2.estacionamiento_id = e.id OR (v2.unidad_id = e.unidad_id AND v2.estacionamiento_id IS NULL)) 
+
+                      AND (v2.deleted_at IS NULL OR v2.deleted_at = '')
+
+                    ORDER BY (v2.estacionamiento_id = e.id) DESC, v2.id ASC 
+
+                    LIMIT 1
+
+                )
+
+                LEFT JOIN personas p_veh ON v.persona_id = p_veh.id";
+
         
+
         $sql = $this->baseQuery($sql, $incluirEliminados);
+
         $sql .= " ORDER BY e.numero ASC LIMIT 500";
 
+
+
         $stmt = $this->db()->prepare($sql);
+
         $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     }
 
+
+
     /**
+
      * Listado paginado de puestos de estacionamiento con detalles.
+
      */
+
     public function obtenerPaginados(int $pagina = 1, int $porPagina = 25, bool $incluirEliminados = false): array {
+
         $baseSql = "SELECT e.*, 
+
                        ed.nombre AS edificio_nombre, 
+
                        u.numero AS unidad_numero,
+
+                       COALESCE(
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_prop.nombre, ''), ' ', COALESCE(p_prop.apellido, ''))), ''),
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_res.nombre, ''), ' ', COALESCE(p_res.apellido, ''))), ''),
+
+                           NULLIF(TRIM(CONCAT(COALESCE(p_veh.nombre, ''), ' ', COALESCE(p_veh.apellido, ''))), '')
+
+                       ) AS persona_nombre,
+
+                       COALESCE(p_prop.telefono, p_res.telefono, p_veh.telefono) AS persona_telefono,
+
                        v.id AS vehiculo_id,
+
+                       v.tipo_vehiculo AS vehiculo_tipo,
+
                        v.placa AS vehiculo_placa,
+
                        v.marca AS vehiculo_marca,
-                       v.modelo AS vehiculo_modelo
+
+                       v.modelo AS vehiculo_modelo,
+
+                       v.color AS vehiculo_color
+
                 FROM estacionamientos e
+
                 LEFT JOIN edificios ed ON e.edificio_id = ed.id
+
                 LEFT JOIN unidades u ON e.unidad_id = u.id
-                LEFT JOIN vehiculos v ON v.estacionamiento_id = e.id
-                       AND (v.deleted_at IS NULL OR v.deleted_at = '')";
+
+                LEFT JOIN personas p_prop ON u.propietario_id = p_prop.id
+
+                LEFT JOIN personas p_res ON p_res.id = (
+
+                    SELECT p2.id FROM personas p2 
+
+                    WHERE p2.unidad_id = u.id 
+
+                    ORDER BY p2.id ASC 
+
+                    LIMIT 1
+
+                )
+
+                LEFT JOIN vehiculos v ON v.id = (
+
+                    SELECT v2.id FROM vehiculos v2 
+
+                    WHERE (v2.estacionamiento_id = e.id OR (v2.unidad_id = e.unidad_id AND v2.estacionamiento_id IS NULL)) 
+
+                      AND (v2.deleted_at IS NULL OR v2.deleted_at = '')
+
+                    ORDER BY (v2.estacionamiento_id = e.id) DESC, v2.id ASC 
+
+                    LIMIT 1
+
+                )
+
+                LEFT JOIN personas p_veh ON v.persona_id = p_veh.id";
+
         $baseSql = $this->baseQuery($baseSql, $incluirEliminados);
 
+
+
         $countSql = "SELECT COUNT(*) as total FROM estacionamientos e";
+
         $countSql = $this->baseQuery($countSql, $incluirEliminados);
 
+
+
         return $this->paginate($baseSql, $countSql, [], $pagina, $porPagina, 'e.numero ASC');
+
     }
 
+
+
     /**
+
      * Obtiene los puestos asignados a una unidad específica.
+
      */
+
     public function obtenerPorUnidad(int $unidadId): array {
+
         $sql = "SELECT e.*, ed.nombre AS edificio_nombre
+
                 FROM estacionamientos e
+
                 LEFT JOIN edificios ed ON e.edificio_id = ed.id
+
                 WHERE e.unidad_id = :unidad_id AND (e.deleted_at IS NULL OR e.deleted_at = '')
+
                 ORDER BY e.numero ASC";
 
+
+
         $stmt = $this->db()->prepare($sql);
+
         $stmt->execute(['unidad_id' => $unidadId]);
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     }
 
+
+
     /**
+
      * Verifica si ya existe un puesto activo con el número indicado.
+
      *
+
      * @param string $numero Número o identificador del puesto
+
      * @param int|null $excluirId ID a excluir (permite conservar el mismo número al editar)
+
      * @return bool
+
      */
+
     public function numeroExists(string $numero, ?int $excluirId = null): bool {
+
         $db = $this->db();
+
         $sql = "SELECT id FROM estacionamientos WHERE numero = :numero AND deleted_at IS NULL";
+
         $params = ['numero' => $numero];
 
+
+
         if ($excluirId !== null && $excluirId > 0) {
+
             $sql .= " AND id != :excluir_id";
+
             $params['excluir_id'] = $excluirId;
+
         }
+
+
 
         $sql .= " LIMIT 1";
+
         $stmt = $db->prepare($sql);
+
         $stmt->execute($params);
+
         return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+
     }
 
+
+
     /**
+
      * Asigna o desasigna un puesto de estacionamiento a una unidad habitacional con bloqueo transaccional.
+
      *
+
      * @param int $puestoId
+
      * @param int|null $unidadId Null para liberar el puesto
+
      * @return bool
+
      * @throws Exception Si el puesto ya está asignado a otra unidad activa
+
      */
+
     public function asignarAUnidad(int $puestoId, ?int $unidadId): bool {
+
         $db = $this->db();
+
         try {
+
             $db->beginTransaction();
 
+
+
             // Bloquear el registro del puesto para evitar condiciones de carrera
+
             $stmtLock = $db->prepare("SELECT id, unidad_id, deleted_at FROM estacionamientos WHERE id = :id FOR UPDATE");
+
             $stmtLock->execute(['id' => $puestoId]);
+
             $puesto = $stmtLock->fetch(PDO::FETCH_ASSOC);
 
+
+
             if (!$puesto || !empty($puesto['deleted_at'])) {
+
                 $db->rollBack();
+
                 throw new Exception("El puesto de estacionamiento no existe o ha sido dado de baja.");
+
             }
+
+
 
             // Si se intenta asignar a una unidad y ya está ocupado por otra unidad diferente
+
             if ($unidadId !== null && !empty($puesto['unidad_id']) && (int)$puesto['unidad_id'] !== $unidadId) {
+
                 $db->rollBack();
+
                 throw new Exception("El puesto ya se encuentra asignado a otra unidad habitacional.");
+
             }
+
+
 
             // 6C.1: Unicidad — verificar que la unidad no tenga ya un puesto asignado
+
             if ($unidadId !== null) {
+
                 $stmtExiste = $db->prepare(
+
                     "SELECT COUNT(*) as cnt FROM estacionamientos 
+
                      WHERE unidad_id = :uid AND id != :id AND deleted_at IS NULL"
+
                 );
+
                 $stmtExiste->execute(['uid' => $unidadId, 'id' => $puestoId]);
+
                 $cnt = intval($stmtExiste->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+
                 if ($cnt > 0) {
+
                     $db->rollBack();
+
                     throw new Exception("Esta unidad ya tiene un puesto de estacionamiento asignado. Libere el puesto actual primero.");
+
                 }
+
             }
+
+
 
             // Actualizar la asignación
+
             $stmtUpdate = $db->prepare("UPDATE estacionamientos SET unidad_id = :unidad_id WHERE id = :id");
+
             $stmtUpdate->execute([
+
                 'unidad_id' => $unidadId,
+
                 'id'        => $puestoId
+
             ]);
 
+
+
             $db->commit();
+
             return true;
+
         } catch (Exception $e) {
+
             if ($db->inTransaction()) {
+
                 $db->rollBack();
+
             }
+
             throw $e;
+
         }
+
     }
+
+
 
     /**
+
      * Da de baja (Soft Delete) a un puesto de estacionamiento.
+
      */
+
     public function softDelete(int $id): bool {
+
         $db = $this->db();
+
         $db->beginTransaction();
+
         try {
+
             // Desvincular vehículos de este puesto antes de borrar
+
             $stmtV = $db->prepare("UPDATE vehiculos SET estacionamiento_id = NULL WHERE estacionamiento_id = :id");
+
             $stmtV->execute(['id' => $id]);
 
+
+
             $stmt = $db->prepare("UPDATE estacionamientos SET deleted_at = NOW(), unidad_id = NULL WHERE id = :id");
+
             $result = $stmt->execute(['id' => $id]);
 
+
+
             $db->commit();
+
             return $result;
+
         } catch (\Exception $e) {
+
             if ($db->inTransaction()) $db->rollBack();
+
             throw $e;
+
         }
+
     }
+
 }
+

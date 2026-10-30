@@ -9,6 +9,15 @@ class VehiculosModel extends BaseModel {
     protected string $table = 'vehiculos';
 
     /**
+     * Tipos de vehículo admitidos por el condominio.
+     */
+    public const TIPOS_VEHICULO = [
+        'pequeno'     => 'Pequeño',
+        'camioneta'   => 'Camioneta (mediano)',
+        'camion_f350' => 'Camión tipo F-350',
+    ];
+
+    /**
      * Normaliza la placa a mayúsculas y sin espacios.
      */
     public function normalizarPlaca(string $placa): string {
@@ -34,42 +43,54 @@ class VehiculosModel extends BaseModel {
     }
 
     /**
-     * Registra un vehículo con normalización de placa y captura de error de clave duplicada SQL 23000.
+     * Registra un vehículo con tipo y color obligatorios y marca opcional.
+     * La placa es opcional (se conserva para datos heredados).
      *
-     * @param array $datos ['unidad_id', 'persona_id', 'estacionamiento_id', 'placa', 'marca', 'modelo', 'color', 'observaciones']
+     * @param array $datos ['unidad_id', 'persona_id', 'estacionamiento_id', 'tipo_vehiculo', 'color', 'marca', 'placa']
      * @return int ID del vehículo creado
-     * @throws Exception Si la placa ya existe o falla la inserción
+     * @throws Exception Si el tipo/color son inválidos, la placa es inválida o duplicada, o falla la inserción
      */
     public function crearVehiculo(array $datos): int {
-        $placaNorm = $this->normalizarPlaca($datos['placa'] ?? '');
-        if (empty($placaNorm)) {
-            throw new Exception("La placa del vehículo no puede estar vacía.");
+        $tipo = trim((string)($datos['tipo_vehiculo'] ?? ''));
+        if (!array_key_exists($tipo, self::TIPOS_VEHICULO)) {
+            throw new Exception("El tipo de vehículo es obligatorio y debe ser Pequeño, Camioneta mediano o Camión tipo F-350.");
         }
 
-        // G3-O4: Validate Venezuelan plate format (ABC1234 or ABC123D)
-        // 3 letters + 3-4 digits + optional trailing letter
-        if (!preg_match('/^[A-Z]{3}[0-9]{3,4}[A-Z]?$/', $placaNorm)) {
-            throw new Exception("La placa '{$placaNorm}' no tiene formato válido. Use 3 letras + 3-4 números (ej: ABC1234 o ABC123D).");
+        $color = trim((string)($datos['color'] ?? ''));
+        if ($color === '') {
+            throw new Exception("El color del vehículo es obligatorio.");
         }
 
-        if ($this->existePlaca($placaNorm)) {
-            throw new Exception("La placa '{$placaNorm}' ya se encuentra registrada en el sistema.");
+        $marca = trim((string)($datos['marca'] ?? ''));
+
+        $placaNorm = $this->normalizarPlaca((string)($datos['placa'] ?? ''));
+        if ($placaNorm !== '') {
+            // G3-O4: Validate Venezuelan plate format (ABC1234 or ABC123D)
+            // 3 letters + 3-4 digits + optional trailing letter
+            if (!preg_match('/^[A-Z]{3}[0-9]{3,4}[A-Z]?$/', $placaNorm)) {
+                throw new Exception("La placa '{$placaNorm}' no tiene formato válido. Use 3 letras + 3-4 números (ej: ABC1234 o ABC123D).");
+            }
+
+            if ($this->existePlaca($placaNorm)) {
+                throw new Exception("La placa '{$placaNorm}' ya se encuentra registrada en el sistema.");
+            }
+        } else {
+            $placaNorm = null;
         }
 
-        $sql = "INSERT INTO vehiculos (unidad_id, persona_id, estacionamiento_id, placa, marca, modelo, color, observaciones)
-                VALUES (:unidad_id, :persona_id, :estacionamiento_id, :placa, :marca, :modelo, :color, :observaciones)";
-        
+        $sql = "INSERT INTO vehiculos (unidad_id, persona_id, estacionamiento_id, tipo_vehiculo, placa, marca, modelo, color, observaciones)
+                VALUES (:unidad_id, :persona_id, :estacionamiento_id, :tipo_vehiculo, :placa, :marca, NULL, :color, NULL)";
+
         try {
             $stmt = $this->db()->prepare($sql);
             $stmt->execute([
                 'unidad_id'          => intval($datos['unidad_id']),
                 'persona_id'         => intval($datos['persona_id']),
                 'estacionamiento_id' => !empty($datos['estacionamiento_id']) ? intval($datos['estacionamiento_id']) : null,
+                'tipo_vehiculo'      => $tipo,
                 'placa'              => $placaNorm,
-                'marca'              => trim($datos['marca'] ?? ''),
-                'modelo'             => trim($datos['modelo'] ?? ''),
-                'color'              => trim($datos['color'] ?? ''),
-                'observaciones'      => !empty($datos['observaciones']) ? trim($datos['observaciones']) : null
+                'marca'              => $marca !== '' ? $marca : null,
+                'color'              => $color,
             ]);
             return intval($this->db()->lastInsertId());
         } catch (PDOException $e) {
@@ -96,6 +117,45 @@ class VehiculosModel extends BaseModel {
         $stmt = $this->db()->prepare($sql);
         $stmt->execute(['unidad_id' => $unidadId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Obtiene un vehículo por ID (incluye los dados de baja para validar pertenencia).
+     */
+    public function obtenerPorId(int $id): array|false {
+        $stmt = $this->db()->prepare("SELECT * FROM vehiculos WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: false;
+    }
+
+    /**
+     * Actualiza el tipo, color y marca de un vehículo existente.
+     * No modifica la placa heredada ni el modelo/observaciones.
+     */
+    public function actualizarVehiculo(int $id, array $datos): bool {
+        $tipo = trim((string)($datos['tipo_vehiculo'] ?? ''));
+        if (!array_key_exists($tipo, self::TIPOS_VEHICULO)) {
+            throw new Exception("El tipo de vehículo es obligatorio y debe ser Pequeño, Camioneta mediano o Camión tipo F-350.");
+        }
+
+        $color = trim((string)($datos['color'] ?? ''));
+        if ($color === '') {
+            throw new Exception("El color del vehículo es obligatorio.");
+        }
+
+        $marca = trim((string)($datos['marca'] ?? ''));
+
+        $sql = "UPDATE vehiculos
+                SET tipo_vehiculo = :tipo_vehiculo, marca = :marca, color = :color
+                WHERE id = :id AND (deleted_at IS NULL OR deleted_at = '')";
+
+        $stmt = $this->db()->prepare($sql);
+        return $stmt->execute([
+            'tipo_vehiculo' => $tipo,
+            'marca'         => $marca !== '' ? $marca : null,
+            'color'         => $color,
+            'id'            => $id,
+        ]);
     }
 
     /**

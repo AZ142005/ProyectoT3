@@ -89,12 +89,13 @@
                 <th class="text-center">Cuotas Vencidas</th>
                 <th class="text-center">Días Mora</th>
                 <th class="text-end">Deuda Total (Bs)</th>
+                <th class="text-end">Saldo a Favor (Bs)</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($morosos)): ?>
                 <tr>
-                    <td colspan="10" class="text-center py-4">No se registran unidades para este criterio.</td>
+                    <td colspan="11" class="text-center py-4">No se registran unidades para este criterio.</td>
                 </tr>
             <?php else: ?>
                 <?php $i = 1; foreach ($morosos as $m): ?>
@@ -114,6 +115,7 @@
                             <?= $esSolvente ? 'Al día' : e($m['dias_mora_max']) . ' días' ?>
                         </td>
                         <td class="text-end font-monospace fw-bold <?= $esSolvente ? 'text-muted' : 'text-danger' ?>"><?= formatearMoneda($m['total_deuda']) ?></td>
+                        <td class="text-end font-monospace fw-bold text-success"><?= floatval($m['saldo_favor'] ?? 0) > 0 ? formatearMoneda($m['saldo_favor']) : '—' ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>

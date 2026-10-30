@@ -55,6 +55,10 @@ class HomeController extends Controller {
                 'pregunta' => '¿Qué hago si no puedo iniciar sesión?',
                 'respuesta' => 'Comunícate con la administración al 0271-2259170 o al correo pagosjdclm@gmail.com.',
             ],
+            [
+                'pregunta' => '¿Dónde puedo consultar o descargar el manual del usuario?',
+                'respuesta' => 'Puedes descargar la Guía y Manual de Usuario Final para Residentes en formato PDF directamente desde esta sección de preguntas frecuentes o desde tu panel de residente al iniciar sesión.',
+            ],
         ];
 
         // Enlace del panel según la sesión activa (null para visitantes).
@@ -151,5 +155,27 @@ class HomeController extends Controller {
             'panelUrl' => $panelUrl,
             'faqs' => $faqs,
         ]);
+    }
+
+    /**
+     * Descarga pública del Manual de Usuario Final para Residentes.
+     */
+    public function descargarManual(): void {
+        $ruta = BASE_PATH . '/public/docs/manual-usuario-residente.pdf';
+        if (!file_exists($ruta)) {
+            $ruta = BASE_PATH . '/docs/manual de usuario final (Residente).pdf';
+        }
+        if (!file_exists($ruta)) {
+            http_response_code(404);
+            $this->redirect('/#preguntas');
+            return;
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="Manual_Usuario_Residente_Las_Mesetas.pdf"');
+        header('Content-Length: ' . (string)filesize($ruta));
+        header('Cache-Control: public, max-age=86400');
+        readfile($ruta);
+        exit;
     }
 }

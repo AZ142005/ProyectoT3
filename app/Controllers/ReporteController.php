@@ -8,16 +8,22 @@ use App\Models\EdificiosModel;
 
 class ReporteController extends Controller {
 
+    private function filtrosBalance(): array {
+        return [
+            'edificio_id' => $_GET['edificio_id'] ?? '',
+            'dias_mora'   => $_GET['dias_mora'] ?? '',
+            'estado'      => $_GET['estado'] ?? '',
+            'buscar'      => trim((string)($_GET['buscar'] ?? '')),
+        ];
+    }
+
     /**
      * Muestra el panel interactivo del reporte de morosidad.
      */
     public function morosidad() {
         Auth::requireRole(['admin', 'auditor']);
 
-        $filtros = [
-            'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? ''
-        ];
+        $filtros = $this->filtrosBalance();
 
         $reportesModel = new ReportesModel();
         $edificiosModel = new EdificiosModel();
@@ -34,24 +40,38 @@ class ReporteController extends Controller {
             }
         }
 
-        // Lista plana orientada a unidades: mayor deuda primero, sin agrupar por edificio
-        usort($todasUnidades, static function (array $a, array $b): int {
-            return ((float)($b['total_deuda'] ?? 0) <=> (float)($a['total_deuda'] ?? 0))
+        // Lista plana orientada a unidades: mayor deuda (o mayor saldo a favor) primero.
+        $ordenPorSaldoFavor = (($filtros['estado'] ?? '') === 'saldo_favor');
+        usort($todasUnidades, static function (array $a, array $b) use ($ordenPorSaldoFavor): int {
+            $principal = $ordenPorSaldoFavor
+                ? ((float)($b['saldo_favor'] ?? 0) <=> (float)($a['saldo_favor'] ?? 0))
+                : ((float)($b['total_deuda'] ?? 0) <=> (float)($a['total_deuda'] ?? 0));
+
+            return $principal
                 ?: strcmp((string)($a['edificio_nombre'] ?? ''), (string)($b['edificio_nombre'] ?? ''))
                 ?: strnatcmp((string)($a['unidad_numero'] ?? ''), (string)($b['unidad_numero'] ?? ''));
         });
 
+        $pagina = max(1, intval($_GET['page'] ?? 1));
+        $porPagina = 50;
+        $totalUnidades = count($todasUnidades);
+        $totalPaginas = max(1, (int)ceil($totalUnidades / $porPagina));
+        $pagina = min($pagina, $totalPaginas);
+        $unidadesPagina = array_slice($todasUnidades, ($pagina - 1) * $porPagina, $porPagina);
+
         $paginacion = [
-            'total'        => count($todasUnidades),
-            'pagina'       => 1,
-            'porPagina'    => max(1, count($todasUnidades)),
-            'totalPaginas' => 1,
+            'total'        => $totalUnidades,
+            'pagina'       => $pagina,
+            'porPagina'    => $porPagina,
+            'totalPaginas' => $totalPaginas,
+            'desde'        => $totalUnidades > 0 ? (($pagina - 1) * $porPagina) + 1 : 0,
+            'hasta'        => min($totalUnidades, $pagina * $porPagina),
         ];
 
         $this->render('admin/reportes/morosidad', [
             'edificiosConsolidados' => $edificiosConsolidados,
-            'morosos'               => $todasUnidades,
-            'unidades'              => $todasUnidades,
+            'morosos'               => $unidadesPagina,
+            'unidades'              => $unidadesPagina,
             'kpis'                  => $kpis,
             'edificios'             => $edificios,
             'filtros'               => $filtros,
@@ -67,11 +87,7 @@ class ReporteController extends Controller {
     public function imprimirMorosidad() {
         Auth::requireRole(['admin', 'auditor']);
 
-        $filtros = [
-            'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? '',
-            'estado'      => $_GET['estado'] ?? ''
-        ];
+        $filtros = $this->filtrosBalance();
 
         $reportesModel = new ReportesModel();
         $morosos = $reportesModel->obtenerReporteMorosidadCompleto($filtros);
@@ -93,11 +109,7 @@ class ReporteController extends Controller {
     public function exportarCsv() {
         Auth::requireRole(['admin', 'auditor']);
 
-        $filtros = [
-            'edificio_id' => $_GET['edificio_id'] ?? '',
-            'dias_mora'   => $_GET['dias_mora'] ?? '',
-            'estado'      => $_GET['estado'] ?? ''
-        ];
+        $filtros = $this->filtrosBalance();
 
         $reportesModel = new ReportesModel();
         $reportesModel->exportarCsvStreaming($filtros);

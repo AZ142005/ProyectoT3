@@ -17,12 +17,16 @@ class SolicitudesModel extends BaseModel {
      */
     public function crearSolicitud(int $personaId, array $datosNuevos): int {
         // Filtrado por lista blanca estricta
-        $clavesPermitidas = ['telefono', 'email', 'direccion', 'vehiculo_placa'];
+        $clavesPermitidas = [
+            'telefono', 'email', 'direccion',
+            'tipo_solicitud', 'accion_vehiculo', 'vehiculo_id',
+            'vehiculo_tipo', 'vehiculo_marca', 'vehiculo_color',
+        ];
         $payloadValido = [];
 
         foreach ($clavesPermitidas as $clave) {
-            if (isset($datosNuevos[$clave]) && trim($datosNuevos[$clave]) !== '') {
-                $payloadValido[$clave] = trim($datosNuevos[$clave]);
+            if (isset($datosNuevos[$clave]) && trim((string)$datosNuevos[$clave]) !== '') {
+                $payloadValido[$clave] = trim((string)$datosNuevos[$clave]);
             }
         }
 
@@ -73,6 +77,32 @@ class SolicitudesModel extends BaseModel {
         ]);
 
         return intval($db->lastInsertId());
+    }
+
+    /**
+     * Crea una solicitud de registro o actualización de vehículo para un residente.
+     *
+     * @param int   $personaId
+     * @param array $datos accion_vehiculo (crear|actualizar), vehiculo_id, vehiculo_tipo,
+     *                     vehiculo_marca, vehiculo_color
+     * @return int ID de la solicitud
+     */
+    public function crearSolicitudVehiculo(int $personaId, array $datos): int {
+        $accion = (($datos['accion_vehiculo'] ?? 'crear') === 'actualizar') ? 'actualizar' : 'crear';
+
+        $payload = [
+            'tipo_solicitud'  => 'vehiculo',
+            'accion_vehiculo' => $accion,
+            'vehiculo_tipo'   => trim((string)($datos['vehiculo_tipo'] ?? '')),
+            'vehiculo_marca'  => trim((string)($datos['vehiculo_marca'] ?? '')),
+            'vehiculo_color'  => trim((string)($datos['vehiculo_color'] ?? '')),
+        ];
+
+        if ($accion === 'actualizar') {
+            $payload['vehiculo_id'] = (string)intval($datos['vehiculo_id'] ?? 0);
+        }
+
+        return $this->crearSolicitud($personaId, $payload);
     }
 
     /**
@@ -158,80 +188,178 @@ class SolicitudesModel extends BaseModel {
         }
 
         $db = $this->db();
+        $datos = [];
+        $esVehiculo = false;
+        $personaId = 0;
 
-        $stmt = $db->prepare("SELECT * FROM solicitudes_cambio_datos WHERE id = :id FOR UPDATE");
-        $stmt->execute(['id' => $solicitudId]);
-        $solicitud = $stmt->fetch(PDO::FETCH_ASSOC);
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("SELECT * FROM solicitudes_cambio_datos WHERE id = :id FOR UPDATE");
+            $stmt->execute(['id' => $solicitudId]);
+            $solicitud = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$solicitud || $solicitud['estado'] !== 'pendiente') {
-            throw new Exception("La solicitud ya ha sido procesada o no existe.");
-        }
-
-        $personaId = intval($solicitud['persona_id']);
-
-        if ($nuevoEstado === 'aprobado') {
-            $datos = json_decode($solicitud['datos_nuevos_json'], true);
-            if (!is_array($datos)) {
-                throw new Exception("Payload JSON de solicitud corrupto.");
+            if (!$solicitud || $solicitud['estado'] !== 'pendiente') {
+                throw new Exception("La solicitud ya ha sido procesada o no existe.");
             }
 
-            // Revalidación estricta de Email
-            if (!empty($datos['email'])) {
-                $nuevoEmail = trim($datos['email']);
-                if (!filter_var($nuevoEmail, FILTER_VALIDATE_EMAIL) || mb_strlen($nuevoEmail) > 150) {
-                    throw new Exception("El email proporcionado ('{$nuevoEmail}') no posee un formato RFC válido.");
+            $personaId = intval($solicitud['persona_id']);
+            $decoded = json_decode((string)$solicitud['datos_nuevos_json'], true);
+            $datos = is_array($decoded) ? $decoded : [];
+            $esVehiculo = (($datos['tipo_solicitud'] ?? '') === 'vehiculo');
+
+            if ($nuevoEstado === 'aprobado') {
+                if (!is_array($decoded)) {
+                    throw new Exception("Payload JSON de solicitud corrupto.");
                 }
 
-                $personasModel = new PersonasModel();
-                if ($personasModel->emailExists($nuevoEmail, $personaId)) {
-                    throw new Exception("El correo electrónico '{$nuevoEmail}' ya se encuentra registrado por otro usuario.");
+                if ($esVehiculo) {
+                    $this->procesarSolicitudVehiculo($personaId, $datos);
+                } else {
+                    $this->aplicarCambioDatosPersona($personaId, $datos);
                 }
             }
 
-            // Actualización de campos en personas
-            $camposUpdate = [];
-            $params = ['pid' => $personaId];
+            $stmtStatus = $db->prepare("
+                UPDATE solicitudes_cambio_datos 
+                SET estado = :estado, motivo_admin = :motivo, admin_id = :admin_id, fecha_respuesta = NOW() 
+                WHERE id = :id
+            ");
+            $stmtStatus->execute([
+                'estado'   => $nuevoEstado,
+                'motivo'   => !empty($motivoAdmin) ? trim($motivoAdmin) : null,
+                'admin_id' => $adminId,
+                'id'       => $solicitudId
+            ]);
 
-            if (!empty($datos['telefono'])) {
-                $camposUpdate[] = "telefono = :telefono";
-                $params['telefono'] = trim($datos['telefono']);
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
             }
-            if (!empty($datos['email'])) {
-                $camposUpdate[] = "email = :email";
-                $params['email'] = trim($datos['email']);
-            }
-
-            if (!empty($camposUpdate)) {
-                $sqlUpdate = "UPDATE personas SET " . implode(', ', $camposUpdate) . " WHERE id = :pid";
-                $stmtPersonas = $db->prepare($sqlUpdate);
-                $stmtPersonas->execute($params);
-            }
+            throw $e;
         }
 
-        // Actualizar el estado de la solicitud
-        $stmtStatus = $db->prepare("
-            UPDATE solicitudes_cambio_datos 
-            SET estado = :estado, motivo_admin = :motivo, admin_id = :admin_id, fecha_respuesta = NOW() 
-            WHERE id = :id
-        ");
-        $stmtStatus->execute([
-            'estado'   => $nuevoEstado,
-            'motivo'   => !empty($motivoAdmin) ? trim($motivoAdmin) : null,
-            'admin_id' => $adminId,
-            'id'       => $solicitudId
-        ]);
+        // La notificación se registra después del commit para no revertir la
+        // aprobación si el servicio de notificaciones falla.
+        try {
+            $notifService = new \App\Services\NotificationService();
+            if ($nuevoEstado === 'aprobado') {
+                $msg = $esVehiculo
+                    ? "Su solicitud de registro/actualización de vehículo ha sido APROBADA exitosamente."
+                    : "Su solicitud de actualización de datos personales ha sido APROBADA exitosamente.";
+                $titulo = $esVehiculo ? "Solicitud de Vehículo Aprobada" : "Solicitud de Datos Aprobada";
+            } else {
+                $msg = $esVehiculo
+                    ? "Su solicitud de vehículo no fue aprobada. Motivo: " . $motivoAdmin
+                    : "Su solicitud de actualización de datos no fue aprobada. Motivo: " . $motivoAdmin;
+                $titulo = $esVehiculo ? "Solicitud de Vehículo No Aprobada" : "Solicitud de Datos No Aprobada";
+            }
 
-        // Registrar notificación en la bandeja del residente
-        $notifService = new \App\Services\NotificationService();
-        $msg = ($nuevoEstado === 'aprobado')
-            ? "Su solicitud de actualización de datos personales ha sido APROBADA exitosamente."
-            : "Su solicitud de actualización de datos no fue aprobada. Motivo: " . $motivoAdmin;
-        $titulo = ($nuevoEstado === 'aprobado')
-            ? "Solicitud de Datos Aprobada"
-            : "Solicitud de Datos No Aprobada";
-        
-        $notifService->registrarNotificacionResidente($personaId, $titulo, $msg, ($nuevoEstado === 'aprobado' ? 'success' : 'danger'), "/perfil");
+            $notifService->registrarNotificacionResidente(
+                $personaId,
+                $titulo,
+                $msg,
+                ($nuevoEstado === 'aprobado' ? 'success' : 'danger'),
+                "/perfil"
+            );
+        } catch (\Throwable $e) {
+            error_log('[SOLICITUDES] No se pudo registrar la notificación: ' . $e->getMessage());
+        }
 
         return true;
+    }
+
+    /**
+     * Aplica los cambios de datos personales (teléfono y email) de una solicitud aprobada.
+     */
+    private function aplicarCambioDatosPersona(int $personaId, array $datos): void {
+        if (!empty($datos['email'])) {
+            $nuevoEmail = trim((string)$datos['email']);
+            if (!filter_var($nuevoEmail, FILTER_VALIDATE_EMAIL) || mb_strlen($nuevoEmail) > 150) {
+                throw new Exception("El email proporcionado ('{$nuevoEmail}') no posee un formato RFC válido.");
+            }
+
+            $personasModel = new PersonasModel();
+            if ($personasModel->emailExists($nuevoEmail, $personaId)) {
+                throw new Exception("El correo electrónico '{$nuevoEmail}' ya se encuentra registrado por otro usuario.");
+            }
+        }
+
+        $camposUpdate = [];
+        $params = ['pid' => $personaId];
+
+        if (!empty($datos['telefono'])) {
+            $camposUpdate[] = "telefono = :telefono";
+            $params['telefono'] = trim((string)$datos['telefono']);
+        }
+        if (!empty($datos['email'])) {
+            $camposUpdate[] = "email = :email";
+            $params['email'] = trim((string)$datos['email']);
+        }
+
+        if (!empty($camposUpdate)) {
+            $sqlUpdate = "UPDATE personas SET " . implode(', ', $camposUpdate) . " WHERE id = :pid";
+            $stmtPersonas = $this->db()->prepare($sqlUpdate);
+            $stmtPersonas->execute($params);
+        }
+    }
+
+    /**
+     * Aplica una solicitud aprobada de registro o actualización de vehículo.
+     */
+    private function procesarSolicitudVehiculo(int $personaId, array $datos): void {
+        $persona = (new PersonasModel())->getById($personaId);
+        if (!$persona || empty($persona['unidad_id'])) {
+            throw new Exception("El residente no tiene una unidad asociada para registrar el vehículo.");
+        }
+        $unidadId = (int)$persona['unidad_id'];
+
+        $tipoVehiculo = trim((string)($datos['vehiculo_tipo'] ?? ''));
+        $marca = trim((string)($datos['vehiculo_marca'] ?? ''));
+        $color = trim((string)($datos['vehiculo_color'] ?? ''));
+
+        if (!array_key_exists($tipoVehiculo, VehiculosModel::TIPOS_VEHICULO)) {
+            throw new Exception("La solicitud de vehículo está incompleta (el tipo de vehículo es obligatorio y debe ser válido).");
+        }
+        if ($color === '') {
+            throw new Exception("La solicitud de vehículo está incompleta (el color es obligatorio).");
+        }
+
+        $vehiculosModel = new VehiculosModel();
+        $accion = (($datos['accion_vehiculo'] ?? 'crear') === 'actualizar') ? 'actualizar' : 'crear';
+
+        if ($accion === 'crear') {
+            $puestos = (new EstacionamientosModel())->obtenerPorUnidad($unidadId);
+            if (empty($puestos)) {
+                throw new Exception("La unidad no tiene una plaza de estacionamiento asignada. La administración debe asignar una plaza antes de aprobar el registro del vehículo.");
+            }
+            $estacionamientoId = (int)$puestos[0]['id'];
+
+            $vehiculosModel->crearVehiculo([
+                'unidad_id'          => $unidadId,
+                'persona_id'         => $personaId,
+                'estacionamiento_id' => $estacionamientoId,
+                'tipo_vehiculo'      => $tipoVehiculo,
+                'marca'              => $marca,
+                'color'              => $color,
+            ]);
+            return;
+        }
+
+        $vehiculoId = (int)($datos['vehiculo_id'] ?? 0);
+        $vehiculo = $vehiculosModel->obtenerPorId($vehiculoId);
+        if (!$vehiculo || !empty($vehiculo['deleted_at']) || (int)$vehiculo['unidad_id'] !== $unidadId) {
+            throw new Exception("El vehículo indicado no existe o no pertenece a su unidad.");
+        }
+
+        $actualizado = $vehiculosModel->actualizarVehiculo($vehiculoId, [
+            'tipo_vehiculo' => $tipoVehiculo,
+            'marca'         => $marca,
+            'color'         => $color,
+        ]);
+
+        if (!$actualizado) {
+            throw new Exception("No se pudo actualizar el vehículo.");
+        }
     }
 }

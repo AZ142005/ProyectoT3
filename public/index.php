@@ -120,6 +120,7 @@ $router->get('/sitemap.xml', [SeoController::class, 'sitemap']);
 
 // --- Módulo de Autenticación ---
 $router->get('/', [HomeController::class, 'index']);
+$router->get('/descargar-manual', [HomeController::class, 'descargarManual']);
 $router->any('/login', [AuthController::class, 'login']);
 $router->any('/auth/login', [AuthController::class, 'login']);
 $router->any('/auth/register', [AuthController::class, 'register']);
@@ -141,6 +142,7 @@ $router->get('/pagos/detalle/{id}', [PagoController::class, 'detalle'], ['auth']
 
 // --- Módulo de Pago Directo sin Sesión (portal público) ---
 $router->get('/pago-directo', [PagoDirectoController::class, 'index']);
+$router->get('/pago-directo/unidades', [PagoDirectoController::class, 'unidades']);
 $router->get('/pago-directo/deuda', [PagoDirectoController::class, 'deuda']);
 $router->post('/pago-directo/extraer', [PagoDirectoController::class, 'extraer']);
 $router->post('/pago-directo/reportar', [PagoDirectoController::class, 'reportar']);
@@ -149,6 +151,7 @@ $router->get('/pago-directo/exito', [PagoDirectoController::class, 'exito']);
 // --- Módulo de Residente ---
 $router->get('/residente/dashboard', [ResidenteController::class, 'dashboard'], [UserRole::RESIDENTE]);
 $router->get('/residente/historial', [ResidenteController::class, 'historial'], [UserRole::RESIDENTE]);
+$router->get('/residente/manual', [ResidenteController::class, 'descargarManual'], [UserRole::RESIDENTE]);
 
 // --- Módulo de Administración ---
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [UserRole::ADMIN, UserRole::AUDITOR]);
@@ -167,6 +170,7 @@ $router->post('/admin/estructura/eliminar-edificio', [EstructuraController::clas
 
 // --- Módulo de Estacionamientos y Vehículos (RF 12) ---
 $router->get('/admin/estacionamientos', [\App\Controllers\EstacionamientoController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);
+$router->get('/admin/estacionamientos/unidades', [\App\Controllers\EstacionamientoController::class, 'unidades'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estacionamientos/guardar', [\App\Controllers\EstacionamientoController::class, 'guardar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estacionamientos/asignar', [\App\Controllers\EstacionamientoController::class, 'asignar'], [UserRole::ADMIN, UserRole::AUDITOR]);
 $router->post('/admin/estacionamientos/eliminar', [\App\Controllers\EstacionamientoController::class, 'eliminar'], [UserRole::ADMIN, UserRole::AUDITOR]);
@@ -196,6 +200,7 @@ $router->get('/residente/cartelera', [\App\Controllers\ComunicadoController::cla
 // --- Perfil de Usuario ---
 $router->get('/perfil', [\App\Controllers\PerfilController::class, 'verPerfil'], ['auth']);
 $router->post('/perfil/solicitar-cambio', [\App\Controllers\PerfilController::class, 'solicitarCambio'], ['auth']);
+$router->post('/perfil/solicitar-cambio-vehiculo', [\App\Controllers\PerfilController::class, 'solicitarCambioVehiculo'], ['auth']);
 
 // --- Módulo de Solicitudes de Registro de Residentes ---
 $router->get('/admin/solicitudes-registro', [\App\Controllers\SolicitudesRegistroController::class, 'index'], [UserRole::ADMIN, UserRole::AUDITOR]);

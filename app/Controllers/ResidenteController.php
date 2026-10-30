@@ -47,4 +47,27 @@ class ResidenteController extends Controller {
         Auth::requireRole('residente');
         $this->redirect('/pagos');
     }
+
+    /**
+     * Descarga el Manual de Usuario Final para Residentes desde el panel.
+     */
+    public function descargarManual(): void {
+        Auth::requireRole('residente');
+        $ruta = BASE_PATH . '/public/docs/manual-usuario-residente.pdf';
+        if (!file_exists($ruta)) {
+            $ruta = BASE_PATH . '/docs/manual de usuario final (Residente).pdf';
+        }
+        if (!file_exists($ruta)) {
+            \App\Core\Flash::set('danger', 'El manual de usuario no se encuentra disponible temporalmente.');
+            $this->redirect('/residente/dashboard');
+            return;
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="Manual_Usuario_Residente_Las_Mesetas.pdf"');
+        header('Content-Length: ' . (string)filesize($ruta));
+        header('Cache-Control: private, max-age=86400');
+        readfile($ruta);
+        exit;
+    }
 }

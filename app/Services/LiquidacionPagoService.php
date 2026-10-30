@@ -46,11 +46,11 @@ class LiquidacionPagoService {
         $saldoAFavorGenerado = 0.00;
         $facturasAfectadas = [];
 
-        // 1. Obtener todas las facturas pendientes de la unidad ordenadas cronológicamente con bloqueo pesimista
+        // 1. Obtener todas las facturas con saldo por cobrar (pendientes o vencidas) ordenadas cronológicamente
         $stmtPendientes = $db->prepare("
-            SELECT id, numero_factura, saldo, monto_total, monto_pagado 
+            SELECT id, numero_factura, saldo, monto_total, monto_pagado, estado 
             FROM facturas 
-            WHERE unidad_id = :uid AND estado = 'pendiente' AND deleted_at IS NULL 
+            WHERE unidad_id = :uid AND saldo > 0 AND estado IN ('pendiente', 'vencida') AND deleted_at IS NULL 
             ORDER BY anio ASC, mes ASC, fecha_vencimiento ASC, id ASC 
             FOR UPDATE
         ");
@@ -77,7 +77,7 @@ class LiquidacionPagoService {
             $abono = round(min($montoRestante, $saldoFactura), 2);
             $nuevoSaldo = round($saldoFactura - $abono, 2);
             $nuevoMontoPagado = round(floatval($f['monto_pagado']) + $abono, 2);
-            $nuevoEstado = ($nuevoSaldo <= 0.00) ? 'pagada' : 'pendiente';
+            $nuevoEstado = ($nuevoSaldo <= 0.00) ? 'pagada' : 'vencida';
 
             $stmtUpdateFactura->execute([
                 'saldo'        => $nuevoSaldo,

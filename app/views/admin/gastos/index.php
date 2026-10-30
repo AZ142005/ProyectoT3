@@ -367,26 +367,29 @@
                             <?php else: ?>
                                 <?php foreach ($unidadesPorEdificioDeuda as $edIdGrupo => $unidadesGrupo): ?>
                                     <?php $nombreGrupo = !empty($unidadesGrupo[0]['edificio_nombre']) ? $unidadesGrupo[0]['edificio_nombre'] : 'Sin edificio'; ?>
-                                    <div class="deuda-grupo py-2">
-                                        <?php if (intval($edIdGrupo) > 0): ?>
-                                            <label class="d-flex align-items-center gap-2 mb-1" style="cursor: pointer;">
-                                                <input type="checkbox" name="edificios[]" value="<?= e($edIdGrupo) ?>" class="form-check-input m-0 deuda-check-edificio">
-                                                <span class="text-xs font-bold text-on-surface-variant uppercase"><?= e($nombreGrupo) ?> (todo el edificio)</span>
-                                            </label>
-                                        <?php else: ?>
-                                            <p class="text-xs font-bold text-on-surface-variant uppercase mb-1"><?= e($nombreGrupo) ?></p>
-                                        <?php endif; ?>
-                                        <?php foreach ($unidadesGrupo as $u): ?>
-                                            <label class="deuda-unidad-item d-flex align-items-center gap-2 py-1.5 ps-3" style="cursor: pointer;" data-busqueda="<?= e(mb_strtolower($nombreGrupo . ' ' . $u['numero'])) ?>">
-                                                <input type="checkbox" name="unidades[]" value="<?= e($u['id']) ?>" class="form-check-input m-0 deuda-check-unidad" data-edificio="<?= e($edIdGrupo) ?>">
-                                                <span class="text-sm">Apto <?= e($u['numero']) ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
+                                    <div class="deuda-grupo py-2 border-bottom border-background" data-edificio="<?= e($edIdGrupo) ?>">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <?php if (intval($edIdGrupo) > 0): ?>
+                                                <input type="checkbox" name="edificios[]" value="<?= e($edIdGrupo) ?>" class="form-check-input m-0 deuda-check-edificio" title="Seleccionar todo el edificio">
+                                            <?php endif; ?>
+                                            <button type="button" class="deuda-toggle-edificio flex-grow-1 d-flex align-items-center justify-content-between bg-transparent border-0 p-0 text-start" aria-expanded="false" onclick="toggleGrupoDeudaManual(this)">
+                                                <span class="text-xs font-bold text-on-surface-variant uppercase"><?= e($nombreGrupo) ?> <span class="text-muted">(<?= count($unidadesGrupo) ?>)</span></span>
+                                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+                                            </button>
+                                        </div>
+                                        <div class="deuda-grupo-unidades ps-3 pt-1" style="display: none;">
+                                            <?php foreach ($unidadesGrupo as $u): ?>
+                                                <label class="deuda-unidad-item d-flex align-items-center gap-2 py-1.5" style="cursor: pointer;" data-busqueda="<?= e(mb_strtolower($nombreGrupo . ' ' . $u['numero'])) ?>">
+                                                    <input type="checkbox" name="unidades[]" value="<?= e($u['id']) ?>" class="form-check-input m-0 deuda-check-unidad" data-edificio="<?= e($edIdGrupo) ?>">
+                                                    <span class="text-sm">Apto <?= e($u['numero']) ?></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <div class="text-xs text-on-surface-variant">Marca edificios completos y/o unidades puntuales: se combinan sin duplicarse.</div>
+                        <div class="text-xs text-on-surface-variant">Marca edificios completos y/o unidades puntuales: se combinan sin duplicarse. Usa la flecha para desplegar cada edificio.</div>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
@@ -556,7 +559,7 @@ function actualizarContadorDeudaManual() {
     const monto = montoInput ? parseFloat(montoInput.value || '0') : 0;
     const montoValido = isNaN(monto) ? 0 : monto;
     const total = montoValido * cantidad;
-    contador.textContent = cantidad + ' unidades seleccionadas · Total a facturar Bs. ' +
+    contador.textContent = cantidad + ' unidades seleccionadas - Total a facturar Bs. ' +
         total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -570,6 +573,24 @@ function seleccionarTodoDeudaManual(marcar) {
         casillas[i].checked = !!marcar;
     }
     actualizarContadorDeudaManual();
+}
+
+function toggleGrupoDeudaManual(boton) {
+    const grupo = boton.closest('.deuda-grupo');
+    if (!grupo) {
+        return;
+    }
+    const panel = grupo.querySelector('.deuda-grupo-unidades');
+    const icono = boton.querySelector('.material-symbols-outlined');
+    if (!panel) {
+        return;
+    }
+    const expandido = panel.style.display !== 'none';
+    panel.style.display = expandido ? 'none' : '';
+    boton.setAttribute('aria-expanded', expandido ? 'false' : 'true');
+    if (icono) {
+        icono.textContent = expandido ? 'expand_more' : 'expand_less';
+    }
 }
 
 (function () {
@@ -608,7 +629,10 @@ function seleccionarTodoDeudaManual(marcar) {
         buscador.addEventListener('input', function () {
             const termino = buscador.value.trim().toLowerCase();
             contenedor.querySelectorAll('.deuda-grupo').forEach(function (grupo) {
+                const panel = grupo.querySelector('.deuda-grupo-unidades');
+                const toggle = grupo.querySelector('.deuda-toggle-edificio');
                 let visibles = 0;
+
                 grupo.querySelectorAll('.deuda-unidad-item').forEach(function (item) {
                     const coincide = termino === '' || (item.getAttribute('data-busqueda') || '').indexOf(termino) !== -1;
                     item.style.display = coincide ? '' : 'none';
@@ -616,7 +640,18 @@ function seleccionarTodoDeudaManual(marcar) {
                         visibles++;
                     }
                 });
+
                 grupo.style.display = visibles > 0 ? '' : 'none';
+
+                if (panel && toggle) {
+                    const expandir = termino !== '' && visibles > 0;
+                    panel.style.display = expandir ? '' : 'none';
+                    toggle.setAttribute('aria-expanded', expandir ? 'true' : 'false');
+                    const icono = toggle.querySelector('.material-symbols-outlined');
+                    if (icono) {
+                        icono.textContent = expandir ? 'expand_less' : 'expand_more';
+                    }
+                }
             });
         });
     }

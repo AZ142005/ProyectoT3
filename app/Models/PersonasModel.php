@@ -313,6 +313,45 @@ class PersonasModel extends BaseModel {
     }
 
     /**
+     * Actualiza nombre, apellido, cédula y datos de contacto de una persona.
+     */
+    public function actualizarDatosPersona(int $personaId, string $nombre, string $apellido, string $cedula, ?string $telefono, string $email): bool {
+        $stmt = $this->db()->prepare("
+            UPDATE personas
+            SET nombre = :nombre, apellido = :apellido, cedula = :cedula,
+                telefono = :telefono, email = :email
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            'nombre'   => $nombre,
+            'apellido' => $apellido,
+            'cedula'   => $cedula,
+            'telefono' => !empty($telefono) ? $telefono : null,
+            'email'    => $email,
+            'id'       => $personaId,
+        ]);
+    }
+
+    /**
+     * Verifica si una cédula ya existe en otra persona comparando valores
+     * normalizados (sin puntos, guiones ni espacios y en mayúsculas).
+     */
+    public function cedulaExistsNormalizada(string $cedula, ?int $excludeId = null): bool {
+        $cedulaNorm = normalizarCedula($cedula);
+        $sql = "SELECT id FROM personas
+                WHERE REPLACE(REPLACE(REPLACE(UPPER(cedula), '-', ''), '.', ''), ' ', '') = :cedula";
+        $params = ['cedula' => $cedulaNorm];
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= " AND id != :id";
+            $params['id'] = $excludeId;
+        }
+        $sql .= " LIMIT 1";
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    /**
      * Elimina lógicamente a un residente preservando la integridad histórica y contable.
      * Desvincula la unidad (propietario_id = NULL) y desactiva credenciales (estado = 0, unidad_id = NULL, password = NULL).
      *

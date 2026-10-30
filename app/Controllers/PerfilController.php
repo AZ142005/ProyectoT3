@@ -7,6 +7,8 @@ use App\Core\Flash;
 use App\Models\PersonasModel;
 use App\Models\SolicitudesModel;
 use App\Models\UsuariosModel;
+use App\Models\VehiculosModel;
+use App\Models\EstacionamientosModel;
 
 class PerfilController extends Controller {
 
@@ -22,6 +24,8 @@ class PerfilController extends Controller {
         $persona = null;
         $usuarioAdmin = null;
         $solicitudes = [];
+        $vehiculos = [];
+        $tieneEstacionamiento = false;
 
         if (in_array(($user['role'] ?? ''), ['admin', 'auditor'], true)) {
             $usuariosModel = new UsuariosModel();
@@ -41,6 +45,11 @@ class PerfilController extends Controller {
             $solicitudesModel = new SolicitudesModel();
             $solicitudesModel->eliminarExpiradas((int)$personaId);
             $solicitudes = $solicitudesModel->obtenerPorPersona($personaId);
+
+            if ($persona && !empty($persona['unidad_id'])) {
+                $vehiculos = (new VehiculosModel())->obtenerPorUnidad((int)$persona['unidad_id']);
+                $tieneEstacionamiento = !empty((new EstacionamientosModel())->obtenerPorUnidad((int)$persona['unidad_id']));
+            }
         }
 
         $this->render('perfil/index', [
@@ -48,6 +57,8 @@ class PerfilController extends Controller {
             'persona'      => $persona,
             'usuarioAdmin' => $usuarioAdmin,
             'solicitudes'  => $solicitudes,
+            'vehiculos'    => $vehiculos,
+            'tieneEstacionamiento' => $tieneEstacionamiento,
             'title'        => 'Mi Perfil'
         ]);
     }
@@ -215,6 +226,94 @@ class PerfilController extends Controller {
         } catch (\Exception $e) {
             error_log("[PERFIL] Error enviar solicitud cambio datos: " . $e->getMessage());
             Flash::set('danger', 'Error al enviar la solicitud de cambio de datos.');
+        }
+
+        $this->redirect('/perfil');
+    }
+
+    /**
+     * Crea una solicitud de registro/actualización de vehículo para revisión del administrador.
+     */
+    public function solicitarCambioVehiculo() {
+        Auth::requireLogin();
+
+        if (Auth::role() !== 'residente') {
+            Flash::set('danger', 'Solo los residentes pueden solicitar cambios de vehículos desde este perfil.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        if (!\App\Core\RateLimiter::attempt('solicitud_vehiculo_' . Auth::id(), 10, 3600)) {
+            Flash::set('danger', 'Ha excedido el límite de 10 solicitudes de vehículo por hora.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        $personaId = (int)(Auth::user()['persona_id'] ?? 0);
+        if ($personaId <= 0) {
+            Flash::set('danger', 'Su usuario no posee un registro de persona asociado.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        $persona = (new PersonasModel())->getActiveById($personaId);
+        if (!$persona || empty($persona['unidad_id'])) {
+            Flash::set('danger', 'Su usuario no tiene una unidad asociada para registrar el vehículo.');
+            $this->redirect('/perfil');
+            return;
+        }
+        $unidadId = (int)$persona['unidad_id'];
+
+        $accion = (($_POST['accion_vehiculo'] ?? 'crear') === 'actualizar') ? 'actualizar' : 'crear';
+        $vehiculoId = intval($_POST['vehiculo_id'] ?? 0);
+        $vehiculosModel = new VehiculosModel();
+
+        if ($accion === 'crear' && empty((new EstacionamientosModel())->obtenerPorUnidad($unidadId))) {
+            Flash::set('danger', 'Su unidad no tiene una plaza de estacionamiento asignada. La administración debe asignarle una plaza antes de registrar un vehículo.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        if ($accion === 'actualizar') {
+            $vehiculo = $vehiculosModel->obtenerPorId($vehiculoId);
+            if (!$vehiculo || !empty($vehiculo['deleted_at']) || (int)$vehiculo['unidad_id'] !== $unidadId) {
+                Flash::set('danger', 'El vehículo seleccionado no existe o no pertenece a su unidad.');
+                $this->redirect('/perfil');
+                return;
+            }
+        }
+
+        $tipoVehiculo = trim((string)($_POST['tipo_vehiculo'] ?? ''));
+        $color = trim((string)($_POST['color'] ?? ''));
+        $marca = trim((string)($_POST['marca'] ?? ''));
+
+        if (!array_key_exists($tipoVehiculo, VehiculosModel::TIPOS_VEHICULO)) {
+            Flash::set('danger', 'El tipo de vehículo es obligatorio y debe ser Pequeño, Camioneta mediano o Camión tipo F-350.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        if ($color === '') {
+            Flash::set('danger', 'El color del vehículo es obligatorio.');
+            $this->redirect('/perfil');
+            return;
+        }
+
+        try {
+            $solicitudesModel = new SolicitudesModel();
+            $solicitudesModel->eliminarExpiradas($personaId);
+            $solicitudesModel->crearSolicitudVehiculo($personaId, [
+                'accion_vehiculo' => $accion,
+                'vehiculo_id'     => $vehiculoId,
+                'vehiculo_tipo'   => $tipoVehiculo,
+                'vehiculo_marca'  => $marca,
+                'vehiculo_color'  => $color,
+            ]);
+
+            Flash::set('success', 'Su solicitud de vehículo ha sido enviada a la administración para revisión.');
+        } catch (\Exception $e) {
+            error_log('[PERFIL] Error enviar solicitud vehículo: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo enviar la solicitud: ' . $e->getMessage());
         }
 
         $this->redirect('/perfil');

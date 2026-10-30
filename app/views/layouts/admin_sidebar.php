@@ -20,7 +20,7 @@ $navItems = [
 if (isset($activeRoute) && $activeRoute === 'pagos') {
     $navItems = [
         ['route' => 'dashboard',        'url' => '/admin/dashboard',          'icon' => 'dashboard',       'label' => 'Dashboard'],
-        ['route' => 'pagos',            'url' => '/pagos',                    'icon' => 'history',         'label' => 'Historial de Pagos'],
+        ['route' => 'comprobantes',     'url' => '/admin/comprobantes',       'icon' => 'history',         'label' => 'Historial de Pagos'],
         ['route' => 'conciliacion',     'url' => '/admin/conciliacion',       'icon' => 'sync_alt',        'label' => 'Conciliación'],
         ['route' => 'cuentas_bancarias', 'url' => '/admin/cuentas-bancarias', 'icon' => 'account_balance', 'label' => 'Cuentas Bancarias'],
         ['route' => 'gastos',           'url' => '/admin/gastos',             'icon' => 'receipt_long',    'label' => 'Carga y Emisión'],
@@ -52,7 +52,7 @@ if (isset($activeRoute) && $activeRoute === 'pagos') {
     <nav class="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
         <?php foreach ($navItems as $item): ?>
             <a href="<?= e($item['url']) ?>" 
-               class="flex items-center gap-3 px-3 py-2.5 <?= ($activeRoute ?? '') === $item['route'] ? 'bg-primary text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?> rounded-xl transition-all text-sm">
+               class="flex items-center gap-3 px-3 py-2.5 <?= (($activeRoute ?? '') === $item['route'] || (($activeRoute ?? '') === 'comprobantes' && $item['route'] === 'pagos')) ? 'bg-primary text-white font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?> rounded-xl transition-all text-sm">
                 <span class="material-symbols-outlined text-[20px]"><?= e($item['icon']) ?></span>
                 <span class="truncate"><?= e($item['label']) ?></span>
             </a>

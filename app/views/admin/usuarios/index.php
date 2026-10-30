@@ -362,6 +362,8 @@
                                                                         data-id="<?= e($u['id']) ?>"
                                                                         data-tipo="<?= e($u['tipo_entidad']) ?>"
                                                                         data-nombre="<?= e($u['nombre_completo']) ?>"
+                                                                        data-nombre-pila="<?= e($u['persona_nombre'] ?? '') ?>"
+                                                                        data-apellido="<?= e($u['persona_apellido'] ?? '') ?>"
                                                                         data-cedula="<?= e($u['cedula']) ?>"
                                                                         data-telefono="<?= e($u['telefono'] ?? '') ?>"
                                                                         data-email="<?= e($u['email'] ?? '') ?>"
@@ -645,8 +647,31 @@
                         </div>
                     </div>
 
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label for="act_nombre" class="form-label fw-bold small text-on-surface-variant">Nombre *</label>
+                            <input type="text" id="act_nombre" name="nombre" maxlength="100" required
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
+                                   placeholder="Nombre del residente">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="act_apellido" class="form-label fw-bold small text-on-surface-variant">Apellido</label>
+                            <input type="text" id="act_apellido" name="apellido" maxlength="100"
+                                   class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
+                                   placeholder="Apellido del residente">
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label for="act_telefono" class="form-label fw-bold small text-on-surface-variant">Número Telefónico *</label>
+                        <label for="act_cedula" class="form-label fw-bold small text-on-surface-variant">Cédula *</label>
+                        <input type="text" id="act_cedula" name="cedula" maxlength="12" required
+                               class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
+                               placeholder="Ej: V-12345678">
+                        <small class="text-xs text-on-surface-variant d-block mt-1">Puede corregir la cédula. Si no la modifica, se conserva la actual.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="act_telefono" class="form-label fw-bold small text-on-surface-variant">Número Telefónico</label>
                         <div class="input-group">
                             <span class="input-group-text bg-background text-on-surface-variant border border-outline-variant rounded-s-xl rounded-e-none">
                                 <span class="material-symbols-outlined text-[16px]">phone</span>
@@ -655,12 +680,11 @@
                                    class="w-full bg-background border border-outline-variant rounded-s-none rounded-e-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" 
                                    placeholder="Ej: 04121234567" 
                                    maxlength="11" 
-                                   required 
                                    pattern="^(0412|0414|0424|0416|0426)[0-9]{7}$"
                                    title="Ingrese un número telefónico venezolano de 11 dígitos (0412, 0414, 0424, 0416, 0426)"
                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11)">
                         </div>
-                        <small class="text-xs text-on-surface-variant d-block mt-1">Formato de 11 dígitos (operadoras venezolanas: 0412, 0414, 0424, 0416, 0426).</small>
+                        <small class="text-xs text-on-surface-variant d-block mt-1">Opcional. Formato de 11 dígitos (operadoras venezolanas: 0412, 0414, 0424, 0416, 0426).</small>
                     </div>
 
                     <div class="mb-2">
@@ -861,6 +885,8 @@ function configurarModalActualizarDatos(btn) {
     const id = btn.getAttribute('data-id');
     const tipo = btn.getAttribute('data-tipo');
     const nombre = btn.getAttribute('data-nombre');
+    const nombrePila = btn.getAttribute('data-nombre-pila') || '';
+    const apellido = btn.getAttribute('data-apellido') || '';
     const cedula = btn.getAttribute('data-cedula');
     const telefono = btn.getAttribute('data-telefono') || '';
     const email = btn.getAttribute('data-email') || '';
@@ -869,6 +895,9 @@ function configurarModalActualizarDatos(btn) {
     document.getElementById('modalActTipoEntidad').value = tipo;
     document.getElementById('modalActNombreUsuario').textContent = nombre;
     document.getElementById('modalActCedulaUsuario').textContent = cedula;
+    document.getElementById('act_nombre').value = nombrePila;
+    document.getElementById('act_apellido').value = apellido;
+    document.getElementById('act_cedula').value = cedula;
     document.getElementById('act_telefono').value = telefono;
     document.getElementById('act_email').value = email;
 }

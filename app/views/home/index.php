@@ -275,6 +275,23 @@ $panelUrl = $panelUrl ?? null;
                 </details>
             <?php endforeach; ?>
         </div>
+
+        <!-- Recurso descargable: Manual de Usuario -->
+        <div class="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6 text-center sm:flex sm:items-center sm:justify-between sm:text-left gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="hidden sm:grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-white shadow-sm">
+                    <span class="material-symbols-outlined text-2xl" aria-hidden="true">menu_book</span>
+                </div>
+                <div>
+                    <h3 class="text-sm sm:text-base font-bold text-on-surface">¿Necesitas ayuda paso a paso?</h3>
+                    <p class="mt-0.5 text-xs text-on-surface-variant">Descarga la Guía y Manual de Usuario Final para Residentes en formato PDF con explicaciones e imágenes detalladas.</p>
+                </div>
+            </div>
+            <a href="/descargar-manual" class="mt-4 sm:mt-0 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover shrink-0 w-full sm:w-auto">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
+                <span>Descargar Manual (PDF)</span>
+            </a>
+        </div>
     </div>
 </section>
 

@@ -72,7 +72,7 @@ class CarteleraModel extends BaseModel
         $stmtFacturaCrear = $db->prepare("
             INSERT INTO facturas
             (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado, observaciones)
-            VALUES (:numero, :unidad_id, :mes, :anio, :fecha_emision, :fecha_vencimiento, :monto_total, 0, :saldo, 'vencida', :observaciones)
+            VALUES (:numero, :unidad_id, :mes, :anio, :fecha_emision, :fecha_vencimiento, :monto_total, 0, :saldo, :estado, :observaciones)
         ");
         $stmtFacturaActualizar = $db->prepare("
             UPDATE facturas
@@ -181,6 +181,8 @@ class CarteleraModel extends BaseModel
 
                 foreach ($items as $item) {
                     $numeroFactura = sprintf('CART-%s-%04d%02d', $unidad, $anio, $item['mes']);
+                    $fvItem = sprintf('%04d-%02d-01', $anio, $item['mes']);
+                    $estadoItem = ($item['monto'] <= 0) ? 'pagada' : 'vencida';
 
                     $existente = $cacheFacturas[$numeroFactura] ?? false;
                     if ($existente !== false) {
@@ -196,8 +198,8 @@ class CarteleraModel extends BaseModel
                             'total' => round($saldo + (float)$existente['monto_pagado'], 2),
                             'saldo' => $saldo,
                             'fe' => $fechaEmision,
-                            'fv' => $fechaEmision,
-                            'estado' => $saldo > 0 ? 'vencida' : 'pagada',
+                            'fv' => $fvItem,
+                            'estado' => $estadoItem,
                             'id' => (int)$existente['id'],
                         ]);
                         $resultado['facturas_actualizadas']++;
@@ -211,9 +213,10 @@ class CarteleraModel extends BaseModel
                             'mes' => $item['mes'],
                             'anio' => $anio,
                             'fecha_emision' => $fechaEmision,
-                            'fecha_vencimiento' => $fechaEmision,
+                            'fecha_vencimiento' => $fvItem,
                             'monto_total' => $item['monto'],
                             'saldo' => $item['monto'],
+                            'estado' => $estadoItem,
                             'observaciones' => 'Migración Reporte de Cartelera (Dotwood)',
                         ]);
                     } catch (\PDOException $e) {

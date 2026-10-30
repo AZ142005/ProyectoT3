@@ -287,21 +287,48 @@ class ComprobantesModel extends BaseModel {
     public function getProcesados($limit = 10) {
         $db = $this->db();
         
-        $sql = "
+        $unionSubquery = "(
             SELECT 
-                c.*,
+                p.id,
+                'pago' as tipo_origen,
+                p.monto,
+                p.fecha_pago,
+                p.fecha_registro as fecha_envio,
+                p.referencia,
+                p.archivo,
+                LOWER(p.estado) as estado,
+                COALESCE(p.observaciones, '') as numero_factura,
+                u.numero as unidad,
+                COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo') as residente,
+                COALESCE(per.cedula, 'N/A') as cedula
+            FROM pagos p
+            INNER JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN personas per ON p.residente_id = per.id
+            WHERE p.estado IN ('APROBADO', 'RECHAZADO') AND p.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT 
+                c.id,
+                'comprobante' as tipo_origen,
+                c.monto,
+                c.fecha_pago,
+                c.fecha_envio,
+                c.referencia,
+                c.archivo,
+                LOWER(c.estado) as estado,
                 f.numero_factura,
                 u.numero as unidad,
                 CONCAT(p.nombre, ' ', p.apellido) as residente,
                 p.cedula
             FROM comprobantes_pago c
             INNER JOIN facturas f ON c.factura_id = f.id
-            LEFT JOIN unidades u ON f.unidad_id = u.id
+            INNER JOIN unidades u ON f.unidad_id = u.id
             INNER JOIN personas p ON c.residente_id = p.id
-            WHERE c.estado IN ('aprobado', 'rechazado')
-            ORDER BY c.fecha_envio DESC
-            LIMIT :limit
-        ";
+            WHERE c.estado IN ('aprobado', 'rechazado') AND c.deleted_at IS NULL
+        ) AS m";
+        
+        $sql = "SELECT m.* FROM {$unionSubquery} ORDER BY m.fecha_envio DESC LIMIT :limit";
         
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -376,13 +403,43 @@ class ComprobantesModel extends BaseModel {
             $edificioId = !empty($edificioId) ? intval($edificioId) : null;
         }
 
-        $baseSql = "
+        $unionSubquery = "(
             SELECT 
-                c.*,
+                p.id,
+                'pago' as tipo_origen,
+                p.monto,
+                p.fecha_pago,
+                p.fecha_registro as fecha_envio,
+                p.referencia,
+                p.archivo,
+                LOWER(p.estado) as estado,
+                COALESCE(p.observaciones, '') as numero_factura,
+                u.numero as unidad,
+                u.edificio_id,
+                COALESCE(e.nombre, 'Sin Torre') as edificio,
+                COALESCE(CONCAT(per.nombre, ' ', per.apellido), 'Pago directo') as residente,
+                COALESCE(per.cedula, 'N/A') as cedula
+            FROM pagos p
+            INNER JOIN unidades u ON p.unidad_id = u.id
+            LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas per ON p.residente_id = per.id
+            WHERE p.estado != 'PENDIENTE' AND p.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT 
+                c.id,
+                'comprobante' as tipo_origen,
+                c.monto,
+                c.fecha_pago,
+                c.fecha_envio,
+                c.referencia,
+                c.archivo,
+                LOWER(c.estado) as estado,
                 f.numero_factura,
                 u.numero as unidad,
-                e.nombre as edificio,
-                e.id as edificio_id,
+                u.edificio_id,
+                COALESCE(e.nombre, 'Sin Torre') as edificio,
                 CONCAT(p.nombre, ' ', p.apellido) as residente,
                 p.cedula
             FROM comprobantes_pago c
@@ -390,15 +447,11 @@ class ComprobantesModel extends BaseModel {
             INNER JOIN unidades u ON f.unidad_id = u.id
             LEFT JOIN edificios e ON u.edificio_id = e.id
             INNER JOIN personas p ON c.residente_id = p.id
-            WHERE c.estado != 'pendiente'
-        ";
-        
-        $countSql = "SELECT COUNT(*) as total FROM comprobantes_pago c
-                     INNER JOIN facturas f ON c.factura_id = f.id
-                     INNER JOIN unidades u ON f.unidad_id = u.id
-                     LEFT JOIN edificios e ON u.edificio_id = e.id
-                     INNER JOIN personas p ON c.residente_id = p.id
-                     WHERE c.estado != 'pendiente'";
+            WHERE c.estado != 'pendiente' AND c.deleted_at IS NULL
+        ) AS c";
+
+        $baseSql = "SELECT c.* FROM {$unionSubquery} WHERE 1=1";
+        $countSql = "SELECT COUNT(*) as total FROM {$unionSubquery} WHERE 1=1";
         
         $params = [];
         
@@ -414,21 +467,21 @@ class ComprobantesModel extends BaseModel {
         }
         
         if (!empty($buscar)) {
-            $likeClause = " AND (p.nombre LIKE :buscar OR p.apellido LIKE :buscar OR p.cedula LIKE :buscar OR f.numero_factura LIKE :buscar)";
+            $likeClause = " AND (c.residente LIKE :buscar OR c.cedula LIKE :buscar OR c.numero_factura LIKE :buscar OR c.referencia LIKE :buscar)";
             $baseSql .= $likeClause;
             $countSql .= $likeClause;
             $params['buscar'] = '%' . $buscar . '%';
         }
 
         if (!empty($edificioId)) {
-            $baseSql .= " AND u.edificio_id = :edificio_id";
-            $countSql .= " AND u.edificio_id = :edificio_id";
+            $baseSql .= " AND c.edificio_id = :edificio_id";
+            $countSql .= " AND c.edificio_id = :edificio_id";
             $params['edificio_id'] = $edificioId;
         }
 
         if (!empty($unidad)) {
-            $baseSql .= " AND u.numero LIKE :unidad";
-            $countSql .= " AND u.numero LIKE :unidad";
+            $baseSql .= " AND c.unidad LIKE :unidad";
+            $countSql .= " AND c.unidad LIKE :unidad";
             $params['unidad'] = '%' . $unidad . '%';
         }
 

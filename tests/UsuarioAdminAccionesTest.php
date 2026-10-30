@@ -301,4 +301,118 @@ class UsuarioAdminAccionesTest extends TestCase {
 
         $db->exec("DELETE FROM usuarios WHERE id = {$targetId}");
     }
+
+    public function testPersonasModelActualizarDatosPersonaYCedulaNormalizada(): void {
+        $db = $this->getDb();
+        $model = new PersonasModel();
+
+        $cedulaVieja = 'V-90123456';
+        $cedulaNueva = 'V-65432109';
+        $emailViejo = 'test_datos_' . time() . '@example.com';
+        $emailNuevo = 'test_datos_nuevo_' . time() . '@example.com';
+
+        $db->exec("DELETE FROM personas WHERE cedula IN ('{$cedulaVieja}', '{$cedulaNueva}')");
+        $db->exec("INSERT INTO personas (cedula, nombre, apellido, email, telefono, tipo, estado)
+                   VALUES ('{$cedulaVieja}', 'Nombre', 'Viejo', '{$emailViejo}', '04121112233', 'propietario', 1)");
+        $personaId = (int)$db->lastInsertId();
+
+        try {
+            $this->assertFalse($model->cedulaExistsNormalizada($cedulaVieja, $personaId),
+                "La cédula propia no debe contar como duplicada al excluirse");
+
+            $ok = $model->actualizarDatosPersona($personaId, 'Nuevo', 'Apellido', $cedulaNueva, '04149998877', $emailNuevo);
+            $this->assertTrue($ok, "actualizarDatosPersona debe retornar true");
+
+            $stmt = $db->prepare("SELECT nombre, apellido, cedula, telefono, email FROM personas WHERE id = :id");
+            $stmt->execute(['id' => $personaId]);
+            $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $this->assertEquals('Nuevo', $fila['nombre'], "El nombre debe actualizarse");
+            $this->assertEquals('Apellido', $fila['apellido'], "El apellido debe actualizarse");
+            $this->assertEquals($cedulaNueva, $fila['cedula'], "La cédula debe actualizarse");
+            $this->assertEquals('04149998877', $fila['telefono'], "El teléfono debe actualizarse");
+            $this->assertEquals($emailNuevo, $fila['email'], "El email debe actualizarse");
+
+            $this->assertTrue($model->cedulaExistsNormalizada($cedulaNueva),
+                "La cédula nueva debe detectarse como existente");
+        } finally {
+            $db->exec("DELETE FROM personas WHERE id = {$personaId}");
+        }
+    }
+
+    public function testBackendActualizaNombreCedulaYContacto(): void {
+        $db = $this->getDb();
+
+        $cedulaVieja = 'V-90123457';
+        $cedulaNueva = 'V-65432108';
+        $emailViejo = 'test_upd_' . time() . '@example.com';
+        $emailNuevo = 'test_upd_nuevo_' . time() . '@example.com';
+
+        $db->exec("DELETE FROM personas WHERE cedula IN ('{$cedulaVieja}', '{$cedulaNueva}')");
+        $db->exec("INSERT INTO personas (cedula, nombre, apellido, email, telefono, tipo, estado)
+                   VALUES ('{$cedulaVieja}', 'Antiguo', 'Nombre', '{$emailViejo}', '04121112233', 'propietario', 1)");
+        $personaId = (int)$db->lastInsertId();
+
+        $ctrl = new class extends UsuarioAdminController {
+            public string $redirectUrl = '';
+            protected function redirect($url): void {
+                $this->redirectUrl = $url;
+            }
+        };
+
+        $_SESSION['auth_user'] = [
+            'id'   => 1,
+            'role' => 'admin',
+            'name' => 'Administrador Principal',
+        ];
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST = [
+            'tipo_entidad' => 'persona',
+            'id'           => $personaId,
+            'nombre'       => 'Corregido',
+            'apellido'     => 'Rápido',
+            'cedula'       => $cedulaNueva,
+            'telefono'     => '',
+            'email'        => $emailNuevo,
+        ];
+
+        try {
+            $ctrl->actualizarDatos();
+
+            $this->assertEquals('/admin/usuarios', $ctrl->redirectUrl, "Debe redirigir tras actualizar");
+            $this->assertStringContains('Datos actualizados', \App\Core\Flash::get('success'),
+                "Debe confirmar la actualización");
+
+            $stmt = $db->prepare("SELECT nombre, apellido, cedula, telefono, email FROM personas WHERE id = :id");
+            $stmt->execute(['id' => $personaId]);
+            $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $this->assertEquals('Corregido', $fila['nombre'], "El nombre debe actualizarse");
+            $this->assertEquals('Rápido', $fila['apellido'], "El apellido debe actualizarse");
+            $this->assertEquals(normalizarCedula($cedulaNueva), $fila['cedula'],
+                "La cédula cambiada debe guardarse normalizada");
+            $this->assertTrue($fila['telefono'] === null,
+                "Sin teléfono debe guardarse NULL para no bloquear la corrección");
+            $this->assertEquals($emailNuevo, $fila['email'], "El email debe actualizarse");
+        } finally {
+            $db->exec("DELETE FROM personas WHERE id = {$personaId}");
+        }
+    }
+
+    public function testModalActualizarDatosPermiteEditarNombreYCedula(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/views/admin/usuarios/index.php');
+
+        $this->assertStringContains('id="act_nombre"', $content, "El modal debe tener el input de nombre");
+        $this->assertStringContains('name="nombre"', $content, "El nombre debe enviarse al backend");
+        $this->assertStringContains('id="act_apellido"', $content, "El modal debe tener el input de apellido");
+        $this->assertStringContains('name="apellido"', $content, "El apellido debe enviarse al backend");
+        $this->assertStringContains('id="act_cedula"', $content, "El modal debe tener el input de cédula");
+        $this->assertStringContains('name="cedula"', $content, "La cédula debe enviarse al backend");
+        $this->assertStringContains('data-nombre-pila', $content, "El botón debe pasar el nombre de pila");
+        $this->assertStringContains('data-apellido', $content, "El botón debe pasar el apellido");
+        $this->assertStringContains("document.getElementById('act_nombre').value", $content,
+            "El JS debe prellenar el nombre");
+        $this->assertStringContains("document.getElementById('act_cedula').value", $content,
+            "El JS debe prellenar la cédula");
+    }
 }

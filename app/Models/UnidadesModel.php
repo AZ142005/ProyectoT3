@@ -6,9 +6,11 @@ class UnidadesModel extends BaseModel {
 
     public function getActivas(int $limite = 500) {
         $sql = "
-            SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id, e.nombre as edificio_nombre
+            SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id, e.nombre as edificio_nombre,
+                   NULLIF(TRIM(CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, ''))), '') AS propietario_nombre
             FROM unidades u
             LEFT JOIN edificios e ON u.edificio_id = e.id
+            LEFT JOIN personas p ON p.id = u.propietario_id
             WHERE u.estado = 1
             ORDER BY e.nombre ASC, u.numero ASC
             LIMIT {$limite}
@@ -65,6 +67,30 @@ class UnidadesModel extends BaseModel {
 
         $stmt = $this->db()->prepare($sql);
         $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtiene las unidades activas pertenecientes a un edificio específico.
+     *
+     * @param int $edificioId
+     * @return array
+     */
+    public function getActivasPorEdificio(int $edificioId): array {
+        if ($edificioId <= 0) {
+            return [];
+        }
+
+        $sql = "
+            SELECT u.id, u.numero, u.cuota_mensual, u.edificio_id
+            FROM unidades u
+            WHERE u.edificio_id = :edificio_id
+              AND u.estado = 1
+            ORDER BY u.numero ASC
+        ";
+
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute(['edificio_id' => $edificioId]);
         return $stmt->fetchAll();
     }
 

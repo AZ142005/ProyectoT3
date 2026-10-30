@@ -111,9 +111,8 @@
                         <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
                             <th class="py-3 px-4">Nº Puesto</th>
                             <th class="py-3 px-4">Tipo</th>
-                            <th class="py-3 px-4">Edificio / Torre</th>
-                            <th class="py-3 px-4">Unidad Habitacional</th>
-                            <th class="py-3 px-4">Vehículo Asignado</th>
+                            <th class="py-3 px-4">Propietario / Residente</th>
+                            <th class="py-3 px-4">Vehículo Registrado</th>
                             <th class="py-3 px-4">Estado</th>
                             <th class="py-3 px-4 text-end">Acciones</th>
                         </tr>
@@ -121,13 +120,20 @@
                     <tbody class="divide-y divide-background">
                         <?php if (empty($puestos)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-12 text-on-surface-variant">
+                                <td colspan="6" class="text-center py-12 text-on-surface-variant">
                                     <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">local_parking</span>
                                     No hay puestos de estacionamiento registrados en el sistema.
                                 </td>
                             </tr>
                         <?php else: ?>
+                            <?php
+                            $unidadEdificioMap = [];
+                            foreach ($unidades ?? [] as $u) {
+                                $unidadEdificioMap[(int)$u['id']] = (int)($u['edificio_id'] ?? 0);
+                            }
+                            ?>
                             <?php foreach ($puestos as $p): ?>
+                                <?php $edificioActual = !empty($p['unidad_id']) ? ($unidadEdificioMap[(int)$p['unidad_id']] ?? 0) : 0; ?>
                                 <tr class="hover:bg-background/40 transition-colors">
                                     <td class="py-4 px-4 font-mono text-xs font-bold text-on-surface">
                                         <?= e($p['numero']) ?>
@@ -147,20 +153,29 @@
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="py-4 px-4"><?= e($p['edificio_nombre'] ?: 'General / Sin Torre') ?></td>
                                     <td class="py-4 px-4">
-                                        <?php if (!empty($p['unidad_numero'])): ?>
-                                            <span class="fw-semibold text-on-surface">Apto/Unidad <?= e($p['unidad_numero']) ?></span>
+                                        <?php if (!empty($p['persona_nombre'])): ?>
+                                            <div class="fw-semibold text-on-surface"><?= e($p['persona_nombre']) ?></div>
+                                            <?php if (!empty($p['persona_telefono'])): ?>
+                                                <small class="text-xs text-on-surface-variant d-block"><span class="material-symbols-outlined align-middle fs-6 me-0.5">call</span><?= e($p['persona_telefono']) ?></small>
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <span class="text-on-surface-variant fst-italic">Sin Asignar</span>
+                                            <span class="text-xs text-on-surface-variant fst-italic">Sin registrar</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="py-4 px-4">
-                                        <?php if (!empty($p['vehiculo_placa'])): ?>
-                                            <span class="badge bg-light text-on-surface border font-monospace me-1"><?= e($p['vehiculo_placa']) ?></span>
-                                            <small class="text-xs text-on-surface-variant"><?= e($p['vehiculo_marca']) ?> <?= e($p['vehiculo_modelo']) ?></small>
+                                        <?php if (!empty($p['vehiculo_id'])): ?>
+                                            <div class="d-flex align-items-center gap-1 mb-1 flex-wrap">
+                                                <span class="badge bg-light text-on-surface border"><?= e(etiquetaTipoVehiculo($p['vehiculo_tipo'] ?? '')) ?></span>
+                                                <?php if (!empty($p['vehiculo_marca'])): ?>
+                                                    <span class="text-xs text-on-surface fw-medium"><?= e($p['vehiculo_marca']) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php if (!empty($p['vehiculo_color'])): ?>
+                                                <small class="text-xs text-on-surface-variant d-block">Color: <?= e($p['vehiculo_color']) ?></small>
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <span class="text-xs text-on-surface-variant">Ninguno</span>
+                                            <span class="text-xs text-on-surface-variant fst-italic">Sin vehículo registrado</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="py-4 px-4">
@@ -188,7 +203,7 @@
                                         <div class="modal fade text-start" id="modalAsignar_<?= e($p['id']) ?>" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog">
                                                 <div class="modal-content rounded-3 border-0 shadow-lg">
-                                                    <form action="/admin/estacionamientos/asignar" method="POST">
+                                                    <form action="/admin/estacionamientos/asignar" method="POST" onsubmit="return validarAsignacionEstacionamiento(this)">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="puesto_id" value="<?= e($p['id']) ?>">
                                                         <div class="modal-header bg-primary text-white py-3">
@@ -199,15 +214,24 @@
                                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body p-4">
-                                                            <label class="form-label fw-bold small text-on-surface-variant">Seleccionar Unidad Habitacional</label>
-                                                            <select name="unidad_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
-                                                                <option value="">-- Sin Asignar (Liberar Puesto) --</option>
-                                                                <?php foreach ($unidades as $u): ?>
-                                                                    <option value="<?= e($u['id']) ?>" <?= ($p['unidad_id'] == $u['id']) ? 'selected' : '' ?>>
-                                                                        Unidad/Apto <?= e($u['numero']) ?> (<?= e($u['torre'] ?? 'Piso ' . $u['piso']) ?>)
-                                                                    </option>
-                                                                <?php endforeach; ?>
-                                                            </select>
+                                                            <div class="row g-2">
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label fw-bold small text-on-surface-variant">Edificio / Torre</label>
+                                                                    <select class="js-edificio-asignar w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer" onchange="cargarUnidadesAsignacion(this)">
+                                                                        <option value="">Seleccione un edificio...</option>
+                                                                        <?php foreach ($edificios as $ed): ?>
+                                                                            <option value="<?= e($ed['id']) ?>" <?= ($edificioActual === (int)$ed['id']) ? 'selected' : '' ?>><?= e($ed['nombre']) ?></option>
+                                                                        <?php endforeach; ?>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label fw-bold small text-on-surface-variant">Unidad / Apartamento</label>
+                                                                    <select name="unidad_id" required disabled data-unidad-actual="<?= e($p['unidad_id'] ?? '') ?>"
+                                                                            class="js-unidad-asignar w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                                                                        <option value="" disabled selected>Seleccione un edificio primero...</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div class="modal-footer bg-light">
                                                             <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
@@ -311,35 +335,26 @@
                                 <option value="<?= e($u['id']) ?>">Unidad/Apto <?= e($u['numero']) ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <small class="text-xs text-on-surface-variant d-block mt-1">La unidad debe tener una plaza de estacionamiento asignada.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-on-surface-variant">Tipo de Vehículo <span class="text-danger">*</span></label>
+                        <select name="tipo_vehiculo" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors cursor-pointer" required>
+                            <option value="">-- Seleccionar Tipo --</option>
+                            <?php foreach (\App\Models\VehiculosModel::TIPOS_VEHICULO as $valorTipo => $etiquetaTipo): ?>
+                                <option value="<?= e($valorTipo) ?>"><?= e($etiquetaTipo) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-on-surface-variant">Placa de Vehículo <span class="text-danger">*</span></label>
-                            <input type="text" name="placa" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors text-uppercase" placeholder="Ej: ABC123" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-on-surface-variant">Marca <span class="text-danger">*</span></label>
-                            <input type="text" name="marca" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Toyota" required>
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-on-surface-variant">Modelo <span class="text-danger">*</span></label>
-                            <input type="text" name="modelo" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Corolla" required>
-                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small text-on-surface-variant">Color <span class="text-danger">*</span></label>
                             <input type="text" name="color" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Blanco" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-on-surface-variant">Asignar Puesto de Estacionamiento (Opcional)</label>
-                        <select name="estacionamiento_id" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors cursor-pointer">
-                            <option value="">-- Sin Asignación Directa --</option>
-                            <?php foreach ($puestos as $p): ?>
-                                <option value="<?= e($p['id']) ?>"><?= e($p['numero']) ?> (<?= e($p['tipo']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-on-surface-variant">Marca (opcional)</label>
+                            <input type="text" name="marca" class="w-full bg-background border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors" placeholder="Ej: Toyota">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -358,3 +373,82 @@
         </div>
     </div>
 </div>
+
+<script>
+function validarAsignacionEstacionamiento(formulario) {
+    const unidadSelect = formulario.querySelector('.js-unidad-asignar');
+    if (!unidadSelect || unidadSelect.disabled || unidadSelect.value === '') {
+        window.alert('Seleccione un edificio y un apartamento (o "Sin Asignar") antes de guardar.');
+        return false;
+    }
+    return true;
+}
+
+async function cargarUnidadesAsignacion(edificioSelect) {
+    const formulario = edificioSelect.closest('form');
+    const unidadSelect = formulario ? formulario.querySelector('.js-unidad-asignar') : null;
+    if (!unidadSelect) {
+        return;
+    }
+
+    const edificioId = edificioSelect.value;
+    const unidadActual = unidadSelect.dataset.unidadActual || '';
+
+    unidadSelect.innerHTML = '';
+    const marcador = document.createElement('option');
+    marcador.value = '';
+    marcador.disabled = true;
+    marcador.selected = true;
+    marcador.textContent = edificioId ? 'Seleccione un apartamento...' : 'Seleccione un edificio primero...';
+    unidadSelect.appendChild(marcador);
+
+    if (!edificioId) {
+        unidadSelect.disabled = true;
+        return;
+    }
+
+    try {
+        const respuesta = await fetch('/admin/estacionamientos/unidades?edificio_id=' + encodeURIComponent(edificioId), {
+            headers: { 'Accept': 'application/json' }
+        });
+        const datos = await respuesta.json();
+
+        if (unidadActual !== '' && unidadActual !== '0') {
+            const liberar = document.createElement('option');
+            liberar.value = '0';
+            liberar.textContent = 'Sin Asignar (Liberar Puesto)';
+            unidadSelect.appendChild(liberar);
+        }
+
+        (datos.unidades || []).forEach(function (unidad) {
+            const opcion = document.createElement('option');
+            opcion.value = unidad.id;
+            opcion.textContent = 'Apto. ' + unidad.numero;
+            unidadSelect.appendChild(opcion);
+        });
+
+        unidadSelect.disabled = false;
+
+        if (unidadActual !== '' && unidadSelect.querySelector('option[value="' + unidadActual + '"]')) {
+            unidadSelect.value = unidadActual;
+        }
+    } catch (error) {
+        unidadSelect.disabled = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.modal').forEach(function (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            const edificioSelect = modal.querySelector('.js-edificio-asignar');
+            const unidadSelect = modal.querySelector('.js-unidad-asignar');
+            if (!edificioSelect || !unidadSelect) {
+                return;
+            }
+            if (edificioSelect.value && unidadSelect.options.length <= 1) {
+                cargarUnidadesAsignacion(edificioSelect);
+            }
+        });
+    });
+});
+</script>

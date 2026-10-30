@@ -28,7 +28,7 @@ try {
         
         // Agregar índice y llave foránea opcional
         try {
-            $db->exec("ALTER TABLE gastos_comunes ADD CONSTRAINT fk_gastos_edificio FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE SET NULL");
+            $db->exec("ALTER TABLE gastos_comunes ADD CONSTRAINT fk_gastos_edificio FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE RESTRICT");
         } catch (\Exception $e) {
             // Si ya existe índice o restricción, continuar
         }

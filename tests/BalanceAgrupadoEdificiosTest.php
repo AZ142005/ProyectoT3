@@ -68,11 +68,14 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         }
 
         $conFiltroSolvente = $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']);
-        $this->assertEquals(
-            count($consolidado),
-            count($conFiltroSolvente),
-            "El parámetro 'estado' ya no debe alterar la cantidad de edificios del consolidado"
-        );
+        foreach ($conFiltroSolvente as $ed) {
+            foreach ($ed['unidades'] as $u) {
+                $this->assertTrue(
+                    (float)$u['total_deuda'] <= 0,
+                    "El filtro 'solvente' solo debe incluir unidades sin deuda vencida"
+                );
+            }
+        }
 
         foreach ($consolidado as $ed) {
             $unidades = $ed['unidades'] ?? [];
@@ -154,7 +157,7 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         $controller = file_get_contents(dirname(__DIR__) . '/app/Controllers/ReporteController.php');
         $this->assertStringContains('usort($todasUnidades', $controller,
             "El controlador debe reordenar la lista plana por mayor deuda");
-        $this->assertMatchesRegex('/max-h-\[calc\(100vh[^\]]*\)\][^>]*overflow-y-auto/', $content,
+        $this->assertMatchesRegex('/max-h-\[calc\([^\]]*vh[^\]]*\)\][^>]*overflow-y-auto/', $content,
             "La lista debe tener scroll vertical propio cuando haya muchas unidades");
     }
 
@@ -175,10 +178,283 @@ class BalanceAgrupadoEdificiosTest extends TestCase {
         $viewPath = VIEWS_PATH . '/admin/reportes/morosidad.php';
         $content = file_get_contents($viewPath);
 
-        $this->assertFalse(str_contains($content, 'name="estado"'), "Ya no debe existir el filtro por estado financiero");
+        $this->assertStringContains('name="estado"', $content, "Debe existir el filtro por estado financiero");
+        $this->assertStringContains('value="solvente"', $content, "El filtro debe ofrecer la opción Solventes");
+        $this->assertStringContains('value="saldo_favor"', $content, "El filtro debe ofrecer la opción Con Saldo a Favor");
         $this->assertStringContains('name="edificio_id"', $content, "Debe existir el filtro por edificio");
         $this->assertStringContains('name="dias_mora"', $content, "Debe existir el filtro por días de mora");
-        $this->assertStringContains('id="buscadorBalance"', $content, "Debe existir el buscador rápido id='buscadorBalance'");
-        $this->assertStringContains('filtrarBalance', $content, "Debe existir la función JS de filtrado");
+        $this->assertStringContains('name="buscar"', $content, "Debe existir el buscador server-side");
+        $this->assertStringContains('Buscar en todos los departamentos', $content,
+            "El buscador debe indicar que abarca todos los departamentos");
+        $this->assertFalse(strpos($content, 'buscadorBalance') !== false,
+            "La búsqueda en vivo de la página actual ya no debe existir");
+        $this->assertFalse(strpos($content, 'filtrarBalance') !== false,
+            "La función JS de filtrado en vivo ya no debe existir");
+        $this->assertFalse(strpos($content, 'sinResultadosBalance') !== false,
+            "El bloque de resultados vacíos de la búsqueda en vivo ya no debe existir");
+    }
+
+    public function testControladorPropagaBusquedaServidor(): void {
+        $controller = file_get_contents(dirname(__DIR__) . '/app/Controllers/ReporteController.php');
+
+        $this->assertStringContains("'buscar'", $controller,
+            "El controlador debe leer el parámetro buscar");
+        $this->assertStringContains('filtrosBalance()', $controller,
+            "El controlador debe centralizar los filtros del balance");
+    }
+
+    public function testBusquedaServidorFiltraTodosLosDepartamentos(): void {
+        $db = $this->getDb();
+        $sufijo = strtoupper(bin2hex(random_bytes(4)));
+        $numero = 'BUSQ-' . $sufijo;
+        $nombre = 'Buscado' . $sufijo;
+        $cedula = 'V-BUSQ-' . $sufijo;
+        $email = 'busq_' . strtolower($sufijo) . '@example.com';
+        $personaId = 0;
+        $unidadId = 0;
+
+        try {
+            $stmt = $db->prepare("INSERT INTO personas (cedula, nombre, apellido, email, telefono, tipo, estado)
+                                  VALUES (:cedula, :nombre, 'Busqueda', :email, '04121112233', 'propietario', 1)");
+            $stmt->execute([
+                'cedula' => $cedula,
+                'nombre' => $nombre,
+                'email'  => $email,
+            ]);
+            $personaId = (int)$db->lastInsertId();
+
+            $stmt = $db->prepare("INSERT INTO unidades (numero, cuota_mensual, estado, propietario_id)
+                                  VALUES (:numero, 0.00, 1, :propietario_id)");
+            $stmt->execute([
+                'numero'         => $numero,
+                'propietario_id' => $personaId,
+            ]);
+            $unidadId = (int)$db->lastInsertId();
+
+            $reportes = new ReportesModel();
+
+            $porUnidad = $this->aplanarUnidades(
+                $reportes->obtenerReporteBalanceAgrupadoPorEdificio(['buscar' => $numero])
+            );
+            $this->assertEquals(1, count($porUnidad),
+                "La búsqueda server-side debe retornar la unidad aunque no esté en la página actual");
+            $this->assertEquals($numero, $porUnidad[0]['unidad_numero'],
+                "La unidad retornada debe ser la buscada");
+
+            $porPropietario = $this->aplanarUnidades(
+                $reportes->obtenerReporteBalanceAgrupadoPorEdificio(['buscar' => $nombre])
+            );
+            $this->assertEquals(1, count($porPropietario),
+                "La búsqueda server-side debe encontrar por nombre del propietario");
+
+            $completo = $reportes->obtenerReporteMorosidadCompleto(['buscar' => $numero]);
+            $this->assertEquals(1, count($completo),
+                "La búsqueda debe aplicarse también en impresión y exportación CSV");
+            $this->assertEquals($numero, $completo[0]['unidad_numero'],
+                "El reporte completo debe devolver la unidad buscada");
+        } finally {
+            if ($unidadId > 0) {
+                $db->exec("DELETE FROM unidades WHERE id = {$unidadId}");
+            }
+            if ($personaId > 0) {
+                $db->exec("DELETE FROM personas WHERE id = {$personaId}");
+            }
+        }
+    }
+
+    /**
+     * Aplana las unidades del consolidado por edificio en una sola lista.
+     */
+    private function aplanarUnidades(array $consolidado): array {
+        $unidades = [];
+        foreach ($consolidado as $edificio) {
+            foreach ($edificio['unidades'] as $unidad) {
+                $unidades[] = $unidad;
+            }
+        }
+        return $unidades;
+    }
+
+    public function testFiltroSolventesSaldoFavorYDeudores(): void {
+        $reportesModel = new ReportesModel();
+
+        $todas     = $this->aplanarUnidades($reportesModel->obtenerReporteBalanceAgrupadoPorEdificio());
+        $solventes = $this->aplanarUnidades($reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'solvente']));
+        $deudores  = $this->aplanarUnidades($reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'deudor']));
+        $conFavor  = $this->aplanarUnidades($reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'saldo_favor']));
+
+        foreach ($solventes as $unidad) {
+            $this->assertTrue(
+                (float)$unidad['total_deuda'] <= 0,
+                "En 'solvente', toda unidad debe tener deuda vencida en 0"
+            );
+            $this->assertTrue(
+                array_key_exists('saldo_favor', $unidad),
+                "Cada unidad del consolidado debe exponer la clave saldo_favor"
+            );
+        }
+
+        foreach ($deudores as $unidad) {
+            $this->assertTrue(
+                (float)$unidad['total_deuda'] > 0,
+                "En 'deudor', toda unidad debe tener deuda vencida mayor a 0"
+            );
+        }
+
+        foreach ($conFavor as $unidad) {
+            $this->assertTrue(
+                (float)$unidad['saldo_favor'] > 0,
+                "En 'saldo_favor', toda unidad debe tener saldo a favor mayor a 0"
+            );
+        }
+
+        $this->assertEquals(
+            count($todas),
+            count($solventes) + count($deudores),
+            "Solventes y deudores deben particionar el total de unidades"
+        );
+    }
+
+    public function testSaldoFavorSeExponeEnElConsolidado(): void {
+        $db = $this->getDb();
+        $db->beginTransaction();
+        try {
+            $unidadId = (int)$db->query("SELECT id FROM unidades WHERE estado = 1 ORDER BY id LIMIT 1")->fetchColumn();
+            $this->assertTrue($unidadId > 0, "Debe existir al menos una unidad activa para el fixture");
+
+            $stmt = $db->prepare("
+                INSERT INTO facturas
+                    (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado, observaciones)
+                VALUES
+                    (:numero, :unidad_id, :mes, :anio, CURDATE(), CURDATE(), 0.00, 50.00, -50.00, 'pagada', 'Fixture test saldo a favor')
+            ");
+            $stmt->execute([
+                'numero'    => 'ABONO-TEST-' . uniqid(),
+                'unidad_id' => $unidadId,
+                'mes'       => (int)date('n'),
+                'anio'      => (int)date('Y'),
+            ]);
+
+            $reportesModel = new ReportesModel();
+            $conFavor = $this->aplanarUnidades(
+                $reportesModel->obtenerReporteBalanceAgrupadoPorEdificio(['estado' => 'saldo_favor'])
+            );
+
+            $encontrada = null;
+            foreach ($conFavor as $unidad) {
+                if ((int)$unidad['unidad_id'] === $unidadId) {
+                    $encontrada = $unidad;
+                    break;
+                }
+            }
+
+            $this->assertTrue(
+                $encontrada !== null,
+                "La unidad con saldo a favor debe aparecer en el filtro 'saldo_favor'"
+            );
+            $this->assertTrue(
+                (float)$encontrada['saldo_favor'] >= 50.00,
+                "El saldo a favor consolidado debe reflejar el crédito insertado"
+            );
+        } finally {
+            $db->rollBack();
+        }
+    }
+
+    public function testKpisIncluyenSaldoFavor(): void {
+        $reportesModel = new ReportesModel();
+        $kpis = $reportesModel->obtenerKpisMorosidad(true);
+
+        $this->assertTrue(
+            array_key_exists('saldo_favor_total', $kpis),
+            "Los KPIs deben incluir saldo_favor_total"
+        );
+        $this->assertTrue(
+            array_key_exists('unidades_con_saldo_favor', $kpis),
+            "Los KPIs deben incluir unidades_con_saldo_favor"
+        );
+        $this->assertTrue(is_numeric($kpis['saldo_favor_total']), "saldo_favor_total debe ser numérico");
+        $this->assertTrue(is_numeric($kpis['unidades_con_saldo_favor']), "unidades_con_saldo_favor debe ser numérico");
+    }
+
+    public function testVistaMuestraColumnaSaldoFavor(): void {
+        $content = file_get_contents(VIEWS_PATH . '/admin/reportes/morosidad.php');
+
+        $this->assertStringContains(
+            'Saldo a Favor (Bs)',
+            $content,
+            "La tabla debe incluir la columna 'Saldo a Favor (Bs)'"
+        );
+        $this->assertStringContains(
+            'saldo_favor',
+            $content,
+            "La vista debe usar la clave saldo_favor"
+        );
+        $this->assertStringContains(
+            'name="estado"',
+            $content,
+            "La vista debe incluir el filtro por estado financiero"
+        );
+    }
+
+    public function testPaginacionDe50UnidadesEnCartaDeDeuda(): void {
+        $controller = file_get_contents(dirname(__DIR__) . '/app/Controllers/ReporteController.php');
+        $this->assertStringContains(
+            '$porPagina = 50',
+            $controller,
+            "La Carta de Deuda debe paginar de 50 en 50"
+        );
+        $this->assertStringContains(
+            'array_slice($todasUnidades',
+            $controller,
+            "El controlador debe recortar la lista a la página actual"
+        );
+        $this->assertStringContains(
+            "\$_GET['page']",
+            $controller,
+            "El controlador debe aceptar el parámetro page"
+        );
+
+        $view = file_get_contents(VIEWS_PATH . '/admin/reportes/morosidad.php');
+        $this->assertStringContains(
+            'pagination pagination-sm',
+            $view,
+            "La vista debe mostrar controles de paginación"
+        );
+        $this->assertStringContains(
+            "'page' =>",
+            $view,
+            "Los enlaces de paginación deben conservar el número de página"
+        );
+        $this->assertStringContains(
+            'Mostrando',
+            $view,
+            "La vista debe indicar el rango de unidades mostrado"
+        );
+    }
+
+    public function testPaginacionIncluyeAccesoRapidoAPrimeraYUltimaPagina(): void {
+        $view = file_get_contents(VIEWS_PATH . '/admin/reportes/morosidad.php');
+
+        $this->assertStringContains(
+            'aria-label="Primera página"',
+            $view,
+            "La paginación debe incluir un acceso rápido a la primera página"
+        );
+        $this->assertStringContains(
+            'aria-label="Última página"',
+            $view,
+            "La paginación debe incluir un acceso rápido a la última página"
+        );
+        $this->assertStringContains(
+            "['page' => 1]",
+            $view,
+            "El botón de primera página debe apuntar a la página 1"
+        );
+        $this->assertStringContains(
+            "['page' => \$paginacion['totalPaginas']]",
+            $view,
+            "El botón de última página debe apuntar al total de páginas"
+        );
     }
 }

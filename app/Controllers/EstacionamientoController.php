@@ -61,13 +61,41 @@ class EstacionamientoController extends Controller {
         ];
 
         $this->render('admin/estacionamientos/index', [
-            'puestos'    => $puestos,
+            'puestos'      => $puestos,
+            'todosPuestos' => $todosPuestos,
             'paginacion' => $paginacion,
             'edificios'  => $edificios,
             'unidades'   => $unidades,
             'kpis'       => $kpis,
             'layout'     => 'admin',
             'title'      => 'Gestión de Estacionamientos y Vehículos'
+        ]);
+    }
+
+    /**
+     * Endpoint JSON con las unidades activas de un edificio para el selector
+     * en cascada (Edificio -> Unidad) del modal de asignación.
+     * No expone datos del residente: solo id y número de unidad.
+     */
+    public function unidades(): void {
+        Auth::requireRole(['admin', 'auditor']);
+
+        $edificioId = is_scalar($_GET['edificio_id'] ?? null) ? intval($_GET['edificio_id']) : 0;
+        $unidades = $edificioId > 0
+            ? (new UnidadesModel())->getActivasPorEdificio($edificioId)
+            : [];
+
+        $resultado = [];
+        foreach ($unidades as $u) {
+            $resultado[] = [
+                'id'     => (int)$u['id'],
+                'numero' => (string)$u['numero'],
+            ];
+        }
+
+        $this->json([
+            'success'  => true,
+            'unidades' => $resultado,
         ]);
     }
 
@@ -159,9 +187,12 @@ class EstacionamientoController extends Controller {
         try {
             $estacionamientosModel->asignarAUnidad($puestoId, $unidadId);
             Flash::success("Asignación de puesto de estacionamiento actualizada correctamente.");
+        } catch (\PDOException $e) {
+            error_log("[ESTACIONAMIENTO] Error asignar puesto: " . $e->getMessage());
+            Flash::error('No se pudo asignar el puesto de estacionamiento. Intente nuevamente.');
         } catch (Exception $e) {
             error_log("[ESTACIONAMIENTO] Error asignar puesto: " . $e->getMessage());
-            Flash::error('Error al eliminar el puesto de estacionamiento.');
+            Flash::error($e->getMessage());
         }
 
         $this->redirect('/admin/estacionamientos');
@@ -180,10 +211,15 @@ class EstacionamientoController extends Controller {
         }
 
         $estacionamientosModel = new EstacionamientosModel();
-        if ($estacionamientosModel->softDelete($id)) {
-            Flash::success("El puesto de estacionamiento fue dado de baja correctamente.");
-        } else {
-            Flash::error("No se pudo dar de baja el puesto.");
+        try {
+            if ($estacionamientosModel->softDelete($id)) {
+                Flash::success("El puesto de estacionamiento fue dado de baja correctamente.");
+            } else {
+                Flash::error("No se pudo dar de baja el puesto.");
+            }
+        } catch (Exception $e) {
+            error_log("[ESTACIONAMIENTO] Error dar de baja puesto: " . $e->getMessage());
+            Flash::error('No se pudo dar de baja el puesto de estacionamiento.');
         }
 
         $this->redirect('/admin/estacionamientos');
@@ -230,8 +266,14 @@ class EstacionamientoController extends Controller {
 
             $estacionamientoId = !empty($_POST['estacionamiento_id']) ? intval($_POST['estacionamiento_id']) : null;
 
-            // FK validation: estacionamiento debe existir y estar asignado a la unidad
-            if ($estacionamientoId) {
+            // Autoasignar el puesto de la unidad si no se seleccionó uno explícito
+            if (!$estacionamientoId) {
+                $estModel = new EstacionamientosModel();
+                $puestosUnidad = $estModel->obtenerPorUnidad($unidadId);
+                if (!empty($puestosUnidad)) {
+                    $estacionamientoId = intval($puestosUnidad[0]['id']);
+                }
+            } else {
                 $estModel = new EstacionamientosModel();
                 $puestos = $estModel->obtenerPorUnidad($unidadId);
                 $puestosIds = array_column($puestos, 'id');
@@ -242,19 +284,29 @@ class EstacionamientoController extends Controller {
                 }
             }
 
+            if (!$estacionamientoId) {
+                Flash::error('La unidad seleccionada no tiene una plaza de estacionamiento asignada. Asigne una plaza antes de registrar el vehículo.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
+
             $datos = [
                 'unidad_id'          => $unidadId,
                 'persona_id'         => $personaId,
                 'estacionamiento_id' => $estacionamientoId,
-                'placa'              => strtoupper(trim($_POST['placa'] ?? '')),
+                'tipo_vehiculo'      => trim($_POST['tipo_vehiculo'] ?? ''),
                 'marca'              => trim($_POST['marca'] ?? ''),
-                'modelo'             => trim($_POST['modelo'] ?? ''),
                 'color'              => trim($_POST['color'] ?? ''),
-                'observaciones'      => trim($_POST['observaciones'] ?? '')
             ];
 
-            if (empty($datos['placa'])) {
-                Flash::error('La placa del vehículo es obligatoria.');
+            if (!array_key_exists($datos['tipo_vehiculo'], VehiculosModel::TIPOS_VEHICULO)) {
+                Flash::error('El tipo de vehículo es obligatorio y debe ser Pequeño, Camioneta mediano o Camión tipo F-350.');
+                $this->redirect('/admin/estacionamientos');
+                return;
+            }
+
+            if ($datos['color'] === '') {
+                Flash::error('El color del vehículo es obligatorio.');
                 $this->redirect('/admin/estacionamientos');
                 return;
             }

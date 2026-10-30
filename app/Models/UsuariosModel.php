@@ -163,6 +163,8 @@ class UsuariosModel extends BaseModel {
                 p.id AS id,
                 p.cedula AS cedula,
                 CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
+                p.nombre AS persona_nombre,
+                p.apellido AS persona_apellido,
                 p.email AS email,
                 p.telefono AS telefono,
                 CONCAT('Residente (', p.tipo, ')') AS rol_texto,
@@ -185,6 +187,8 @@ class UsuariosModel extends BaseModel {
                 u.id AS id,
                 COALESCE(u.cedula, 'N/A') AS cedula,
                 u.nombre_completo AS nombre_completo,
+                NULL AS persona_nombre,
+                NULL AS persona_apellido,
                 u.email AS email,
                 u.telefono AS telefono,
                 (CASE WHEN u.rol = 'admin' THEN 'Administrador' WHEN u.rol = 'auditor' THEN 'Auditor' ELSE u.rol END) AS rol_texto,
@@ -210,10 +214,13 @@ class UsuariosModel extends BaseModel {
         }
 
         if (!empty($buscar)) {
-            $likeClause = " AND (t.nombre_completo LIKE :buscar OR t.cedula LIKE :buscar OR t.email LIKE :buscar)";
+            $likeClause = " AND (t.nombre_completo LIKE :buscar_nombre OR t.cedula LIKE :buscar_cedula OR t.email LIKE :buscar_email)";
             $wrappedSql .= $likeClause;
             $countSql   .= $likeClause;
-            $params['buscar'] = '%' . $buscar . '%';
+            $buscarLike = '%' . $buscar . '%';
+            $params['buscar_nombre'] = $buscarLike;
+            $params['buscar_cedula'] = $buscarLike;
+            $params['buscar_email']  = $buscarLike;
         }
 
         return $this->paginate($wrappedSql, $countSql, $params, $pagina, $porPagina, 't.tipo_entidad ASC, t.nombre_completo ASC');

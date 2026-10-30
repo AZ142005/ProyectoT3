@@ -20,6 +20,10 @@ class PaginacionEstandarTest extends TestCase {
         $this->assertStringContains('$pageParamName', $content, "Debe soportar parametro de pagina configurable");
         $this->assertStringContains("'tab'", $content, "Debe preservar el parametro tab");
         $this->assertStringContains('$porPagina', $content, "Debe manejar el tamano por pagina");
+        $this->assertStringContains('aria-label="Primera página"', $content, "Debe tener acceso rápido a la primera página");
+        $this->assertStringContains('aria-label="Última página"', $content, "Debe tener acceso rápido a la última página");
+        $this->assertStringContains('Primero', $content, "Debe mostrar etiqueta de Primera página");
+        $this->assertStringContains('Último', $content, "Debe mostrar etiqueta de Última página");
     }
 
     public function testDashboardResidenteCargaComunicadosSinListasDePago(): void {

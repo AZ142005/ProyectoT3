@@ -315,6 +315,7 @@ if (!function_exists('badgeEstado')) {
             'pagada'      => ['bg-success text-white', 'payments', 'Pagada'],
             'pagado'      => ['bg-success text-white', 'payments', 'Pagado'],
             'vencido'     => ['bg-danger text-white', 'error', 'Vencido'],
+            'vencida'     => ['bg-danger text-white', 'error', 'Vencida'],
             'activo'      => ['bg-success text-white', 'check_circle', 'Activo'],
             'inactivo'    => ['bg-secondary text-white', 'block', 'Inactivo'],
             'anulada'     => ['bg-secondary text-white', 'block', 'Anulada'],
@@ -429,5 +430,15 @@ if (!function_exists('app_url')) {
         }
 
         return $base . '/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('etiquetaTipoVehiculo')) {
+    /**
+     * Devuelve la etiqueta legible de un tipo de vehículo.
+     */
+    function etiquetaTipoVehiculo(?string $tipo): string {
+        $tipos = \App\Models\VehiculosModel::TIPOS_VEHICULO;
+        return $tipos[$tipo ?? ''] ?? 'No especificado';
     }
 }

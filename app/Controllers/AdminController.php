@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Flash;
 use App\Core\UserRole;
 use App\Models\ComprobantesModel;
+use App\Models\PagoModel;
 use App\Models\EdificiosModel;
 use App\Models\FacturasModel;
 use App\Models\UnidadesModel;
@@ -37,6 +38,8 @@ class AdminController extends Controller {
         $cuentasModel = new CuentasBancariasModel();
         $cuentasBancarias = $cuentasModel->getActivas();
 
+        $comprobantesModel = new ComprobantesModel();
+        // Solo lectura de últimos movimientos procesados (máximo los últimos 4 movimientos)
         $comprobantesModel = new ComprobantesModel();
         // Solo lectura de últimos movimientos procesados (máximo los últimos 4 movimientos)
         $procesados = $comprobantesModel->getProcesados(4) ?: [];

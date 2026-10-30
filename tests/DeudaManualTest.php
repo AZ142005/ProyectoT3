@@ -264,7 +264,7 @@ class DeudaManualTest extends TestCase {
             $this->assertEquals(30.00, (float)$facturaFinal['monto_pagado'], 'Lo ya pagado debe conservarse');
             $this->assertEquals(90.00, (float)$facturaFinal['saldo'],
                 'El saldo debe ser max(0, nuevo - pagado) = 120 - 30');
-            $this->assertEquals('pendiente', $facturaFinal['estado'], 'Con saldo pendiente el estado debe ser pendiente');
+            $this->assertEquals('vencida', $facturaFinal['estado'], 'Con saldo pendiente el estado debe ser vencida');
 
             // Libro mayor: un único cargo por la creación + ajuste por el delta, sin inflarse
             $stmtCargo = $db->prepare("SELECT COUNT(*) FROM movimientos_cuenta WHERE unidad_id = :id AND tipo = 'cargo_factura'");
@@ -326,7 +326,7 @@ class DeudaManualTest extends TestCase {
                 'La reactivación debe conservar lo ya pagado (10.00)');
             $this->assertEquals(35.00, (float)$final['saldo'],
                 'El saldo debe ser max(0, nuevo - pagado) = 45.00 - 10.00');
-            $this->assertEquals('pendiente', $final['estado'], 'Con saldo pendiente el estado debe ser pendiente');
+            $this->assertEquals('vencida', $final['estado'], 'Con saldo pendiente el estado debe ser vencida');
         } finally {
             if ($db->inTransaction()) {
                 $db->rollBack();

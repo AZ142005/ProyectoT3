@@ -66,6 +66,20 @@ class UsuarioAdminTest extends TestCase {
         }
     }
 
+    public function testObtenerListadoUnificadoBusquedaNoRompeParametros(): void {
+        $usuariosModel = new UsuariosModel();
+
+        $resultado = $usuariosModel->obtenerListadoUnificado('admin', '', 1, 10);
+        $this->assertTrue(isset($resultado['datos']), "La búsqueda debe devolver datos sin error de parámetros");
+        $this->assertTrue(count($resultado['datos']) > 0, "La búsqueda 'admin' debe encontrar al menos una cuenta");
+
+        $resultadoMixto = $usuariosModel->obtenerListadoUnificado('a', 'residente', 1, 10);
+        $this->assertTrue(isset($resultadoMixto['datos']), "La búsqueda combinada con rol debe funcionar");
+        foreach ($resultadoMixto['datos'] as $item) {
+            $this->assertEquals('residente', $item['rol_clave'], "El filtro combinado debe respetar el rol");
+        }
+    }
+
     public function testReiniciarPasswordPersona(): void {
         $db = $this->getDb();
         $personasModel = new PersonasModel();

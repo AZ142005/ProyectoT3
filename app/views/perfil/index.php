@@ -215,6 +215,105 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
     </div>
 
     <?php if (!$isAdmin && !$isAuditor): ?>
+        <!-- Mis Vehículos y Solicitud de Registro/Actualización -->
+        <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm mb-8">
+            <h3 class="font-bold text-on-surface text-base mb-1 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">directions_car</span>
+                Mis Vehículos
+            </h3>
+            <p class="text-xs text-on-surface-variant mb-4">Vehículos registrados en su unidad. Los cambios solicitados requieren aprobación de la administración.</p>
+
+            <?php if (empty($tieneEstacionamiento)): ?>
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-xs mb-4">
+                    <strong>Sin plaza de estacionamiento:</strong> su unidad no tiene una plaza asignada. No se puede registrar un vehículo nuevo hasta que la administración le asigne una.
+                    <?php if (!empty($vehiculos)): ?> Puede solicitar la actualización de los vehículos ya registrados.<?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (empty($vehiculos)): ?>
+                <p class="text-sm text-slate-500 text-center py-4 border border-dashed border-outline-variant rounded-xl mb-4">No hay vehículos registrados en su unidad.</p>
+            <?php else: ?>
+                <div class="overflow-x-auto mb-4">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-background text-xs font-bold text-slate-400 uppercase">
+                                <th class="py-2 px-2">Tipo</th>
+                                <th class="py-2 px-2">Marca</th>
+                                <th class="py-2 px-2">Color</th>
+                                <th class="py-2 px-2">Puesto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-background">
+                            <?php foreach ($vehiculos as $v): ?>
+                                <tr>
+                                    <td class="py-2 px-2"><span class="badge bg-slate-100 text-slate-700"><?= e(etiquetaTipoVehiculo($v['tipo_vehiculo'] ?? '')) ?></span></td>
+                                    <td class="py-2 px-2"><?= e($v['marca'] ?: '-') ?></td>
+                                    <td class="py-2 px-2"><?= e($v['color'] ?: '-') ?></td>
+                                    <td class="py-2 px-2"><?= e($v['puesto_numero'] ?: 'Sin puesto') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($tieneEstacionamiento) || !empty($vehiculos)): ?>
+            <h4 class="font-bold text-on-surface text-sm mb-2">Solicitar registro o actualización</h4>
+            <form method="POST" action="/perfil/solicitar-cambio-vehiculo" class="flex flex-col gap-4">
+                <?= csrf_field() ?>
+                <input type="hidden" name="accion_vehiculo" id="vehiculo_solicitud_accion" value="<?= empty($tieneEstacionamiento) ? 'actualizar' : 'crear' ?>">
+
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Vehículo</label>
+                    <select name="vehiculo_id" id="vehiculo_solicitud_id" onchange="prefillVehiculoSolicitud(this)"
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none cursor-pointer">
+                        <?php if (!empty($tieneEstacionamiento)): ?>
+                            <option value="0">Nuevo vehículo</option>
+                        <?php endif; ?>
+                        <?php foreach (($vehiculos ?? []) as $v): ?>
+                            <option value="<?= e($v['id']) ?>"
+                                    data-tipo="<?= e($v['tipo_vehiculo'] ?? '') ?>"
+                                    data-marca="<?= e($v['marca'] ?? '') ?>"
+                                    data-color="<?= e($v['color'] ?? '') ?>">
+                                <?= e(etiquetaTipoVehiculo($v['tipo_vehiculo'] ?? '')) ?> - <?= e($v['marca'] ?: 'Sin marca') ?> (<?= e($v['color'] ?: 'Sin color') ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Tipo de Vehículo *</label>
+                        <select name="tipo_vehiculo" id="vehiculo_solicitud_tipo" required
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none cursor-pointer">
+                            <option value="">-- Seleccionar --</option>
+                            <?php foreach (\App\Models\VehiculosModel::TIPOS_VEHICULO as $valorTipo => $etiquetaTipo): ?>
+                                <option value="<?= e($valorTipo) ?>"><?= e($etiquetaTipo) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Color *</label>
+                        <input type="text" name="color" id="vehiculo_solicitud_color" maxlength="50" required placeholder="Ej: Blanco"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide d-block mb-1">Marca (opcional)</label>
+                        <input type="text" name="marca" id="vehiculo_solicitud_marca" maxlength="100" placeholder="Ej: Toyota"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-outline-variant rounded-xl text-sm focus:bg-white focus:border-primary focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        <span>Enviar Solicitud</span>
+                    </button>
+                </div>
+            </form>
+            <?php endif; ?>
+        </div>
+
         <!-- Historial de Solicitudes para Residentes -->
         <div class="bg-white rounded-2xl border border-outline-variant p-6 shadow-sm">
             <h3 class="font-bold text-on-surface text-base mb-4">Historial de Solicitudes Enviadas</h3>
@@ -239,11 +338,28 @@ $twoFaEnabled = !empty($usuarioAdmin['two_factor_enabled'] ?? $persona['two_fact
                                     <td class="py-3 px-2 text-xs text-slate-500"><?= date('d/m/Y H:i', strtotime($s['fecha_solicitud'])) ?></td>
                                     <td class="py-3 px-2">
                                         <?php if (is_array($json)): ?>
-                                            <?php foreach ($json as $k => $v): ?>
+                                            <?php if (($json['tipo_solicitud'] ?? '') === 'vehiculo'): ?>
                                                 <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
-                                                    <strong><?= e(ucfirst($k)) ?>:</strong> <?= e($v) ?>
+                                                    <strong>Vehículo:</strong> <?= e(etiquetaTipoVehiculo($json['vehiculo_tipo'] ?? '')) ?>
+                                                    (<?= e(($json['accion_vehiculo'] ?? 'crear') === 'actualizar' ? 'Actualización' : 'Registro') ?>)
                                                 </span>
-                                            <?php endforeach; ?>
+                                                <?php if (!empty($json['vehiculo_marca'])): ?>
+                                                    <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
+                                                        <?= e($json['vehiculo_marca']) ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($json['vehiculo_color'])): ?>
+                                                    <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
+                                                        Color: <?= e($json['vehiculo_color']) ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <?php foreach ($json as $k => $v): ?>
+                                                    <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded me-1">
+                                                        <strong><?= e(ucfirst($k)) ?>:</strong> <?= e($v) ?>
+                                                    </span>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
                                     <td class="py-3 px-2 text-center">
@@ -347,5 +463,34 @@ function togglePassword(inputId, btn) {
 function togglePasswordVisibility(inputId, iconId) {
     togglePassword(inputId, iconId);
 }
+function prefillVehiculoSolicitud(select) {
+    const esNuevo = !select.value || select.value === '0';
+    const accion = document.getElementById('vehiculo_solicitud_accion');
+    if (accion) accion.value = esNuevo ? 'crear' : 'actualizar';
+
+    const tipo = document.getElementById('vehiculo_solicitud_tipo');
+    const marca = document.getElementById('vehiculo_solicitud_marca');
+    const color = document.getElementById('vehiculo_solicitud_color');
+    if (!tipo || !marca || !color) return;
+
+    if (esNuevo) {
+        tipo.value = '';
+        marca.value = '';
+        color.value = '';
+        return;
+    }
+
+    const opcion = select.options[select.selectedIndex];
+    tipo.value = opcion.getAttribute('data-tipo') || '';
+    marca.value = opcion.getAttribute('data-marca') || '';
+    color.value = opcion.getAttribute('data-color') || '';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const selector = document.getElementById('vehiculo_solicitud_id');
+    if (selector && selector.value && selector.value !== '0') {
+        prefillVehiculoSolicitud(selector);
+    }
+});
 </script>
 

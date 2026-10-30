@@ -2,7 +2,10 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                     <div class="d-flex align-items-center gap-2">
                         <span class="material-symbols-outlined text-primary fs-4">manage_accounts</span>
-                        <h2 class="text-lg font-bold text-on-surface mb-0">Cambios de Datos de Residentes</h2>
+                        <div>
+                            <h2 class="text-lg font-bold text-on-surface mb-0">Cambios de Datos de Residentes</h2>
+                            <p class="text-xs text-on-surface-variant mb-0">Incluye datos personales y solicitudes de registro/actualización de vehículos.</p>
+                        </div>
                     </div>
                     <div class="flex flex-wrap gap-2" role="group" aria-label="Filtros de estado de cambios de datos">
                         <a href="/admin/usuarios?tab=cambios" class="<?= empty($estadoCambio) ? 'px-3 py-1.5 rounded-full border border-primary bg-primary text-white text-xs font-bold' : 'px-3 py-1.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors' ?>">
@@ -56,7 +59,9 @@
                                             'telefono'       => 'Teléfono',
                                             'email'          => 'Correo',
                                             'direccion'      => 'Dirección',
-                                            'vehiculo_placa' => 'Vehículo (placa)',
+                                            'vehiculo_tipo'  => 'Vehículo (tipo)',
+                                            'vehiculo_marca' => 'Vehículo (marca)',
+                                            'vehiculo_color' => 'Vehículo (color)',
                                         ];
                                         ?>
                                         <?php foreach ($solicitudesCambio as $s): ?>
@@ -85,6 +90,14 @@
                                                 <td class="py-4 px-4">
                                                     <?php if (empty($datosNuevos)): ?>
                                                         <span class="text-xs text-on-surface-variant fst-italic">Sin datos nuevos</span>
+                                                    <?php elseif (($datosNuevos['tipo_solicitud'] ?? '') === 'vehiculo'): ?>
+                                                        <?php $accionVehiculo = (($datosNuevos['accion_vehiculo'] ?? 'crear') === 'actualizar') ? 'Actualización de vehículo' : 'Registro de vehículo'; ?>
+                                                        <div class="mb-1">
+                                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><?= e($accionVehiculo) ?></span>
+                                                        </div>
+                                                        <div class="text-xs"><strong>Tipo:</strong> <?= e(etiquetaTipoVehiculo($datosNuevos['vehiculo_tipo'] ?? '')) ?></div>
+                                                        <div class="text-xs"><strong>Marca:</strong> <?= e($datosNuevos['vehiculo_marca'] ?? '—') ?></div>
+                                                        <div class="text-xs"><strong>Color:</strong> <?= e($datosNuevos['vehiculo_color'] ?? '') ?></div>
                                                     <?php else: ?>
                                                         <?php foreach ($datosNuevos as $campo => $valorSolicitado): ?>
                                                             <?php
@@ -188,7 +201,7 @@
             return true;
         }
         if (motivo.value.trim() === '') {
-            motivo.setCustomValidity('Debe indicar el motivo para rechazar la solicitud de cambio de datos.');
+            motivo.setCustomValidity('Debe indicar el motivo para rechazar la solicitud.');
             motivo.reportValidity();
             motivo.setCustomValidity('');
             return false;

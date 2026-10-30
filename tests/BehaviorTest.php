@@ -1165,7 +1165,7 @@ class BehaviorTest extends TestCase {
     public function testListarConDetallesHasLimit(): void {
         $content = file_get_contents(dirname(__DIR__) . '/app/Models/EstacionamientosModel.php');
         $this->assertStringContains('LIMIT 500', $content, 'listarConDetalles must have LIMIT 500');
-        $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles');
+        $this->assertMatchesRegex('/v2?\.deleted_at/', $content, 'Must filter soft-deleted vehicles');
     }
 
     // 3.8a — Cache invalidation on structure changes
@@ -1207,7 +1207,7 @@ class BehaviorTest extends TestCase {
     // 3.7b — listarConDetalles excludes soft-deleted vehicles
     public function testListarConDetallesExcludesSoftDeletedVehicles(): void {
         $content = file_get_contents(dirname(__DIR__) . '/app/Models/EstacionamientosModel.php');
-        $this->assertStringContains('v.deleted_at', $content, 'Must filter soft-deleted vehicles in listing');
+        $this->assertMatchesRegex('/v2?\.deleted_at/', $content, 'Must filter soft-deleted vehicles in listing');
     }
 
     // 3.8b — Cache invalidation uses file_exists check

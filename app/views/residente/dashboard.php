@@ -18,6 +18,10 @@
                 <span class="material-symbols-outlined text-[16px]">payments</span>
                 Gestionar Pagos
             </a>
+            <a href="/residente/manual" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1" title="Descargar Manual de Usuario (PDF)">
+                <span class="material-symbols-outlined text-[16px]">menu_book</span>
+                Manual de Usuario
+            </a>
             <a href="/logout" onclick="return confirmarCierreSesion(event, this.href);" class="bg-rose-600/80 hover:bg-rose-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center" title="Cerrar Sesión">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
             </a>
@@ -47,6 +51,23 @@
             </div>
             <span class="material-symbols-outlined text-4xl text-primary/20">savings</span>
         </div>
+    </div>
+
+    <!-- Recurso de Apoyo: Guía del Residente -->
+    <div class="bg-white rounded-2xl border border-outline-variant p-5 mb-8 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">menu_book</span>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-on-surface mb-0.5">Guía y Manual de Usuario del Residente</h4>
+                <p class="text-xs text-on-surface-variant mb-0">Descarga el manual oficial en PDF con las instrucciones paso a paso para reportar pagos, revisar comunicados y gestionar tu cuenta.</p>
+            </div>
+        </div>
+        <a href="/residente/manual" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-center">
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            Descargar Manual (PDF)
+        </a>
     </div>
 
     <!-- Sección: Comunicados -->

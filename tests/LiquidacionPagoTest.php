@@ -185,7 +185,7 @@ class LiquidacionPagoTest extends TestCase {
         $this->assertEquals(0.00, $res['saldo_a_favor_generado']);
         $this->assertEquals(1, count($res['facturas_afectadas']));
         $this->assertEquals(60.00, $res['facturas_afectadas'][0]['saldo_restante']);
-        $this->assertEquals('pendiente', $res['facturas_afectadas'][0]['estado']);
+        $this->assertEquals('vencida', $res['facturas_afectadas'][0]['estado']);
         $this->assertEquals(0, count($pdo->insertedAbonos), "No debe insertar factura ABONO-* en pago parcial");
     }
 

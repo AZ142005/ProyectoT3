@@ -115,7 +115,7 @@ class UsuarioAdminController extends Controller {
         }
 
         if ($accion === 'rechazar' && $motivo === '') {
-            Flash::error('Debe indicar el motivo para rechazar la solicitud de cambio de datos.');
+            Flash::error('Debe indicar el motivo para rechazar la solicitud.');
             $this->redirect('/admin/usuarios?tab=cambios');
             return;
         }
@@ -127,8 +127,8 @@ class UsuarioAdminController extends Controller {
             $solicitudesModel->procesarSolicitud($id, $estado, $motivo !== '' ? $motivo : null, intval(Auth::id()));
 
             Flash::success($accion === 'aprobar'
-                ? 'Solicitud de cambio de datos aprobada y aplicada correctamente.'
-                : 'Solicitud de cambio de datos rechazada correctamente.');
+                ? 'Solicitud aprobada y aplicada correctamente.'
+                : 'Solicitud rechazada correctamente.');
         } catch (\Throwable $e) {
             Flash::error('No se pudo procesar la solicitud: ' . $e->getMessage());
         }
@@ -493,18 +493,15 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        // Validación de Teléfono (obligatorio)
-        if (empty($telefono)) {
-            Flash::error('El número de teléfono es obligatorio.');
-            $this->redirect('/admin/usuarios');
-            return;
-        }
-
-        $telLimpio = preg_replace('/[^0-9]/', '', $telefono);
-        if (!validarTelefono($telLimpio)) {
-            Flash::error('El formato del teléfono no es válido (use una operadora venezolana válida: 0412, 0414, 0424, 0416 o 0426).');
-            $this->redirect('/admin/usuarios');
-            return;
+        // Validación de Teléfono (opcional; si se informa debe cumplir formato)
+        $telLimpio = null;
+        if ($telefono !== '') {
+            $telLimpio = preg_replace('/[^0-9]/', '', $telefono);
+            if (!validarTelefono($telLimpio)) {
+                Flash::error('El formato del teléfono no es válido (use una operadora venezolana válida: 0412, 0414, 0424, 0416 o 0426).');
+                $this->redirect('/admin/usuarios');
+                return;
+            }
         }
 
         // Validación de Correo (obligatorio y único)
@@ -527,11 +524,51 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        $nombre = trim(($persona['nombre'] ?? '') . ' ' . ($persona['apellido'] ?? ''));
-        $exito = $personasModel->actualizarContacto($id, $telLimpio, $email);
+        // Nombre, apellido y cédula (correcciones rápidas)
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido = trim($_POST['apellido'] ?? '');
+        $cedulaInput = trim($_POST['cedula'] ?? '');
+
+        if ($nombre === '') {
+            Flash::error('El nombre del residente es obligatorio.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+        if (mb_strlen($nombre) > 100 || mb_strlen($apellido) > 100) {
+            Flash::error('El nombre y el apellido no pueden superar los 100 caracteres.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+        if ($cedulaInput === '') {
+            Flash::error('La cédula del residente es obligatoria.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $cedulaNormalizada = normalizarCedula($cedulaInput);
+        $cedulaActual = normalizarCedula((string)($persona['cedula'] ?? ''));
+
+        if ($cedulaNormalizada !== $cedulaActual && !validarCedula($cedulaInput)) {
+            Flash::error('El formato de la cédula no es válido (debe tener entre 5 y 8 dígitos).');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        if ($personasModel->cedulaExistsNormalizada($cedulaInput, $id)) {
+            Flash::error('La cédula ya se encuentra registrada por otro residente.');
+            $this->redirect('/admin/usuarios');
+            return;
+        }
+
+        $cedulaFinal = ($cedulaNormalizada === $cedulaActual)
+            ? (string)($persona['cedula'] ?? '')
+            : $cedulaNormalizada;
+
+        $nombreCompleto = trim($nombre . ' ' . $apellido);
+        $exito = $personasModel->actualizarDatosPersona($id, $nombre, $apellido, $cedulaFinal, $telLimpio, $email);
 
         if ($exito) {
-            Flash::success("Datos de contacto actualizados correctamente para {$nombre}.");
+            Flash::success("Datos actualizados correctamente para {$nombreCompleto}.");
         } else {
             Flash::error('Ocurrió un error al actualizar los datos en la base de datos.');
         }

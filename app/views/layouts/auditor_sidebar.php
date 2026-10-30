@@ -32,7 +32,7 @@ $navItems = [
     <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         <?php foreach ($navItems as $item): ?>
             <a href="<?= e($item['url']) ?>" 
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 <?= ($activeRoute ?? '') === $item['route'] ? 'bg-primary text-white font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 <?= (($activeRoute ?? '') === $item['route'] || (($activeRoute ?? '') === 'comprobantes' && $item['route'] === 'pagos')) ? 'bg-primary text-white font-bold shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' ?>">
                 <span class="material-symbols-outlined text-[20px]"><?= e($item['icon']) ?></span>
                 <span class="truncate"><?= e($item['label']) ?></span>
             </a>

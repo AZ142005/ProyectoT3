@@ -33,7 +33,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="text-lg font-bold text-on-surface mb-1">Carta de Deuda</h4>
-            <p class="text-xs text-on-surface-variant mb-0">Listado de unidades con edificio, propietario, mora y deuda pendiente</p>
+            <p class="text-xs text-on-surface-variant mb-0">Listado de unidades con edificio, propietario, mora, deuda pendiente y saldo a favor</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <a href="/admin/reportes/morosidad/exportar-csv?<?= http_build_query($filtros) ?>" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5">
@@ -69,6 +69,9 @@
                 <div class="card-body py-3">
                     <div class="text-muted small fw-semibold text-uppercase">Unidades Solventes</div>
                     <div class="h3 mb-0 fw-bold text-success"><?= e($kpis['unidades_solventes'] ?? ($kpis['total_unidades'] - $kpis['unidades_morosas'])) ?> <small class="fs-6 text-muted">/ <?= e($kpis['total_unidades']) ?></small></div>
+                    <div class="small text-muted mt-1">
+                        <?= e($kpis['unidades_con_saldo_favor'] ?? 0) ?> con saldo a favor: <?= e(formatearMoneda($kpis['saldo_favor_total'] ?? 0)) ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,6 +93,17 @@
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Filtros</span>
             </div>
 
+            <!-- Búsqueda server-side en todos los departamentos -->
+            <div class="flex-1 sm:flex-initial min-w-[240px]">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
+                    <input type="text" name="buscar" id="buscar" value="<?= e($filtros['buscar'] ?? '') ?>" maxlength="100"
+                           placeholder="Buscar en todos los departamentos..."
+                           aria-label="Buscar por edificio, unidad o propietario en todos los departamentos"
+                           class="w-full pl-8 pr-3 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
+                </div>
+            </div>
+
             <!-- Edificio -->
             <div class="flex-1 sm:flex-initial min-w-[200px]">
                 <select name="edificio_id" id="edificio_id" aria-label="Filtrar por Edificio / Torre" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
@@ -99,6 +113,16 @@
                             <?= e($ed['nombre']) ?>
                         </option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Estado Financiero -->
+            <div class="flex-1 sm:flex-initial min-w-[180px]">
+                <select name="estado" id="estado" aria-label="Filtrar por Estado Financiero" class="w-full px-2.5 py-1.5 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary cursor-pointer text-xs">
+                    <option value="">Todos los Estados</option>
+                    <option value="solvente" <?= (($filtros['estado'] ?? '') === 'solvente') ? 'selected' : '' ?>>Solventes</option>
+                    <option value="saldo_favor" <?= (($filtros['estado'] ?? '') === 'saldo_favor') ? 'selected' : '' ?>>Con Saldo a Favor</option>
+                    <option value="deudor" <?= (($filtros['estado'] ?? '') === 'deudor') ? 'selected' : '' ?>>Con Deuda</option>
                 </select>
             </div>
 
@@ -143,40 +167,32 @@
                 <small class="text-xs text-on-surface-variant">Unidades con su edificio y propietario, ordenadas por mayor deuda pendiente</small>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= count($morosos) ?> Unidades</span>
+                <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= e($paginacion['total'] ?? count($morosos)) ?> Unidades</span>
                 <span class="bg-background text-primary text-xs font-bold px-3 py-1 rounded-full border border-outline-variant"><?= count($edificiosConsolidados) ?> Edificios</span>
             </div>
         </div>
 
-        <!-- Búsqueda rápida por edificio, unidad o propietario -->
-        <div class="p-3 border-bottom bg-light bg-opacity-50">
-            <div class="relative">
-                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[16px]">search</span>
-                <input type="text" id="buscadorBalance" placeholder="Búsqueda rápida por nombre de edificio, número de unidad o propietario..."
-                       onkeyup="filtrarBalance(this.value)"
-                       class="w-full pl-8 pr-3 py-2 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary text-xs">
-            </div>
-        </div>
 
         <div class="card-body p-0">
-            <div class="table-responsive max-h-[calc(100vh_-_33rem)] min-h-[16rem] overflow-y-auto">
+            <div class="table-responsive max-h-[calc(200vh_-_48rem)] min-h-[16rem] overflow-y-auto">
                 <table class="w-full text-left text-sm border-collapse" id="tablaBalanceUnidades">
                     <thead>
                         <tr class="text-xs uppercase text-on-surface-variant font-bold border-b border-background">
-                            <th class="py-3 px-4" style="width: 22%;">Edificio</th>
-                            <th class="py-3 px-4" style="width: 9%;">Unidad</th>
-                            <th class="py-3 px-4" style="width: 19%;">Propietario</th>
+                            <th class="py-3 px-4" style="width: 20%;">Edificio</th>
+                            <th class="py-3 px-4" style="width: 8%;">Unidad</th>
+                            <th class="py-3 px-4" style="width: 17%;">Propietario</th>
                             <th class="py-3 px-4 text-center" style="width: 10%;">Estado</th>
-                            <th class="py-3 px-4 text-center" style="width: 9%;">Facturas Vencidas</th>
-                            <th class="py-3 px-4 text-center" style="width: 12%;">Días de Mora</th>
+                            <th class="py-3 px-4 text-center" style="width: 8%;">Facturas Vencidas</th>
+                            <th class="py-3 px-4 text-center" style="width: 8%;">Días de Mora</th>
                             <th class="py-3 px-4 text-end" style="width: 10%;">Total Deuda (Bs)</th>
+                            <th class="py-3 px-4 text-end" style="width: 10%;">Saldo a Favor (Bs)</th>
                             <th class="py-3 px-4 text-center" style="width: 9%; min-width: 140px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-background">
                         <?php if (empty($morosos)): ?>
                             <tr>
-                                <td colspan="8" class="text-center py-12 text-on-surface-variant">
+                                <td colspan="9" class="text-center py-12 text-on-surface-variant">
                                     <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">search_off</span>
                                     No se encontraron unidades para los filtros seleccionados.
                                 </td>
@@ -184,6 +200,7 @@
                         <?php else: ?>
                             <?php foreach ($morosos as $u): ?>
                                 <?php $esSolvente = ($u['estado_financiero'] ?? 'solvente') === 'solvente'; ?>
+                                <?php $saldoFavor = (float)($u['saldo_favor'] ?? 0); ?>
                                 <tr class="fila-unidad hover:bg-background/40 transition-colors <?= $esSolvente ? 'bg-white' : 'bg-red-50' ?>"
                                     data-busqueda="<?= e(strtolower($u['edificio_nombre'] . ' ' . $u['unidad_numero'] . ' ' . ($u['propietario_nombre'] ?? '') . ' ' . ($u['propietario_cedula'] ?? ''))) ?>">
                                     <td class="py-4 px-4">
@@ -210,7 +227,12 @@
                                         </small>
                                     </td>
                                     <td class="py-4 px-4 text-center">
-                                        <?php if ($esSolvente): ?>
+                                        <?php if ($saldoFavor > 0): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                                <span class="material-symbols-outlined fs-6">savings</span>
+                                                Saldo a Favor
+                                            </span>
+                                        <?php elseif ($esSolvente): ?>
                                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
                                                 <span class="material-symbols-outlined fs-6">check_circle</span>
                                                 Solvente
@@ -253,6 +275,9 @@
                                     <td class="text-end py-4 px-4 font-mono text-xs font-bold <?= $esSolvente ? 'text-muted' : 'text-danger' ?>">
                                         <?= e(formatearMoneda($u['total_deuda'])) ?>
                                     </td>
+                                    <td class="text-end py-4 px-4 font-mono text-xs font-bold <?= $saldoFavor > 0 ? 'text-success' : 'text-muted' ?>">
+                                        <?= $saldoFavor > 0 ? e(formatearMoneda($saldoFavor)) : '—' ?>
+                                    </td>
                                     <td class="py-4 px-4 text-center">
                                         <?php if (!$esSolvente): ?>
                                             <a href="/admin/reportes/carta-deuda/<?= e($u['unidad_id']) ?>" class="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-500 text-amber-950 border border-amber-500/50 shadow-sm px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap" title="Ver Carta Oficial de Deuda">
@@ -272,12 +297,37 @@
                 </table>
             </div>
 
-            <!-- Fila informativa para resultados de búsqueda en vivo vacíos -->
-            <div id="sinResultadosBalance" class="text-center py-12 text-on-surface-variant d-none">
-                <span class="material-symbols-outlined text-5xl text-on-surface-variant/30 d-block mb-2">search_off</span>
-                No se encontraron unidades que coincidan con la búsqueda.
-            </div>
         </div>
+
+        <?php if (($paginacion['totalPaginas'] ?? 1) > 1): ?>
+        <?php $filtrosQuery = array_filter($filtros ?? [], static fn($valor) => $valor !== '' && $valor !== null); ?>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-2 border-top">
+            <small class="text-muted">
+                Mostrando <?= e($paginacion['desde']) ?>–<?= e($paginacion['hasta']) ?> de <?= e($paginacion['total']) ?> unidades
+            </small>
+            <nav aria-label="Paginación de unidades">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?= ($paginacion['pagina'] <= 1) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= e(http_build_query(array_merge($filtrosQuery, ['page' => 1]))) ?>" title="Primera página" aria-label="Primera página">&laquo; Primero</a>
+                    </li>
+                    <li class="page-item <?= ($paginacion['pagina'] <= 1) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= e(http_build_query(array_merge($filtrosQuery, ['page' => max(1, $paginacion['pagina'] - 1)]))) ?>">Anterior</a>
+                    </li>
+                    <?php for ($p = max(1, $paginacion['pagina'] - 2); $p <= min($paginacion['totalPaginas'], $paginacion['pagina'] + 2); $p++): ?>
+                        <li class="page-item <?= ($p === (int)$paginacion['pagina']) ? 'active' : '' ?>">
+                            <a class="page-link" href="?<?= e(http_build_query(array_merge($filtrosQuery, ['page' => $p]))) ?>"><?= e($p) ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= ($paginacion['pagina'] >= $paginacion['totalPaginas']) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= e(http_build_query(array_merge($filtrosQuery, ['page' => min($paginacion['totalPaginas'], $paginacion['pagina'] + 1)]))) ?>">Siguiente</a>
+                    </li>
+                    <li class="page-item <?= ($paginacion['pagina'] >= $paginacion['totalPaginas']) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?<?= e(http_build_query(array_merge($filtrosQuery, ['page' => $paginacion['totalPaginas']]))) ?>" title="Última página" aria-label="Última página">Último &raquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -286,30 +336,3 @@
     </div>
 </div>
 
-<script>
-// Búsqueda en vivo client-side sobre la lista plana de unidades
-function filtrarBalance(query) {
-    const q = (query || '').toLowerCase().trim();
-    const rows = document.querySelectorAll('#tablaBalanceUnidades tbody tr.fila-unidad');
-    let visibles = 0;
-
-    rows.forEach(row => {
-        const texto = (row.dataset.busqueda || '').toLowerCase();
-        if (!q || texto.includes(q)) {
-            row.style.display = '';
-            visibles++;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    const sinResultados = document.getElementById('sinResultadosBalance');
-    if (sinResultados) {
-        if (visibles === 0 && rows.length > 0) {
-            sinResultados.classList.remove('d-none');
-        } else {
-            sinResultados.classList.add('d-none');
-        }
-    }
-}
-</script>

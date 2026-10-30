@@ -59,7 +59,7 @@ class ReportesModel extends BaseModel {
                     MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
                     DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
                 FROM facturas f
-                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                WHERE f.saldo > 0 AND f.fecha_vencimiento <= CURDATE() AND f.deleted_at IS NULL
                 GROUP BY f.unidad_id
             ) m ON m.unidad_id = u.id
             {$where}
@@ -74,7 +74,7 @@ class ReportesModel extends BaseModel {
                     ROUND(SUM(f.saldo), 2) AS total_deuda,
                     DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
                 FROM facturas f
-                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                WHERE f.saldo > 0 AND f.fecha_vencimiento <= CURDATE() AND f.deleted_at IS NULL
                 GROUP BY f.unidad_id
             ) m ON m.unidad_id = u.id
             {$where}
@@ -84,19 +84,56 @@ class ReportesModel extends BaseModel {
     }
 
     /**
+     * Agrega el filtro de búsqueda por edificio, unidad o propietario al balance.
+     *
+     * @return array{0:string,1:array}
+     */
+    private function aplicarBusquedaBalance(string $where, array $params, array $filtros): array {
+        $buscar = trim((string)($filtros['buscar'] ?? ''));
+        if ($buscar === '') {
+            return [$where, $params];
+        }
+
+        $buscar = mb_substr($buscar, 0, 100, 'UTF-8');
+        $like = '%' . $buscar . '%';
+
+        $where .= " AND (
+            u.numero LIKE :buscar_unidad
+            OR e.nombre LIKE :buscar_edificio
+            OR CONCAT(COALESCE(p.nombre, ''), ' ', COALESCE(p.apellido, '')) LIKE :buscar_propietario
+            OR COALESCE(p.cedula, '') LIKE :buscar_cedula
+        )";
+        $params['buscar_unidad'] = $like;
+        $params['buscar_edificio'] = $like;
+        $params['buscar_propietario'] = $like;
+        $params['buscar_cedula'] = $like;
+
+        return [$where, $params];
+    }
+
+    /**
      * Obtiene el reporte de balance general consolidado agrupado por edificio,
      * totalizando los montos financieros y agrupando las unidades de cada torre.
      *
-     * @param array $filtros Filtros opcionales: 'edificio_id', 'dias_mora'
+     * @param array $filtros Filtros opcionales: 'edificio_id', 'dias_mora', 'estado', 'buscar'
      * @return array Lista consolidada de edificios con sus unidades y balance
      */
     public function obtenerReporteBalanceAgrupadoPorEdificio(array $filtros = []): array {
         $where = "WHERE u.estado = 1";
         $params = [];
+        $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
 
         if (!empty($filtros['edificio_id'])) {
             $where .= " AND u.edificio_id = :edificio_id";
             $params['edificio_id'] = intval($filtros['edificio_id']);
+        }
+
+        if ($estadoFiltro === 'solvente') {
+            $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'saldo_favor') {
+            $where .= " AND COALESCE(sf.saldo_favor, 0) > 0";
+        } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
+            $where .= " AND m.total_deuda > 0";
         }
 
         if (!empty($filtros['dias_mora'])) {
@@ -104,6 +141,8 @@ class ReportesModel extends BaseModel {
             $where .= " AND m.dias_mora_max >= :dias";
             $params['dias'] = $dias;
         }
+
+        [$where, $params] = $this->aplicarBusquedaBalance($where, $params, $filtros);
 
         $sql = "
             SELECT 
@@ -118,6 +157,7 @@ class ReportesModel extends BaseModel {
                 COALESCE(p.email, 'N/A') AS propietario_email,
                 COALESCE(m.facturas_vencidas, 0) AS facturas_vencidas,
                 COALESCE(m.total_deuda, 0.00) AS total_deuda,
+                COALESCE(sf.saldo_favor, 0.00) AS saldo_favor,
                 COALESCE(m.dias_mora_max, 0) AS dias_mora_max,
                 CASE 
                     WHEN COALESCE(m.total_deuda, 0.00) > 0 THEN 'deudor'
@@ -134,9 +174,17 @@ class ReportesModel extends BaseModel {
                     MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
                     DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
                 FROM facturas f
-                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                WHERE f.saldo > 0 AND f.fecha_vencimiento <= CURDATE() AND f.deleted_at IS NULL
                 GROUP BY f.unidad_id
             ) m ON m.unidad_id = u.id
+            LEFT JOIN (
+                SELECT
+                    f.unidad_id,
+                    ROUND(SUM(CASE WHEN f.saldo < 0 THEN -f.saldo ELSE 0 END), 2) AS saldo_favor
+                FROM facturas f
+                WHERE f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) sf ON sf.unidad_id = u.id
             {$where}
             ORDER BY e.nombre ASC, total_deuda DESC, u.numero ASC
         ";
@@ -162,6 +210,7 @@ class ReportesModel extends BaseModel {
                 'unidades_solventes'   => 0,
                 'unidades_deudoras'    => 0,
                 'balance_total'        => 0.00,
+                'saldo_favor_total'    => 0.00,
                 'dias_mora_max'        => 0,
                 'unidades'             => []
             ];
@@ -178,6 +227,7 @@ class ReportesModel extends BaseModel {
                     'unidades_solventes'   => 0,
                     'unidades_deudoras'    => 0,
                     'balance_total'        => 0.00,
+                    'saldo_favor_total'    => 0.00,
                     'dias_mora_max'        => 0,
                     'unidades'             => []
                 ];
@@ -191,13 +241,15 @@ class ReportesModel extends BaseModel {
                 $edificiosMap[$eid]['unidades_deudoras']++;
             }
             $edificiosMap[$eid]['balance_total'] += (float)$u['total_deuda'];
+            $edificiosMap[$eid]['saldo_favor_total'] += (float)$u['saldo_favor'];
             if ((int)$u['dias_mora_max'] > $edificiosMap[$eid]['dias_mora_max']) {
                 $edificiosMap[$eid]['dias_mora_max'] = (int)$u['dias_mora_max'];
             }
             $edificiosMap[$eid]['unidades'][] = $u;
         }
 
-        $filtroEspecifico = !empty($filtros['dias_mora']);
+        $filtroEspecifico = !empty($filtros['dias_mora'])
+            || in_array($estadoFiltro, ['solvente', 'deudor', 'moroso', 'saldo_favor'], true);
         $resultado = [];
         foreach ($edificiosMap as $eid => $ed) {
             if ($filtroEspecifico && $ed['total_unidades'] === 0) {
@@ -232,6 +284,8 @@ class ReportesModel extends BaseModel {
         $estadoFiltro = strtolower(trim($filtros['estado'] ?? ''));
         if ($estadoFiltro === 'solvente') {
             $where .= " AND (m.total_deuda IS NULL OR m.total_deuda = 0)";
+        } elseif ($estadoFiltro === 'saldo_favor') {
+            $where .= " AND COALESCE(sf.saldo_favor, 0) > 0";
         } elseif ($estadoFiltro === 'deudor' || $estadoFiltro === 'moroso') {
             $where .= " AND m.total_deuda > 0";
         }
@@ -241,6 +295,12 @@ class ReportesModel extends BaseModel {
             $where .= " AND m.dias_mora_max >= :dias";
             $params['dias'] = $dias;
         }
+
+        [$where, $params] = $this->aplicarBusquedaBalance($where, $params, $filtros);
+
+        $orden = ($estadoFiltro === 'saldo_favor')
+            ? 'saldo_favor DESC, u.numero ASC'
+            : 'total_deuda DESC, u.numero ASC';
 
         $sql = "
             SELECT 
@@ -252,6 +312,7 @@ class ReportesModel extends BaseModel {
                 COALESCE(p.email, 'N/A') AS propietario_email,
                 COALESCE(m.facturas_vencidas, 0) AS facturas_vencidas,
                 COALESCE(m.total_deuda, 0.00) AS total_deuda,
+                COALESCE(sf.saldo_favor, 0.00) AS saldo_favor,
                 COALESCE(m.dias_mora_max, 0) AS dias_mora_max,
                 CASE 
                     WHEN COALESCE(m.total_deuda, 0.00) > 0 THEN 'deudor'
@@ -268,11 +329,19 @@ class ReportesModel extends BaseModel {
                     MIN(f.fecha_vencimiento) AS fecha_mas_antigua,
                     DATEDIFF(CURDATE(), MIN(f.fecha_vencimiento)) AS dias_mora_max
                 FROM facturas f
-                WHERE f.saldo > 0 AND f.fecha_vencimiento < CURDATE() AND f.deleted_at IS NULL
+                WHERE f.saldo > 0 AND f.fecha_vencimiento <= CURDATE() AND f.deleted_at IS NULL
                 GROUP BY f.unidad_id
             ) m ON m.unidad_id = u.id
+            LEFT JOIN (
+                SELECT
+                    f.unidad_id,
+                    ROUND(SUM(CASE WHEN f.saldo < 0 THEN -f.saldo ELSE 0 END), 2) AS saldo_favor
+                FROM facturas f
+                WHERE f.deleted_at IS NULL
+                GROUP BY f.unidad_id
+            ) sf ON sf.unidad_id = u.id
             {$where}
-            ORDER BY total_deuda DESC, u.numero ASC
+            ORDER BY {$orden}
             LIMIT {$limiteMax}
         ";
 
@@ -302,10 +371,10 @@ class ReportesModel extends BaseModel {
 
         $db = $this->db();
         
-        $stmtDeuda = $db->query("SELECT COALESCE(ROUND(SUM(saldo), 2), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
+        $stmtDeuda = $db->query("SELECT COALESCE(ROUND(SUM(saldo), 2), 0) AS total_deuda FROM facturas WHERE saldo > 0 AND fecha_vencimiento <= CURDATE() AND deleted_at IS NULL");
         $totalDeuda = floatval($stmtDeuda->fetch(PDO::FETCH_ASSOC)['total_deuda'] ?? 0);
 
-        $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL");
+        $stmtUnidades = $db->query("SELECT COUNT(DISTINCT unidad_id) AS unidades_morosas FROM facturas WHERE saldo > 0 AND fecha_vencimiento <= CURDATE() AND deleted_at IS NULL");
         $unidadesMorosas = intval($stmtUnidades->fetch(PDO::FETCH_ASSOC)['unidades_morosas'] ?? 0);
 
         $stmtTotalUnidades = $db->query("SELECT COUNT(*) AS total FROM unidades WHERE estado = 1");
@@ -315,13 +384,21 @@ class ReportesModel extends BaseModel {
         $tasaMorosidad = ($totalUnidades > 0) ? round(($unidadesMorosas / $totalUnidades) * 100, 1) : 0.0;
         $tasaSolvencia = ($totalUnidades > 0) ? round(($unidadesSolventes / $totalUnidades) * 100, 1) : 0.0;
 
+        $stmtFavor = $db->query("SELECT COALESCE(ROUND(SUM(CASE WHEN saldo < 0 THEN -saldo ELSE 0 END), 2), 0) AS total FROM facturas WHERE deleted_at IS NULL");
+        $saldoFavorTotal = floatval($stmtFavor->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $stmtUnidadesFavor = $db->query("SELECT COUNT(DISTINCT unidad_id) AS total FROM facturas WHERE saldo < 0 AND deleted_at IS NULL");
+        $unidadesConSaldoFavor = intval($stmtUnidadesFavor->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
         $kpis = [
-            'total_deuda'        => $totalDeuda,
-            'unidades_morosas'   => $unidadesMorosas,
-            'unidades_solventes' => $unidadesSolventes,
-            'total_unidades'     => $totalUnidades,
-            'tasa_morosidad'     => $tasaMorosidad,
-            'tasa_solvencia'     => $tasaSolvencia
+            'total_deuda'              => $totalDeuda,
+            'unidades_morosas'         => $unidadesMorosas,
+            'unidades_solventes'       => $unidadesSolventes,
+            'total_unidades'           => $totalUnidades,
+            'tasa_morosidad'           => $tasaMorosidad,
+            'tasa_solvencia'           => $tasaSolvencia,
+            'saldo_favor_total'        => $saldoFavorTotal,
+            'unidades_con_saldo_favor' => $unidadesConSaldoFavor
         ];
 
         // Atomic write: temp file → rename prevents race condition
@@ -482,7 +559,8 @@ class ReportesModel extends BaseModel {
             'Estado Financiero',
             'Facturas Vencidas',
             'Días de Mora Máx.',
-            'Total Deuda (Bs)'
+            'Total Deuda (Bs)',
+            'Saldo a Favor (Bs)'
         ], ';');
 
         foreach ($datos as $row) {
@@ -497,7 +575,8 @@ class ReportesModel extends BaseModel {
                 ($row['estado_financiero'] === 'deudor' ? 'Con Deuda' : 'Solvente'),
                 $row['facturas_vencidas'],
                 $row['dias_mora_max'],
-                number_format(floatval($row['total_deuda']), 2, '.', '')
+                number_format(floatval($row['total_deuda']), 2, '.', ''),
+                number_format(floatval($row['saldo_favor'] ?? 0), 2, '.', '')
             ], ';');
         }
 
@@ -538,7 +617,7 @@ class ReportesModel extends BaseModel {
         $sqlFacturas = "
             SELECT id, numero_factura, mes, anio, fecha_vencimiento, monto_total, saldo, DATEDIFF(CURDATE(), fecha_vencimiento) AS dias_mora
             FROM facturas
-            WHERE unidad_id = :unidad_id AND saldo > 0 AND fecha_vencimiento < CURDATE() AND deleted_at IS NULL
+            WHERE unidad_id = :unidad_id AND saldo > 0 AND fecha_vencimiento <= CURDATE() AND deleted_at IS NULL
             ORDER BY fecha_vencimiento ASC
         ";
 
