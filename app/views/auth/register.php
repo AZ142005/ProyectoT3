@@ -136,7 +136,7 @@
                             <?php if (!empty($apartamentosDisponibles)): ?>
                                 <?php foreach ($apartamentosDisponibles as $apto): ?>
                                     <option value="<?= e($apto['id']) ?>" <?= ((int)($_POST['unidad_id'] ?? 0) === (int)$apto['id']) ? 'selected' : '' ?>>
-                                        <?= e($apto['edificio_nombre']) ?> — Apto. <?= e($apto['numero']) ?><?= !empty($apto['cuota_mensual']) ? ' · Cuota: ' . e(formatearMoneda($apto['cuota_mensual'])) : '' ?>
+                                        <?= e($apto['edificio_nombre']) ?> — Apto. <?= e($apto['numero']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             <?php else: ?>
