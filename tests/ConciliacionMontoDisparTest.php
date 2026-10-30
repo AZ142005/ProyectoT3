@@ -224,7 +224,7 @@ class ConciliacionMontoDisparTest extends TestCase {
 
             preg_match_all('/<tr[^>]*data-categoria="([^"]+)"[^>]*>(.*?)<\/tr>/s', $html, $filas, PREG_SET_ORDER);
 
-            $atributoPago = 'name="pago_id" value="' . $pagoId . '"';
+            $atributoPago = 'data-pago-id="' . $pagoId . '"';
             $enInconsistencia = 0;
             $enSinExtracto = 0;
             foreach ($filas as $filaHtml) {

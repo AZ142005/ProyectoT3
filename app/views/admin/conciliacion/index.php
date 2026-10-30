@@ -270,7 +270,7 @@
                                             $detalle    = $extracto !== null ? ['extracto' => $proyectarExtractoDetalle($extracto)] : [];
                                         }
                                         ?>
-                                        <tr class="hover:bg-background/40 transition-colors" data-categoria="<?= e($fila['categoria']) ?>">
+                                        <tr class="hover:bg-background/40 transition-colors" data-categoria="<?= e($fila['categoria']) ?>" <?= $pago !== null ? 'data-pago-id="' . (int)$pago['id'] . '"' : '' ?>>
                                             <td class="py-2.5 px-4 font-semibold text-on-surface">
                                                 <?= e($residente) ?>
                                             </td>
@@ -296,23 +296,18 @@
                                                 <?= !empty($fila['fecha']) ? e(date('d/m/Y', strtotime($fila['fecha']))) : '—' ?>
                                             </td>
                                             <td class="py-2.5 px-4 text-end">
-                                                <div class="flex items-center justify-end gap-1.5">
+                                                <div class="flex items-center justify-end gap-1.5" <?= $pago !== null ? 'data-pago-id="' . (int)$pago['id'] . '"' : '' ?>>
                                                     <?php if ($pago !== null && $extracto !== null): ?>
-                                                        <form method="POST" action="/admin/conciliacion/conciliar" class="inline-flex" onsubmit="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="extracto_id" value="<?= (int)$extracto['id'] ?>">
-                                                            <input type="hidden" name="pago_id" value="<?= (int)$pago['id'] ?>">
-                                                            <input type="hidden" name="origen_tipo" value="<?= e($pago['origen_tabla'] ?? 'pago') ?>">
-                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Conciliar pago">Conciliar</button>
-                                                        </form>
+                                                        <button type="button" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Conciliar pago"
+                                                                onclick="abrirModalAprobarPago('conciliar', <?= (int)$extracto['id'] ?>, <?= (int)$pago['id'] ?>, <?= e(json_encode($pago['origen_tabla'] ?? 'pago')) ?>, <?= e(json_encode($pago['residente_nombre'] ?? 'Residente', JSON_UNESCAPED_UNICODE)) ?>, <?= e(json_encode($pago['referencia'] ?? 'S/R', JSON_UNESCAPED_UNICODE)) ?>)">
+                                                            Conciliar
+                                                        </button>
                                                         <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Rechazar pago" onclick="abrirModalRechazo(<?= (int)$pago['id'] ?>, '<?= e($pago['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($pago['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($pago['referencia'] ?? 'S/R')) ?>')">Rechazar</button>
                                                     <?php elseif ($pago !== null): ?>
-                                                        <form method="POST" action="/admin/conciliacion/verificar" class="inline-flex" onsubmit="return confirm('¿Confirma la verificación y aprobación de este pago?');">
-                                                            <?= csrf_field() ?>
-                                                            <input type="hidden" name="pago_id" value="<?= (int)$pago['id'] ?>">
-                                                            <input type="hidden" name="origen_tipo" value="<?= e($pago['origen_tabla'] ?? 'pago') ?>">
-                                                            <button type="submit" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Verificar pago">Verificar</button>
-                                                        </form>
+                                                        <button type="button" class="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Verificar pago"
+                                                                onclick="abrirModalAprobarPago('verificar', 0, <?= (int)$pago['id'] ?>, <?= e(json_encode($pago['origen_tabla'] ?? 'pago')) ?>, <?= e(json_encode($pago['residente_nombre'] ?? 'Residente', JSON_UNESCAPED_UNICODE)) ?>, <?= e(json_encode($pago['referencia'] ?? 'S/R', JSON_UNESCAPED_UNICODE)) ?>)">
+                                                            Verificar
+                                                        </button>
                                                         <button type="button" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors" title="Rechazar pago" onclick="abrirModalRechazo(<?= (int)$pago['id'] ?>, '<?= e($pago['origen_tabla'] ?? 'pago') ?>', '<?= e(addslashes($pago['residente_nombre'] ?? 'Residente')) ?>', '<?= e(addslashes($pago['referencia'] ?? 'S/R')) ?>')">Rechazar</button>
                                                     <?php endif; ?>
                                                     <button type="button"
@@ -532,8 +527,8 @@
                         <input type="hidden" name="extracto_id" id="mdlInputExtractoId" value="">
                         <input type="hidden" name="pago_id" id="mdlInputPagoId" value="">
                         <input type="hidden" name="origen_tipo" id="mdlInputOrigenTipo" value="pago">
-                        <button type="submit" id="mdlBtnConfirmarConciliacion" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5 shadow-sm"
-                                onclick="return confirm('¿Confirma la conciliación y aprobación de este pago?');">
+                        <button type="button" id="mdlBtnConfirmarConciliacion" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5 shadow-sm"
+                                onclick="abrirModalAprobarPagoDesdeDetalle()">
                             <span class="material-symbols-outlined text-[16px]">check</span>
                             <span>Aprobar y Conciliar</span>
                         </button>
@@ -671,7 +666,120 @@
     <input type="hidden" name="items_json" id="itemsJsonInput" value="">
 </form>
 
+<!-- Modal para Confirmar Aprobación de Pago -->
+<div class="modal fade" id="modalAprobarPagoConciliacion" tabindex="-1" aria-labelledby="modalAprobarPagoConciliacionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
+            <form id="formAprobarPagoConciliacion" method="POST" action="/admin/conciliacion/conciliar">
+                <?= csrf_field() ?>
+                <input type="hidden" name="extracto_id" id="aprobarPagoExtractoId" value="">
+                <input type="hidden" name="pago_id" id="aprobarPagoPagoId" value="">
+                <input type="hidden" name="origen_tipo" id="aprobarPagoOrigenTipo" value="pago">
+
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalAprobarPagoConciliacionLabel">
+                        <span class="material-symbols-outlined">verified</span>
+                        <span id="aprobarPagoTitulo">Aprobar Pago</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-on-surface-variant small mb-3">
+                        ¿Confirmas la <strong id="aprobarPagoAccion">conciliación y aprobación</strong> de este pago?
+                    </p>
+                    <p id="aprobarPagoResumen" class="text-xs text-on-surface-variant mb-3"></p>
+                    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-xs">
+                        <span class="material-symbols-outlined text-[18px] align-middle me-1">check_circle</span>
+                        El pago quedará aprobado y se actualizará el estado de cuenta.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                        <span>Confirmar Aprobación</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Confirmar Conciliación Masiva de Coincidencias Exactas -->
+<div class="modal fade" id="modalAprobarLoteExactas" tabindex="-1" aria-labelledby="modalAprobarLoteExactasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 border-0 shadow-lg">
+            <div class="modal-header bg-success text-white py-3">
+                <h5 class="modal-title fw-bold flex-fill d-flex align-items-center gap-2" id="modalAprobarLoteExactasLabel">
+                    <span class="material-symbols-outlined">done_all</span>
+                    Conciliar Pagos Exactos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-on-surface-variant small mb-3">
+                    ¿Deseas conciliar y aprobar automáticamente <strong id="aprobarLoteCantidad">0</strong> pagos con coincidencia exacta?
+                </p>
+                <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-xs">
+                    <span class="material-symbols-outlined text-[18px] align-middle me-1">check_circle</span>
+                    Se procesarán todos los pagos listados en la bandeja de coincidencias exactas.
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all inline-flex items-center gap-1.5" onclick="confirmarLoteExactas()">
+                    <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                    <span>Confirmar Conciliación</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    function abrirModalAprobarPago(accion, extractoId, pagoId, origenTipo, residente, referencia) {
+        const esConciliar = accion === 'conciliar';
+        const form = document.getElementById('formAprobarPagoConciliacion');
+
+        form.action = esConciliar
+            ? '/admin/conciliacion/conciliar'
+            : '/admin/conciliacion/verificar';
+        document.getElementById('aprobarPagoExtractoId').value = extractoId || '0';
+        document.getElementById('aprobarPagoPagoId').value = pagoId || '0';
+        document.getElementById('aprobarPagoOrigenTipo').value = origenTipo || 'pago';
+        document.getElementById('aprobarPagoTitulo').textContent = esConciliar
+            ? 'Conciliar y Aprobar Pago'
+            : 'Verificar y Aprobar Pago';
+        document.getElementById('aprobarPagoAccion').textContent = esConciliar
+            ? 'conciliación y aprobación'
+            : 'verificación y aprobación';
+
+        const resumen = [];
+        if (residente) resumen.push('Residente: ' + residente);
+        if (referencia) resumen.push('Referencia: ' + referencia);
+        document.getElementById('aprobarPagoResumen').textContent = resumen.join(' · ');
+
+        new bootstrap.Modal(document.getElementById('modalAprobarPagoConciliacion')).show();
+    }
+
+    function abrirModalAprobarPagoDesdeDetalle() {
+        const form = document.getElementById('mdlFormConciliar');
+        if (!form) return;
+
+        const accion = form.action.includes('/verificar') ? 'verificar' : 'conciliar';
+        const detalle = bootstrap.Modal.getInstance(document.getElementById('modalDetallePago'));
+        if (detalle) detalle.hide();
+
+        abrirModalAprobarPago(
+            accion,
+            document.getElementById('mdlInputExtractoId') ? document.getElementById('mdlInputExtractoId').value : '0',
+            document.getElementById('mdlInputPagoId') ? document.getElementById('mdlInputPagoId').value : '0',
+            document.getElementById('mdlInputOrigenTipo') ? document.getElementById('mdlInputOrigenTipo').value : 'pago',
+            document.getElementById('mdlResidente') ? document.getElementById('mdlResidente').textContent : '',
+            document.getElementById('mdlPagoRef') ? document.getElementById('mdlPagoRef').textContent : ''
+        );
+    }
+
     function conciliarLoteExactas() {
         const items = <?= json_encode(array_map(fn($m) => [
             'extracto_id' => $m['extracto']['id'],
@@ -680,9 +788,13 @@
         ], $resultadoCruce['coincidencias_exactas'])) ?>;
 
         if (items.length === 0) return;
-        if (!confirm('¿Desea conciliar y aprobar automáticamente ' + items.length + ' pagos con coincidencia exacta?')) return;
 
         document.getElementById('itemsJsonInput').value = JSON.stringify(items);
+        document.getElementById('aprobarLoteCantidad').textContent = items.length;
+        new bootstrap.Modal(document.getElementById('modalAprobarLoteExactas')).show();
+    }
+
+    function confirmarLoteExactas() {
         document.getElementById('formLoteExactas').submit();
     }
 

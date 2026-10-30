@@ -72,15 +72,28 @@ class ConciliacionSimplificadaTest extends TestCase {
 
         $this->assertFalse(str_contains($tabla, 'table-sm'),
             "La tabla de la bandeja no debe usar clases Bootstrap de tabla (table-sm)");
-        $this->assertStringContains('action="/admin/conciliacion/conciliar"', $tabla,
-            "Las filas con pago y extracto deben ofrecer la conciliación directa");
-        $this->assertStringContains('action="/admin/conciliacion/verificar"', $tabla,
-            "Las filas de pago sin extracto deben ofrecer la verificación directa");
+        $this->assertStringContains("abrirModalAprobarPago('conciliar'", $tabla,
+            "Las filas con pago y extracto deben abrir el modal de conciliación");
+        $this->assertStringContains("abrirModalAprobarPago('verificar'", $tabla,
+            "Las filas de pago sin extracto deben abrir el modal de verificación");
 
-        foreach (['>Conciliar<', '>Verificar<', '>Rechazar<'] as $botonDirecto) {
+        foreach (['Conciliar', 'Verificar', 'Rechazar'] as $botonDirecto) {
             $this->assertStringContains($botonDirecto, $tabla,
                 "La tabla debe incluir el botón directo {$botonDirecto}");
         }
+
+        $this->assertStringContains('modalAprobarPagoConciliacion', $content,
+            "La vista debe incluir el modal de aprobación de pagos");
+        $this->assertStringContains('modalAprobarLoteExactas', $content,
+            "La vista debe incluir el modal de aprobación masiva");
+        $this->assertStringContains('modal-dialog-centered', $content,
+            "Los modales de aprobación deben estar centrados");
+        $this->assertStringContains("'/admin/conciliacion/verificar'", $content,
+            "El modal debe cambiar dinámicamente a la acción de verificación");
+        $this->assertFalse(str_contains($content, "confirm('¿Confirma la conciliación"),
+            "La aprobación no debe usar confirm() nativo");
+        $this->assertFalse(str_contains($content, "confirm('¿Desea conciliar"),
+            "La aprobación masiva no debe usar confirm() nativo");
     }
 
     public function testVistaEliminaColumnaLoteCondicional(): void {

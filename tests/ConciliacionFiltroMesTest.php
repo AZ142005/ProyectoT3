@@ -163,8 +163,8 @@ class ConciliacionFiltroMesTest extends TestCase {
 
             preg_match_all('/<tr[^>]*data-categoria="([^"]+)"[^>]*>(.*?)<\/tr>/s', $html, $filas, PREG_SET_ORDER);
 
-            $atributoActual   = 'name="pago_id" value="' . $idActual . '"';
-            $atributoAnterior = 'name="pago_id" value="' . $idAnterior . '"';
+            $atributoActual   = 'data-pago-id="' . $idActual . '"';
+            $atributoAnterior = 'data-pago-id="' . $idAnterior . '"';
 
             $enSinExtracto = 0;
             $apareceAnterior = false;
