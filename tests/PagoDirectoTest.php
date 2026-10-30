@@ -24,7 +24,7 @@ class PagoDirectoTest extends TestCase {
     public function testControladorMetodosYVistasExisten(): void {
         $this->assertTrue(class_exists(PagoDirectoController::class), "PagoDirectoController debe existir");
 
-        foreach (['index', 'deuda', 'reportar', 'exito'] as $metodo) {
+        foreach (['index', 'unidades', 'deuda', 'reportar', 'exito'] as $metodo) {
             $this->assertTrue(
                 method_exists(PagoDirectoController::class, $metodo),
                 "PagoDirectoController debe tener el método público {$metodo}()"
@@ -40,6 +40,7 @@ class PagoDirectoTest extends TestCase {
         $content = file_get_contents(dirname(__DIR__) . '/public/index.php');
 
         $this->assertStringContains("'/pago-directo'", $content, 'Debe registrarse la ruta GET /pago-directo');
+        $this->assertStringContains("'/pago-directo/unidades'", $content, 'Debe registrarse la ruta GET /pago-directo/unidades');
         $this->assertStringContains("'/pago-directo/deuda'", $content, 'Debe registrarse la ruta GET /pago-directo/deuda');
         $this->assertStringContains("'/pago-directo/reportar'", $content, 'Debe registrarse la ruta POST /pago-directo/reportar');
         $this->assertStringContains("'/pago-directo/exito'", $content, 'Debe registrarse la ruta GET /pago-directo/exito');
@@ -69,6 +70,21 @@ class PagoDirectoTest extends TestCase {
             'La vista pública debe invocar el endpoint /pago-directo/extraer');
         $this->assertStringContains('Extracción Inteligente', $vista,
             'La vista pública debe rotular el Paso 1 como extracción inteligente');
+    }
+
+    public function testDeudaUsaConsultaConsistenteYSinCache(): void {
+        $base = dirname(__DIR__);
+        $controller = (string)file_get_contents($base . '/app/Controllers/PagoDirectoController.php');
+        $this->assertStringContains('getEstadoCuentaUnidad', $controller,
+            'La deuda debe resolverse en una sola consulta consistente');
+        $this->assertStringContains('Cache-Control: no-store', $controller,
+            'La respuesta de deuda no debe cachearse');
+
+        $view = (string)file_get_contents($base . '/app/views/pago_directo/index.php');
+        $this->assertStringContains("cache: 'no-store'", $view,
+            'El fetch de deuda debe evitar la caché del navegador');
+        $this->assertStringContains("&_=' + Date.now()", $view,
+            'La URL de deuda debe incluir un cache-buster');
     }
 
     public function testLoginEnlazaAlPagoDirecto(): void {
@@ -286,5 +302,39 @@ class PagoDirectoTest extends TestCase {
             'El controlador debe importar PersonasModel');
         $this->assertTrue(strpos($fuente, 'crearPago(null') === false,
             'El controlador no debe crear el pago directo con residente_id null');
+    }
+
+    public function testModeloUnidadesFiltraPorEdificio(): void {
+        $unidadesModel = new UnidadesModel();
+        $this->assertTrue(method_exists($unidadesModel, 'getActivasPorEdificio'),
+            'UnidadesModel debe contar con el método getActivasPorEdificio()');
+
+        $vacio = $unidadesModel->getActivasPorEdificio(0);
+        $this->assertEquals([], $vacio, 'ID 0 debe retornar arreglo vacío');
+
+        $edificios = (new \App\Models\EdificiosModel())->getActivos();
+        if (!empty($edificios)) {
+            $primerEdificioId = (int)$edificios[0]['id'];
+            $unidades = $unidadesModel->getActivasPorEdificio($primerEdificioId);
+            foreach ($unidades as $u) {
+                $this->assertEquals($primerEdificioId, (int)$u['edificio_id'],
+                    'Todas las unidades retornadas deben pertenecer al edificio consultado');
+            }
+        }
+    }
+
+    public function testCascadaEdificioYUnidadEnVista(): void {
+        $vista = (string)file_get_contents(dirname(__DIR__) . '/app/views/pago_directo/index.php');
+
+        $this->assertStringContains('cargarUnidadesPorEdificio', $vista,
+            'La vista debe llamar a cargarUnidadesPorEdificio al cambiar de edificio');
+        $this->assertStringContains('getPagoDirectoBasePath', $vista,
+            'La vista debe resolver la ruta base dinámicamente para peticiones AJAX');
+        $this->assertStringContains('Seleccione un edificio...', $vista,
+            'El selector de edificio debe tener el placeholder instructivo');
+        $this->assertStringContains('Primero seleccione un edificio...', $vista,
+            'El selector de unidad debe iniciar con placeholder instructivo condicional');
+        $this->assertStringContains('empty($unidades) ? \'disabled\' : \'\'', $vista,
+            'El selector de unidad debe estar deshabilitado cuando no hay unidades cargadas');
     }
 }

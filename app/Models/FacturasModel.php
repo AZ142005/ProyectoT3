@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use PDO;
 use App\Models\MovimientosModel;
 
 class FacturasModel extends BaseModel {
@@ -69,6 +70,59 @@ class FacturasModel extends BaseModel {
         return [
             'total_deuda' => round(floatval($row['total_deuda'] ?? 0), 2),
             'saldo_favor' => round(floatval($row['saldo_favor'] ?? 0), 2),
+        ];
+    }
+
+    /**
+     * Obtiene el estado de cuenta actual de una unidad en una sola consulta.
+     * Así la deuda pendiente, las facturas listadas y el saldo a favor siempre
+     * pertenecen al mismo instante y no se mezclan estados de pagos distintos.
+     *
+     * @return array{facturas: array, total_deuda: float, saldo_favor: float}
+     */
+    public function getEstadoCuentaUnidad(int $unidad_id): array {
+        $sql = "
+            SELECT numero_factura, mes, anio, fecha_vencimiento, saldo, estado
+            FROM facturas
+            WHERE unidad_id = :unidad_id
+              AND deleted_at IS NULL
+              AND saldo <> 0
+            ORDER BY fecha_vencimiento ASC, id ASC
+        ";
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute(['unidad_id' => $unidad_id]);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $facturas = [];
+        $totalDeuda = 0.0;
+        $saldoFavor = 0.0;
+
+        foreach ($filas as $fila) {
+            $saldo = round(floatval($fila['saldo']), 2);
+            $estado = strtolower((string)($fila['estado'] ?? ''));
+
+            if ($estado === 'anulada') {
+                continue;
+            }
+
+            if ($saldo > 0 && in_array($estado, ['pendiente', 'vencida'], true)) {
+                $totalDeuda += $saldo;
+                $facturas[] = [
+                    'numero_factura'    => $fila['numero_factura'],
+                    'mes'               => intval($fila['mes']),
+                    'anio'              => intval($fila['anio']),
+                    'fecha_vencimiento' => $fila['fecha_vencimiento'],
+                    'saldo'             => $saldo,
+                ];
+            } elseif ($saldo < 0) {
+                $saldoFavor += abs($saldo);
+            }
+        }
+
+        return [
+            'facturas'    => $facturas,
+            'total_deuda' => round($totalDeuda, 2),
+            'saldo_favor' => round($saldoFavor, 2),
         ];
     }
 
@@ -160,14 +214,42 @@ class FacturasModel extends BaseModel {
             $stmtSaldoFavor = $db->prepare("SELECT SUM(saldo) as total FROM facturas WHERE unidad_id = :unidad_id AND saldo < 0 FOR UPDATE");
             $stmtUpdateSaldoFavor = $db->prepare("UPDATE facturas SET saldo = 0 WHERE unidad_id = :unidad_id AND saldo < 0");
 
-            // Upsert por número de factura FAC-…: la búsqueda genérica por período
-            // (que confundía las CART-…) queda descartada; FOR UPDATE serializa
-            // emisiones concurrentes sobre el mismo número.
-            $stmtFacturaBuscar = $db->prepare("SELECT id, deleted_at, monto_total, monto_pagado FROM facturas WHERE numero_factura = :numero_factura LIMIT 1 FOR UPDATE");
-            $stmtFacturaActualizar = $db->prepare("UPDATE facturas SET monto_total = :monto_total, saldo = :saldo, estado = :estado WHERE id = :id");
-            $stmtFacturaReactivar = $db->prepare("UPDATE facturas SET deleted_at = NULL, monto_total = :monto_total, saldo = :saldo, estado = :estado WHERE id = :id");
+            // Serialización de emisiones concurrentes con bloqueo pesimista
+            $stmtFacturasPeriodo = $db->prepare("
+                SELECT id, numero_factura, monto_total, monto_pagado, saldo, estado, deleted_at 
+                FROM facturas 
+                WHERE unidad_id = :unidad_id 
+                  AND mes = :mes 
+                  AND anio = :anio 
+                  AND numero_factura LIKE 'FAC-%'
+                ORDER BY id ASC 
+                FOR UPDATE
+            ");
 
-            $stmtInsert = $db->prepare("
+            // Verificar si la factura o unidad tiene pagos en revisión asociados
+            $stmtCheckPagosRevision = $db->prepare("
+                SELECT 
+                    (SELECT COUNT(*) FROM comprobantes_pago WHERE factura_id = :factura_id AND estado IN ('pendiente', 'verificado')) +
+                    (SELECT COUNT(*) FROM pagos WHERE unidad_id = :unidad_id AND estado = 'PENDIENTE' AND deleted_at IS NULL)
+                AS total_revision
+            ");
+
+            // Verificar colisión de número de factura
+            $stmtExisteNumero = $db->prepare("SELECT id FROM facturas WHERE numero_factura = :numero_factura LIMIT 1");
+
+            // Regla de inmutabilidad: Modificar solo facturas activas impagas (NUNCA pagadas/canceladas)
+            $stmtFacturaActualizar = $db->prepare("
+                UPDATE facturas 
+                SET monto_total = :monto_total, saldo = :saldo, estado = :estado 
+                WHERE id = :id AND estado IN ('pendiente', 'vencida') AND deleted_at IS NULL
+            ");
+
+            $stmtFacturaReactivar = $db->prepare("
+                UPDATE facturas 
+                SET deleted_at = NULL, monto_total = :monto_total, saldo = :saldo, estado = :estado 
+                WHERE id = :id AND deleted_at IS NOT NULL
+            ");
+            $stmtCrearFactura = $db->prepare("
                 INSERT INTO facturas 
                 (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado) 
                 VALUES (:numero_factura, :unidad_id, :mes, :anio, :fecha_emision, :fecha_vencimiento, :monto_total, :monto_pagado, :saldo, :estado)
@@ -183,7 +265,8 @@ class FacturasModel extends BaseModel {
 
             $movModel = new MovimientosModel($db);
             $fecha_emision = date('Y-m-d');
-            $fecha_vencimiento = date('Y-m-d', strtotime('+15 days'));
+            // El vencimiento es el primer día del mes facturado (toda deuda se vence automáticamente el día 1)
+            $fecha_vencimiento = sprintf('%04d-%02d-01', $anio, $mes);
 
             foreach ($unidades as $unidad) {
                 $unidad_id = intval($unidad['id']);
@@ -208,44 +291,189 @@ class FacturasModel extends BaseModel {
                     continue;
                 }
 
-                $stmtFacturaBuscar->execute(['numero_factura' => $numero_factura]);
-                $existente = $stmtFacturaBuscar->fetch();
+                $baseNumeroFactura = $numero_factura;
 
-                if ($existente !== false) {
-                    // Ya existe (activa o soft-deleted): actualizar/reactivar conservando lo pagado
-                    $monto_anterior = round(floatval($existente['monto_total']), 2);
-                    $monto_pagado = round(floatval($existente['monto_pagado']), 2);
-                    $saldo_restante = round(max(0, $monto_factura - $monto_pagado), 2);
-                    $estado = $saldo_restante > 0 ? 'pendiente' : 'pagada';
+                // 1. Obtener todas las facturas FAC-… de esta unidad en el período
+                $stmtFacturasPeriodo->execute([
+                    'unidad_id' => $unidad_id,
+                    'mes'       => $mes,
+                    'anio'      => $anio
+                ]);
+                $facturasExistentes = $stmtFacturasPeriodo->fetchAll(PDO::FETCH_ASSOC);
 
-                    if ($existente['deleted_at'] !== null) {
-                        $stmtFacturaReactivar->execute([
-                            'monto_total' => $monto_factura,
-                            'saldo'       => $saldo_restante,
-                            'estado'      => $estado,
-                            'id'          => (int)$existente['id'],
-                        ]);
-                        $stats['reactivadas']++;
-                    } else {
+                $facturasPagadas = [];
+                $facturaPendiente = null;
+                $facturaInactiva = null;
+
+                foreach ($facturasExistentes as $f) {
+                    if ($f['deleted_at'] !== null) {
+                        $facturaInactiva = $f;
+                    } elseif ($f['estado'] === 'pagada') {
+                        $facturasPagadas[] = $f;
+                    } elseif (in_array($f['estado'], ['pendiente', 'vencida']) && $facturaPendiente === null) {
+                        $facturaPendiente = $f;
+                    }
+                }
+
+                $totalYaPagado = 0.0;
+                foreach ($facturasPagadas as $fp) {
+                    $totalYaPagado += round(floatval($fp['monto_pagado']), 2);
+                }
+
+                // CASO A: Existe una factura activa PENDIENTE para el período
+                if ($facturaPendiente !== null) {
+                    $stmtCheckPagosRevision->execute([
+                        'factura_id' => (int)$facturaPendiente['id'],
+                        'unidad_id'  => $unidad_id
+                    ]);
+                    $pagosRevision = (int)$stmtCheckPagosRevision->fetchColumn();
+
+                    // Si NO tiene pagos en revisión: actualiza el cobro activo pendiente (evita duplicados)
+                    if ($pagosRevision === 0) {
+                        $montoParaPendiente = ($totalYaPagado > 0)
+                            ? round(max(0, $monto_factura - $totalYaPagado), 2)
+                            : $monto_factura;
+
+                        $monto_anterior = round(floatval($facturaPendiente['monto_total']), 2);
+                        $monto_pagado_actual = round(floatval($facturaPendiente['monto_pagado']), 2);
+                        $saldo_restante = round(max(0, $montoParaPendiente - $monto_pagado_actual), 2);
+                        $estado = $saldo_restante > 0 ? 'vencida' : 'pagada';
+
                         $stmtFacturaActualizar->execute([
-                            'monto_total' => $monto_factura,
+                            'monto_total' => $montoParaPendiente,
                             'saldo'       => $saldo_restante,
                             'estado'      => $estado,
-                            'id'          => (int)$existente['id'],
+                            'id'          => (int)$facturaPendiente['id'],
                         ]);
                         $stats['actualizadas']++;
+
+                        $delta = round($montoParaPendiente - $monto_anterior, 2);
+                        if (abs($delta) >= 0.01) {
+                            $movModel->registrarMovimiento(
+                                $unidad_id,
+                                'ajuste',
+                                $delta,
+                                'Re-emisión ' . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$facturaPendiente['numero_factura']} (monto anterior Bs. " . number_format($monto_anterior, 2, ',', '.') . ')'
+                            );
+                        }
+                        continue;
+                    } else {
+                        // Factura pendiente protegida: tiene pagos en revisión asociados.
+                        // No se altera su monto mientras el comprobante/pago esté por auditar.
+                        // Si la nueva cuota supera lo comprometido, se genera un cobro complementario por el delta.
+                        $montoComprometido = $totalYaPagado + round(floatval($facturaPendiente['monto_total']), 2);
+                        $montoAjuste = round($monto_factura - $montoComprometido, 2);
+                        if ($montoAjuste <= 0.009) {
+                            continue;
+                        }
+
+                        $seq = 1;
+                        $numeroAjuste = $baseNumeroFactura . '-A' . $seq;
+                        while (true) {
+                            $stmtExisteNumero->execute(['numero_factura' => $numeroAjuste]);
+                            if (!$stmtExisteNumero->fetch()) {
+                                break;
+                            }
+                            $seq++;
+                            $numeroAjuste = $baseNumeroFactura . '-A' . $seq;
+                        }
+
+                        $stmtCrearFactura->execute([
+                            'numero_factura'    => $numeroAjuste,
+                            'unidad_id'         => $unidad_id,
+                            'mes'               => $mes,
+                            'anio'              => $anio,
+                            'fecha_emision'     => $fecha_emision,
+                            'fecha_vencimiento' => $fecha_vencimiento,
+                            'monto_total'       => $montoAjuste,
+                            'monto_pagado'      => 0.00,
+                            'saldo'             => $montoAjuste,
+                            'estado'            => 'vencida'
+                        ]);
+                        $facturaId = (int)$db->lastInsertId();
+
+                        $movModel->registrarMovimiento(
+                            $unidad_id,
+                            'cargo_factura',
+                            $montoAjuste,
+                            "Ajuste complementario " . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numeroAjuste}",
+                            $facturaId,
+                            'factura'
+                        );
+                        $stats['generadas']++;
+                        continue;
+                    }
+                }
+
+                // CASO B: Las facturas anteriores del mismo mes ya están PAGADAS (o pendiente bloqueada por pagos en revisión)
+                // Inmutabilidad histórica: NO se toca ni altera el cobro pagado/cerrado.
+                if (!empty($facturasPagadas) && $facturaPendiente === null) {
+                    $montoAjuste = round($monto_factura - $totalYaPagado, 2);
+                    if ($montoAjuste <= 0.009) {
+                        // El residente ya cubrió la totalidad del nuevo monto con sus pagos previos
+                        continue;
                     }
 
-                    // Ajuste en el libro mayor por el delta. Sin referencia explícita:
-                    // el mismo delta puede repetirse entre re-emisiones y la huella
-                    // de idempotencia descartaría el segundo ajuste legítimo.
+                    // Generar nuevo cobro activo (PENDIENTE) con sufijo determinista (-A1, -A2, ...)
+                    $seq = 1;
+                    $numeroAjuste = $baseNumeroFactura . '-A' . $seq;
+                    while (true) {
+                        $stmtExisteNumero->execute(['numero_factura' => $numeroAjuste]);
+                        if (!$stmtExisteNumero->fetch()) {
+                            break;
+                        }
+                        $seq++;
+                        $numeroAjuste = $baseNumeroFactura . '-A' . $seq;
+                    }
+
+                    $stmtCrearFactura->execute([
+                        'numero_factura'    => $numeroAjuste,
+                        'unidad_id'         => $unidad_id,
+                        'mes'               => $mes,
+                        'anio'              => $anio,
+                        'fecha_emision'     => $fecha_emision,
+                        'fecha_vencimiento' => $fecha_vencimiento,
+                        'monto_total'       => $montoAjuste,
+                        'monto_pagado'      => 0.00,
+                        'saldo'             => $montoAjuste,
+                        'estado'            => 'vencida'
+                    ]);
+                    $facturaId = (int)$db->lastInsertId();
+
+                    $movModel->registrarMovimiento(
+                        $unidad_id,
+                        'cargo_factura',
+                        $montoAjuste,
+                        "Ajuste cuota " . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numeroAjuste}",
+                        $facturaId,
+                        'factura'
+                    );
+                    $stats['generadas']++;
+                    continue;
+                }
+
+                // CASO C: Factura soft-deleted sin facturas pagadas previas: reactivar
+                if ($facturaInactiva !== null && empty($facturasPagadas) && $facturaPendiente === null) {
+                    $monto_anterior = round(floatval($facturaInactiva['monto_total']), 2);
+                    $monto_pagado = round(floatval($facturaInactiva['monto_pagado']), 2);
+                    $saldo_restante = round(max(0, $monto_factura - $monto_pagado), 2);
+                    $estado = $saldo_restante > 0 ? 'vencida' : 'pagada';
+
+                    $stmtFacturaReactivar->execute([
+                        'monto_total' => $monto_factura,
+                        'saldo'       => $saldo_restante,
+                        'estado'      => $estado,
+                        'id'          => (int)$facturaInactiva['id'],
+                    ]);
+                    $stats['reactivadas']++;
+
                     $delta = round($monto_factura - $monto_anterior, 2);
                     if (abs($delta) >= 0.01) {
                         $movModel->registrarMovimiento(
                             $unidad_id,
                             'ajuste',
                             $delta,
-                            'Re-emisión ' . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$numero_factura} (monto anterior Bs. " . number_format($monto_anterior, 2, ',', '.') . ')'
+                            'Reactivación ' . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . "/{$anio} - Factura {$facturaInactiva['numero_factura']}"
                         );
                     }
                     continue;
@@ -258,7 +486,7 @@ class FacturasModel extends BaseModel {
 
                 $monto_a_pagar = $monto_factura;
                 $saldo_restante = 0.0;
-                $estado = 'pendiente';
+                $estado = 'vencida';
                 $remanenteSaldoFavor = 0.0;
 
                 if ($saldo_favor < 0) {
@@ -275,14 +503,15 @@ class FacturasModel extends BaseModel {
                     } else {
                         $monto_a_pagar = round($monto_factura - $saldo_favor_abs, 2);
                         $saldo_restante = $monto_a_pagar;
-                        $estado = 'pendiente';
+                        $estado = 'vencida';
                         $stmtUpdateSaldoFavor->execute(['unidad_id' => $unidad_id]);
                     }
                 } else {
                     $saldo_restante = $monto_a_pagar;
+                    $estado = $saldo_restante > 0 ? 'vencida' : 'pagada';
                 }
 
-                $stmtInsert->execute([
+                $stmtCrearFactura->execute([
                     'numero_factura'    => $numero_factura,
                     'unidad_id'         => $unidad_id,
                     'mes'               => $mes,
@@ -299,7 +528,7 @@ class FacturasModel extends BaseModel {
                 // Si quedó remanente de saldo a favor tras cubrir la cuota, persistirlo para no perder el crédito
                 if ($remanenteSaldoFavor > 0.009) {
                     $numAbonoRem = 'ABONO-REM-' . $anio . str_pad((string)$mes, 2, '0', STR_PAD_LEFT) . '-' . str_pad((string)$unidad_id, 4, '0', STR_PAD_LEFT) . '-' . time() . '-' . mt_rand(100, 999);
-                    $stmtInsert->execute([
+                    $stmtCrearFactura->execute([
                         'numero_factura'    => $numAbonoRem,
                         'unidad_id'         => $unidad_id,
                         'mes'               => $mes,

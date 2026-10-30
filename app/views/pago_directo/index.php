@@ -70,10 +70,10 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="flex flex-col gap-2">
-                        <label for="edificio" class="text-sm font-semibold text-on-surface-variant">Edificio</label>
-                        <select id="edificio" name="edificio"
+                        <label for="edificio" class="text-sm font-semibold text-on-surface-variant">Edificio <span class="text-red-500">*</span></label>
+                        <select id="edificio" name="edificio" required
                                 class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
-                            <option value="">Todos los edificios</option>
+                            <option value="">Seleccione un edificio...</option>
                             <?php foreach ($edificios as $edif): ?>
                                 <option value="<?= e($edif['id']) ?>" <?= ($oldEdificio === (string)$edif['id']) ? 'selected' : '' ?>>
                                     <?= e($edif['nombre']) ?>
@@ -85,11 +85,11 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
                     <div class="flex flex-col gap-2">
                         <label for="unidad_select" class="text-sm font-semibold text-on-surface-variant">Unidad / Apartamento <span class="text-red-500">*</span></label>
                         <select id="unidad_select" name="unidad_id" required
-                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium">
-                            <option value="">Seleccione su unidad...</option>
+                                <?= empty($unidades) ? 'disabled' : '' ?>
+                                class="w-full px-4 py-3 bg-background border border-outline-variant rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium disabled:opacity-60 disabled:cursor-not-allowed">
+                            <option value=""><?= empty($unidades) ? 'Primero seleccione un edificio...' : 'Seleccione su unidad...' ?></option>
                             <?php foreach ($unidades as $u): ?>
                                 <option value="<?= e($u['id']) ?>"
-                                        data-edificio="<?= e($u['edificio_id']) ?>"
                                         <?= ($oldUnidad === (string)$u['id']) ? 'selected' : '' ?>>
                                     <?= e($u['numero']) ?>
                                 </option>
@@ -542,27 +542,87 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         deudaLoading.classList.remove('hidden');
     }
 
-    function filtrarUnidades() {
-        var edificio = edificioSelect.value;
-        var seleccionVisible = false;
+    function getPagoDirectoBasePath() {
+        return window.location.pathname.replace(/\/pago-directo(\/.*)?$/, '/pago-directo');
+    }
 
-        Array.prototype.forEach.call(unidadSelect.options, function (opt) {
-            if (!opt.value) { return; }
-            var coincide = !edificio || opt.getAttribute('data-edificio') === edificio;
-            opt.hidden = !coincide;
-            opt.disabled = !coincide;
-            opt.style.display = coincide ? '' : 'none';
-            if (coincide && opt.value === unidadSelect.value) { seleccionVisible = true; }
-        });
+    function cargarUnidadesPorEdificio(edificioId, unidadSeleccionadaPrevia) {
+        ocultarDeuda();
+        unidadSelect.innerHTML = '';
 
-        if (!seleccionVisible && unidadSelect.value) {
+        if (!edificioId || String(edificioId).trim() === '') {
+            var optDefault = document.createElement('option');
+            optDefault.value = '';
+            optDefault.textContent = 'Primero seleccione un edificio...';
+            unidadSelect.appendChild(optDefault);
+            unidadSelect.disabled = true;
             unidadSelect.value = '';
-            ocultarDeuda();
+            return;
         }
+
+        var optCargando = document.createElement('option');
+        optCargando.value = '';
+        optCargando.textContent = 'Cargando unidades...';
+        unidadSelect.appendChild(optCargando);
+        unidadSelect.disabled = true;
+
+        var url = getPagoDirectoBasePath() + '/unidades?edificio_id=' + encodeURIComponent(edificioId);
+
+        fetch(url, {
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(function (resp) {
+                return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
+            })
+            .then(function (res) {
+                unidadSelect.innerHTML = '';
+                var placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Seleccione su unidad...';
+                unidadSelect.appendChild(placeholder);
+
+                if (!res.ok || !res.data || !res.data.success || !Array.isArray(res.data.unidades)) {
+                    placeholder.textContent = 'Error al cargar unidades';
+                    return;
+                }
+
+                var unidades = res.data.unidades;
+                if (unidades.length === 0) {
+                    placeholder.textContent = 'No hay apartamentos registrados en este edificio';
+                    return;
+                }
+
+                var match = false;
+                unidades.forEach(function (u) {
+                    var opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = u.numero;
+                    if (unidadSeleccionadaPrevia && String(u.id) === String(unidadSeleccionadaPrevia)) {
+                        opt.selected = true;
+                        match = true;
+                    }
+                    unidadSelect.appendChild(opt);
+                });
+
+                unidadSelect.disabled = false;
+
+                if (match && unidadSelect.value) {
+                    consultarDeuda(unidadSelect.value);
+                }
+            })
+            .catch(function (err) {
+                console.error('Error al cargar unidades del edificio:', err);
+                unidadSelect.innerHTML = '';
+                var optErr = document.createElement('option');
+                optErr.value = '';
+                optErr.textContent = 'Error de conexión al cargar unidades';
+                unidadSelect.appendChild(optErr);
+                unidadSelect.disabled = true;
+            });
     }
 
     function consultarDeuda(unidadId) {
-        if (!unidadId) {
+        if (!unidadId || String(unidadId).trim() === '') {
             ocultarDeuda();
             return;
         }
@@ -572,7 +632,10 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
         deudaError.classList.add('hidden');
         deudaContenido.classList.add('hidden');
 
-        fetch('/pago-directo/deuda?unidad_id=' + encodeURIComponent(unidadId), {
+        var url = getPagoDirectoBasePath() + '/deuda?unidad_id=' + encodeURIComponent(unidadId) + '&_=' + Date.now();
+
+        fetch(url, {
+            cache: 'no-store',
             headers: { 'Accept': 'application/json' }
         })
             .then(function (resp) {
@@ -717,8 +780,7 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     });
 
     edificioSelect.addEventListener('change', function () {
-        filtrarUnidades();
-        consultarDeuda(unidadSelect.value);
+        cargarUnidadesPorEdificio(edificioSelect.value, null);
     });
 
     unidadSelect.addEventListener('change', function () {
@@ -743,15 +805,14 @@ $oldCuenta = (string)($old['cuenta_bancaria_id'] ?? '');
     }
 
     // Estado inicial: respeta los valores repoblados tras un error de validación
-    if (edificioSelect.value) {
-        filtrarUnidades();
+    if (edificioSelect.value && unidadSelect.options.length <= 1) {
+        cargarUnidadesPorEdificio(edificioSelect.value, '<?= e($oldUnidad) ?>');
+    } else if (unidadSelect.value) {
+        consultarDeuda(unidadSelect.value);
     }
     toggleBancoOtro(bancoSelect);
     actualizarInfoCuenta(cuentaSelect);
     actualizarRequisitoReferencia();
-    if (unidadSelect.value) {
-        consultarDeuda(unidadSelect.value);
-    }
 
     ['monto', 'fecha_pago', 'metodo_pago', 'banco_pagador', 'banco_pagador_otro', 'referencia', 'cuenta_bancaria_id'].forEach(function (id) {
         var el = document.getElementById(id);

@@ -15,6 +15,7 @@ class SaldoFavorTest extends TestCase {
         $this->assertTrue(method_exists(LiquidacionPagoService::class, 'aplicarPagoAUnidad'), "aplicarPagoAUnidad debe existir");
         $this->assertTrue(method_exists(FacturasModel::class, 'getSaldoFavorByUnidad'), "getSaldoFavorByUnidad debe existir");
         $this->assertTrue(method_exists(FacturasModel::class, 'getResumenFinancieroUnidad'), "getResumenFinancieroUnidad debe existir");
+        $this->assertTrue(method_exists(FacturasModel::class, 'getEstadoCuentaUnidad'), "getEstadoCuentaUnidad debe existir");
         $this->assertTrue(method_exists(FacturasModel::class, 'crearFacturasMasivas'), "crearFacturasMasivas debe existir");
     }
 
@@ -64,6 +65,66 @@ class SaldoFavorTest extends TestCase {
             $movModel = new MovimientosModel();
             $saldoMayor = $movModel->obtenerSaldoActualUnidad($unidadId);
             $this->assertEquals(-120.00, $saldoMayor, "El libro mayor debe reflejar el abono total");
+        } finally {
+            $db->rollBack();
+        }
+    }
+
+    public function testEstadoCuentaUnidadEsConsistenteYExcluyePagadas(): void {
+        $db = Database::getConnection();
+        $db->beginTransaction();
+
+        try {
+            $stmtU = $db->prepare("INSERT INTO unidades (numero, cuota_mensual, estado) VALUES (:num, 100.00, 1)");
+            $numUnidad = 'TEST-EC-' . mt_rand(1000, 9999);
+            $stmtU->execute(['num' => $numUnidad]);
+            $unidadId = intval($db->lastInsertId());
+
+            $insert = $db->prepare("
+                INSERT INTO facturas (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado)
+                VALUES (:num, :uid, :mes, 2026, CURDATE(), :venc, :total, :pagado, :saldo, :estado)
+            ");
+
+            $pagada = 'FAC-EC-PAG-' . mt_rand(1000, 9999);
+            $pagadaConSaldo = 'FAC-EC-BUG-' . mt_rand(1000, 9999);
+            $pendiente = 'FAC-EC-PEN-' . mt_rand(1000, 9999);
+            $abono = 'ABONO-EC-' . mt_rand(1000, 9999);
+
+            $insert->execute([
+                'num' => $pagada, 'uid' => $unidadId, 'mes' => 7, 'venc' => '2026-07-01',
+                'total' => 100.00, 'pagado' => 100.00, 'saldo' => 0.00, 'estado' => 'pagada',
+            ]);
+            $insert->execute([
+                'num' => $pagadaConSaldo, 'uid' => $unidadId, 'mes' => 7, 'venc' => '2026-07-15',
+                'total' => 10.00, 'pagado' => 0.00, 'saldo' => 10.00, 'estado' => 'pagada',
+            ]);
+            $insert->execute([
+                'num' => $pendiente, 'uid' => $unidadId, 'mes' => 8, 'venc' => '2026-08-01',
+                'total' => 50.00, 'pagado' => 0.00, 'saldo' => 50.00, 'estado' => 'vencida',
+            ]);
+            $insert->execute([
+                'num' => $abono, 'uid' => $unidadId, 'mes' => 8, 'venc' => '2026-08-01',
+                'total' => 0.00, 'pagado' => 30.00, 'saldo' => -30.00, 'estado' => 'pagada',
+            ]);
+
+            $estado = (new FacturasModel())->getEstadoCuentaUnidad($unidadId);
+
+            $this->assertEquals(50.00, $estado['total_deuda'],
+                'La deuda debe ser solo el saldo positivo de facturas pendientes/vencidas');
+            $this->assertEquals(30.00, $estado['saldo_favor'],
+                'El saldo a favor debe ser el valor absoluto del saldo negativo');
+            $this->assertEquals(1, count($estado['facturas']),
+                'Solo debe listar la factura pendiente, no las pagadas ni el abono');
+            $this->assertEquals($pendiente, $estado['facturas'][0]['numero_factura'],
+                'La factura listada debe ser la pendiente');
+
+            $numerosListados = array_column($estado['facturas'], 'numero_factura');
+            $this->assertFalse(in_array($pagada, $numerosListados, true),
+                'La factura pagada no debe aparecer en la deuda');
+            $this->assertFalse(in_array($pagadaConSaldo, $numerosListados, true),
+                'Una factura marcada pagada no debe aparecer aunque conserve un saldo residual');
+            $this->assertFalse(in_array($abono, $numerosListados, true),
+                'El abono no debe aparecer como deuda');
         } finally {
             $db->rollBack();
         }
@@ -175,6 +236,48 @@ class SaldoFavorTest extends TestCase {
 
             $deudaRestante = $facturasModel->getTotalDeudaByUnidad($unidadId);
             $this->assertEquals(0.00, $deudaRestante, "La factura nueva nació pagada, la deuda debe ser 0.00");
+        } finally {
+            $db->rollBack();
+        }
+    }
+    public function testLiquidacionFacturasVencidas(): void {
+        $db = Database::getConnection();
+        $db->beginTransaction();
+
+        try {
+            // 1. Crear unidad temporal
+            $stmtU = $db->prepare("INSERT INTO unidades (numero, cuota_mensual, estado) VALUES (:num, 100.00, 1)");
+            $numUnidad = 'TEST-VENC-' . mt_rand(1000, 9999);
+            $stmtU->execute(['num' => $numUnidad]);
+            $unidadId = intval($db->lastInsertId());
+
+            // 2. Factura 1 (100.00, mes anterior vencida)
+            $stmtF1 = $db->prepare("
+                INSERT INTO facturas (numero_factura, unidad_id, mes, anio, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, saldo, estado)
+                VALUES (:num, :uid, 9, 2026, '2026-09-01', '2026-09-30', 100.00, 0.00, 100.00, 'vencida')
+            ");
+            $numF1 = 'FAC-VENC-1-' . mt_rand(1000, 9999);
+            $stmtF1->execute(['num' => $numF1, 'uid' => $unidadId]);
+            $f1Id = intval($db->lastInsertId());
+
+            // 3. Aplicar pago de 100.00
+            $service = new LiquidacionPagoService();
+            $resumen = $service->aplicarPagoAUnidad($db, $unidadId, 100.00, 'Test Pago Vencida');
+
+            $this->assertEquals(100.00, $resumen['total_aplicado_deuda'], "Debe aplicar los 100.00 a la factura vencida");
+            $this->assertEquals(0.00, $resumen['saldo_a_favor_generado'], "No debe generar saldo a favor fantasma");
+            $this->assertEquals(1, count($resumen['facturas_afectadas']), "Debe afectar la factura vencida");
+
+            // 4. Verificar estado final de la factura
+            $stmtCheck = $db->prepare("SELECT saldo, monto_pagado, estado FROM facturas WHERE id = :id");
+            $stmtCheck->execute(['id' => $f1Id]);
+            $fActual = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            $this->assertEquals(0.00, floatval($fActual['saldo']), "El saldo debe ser 0.00");
+            $this->assertEquals('pagada', $fActual['estado'], "El estado debe cambiar a 'pagada'");
+
+            $facturasModel = new FacturasModel();
+            $this->assertEquals(0.00, $facturasModel->getTotalDeudaByUnidad($unidadId), "Deuda debe ser 0.00");
+            $this->assertEquals(0.00, $facturasModel->getSaldoFavorByUnidad($unidadId), "Saldo a favor debe ser 0.00");
         } finally {
             $db->rollBack();
         }

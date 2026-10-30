@@ -38,6 +38,36 @@ class PagoDirectoController extends Controller {
      * Endpoint público JSON con la deuda de una unidad activa.
      * No expone datos personales: solo periodos, vencimientos y saldos.
      */
+    /**
+     * Endpoint público JSON que retorna las unidades activas de un edificio.
+     * Utilizado para el filtrado en cascada (Edificio -> Unidad).
+     */
+    public function unidades(): void {
+        $edificioId = is_scalar($_GET['edificio_id'] ?? null) ? intval($_GET['edificio_id']) : 0;
+        if ($edificioId <= 0) {
+            $this->json([
+                'success'  => true,
+                'unidades' => []
+            ]);
+        }
+
+        $unidades = (new UnidadesModel())->getActivasPorEdificio($edificioId);
+
+        $resultado = [];
+        foreach ($unidades as $u) {
+            $resultado[] = [
+                'id'          => intval($u['id']),
+                'numero'      => $u['numero'],
+                'edificio_id' => intval($u['edificio_id'])
+            ];
+        }
+
+        $this->json([
+            'success'  => true,
+            'unidades' => $resultado
+        ]);
+    }
+
     public function deuda(): void {
         // Rate limiting por IP: máximo 60 consultas por hora
         if (!RateLimiter::attempt('pago_directo_deuda', 60, 3600)) {
@@ -65,19 +95,13 @@ class PagoDirectoController extends Controller {
         }
 
         $facturasModel = new FacturasModel();
-        $resumen = $facturasModel->getResumenFinancieroUnidad($unidadId);
-        $pendientes = $facturasModel->getPendientesByUnidad($unidadId);
+        $estadoCuenta = $facturasModel->getEstadoCuentaUnidad($unidadId);
 
-        $facturas = [];
-        foreach ($pendientes as $f) {
-            $facturas[] = [
-                'numero_factura'    => $f['numero_factura'],
-                'mes'               => intval($f['mes']),
-                'anio'              => intval($f['anio']),
-                'fecha_vencimiento' => $f['fecha_vencimiento'],
-                'saldo'             => round(floatval($f['saldo']), 2)
-            ];
-        }
+        // La deuda y el saldo a favor se leen en una sola consulta para no
+        // mezclar el estado previo y posterior a un pago recién aprobado.
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         $this->json([
             'success'     => true,
@@ -86,9 +110,9 @@ class PagoDirectoController extends Controller {
                 'numero' => $unidad['numero']
             ],
             'edificio'    => $unidad['edificio_nombre'] ?? '',
-            'total_deuda' => $resumen['total_deuda'],
-            'saldo_favor' => $resumen['saldo_favor'],
-            'facturas'    => $facturas
+            'total_deuda' => $estadoCuenta['total_deuda'],
+            'saldo_favor' => $estadoCuenta['saldo_favor'],
+            'facturas'    => $estadoCuenta['facturas']
         ]);
     }
 
@@ -370,10 +394,26 @@ class PagoDirectoController extends Controller {
      * @param array $old Valores enviados por POST para repoblar el formulario
      */
     private function renderFormulario(string $error = '', array $old = []): void {
+        $unidades = [];
+        $oldEdificio = is_scalar($old['edificio'] ?? null) ? intval($old['edificio']) : 0;
+        $oldUnidad = is_scalar($old['unidad_id'] ?? null) ? intval($old['unidad_id']) : 0;
+
+        if ($oldEdificio <= 0 && $oldUnidad > 0) {
+            $u = (new UnidadesModel())->getById($oldUnidad);
+            if ($u && !empty($u['edificio_id'])) {
+                $oldEdificio = intval($u['edificio_id']);
+                $old['edificio'] = (string)$oldEdificio;
+            }
+        }
+
+        if ($oldEdificio > 0) {
+            $unidades = (new UnidadesModel())->getActivasPorEdificio($oldEdificio);
+        }
+
         $this->render('pago_directo/index', [
             'edificios'        => (new EdificiosModel())->getActivos(),
             'cuentasBancarias' => (new CuentasBancariasModel())->getActivas(),
-            'unidades'         => (new UnidadesModel())->getActivas(),
+            'unidades'         => $unidades,
             'error'            => $error,
             'old'              => $old,
             'showNav'          => false,
