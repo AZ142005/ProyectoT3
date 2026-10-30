@@ -415,4 +415,14 @@ class UsuarioAdminAccionesTest extends TestCase {
         $this->assertStringContains("document.getElementById('act_cedula').value", $content,
             "El JS debe prellenar la cédula");
     }
+
+    public function testEdicionCedulaSinCambioNoBloqueaDuplicado(): void {
+        $content = file_get_contents(dirname(__DIR__) . '/app/Controllers/UsuarioAdminController.php');
+
+        $this->assertStringContains(
+            '$cedulaNormalizada !== $cedulaActual && $personasModel->cedulaExistsNormalizada',
+            $content,
+            'Solo debe validar duplicado cuando la cédula cambia; guardar una cédula ya duplicada sin modificarla no debe bloquear'
+        );
+    }
 }

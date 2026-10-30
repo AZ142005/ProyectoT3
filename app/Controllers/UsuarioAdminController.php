@@ -554,7 +554,7 @@ class UsuarioAdminController extends Controller {
             return;
         }
 
-        if ($personasModel->cedulaExistsNormalizada($cedulaInput, $id)) {
+        if ($cedulaNormalizada !== $cedulaActual && $personasModel->cedulaExistsNormalizada($cedulaInput, $id)) {
             Flash::error('La cédula ya se encuentra registrada por otro residente.');
             $this->redirect('/admin/usuarios');
             return;

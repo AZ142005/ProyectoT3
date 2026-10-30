@@ -68,10 +68,27 @@ y tokens.
 
 ## Próximo paso
 
-1. Resolver los 7 propietarios con `SIN-`: 1-06, 2-06, 3-43, 4-12, 5-63, 5-65 y 6-35.
-   Los tres últimos son segundas unidades de una cédula duplicada; los tres primeros
-   no aparecen en el listado de condóminos.
+1. Resolver los 4 propietarios restantes con `SIN-`: 1-06, 2-06, 3-43 y 5-65.
+   4-12, 5-63 y 6-35 quedaron resueltos el 2026-10-30 al quitar el UNIQUE global de
+   `personas.cedula`.
 2. Asignar las cédulas huérfanas 083 (JESUS ARAUJO) y 110 (THAIS PAREDES) cuando se
    conozca su apartamento.
 3. Revisar 6-66: el teléfono coincide pero el nombre del condómino es distinto.
 4. Exigir cambio de clave en el primer acceso: la clave inicial es la cédula numérica.
+
+## Actualización 2026-10-30 — cédula sin UNIQUE global
+
+- `scripts/migrate_personas_cedula_no_unique.php` eliminó el índice UNIQUE de
+  `personas.cedula` y agregó el índice no único `idx_personas_cedula`.
+- Se completaron las cédulas de las segundas unidades:
+  - 4-12 → `V-24566338` (misma persona que 1-25).
+  - 5-63 → `V-3453682` (misma persona que 5-36).
+  - 6-35 → `V-16266526` (misma persona que 6-32).
+- El login sigue siendo por correo; una misma cédula puede existir en unidades
+  distintas.
+- `UsuarioAdminController` solo valida duplicado cuando la cédula cambia, para no
+  bloquear guardar una cédula duplicada que ya estaba registrada.
+- `database/condominio_cobranzas.sql` actualizado con el índice no único y las tres
+  cédulas corregidas.
+- Quedan `SIN-` solo donde la fuente no trae cédula: 1-06, 2-06, 3-43 y 5-65.
+

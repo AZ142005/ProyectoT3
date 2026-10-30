@@ -66,4 +66,60 @@ class SchemaDriftTest extends TestCase {
         $this->assertGreaterThan(0, (int)$stmt->fetchColumn(),
             'El índice idx_hist_creado debe existir (migración de retención aplicada)');
     }
+
+    public function testCedulaDePersonasNoEsUnica(): void {
+        $db = $this->db();
+        $stmt = $db->query("SHOW INDEX FROM personas WHERE Column_name = 'cedula'");
+        $tieneUnico = false;
+        $tieneNoUnico = false;
+
+        foreach ($stmt as $indice) {
+            if ((int)$indice['Non_unique'] === 0) {
+                $tieneUnico = true;
+            } else {
+                $tieneNoUnico = true;
+            }
+        }
+
+        $this->assertFalse($tieneUnico, 'personas.cedula no debe tener un índice UNIQUE');
+        $this->assertTrue($tieneNoUnico, 'personas.cedula debe tener un índice no único para búsquedas');
+    }
+
+    public function testCedulaPuedeRepetirseEnUnidadesDistintas(): void {
+        $db = $this->db();
+        $db->beginTransaction();
+
+        try {
+            $sufijo = bin2hex(random_bytes(4));
+            $cedula = 'V-TEST' . $sufijo;
+
+            $stmtU = $db->prepare("INSERT INTO unidades (numero, cuota_mensual, estado) VALUES (:numero, 0.00, 1)");
+            $stmtU->execute(['numero' => 'TEST-CED-A-' . $sufijo]);
+            $unidadA = (int)$db->lastInsertId();
+            $stmtU->execute(['numero' => 'TEST-CED-B-' . $sufijo]);
+            $unidadB = (int)$db->lastInsertId();
+
+            $stmtP = $db->prepare("
+                INSERT INTO personas (cedula, nombre, apellido, email, unidad_id, tipo, estado)
+                VALUES (:cedula, 'Test', 'Cedula', :email, :unidad_id, 'propietario', 1)
+            ");
+            $stmtP->execute([
+                'cedula'    => $cedula,
+                'email'     => 'ced-a-' . $sufijo . '@example.com',
+                'unidad_id' => $unidadA,
+            ]);
+            $stmtP->execute([
+                'cedula'    => $cedula,
+                'email'     => 'ced-b-' . $sufijo . '@example.com',
+                'unidad_id' => $unidadB,
+            ]);
+
+            $stmt = $db->prepare("SELECT COUNT(*) FROM personas WHERE cedula = :cedula");
+            $stmt->execute(['cedula' => $cedula]);
+            $this->assertEquals(2, (int)$stmt->fetchColumn(),
+                'La misma cédula debe poder existir en dos unidades distintas');
+        } finally {
+            $db->rollBack();
+        }
+    }
 }
